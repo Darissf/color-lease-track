@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, BedDouble, Bath, Home, Plus } from "lucide-react";
+import { formatRupiah } from "@/lib/currency";
 
 const properties = [
   {
@@ -11,8 +12,8 @@ const properties = [
     type: "Apartment",
     bedrooms: 2,
     bathrooms: 2,
-    rent: "$2,500",
-    status: "Occupied",
+    rent: 7500000,
+    status: "Dihuni",
     tenant: "Sarah Johnson",
     image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop"
   },
@@ -23,8 +24,8 @@ const properties = [
     type: "Condo",
     bedrooms: 1,
     bathrooms: 1,
-    rent: "$1,800",
-    status: "Occupied",
+    rent: 5400000,
+    status: "Dihuni",
     tenant: "Michael Chen",
     image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop"
   },
@@ -35,8 +36,8 @@ const properties = [
     type: "Apartment",
     bedrooms: 3,
     bathrooms: 2,
-    rent: "$2,200",
-    status: "Occupied",
+    rent: 6500000,
+    status: "Dihuni",
     tenant: "Emily Rodriguez",
     image: "https://images.unsplash.com/photo-1502672260066-6bc2a9ee6e06?w=800&h=600&fit=crop"
   },
@@ -47,8 +48,8 @@ const properties = [
     type: "Loft",
     bedrooms: 2,
     bathrooms: 1,
-    rent: "$2,800",
-    status: "Vacant",
+    rent: 8000000,
+    status: "Kosong",
     tenant: null,
     image: "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop"
   },
@@ -59,7 +60,7 @@ const properties = [
     type: "Studio",
     bedrooms: 1,
     bathrooms: 1,
-    rent: "$1,500",
+    rent: 4500000,
     status: "Maintenance",
     tenant: null,
     image: "https://images.unsplash.com/photo-1515263487990-61b07816b324?w=800&h=600&fit=crop"
@@ -71,8 +72,8 @@ const properties = [
     type: "Apartment",
     bedrooms: 2,
     bathrooms: 2,
-    rent: "$1,950",
-    status: "Occupied",
+    rent: 5800000,
+    status: "Dihuni",
     tenant: "David Kim",
     image: "https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800&h=600&fit=crop"
   },
@@ -81,9 +82,9 @@ const properties = [
 const Properties = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Occupied":
+      case "Dihuni":
         return "bg-accent/10 text-accent border-accent/20";
-      case "Vacant":
+      case "Kosong":
         return "bg-secondary/10 text-secondary border-secondary/20";
       case "Maintenance":
         return "bg-warning/10 text-warning border-warning/20";
@@ -100,11 +101,11 @@ const Properties = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-2">
             Properties
           </h1>
-          <p className="text-muted-foreground">Manage and track all your rental properties</p>
+          <p className="text-muted-foreground">Kelola dan lacak semua properti sewaan Anda</p>
         </div>
         <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
           <Plus className="mr-2 h-4 w-4" />
-          Add Property
+          Tambah Properti
         </Button>
       </div>
 
@@ -146,19 +147,19 @@ const Properties = () => {
 
               <div className="flex items-center justify-between pt-4 border-t border-border">
                 <div>
-                  <p className="text-sm text-muted-foreground">Monthly Rent</p>
-                  <p className="text-2xl font-bold text-primary">{property.rent}</p>
+                  <p className="text-sm text-muted-foreground">Sewa Bulanan</p>
+                  <p className="text-2xl font-bold text-primary">{formatRupiah(property.rent)}</p>
                 </div>
                 {property.tenant && (
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Tenant</p>
+                    <p className="text-sm text-muted-foreground">Penyewa</p>
                     <p className="text-sm font-semibold text-foreground">{property.tenant}</p>
                   </div>
                 )}
               </div>
 
               <Button variant="outline" className="w-full mt-4 border-primary/20 text-primary hover:bg-primary/10">
-                View Details
+                Lihat Detail
               </Button>
             </div>
           </Card>

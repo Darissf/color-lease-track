@@ -113,11 +113,11 @@ const Tasks = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-2">
             Maintenance Tasks
           </h1>
-          <p className="text-muted-foreground">Track and manage property maintenance and repairs</p>
+          <p className="text-muted-foreground">Lacak dan kelola pemeliharaan dan perbaikan properti</p>
         </div>
         <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
           <Plus className="mr-2 h-4 w-4" />
-          Add Task
+          Tambah Tugas
         </Button>
       </div>
 
@@ -126,7 +126,7 @@ const Tasks = () => {
         <Card className="p-6 gradient-card border-0 shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Tasks</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Tugas</p>
               <p className="text-3xl font-bold text-foreground mt-1">{tasks.length}</p>
             </div>
             <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
@@ -138,7 +138,7 @@ const Tasks = () => {
         <Card className="p-6 gradient-card border-0 shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">In Progress</p>
+              <p className="text-sm font-medium text-muted-foreground">Dalam Proses</p>
               <p className="text-3xl font-bold text-primary mt-1">
                 {tasks.filter(t => t.status === "In Progress").length}
               </p>
@@ -152,7 +152,7 @@ const Tasks = () => {
         <Card className="p-6 gradient-card border-0 shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Completed</p>
+              <p className="text-sm font-medium text-muted-foreground">Selesai</p>
               <p className="text-3xl font-bold text-accent mt-1">
                 {tasks.filter(t => t.completed).length}
               </p>
@@ -166,7 +166,7 @@ const Tasks = () => {
         <Card className="p-6 gradient-card border-0 shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">High Priority</p>
+              <p className="text-sm font-medium text-muted-foreground">Prioritas Tinggi</p>
               <p className="text-3xl font-bold text-destructive mt-1">
                 {tasks.filter(t => t.priority === "High" && !t.completed).length}
               </p>
@@ -180,7 +180,7 @@ const Tasks = () => {
 
       {/* Tasks List */}
       <Card className="p-6 gradient-card border-0 shadow-md">
-        <h3 className="text-lg font-semibold mb-4 text-foreground">All Tasks</h3>
+        <h3 className="text-lg font-semibold mb-4 text-foreground">Semua Tugas</h3>
         <div className="space-y-3">
           {tasks.map((task) => (
             <div 
@@ -217,7 +217,7 @@ const Tasks = () => {
               </div>
 
               <Button variant="outline" size="sm" className="border-primary/20 text-primary hover:bg-primary/10">
-                View Details
+                Lihat Detail
               </Button>
             </div>
           ))}

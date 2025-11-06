@@ -25,7 +25,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <Building2 className="h-5 w-5 text-white" />
               </div>
               <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                RentFlow
+                Financial Tracker
               </span>
             </div>
           </div>

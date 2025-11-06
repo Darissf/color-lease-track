@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Phone, Home, Calendar, Plus } from "lucide-react";
+import { formatRupiah } from "@/lib/currency";
 
 const tenants = [
   {
@@ -10,7 +11,7 @@ const tenants = [
     email: "sarah.j@email.com",
     phone: "(555) 123-4567",
     property: "Sunset Villa #12",
-    rent: "$2,500",
+    rent: 7500000,
     leaseStart: "Jan 1, 2025",
     leaseEnd: "Dec 31, 2025",
     status: "Active",
@@ -22,7 +23,7 @@ const tenants = [
     email: "m.chen@email.com",
     phone: "(555) 234-5678",
     property: "Harbor View #7",
-    rent: "$1,800",
+    rent: 5400000,
     leaseStart: "Mar 15, 2025",
     leaseEnd: "Mar 14, 2026",
     status: "Active",
@@ -34,7 +35,7 @@ const tenants = [
     email: "emily.r@email.com",
     phone: "(555) 345-6789",
     property: "Garden Court #23",
-    rent: "$2,200",
+    rent: 6500000,
     leaseStart: "Feb 1, 2025",
     leaseEnd: "Jan 31, 2026",
     status: "Active",
@@ -46,7 +47,7 @@ const tenants = [
     email: "david.kim@email.com",
     phone: "(555) 456-7890",
     property: "Parkside #15",
-    rent: "$1,950",
+    rent: 5800000,
     leaseStart: "Apr 1, 2025",
     leaseEnd: "Mar 31, 2026",
     status: "Active",
@@ -63,11 +64,11 @@ const Tenants = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-2">
             Tenants
           </h1>
-          <p className="text-muted-foreground">Manage tenant information and leases</p>
+          <p className="text-muted-foreground">Kelola informasi penyewa dan kontrak sewa</p>
         </div>
         <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
           <Plus className="mr-2 h-4 w-4" />
-          Add Tenant
+          Tambah Penyewa
         </Button>
       </div>
 
@@ -87,12 +88,12 @@ const Tenants = () => {
                       ? "bg-accent/10 text-accent border-accent/20"
                       : "bg-warning/10 text-warning border-warning/20"
                   } border`}>
-                    {tenant.paymentStatus}
+                    {tenant.paymentStatus === "Current" ? "Lancar" : "Tertunda"}
                   </Badge>
                 </div>
               </div>
               <Badge className="bg-primary/10 text-primary border-primary/20 border">
-                {tenant.status}
+                {tenant.status === "Active" ? "Aktif" : tenant.status}
               </Badge>
             </div>
 
@@ -113,11 +114,11 @@ const Tenants = () => {
 
             <div className="border-t border-border pt-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Monthly Rent</span>
-                <span className="text-lg font-bold text-primary">{tenant.rent}</span>
+                <span className="text-sm text-muted-foreground">Sewa Bulanan</span>
+                <span className="text-lg font-bold text-primary">{formatRupiah(tenant.rent)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Lease Period</span>
+                <span className="text-sm text-muted-foreground">Periode Sewa</span>
                 <div className="flex items-center gap-1 text-sm font-medium text-foreground">
                   <Calendar className="h-4 w-4" />
                   <span>{tenant.leaseStart} - {tenant.leaseEnd}</span>
@@ -127,10 +128,10 @@ const Tenants = () => {
 
             <div className="flex gap-2 mt-4">
               <Button variant="outline" className="flex-1 border-primary/20 text-primary hover:bg-primary/10">
-                View Details
+                Lihat Detail
               </Button>
               <Button variant="outline" className="flex-1 border-secondary/20 text-secondary hover:bg-secondary/10">
-                Contact
+                Hubungi
               </Button>
             </div>
           </Card>
