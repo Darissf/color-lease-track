@@ -1,0 +1,151 @@
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Library, LogIn, LogOut, Landmark, TrendingDown, Book, Settings as SettingsIcon } from "lucide-react";
+
+const settingsMenu = [
+  { 
+    id: 1, 
+    title: "Pengaturan Akun Rekening", 
+    icon: Library, 
+    color: "gradient-primary",
+    description: "Kelola akun dan rekening bank Anda"
+  },
+  { 
+    id: 2, 
+    title: "Pengaturan Pemasukan", 
+    icon: LogIn, 
+    color: "gradient-success",
+    description: "Atur sumber pemasukan tetap"
+  },
+  { 
+    id: 3, 
+    title: "Pengaturan Pengeluaran Tetap", 
+    icon: LogOut, 
+    color: "gradient-secondary",
+    description: "Kelola pengeluaran rutin bulanan"
+  },
+  { 
+    id: 4, 
+    title: "Pengaturan Tabungan", 
+    icon: Landmark, 
+    color: "bg-gradient-to-br from-accent to-primary",
+    description: "Atur target dan alokasi tabungan"
+  },
+  { 
+    id: 5, 
+    title: "Pengaturan Pengeluaran Variabel", 
+    icon: TrendingDown, 
+    color: "bg-gradient-to-br from-warning to-secondary",
+    description: "Kategorikan pengeluaran tidak tetap"
+  },
+];
+
+const learningResources = [
+  {
+    id: 1,
+    title: "Metode Kakeibo",
+    description: "Pelajari teknik budgeting Jepang untuk mengatur keuangan dengan bijak"
+  },
+  {
+    id: 2,
+    title: "Cara Mencatat Keuangan",
+    description: "Panduan lengkap mencatat transaksi harian dan bulanan"
+  },
+  {
+    id: 3,
+    title: "Tips Menabung Efektif",
+    description: "Strategi menabung yang terbukti efektif untuk mencapai tujuan finansial"
+  },
+];
+
+const Settings = () => {
+  return (
+    <div className="min-h-screen p-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-2">
+          Mulai di sini! Pengaturan
+        </h1>
+        <p className="text-muted-foreground">Konfigurasikan akun dan preferensi keuangan Anda</p>
+      </div>
+
+      {/* Settings Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        {settingsMenu.map((setting) => (
+          <Card 
+            key={setting.id} 
+            className="p-6 gradient-card border-0 shadow-md card-hover cursor-pointer group"
+          >
+            <div className="flex flex-col space-y-4">
+              <div className={`h-16 w-16 rounded-xl ${setting.color} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all`}>
+                <setting.icon className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-foreground mb-2">{setting.title}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{setting.description}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="w-full border-primary/20 text-primary hover:bg-primary/10"
+                >
+                  <SettingsIcon className="h-4 w-4 mr-2" />
+                  Atur
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Learning Section */}
+      <Card className="p-6 gradient-card border-0 shadow-md mb-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+            <Book className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Pembelajaran</h2>
+            <p className="text-sm text-muted-foreground">Tingkatkan literasi keuangan Anda</p>
+          </div>
+        </div>
+        
+        <div className="space-y-4">
+          {learningResources.map((resource) => (
+            <div 
+              key={resource.id}
+              className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer group"
+            >
+              <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
+                {resource.title}
+              </h3>
+              <p className="text-sm text-muted-foreground">{resource.description}</p>
+            </div>
+          ))}
+        </div>
+
+        <Button className="w-full mt-6 gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
+          <Book className="mr-2 h-4 w-4" />
+          Lihat Semua Tutorial
+        </Button>
+      </Card>
+
+      {/* Welcome Card */}
+      <Card className="p-6 gradient-card border-0 shadow-md">
+        <div className="text-center space-y-4">
+          <div className="inline-flex h-20 w-20 rounded-full gradient-success items-center justify-center shadow-lg mx-auto">
+            <SettingsIcon className="h-10 w-10 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-foreground mb-2">Selamat Datang di Financial Tracker!</h3>
+            <p className="text-muted-foreground">
+              Mulai dengan mengatur akun rekening dan sumber pemasukan Anda. 
+              Kemudian lanjutkan dengan mencatat transaksi harian untuk mendapatkan gambaran keuangan yang jelas.
+            </p>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default Settings;

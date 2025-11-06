@@ -1,9 +1,14 @@
-import { Home, Building2, Users, DollarSign, ListTodo } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
+  { title: "Aksi Cepat", url: "/quick-actions", icon: ListTodo },
+  { title: "Dasbor Bulanan", url: "/monthly", icon: Calendar },
+  { title: "Anggaran & Tabungan", url: "/budget", icon: PiggyBank },
+  { title: "Laporan Tahunan", url: "/reports", icon: FileText },
+  { title: "Pengaturan", url: "/settings", icon: Settings },
   { title: "Properties", url: "/properties", icon: Building2 },
   { title: "Tenants", url: "/tenants", icon: Users },
   { title: "Finances", url: "/finances", icon: DollarSign },
@@ -49,9 +54,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Footer */}
           <div className="border-t border-border p-4">
             <div className="rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 p-3">
-              <p className="text-xs font-semibold text-foreground">Need Help?</p>
+              <p className="text-xs font-semibold text-foreground">Financial Planner</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Contact support for assistance
+                Metode Kakeibo - Versi 2025
               </p>
             </div>
           </div>
