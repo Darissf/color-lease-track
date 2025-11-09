@@ -1,7 +1,8 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { EditModeToggle } from "@/components/EditModeToggle";
 import { useState } from "react";
 
 const navItems = [
@@ -21,6 +22,7 @@ const pagesItems = [
 
 const adminNavItems = [
   { title: "Pengaturan", url: "/settings", icon: Settings },
+  { title: "Content Management", url: "/content-management", icon: Edit3, superAdminOnly: true },
   { title: "Audit Logs", url: "/audit-logs", icon: Shield, superAdminOnly: true },
 ];
 
@@ -181,6 +183,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Page Content */}
         <main className="flex-1 overflow-auto bg-background p-6">
           {children}
+          <EditModeToggle />
         </main>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { FileText, Calendar, PiggyBank, TrendingUp } from "lucide-react";
+import { EditableText } from "@/components/EditableText";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -10,12 +11,20 @@ const Index = () => {
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Header */}
       <div className="text-center space-y-4">
-        <h1 className="text-4xl md:text-5xl font-bold text-foreground">
-          Selamat Datang di Financial Planner
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          Metode Kakeibo untuk Perencanaan Keuangan yang Lebih Baik
-        </p>
+        <EditableText 
+          contentKey="home.title"
+          defaultValue="Selamat Datang di Financial Planner"
+          as="h1"
+          category="heading"
+          className="text-4xl md:text-5xl font-bold text-foreground"
+        />
+        <EditableText
+          contentKey="home.subtitle"
+          defaultValue="Metode Kakeibo untuk Perencanaan Keuangan yang Lebih Baik"
+          as="p"
+          category="heading"
+          className="text-lg text-muted-foreground"
+        />
       </div>
 
       {/* Quick Access Cards */}
@@ -29,10 +38,20 @@ const Index = () => {
               <FileText className="h-8 w-8 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-semibold mb-2">Nabila Financial Planner</h3>
-              <p className="text-muted-foreground mb-4">
-                Akses halaman utama financial planner dengan metode Kakeibo
-              </p>
+              <EditableText
+                contentKey="home.card.nabila.title"
+                defaultValue="Nabila Financial Planner"
+                as="h3"
+                category="card-title"
+                className="text-xl font-semibold mb-2"
+              />
+              <EditableText
+                contentKey="home.card.nabila.description"
+                defaultValue="Akses halaman utama financial planner dengan metode Kakeibo"
+                as="p"
+                category="card-description"
+                className="text-muted-foreground mb-4"
+              />
               <Button variant="ghost" className="px-0 hover:bg-transparent hover:text-primary">
                 Buka Halaman →
               </Button>
@@ -103,12 +122,20 @@ const Index = () => {
 
       {/* Info Section */}
       <Card className="p-8 bg-gradient-to-br from-primary/5 to-accent/5">
-        <h2 className="text-2xl font-semibold mb-4">Tentang Metode Kakeibo</h2>
-        <p className="text-muted-foreground leading-relaxed">
-          Kakeibo adalah metode pencatatan keuangan tradisional Jepang yang membantu Anda 
-          mengelola uang dengan lebih bijak. Dengan mencatat setiap pemasukan dan pengeluaran, 
-          Anda dapat mengidentifikasi pola pengeluaran dan membuat keputusan finansial yang lebih baik.
-        </p>
+        <EditableText
+          contentKey="home.info.title"
+          defaultValue="Tentang Metode Kakeibo"
+          as="h2"
+          category="section-title"
+          className="text-2xl font-semibold mb-4"
+        />
+        <EditableText
+          contentKey="home.info.description"
+          defaultValue="Kakeibo adalah metode pencatatan keuangan tradisional Jepang yang membantu Anda mengelola uang dengan lebih bijak. Dengan mencatat setiap pemasukan dan pengeluaran, Anda dapat mengidentifikasi pola pengeluaran dan membuat keputusan finansial yang lebih baik."
+          as="p"
+          category="section-description"
+          className="text-muted-foreground leading-relaxed"
+        />
       </Card>
     </div>
   );

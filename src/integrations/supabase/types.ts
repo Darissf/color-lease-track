@@ -53,6 +53,42 @@ export type Database = {
         }
         Relationships: []
       }
+      editable_content: {
+        Row: {
+          category: string | null
+          content_key: string
+          content_value: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          page: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string | null
+          content_key: string
+          content_value: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          page: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string | null
+          content_key?: string
+          content_value?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          page?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
