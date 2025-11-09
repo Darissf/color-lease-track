@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 interface SavingsPlan {
   id: string;
@@ -274,6 +275,43 @@ export default function SavingsPlans() {
   const totalTarget = plans.reduce((sum, plan) => sum + plan.target_amount, 0);
   const overallProgress = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
 
+  // Prepare chart data
+  const chartData = plans.map(plan => ({
+    name: plan.plan_name.length > 15 ? plan.plan_name.substring(0, 15) + "..." : plan.plan_name,
+    current: Number(plan.current_amount),
+    target: Number(plan.target_amount),
+    progress: ((plan.current_amount / plan.target_amount) * 100).toFixed(1),
+  }));
+
+  const pieChartData = plans.map(plan => ({
+    name: plan.plan_name,
+    value: Number(plan.current_amount),
+  }));
+
+  const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-card border rounded-lg shadow-lg p-3">
+          <p className="font-medium mb-1">{payload[0].payload.name}</p>
+          <p className="text-sm text-muted-foreground">
+            Current: {formatRupiah(payload[0].value)}
+          </p>
+          {payload[1] && (
+            <p className="text-sm text-muted-foreground">
+              Target: {formatRupiah(payload[1].value)}
+            </p>
+          )}
+          <p className="text-sm font-medium mt-1">
+            Progress: {payload[0].payload.progress}%
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return <div className="p-6">Loading...</div>;
   }
@@ -399,11 +437,82 @@ export default function SavingsPlans() {
         </Card>
       )}
 
+      {/* Charts Section */}
+      {plans.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Bar Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Progress Comparison</CardTitle>
+              <CardDescription>Current savings vs target for each plan</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Bar dataKey="current" fill="hsl(var(--primary))" name="Current" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="target" fill="hsl(var(--muted))" name="Target" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Pie Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Savings Distribution</CardTitle>
+              <CardDescription>How your savings are distributed across plans</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="hsl(var(--primary))"
+                    dataKey="value"
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number) => formatRupiah(value)}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Savings Plans List with Tabs */}
       <Tabs defaultValue="plans" className="space-y-4">
         <TabsList>
           <TabsTrigger value="plans">Rencana Tabungan</TabsTrigger>
           <TabsTrigger value="transactions">History Transaksi</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="plans" className="space-y-4">
@@ -591,6 +700,113 @@ export default function SavingsPlans() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <div className="space-y-4">
+            {/* Progress Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Progress Overview</CardTitle>
+                <CardDescription>Detailed progress for each savings plan</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {plans.map((plan) => {
+                    const progress = calculateProgress(plan.current_amount, plan.target_amount);
+                    const remaining = plan.target_amount - plan.current_amount;
+                    const daysRemaining = getDaysRemaining(plan.deadline);
+                    const dailyRequired = daysRemaining && daysRemaining > 0 
+                      ? remaining / daysRemaining 
+                      : 0;
+
+                    return (
+                      <div key={plan.id} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-medium">{plan.plan_name}</h4>
+                          <span className="text-sm text-muted-foreground">
+                            {progress.toFixed(1)}%
+                          </span>
+                        </div>
+                        <Progress value={progress} className="h-3" />
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Current</p>
+                            <p className="font-medium">{formatRupiah(plan.current_amount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Target</p>
+                            <p className="font-medium">{formatRupiah(plan.target_amount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Remaining</p>
+                            <p className="font-medium">{formatRupiah(remaining)}</p>
+                          </div>
+                          {daysRemaining && daysRemaining > 0 && (
+                            <div>
+                              <p className="text-muted-foreground">Daily Target</p>
+                              <p className="font-medium">{formatRupiah(dailyRequired)}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Transaction Summary by Plan */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Transaction Summary</CardTitle>
+                <CardDescription>Total deposits and withdrawals per plan</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Rencana</TableHead>
+                      <TableHead className="text-right">Deposits</TableHead>
+                      <TableHead className="text-right">Withdrawals</TableHead>
+                      <TableHead className="text-right">Transactions</TableHead>
+                      <TableHead className="text-right">Net Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {plans.map((plan) => {
+                      const planTransactions = transactions.filter(t => t.savings_plan_id === plan.id);
+                      const deposits = planTransactions.filter(t => t.transaction_type === "deposit");
+                      const withdrawals = planTransactions.filter(t => t.transaction_type === "withdrawal");
+                      const totalDeposits = deposits.reduce((sum, t) => sum + t.amount, 0);
+                      const totalWithdrawals = withdrawals.reduce((sum, t) => sum + t.amount, 0);
+                      const netAmount = totalDeposits - totalWithdrawals;
+
+                      return (
+                        <TableRow key={plan.id}>
+                          <TableCell className="font-medium">{plan.plan_name}</TableCell>
+                          <TableCell className="text-right text-green-600">
+                            {formatRupiah(totalDeposits)}
+                            <span className="text-muted-foreground ml-1">({deposits.length})</span>
+                          </TableCell>
+                          <TableCell className="text-right text-red-600">
+                            {formatRupiah(totalWithdrawals)}
+                            <span className="text-muted-foreground ml-1">({withdrawals.length})</span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {planTransactions.length}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatRupiah(netAmount)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 
