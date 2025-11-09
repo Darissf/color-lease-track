@@ -53,6 +53,201 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          is_fixed: boolean | null
+          sub_category: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          is_fixed?: boolean | null
+          sub_category?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          is_fixed?: boolean | null
+          sub_category?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      income_sources: {
+        Row: {
+          amount: number | null
+          bank_name: string | null
+          created_at: string
+          date: string | null
+          id: string
+          source_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          bank_name?: string | null
+          created_at?: string
+          date?: string | null
+          id?: string
+          source_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          bank_name?: string | null
+          created_at?: string
+          date?: string | null
+          id?: string
+          source_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      monthly_budgets: {
+        Row: {
+          created_at: string
+          id: string
+          jangka_belakang: string | null
+          month: string
+          notes: string | null
+          tanggal_pembelian: string | null
+          target_belanja: number | null
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jangka_belakang?: string | null
+          month: string
+          notes?: string | null
+          tanggal_pembelian?: string | null
+          target_belanja?: number | null
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jangka_belakang?: string | null
+          month?: string
+          notes?: string | null
+          tanggal_pembelian?: string | null
+          target_belanja?: number | null
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      monthly_reports: {
+        Row: {
+          created_at: string
+          id: string
+          month: string
+          pemasukan: number | null
+          pengeluaran: number | null
+          pengeluaran_tetap: number | null
+          sisa_tabungan: number | null
+          target_belanja: number | null
+          target_keuangan: number | null
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: string
+          pemasukan?: number | null
+          pengeluaran?: number | null
+          pengeluaran_tetap?: number | null
+          sisa_tabungan?: number | null
+          target_belanja?: number | null
+          target_keuangan?: number | null
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: string
+          pemasukan?: number | null
+          pengeluaran?: number | null
+          pengeluaran_tetap?: number | null
+          sisa_tabungan?: number | null
+          target_belanja?: number | null
+          target_keuangan?: number | null
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      payments_tracking: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          paid_date: string | null
+          payment_type: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_date?: string | null
+          payment_type: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_date?: string | null
+          payment_type?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -74,6 +269,42 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      savings_plans: {
+        Row: {
+          created_at: string
+          current_amount: number | null
+          deadline: string | null
+          id: string
+          notes: string | null
+          plan_name: string
+          target_amount: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_amount?: number | null
+          deadline?: string | null
+          id?: string
+          notes?: string | null
+          plan_name: string
+          target_amount?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_amount?: number | null
+          deadline?: string | null
+          id?: string
+          notes?: string | null
+          plan_name?: string
+          target_amount?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

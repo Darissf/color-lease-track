@@ -6,18 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
-import Dashboard from "./pages/Dashboard";
-import QuickActions from "./pages/QuickActions";
-import MonthlyDashboard from "./pages/MonthlyDashboard";
-import BudgetTracker from "./pages/BudgetTracker";
-import Reports from "./pages/Reports";
-import Settings from "./pages/Settings";
-import Properties from "./pages/Properties";
-import Tenants from "./pages/Tenants";
-import Finances from "./pages/Finances";
-import Tasks from "./pages/Tasks";
+import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Nabila from "./pages/Nabila";
+import MonthlyView from "./pages/MonthlyView";
+import Dashboard from "./pages/Dashboard";
+import Settings from "./pages/Settings";
 import AuditLogs from "./pages/AuditLogs";
 import NotFound from "./pages/NotFound";
 
@@ -39,16 +34,11 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/quick-actions" element={<QuickActions />} />
-                      <Route path="/monthly" element={<MonthlyDashboard />} />
-                      <Route path="/budget" element={<BudgetTracker />} />
-                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/" element={<Index />} />
+                      <Route path="/nabila" element={<Nabila />} />
+                      <Route path="/month/:month" element={<MonthlyView />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/settings" element={<Settings />} />
-                      <Route path="/properties" element={<Properties />} />
-                      <Route path="/tenants" element={<Tenants />} />
-                      <Route path="/finances" element={<Finances />} />
-                      <Route path="/tasks" element={<Tasks />} />
                       <Route path="/audit-logs" element={<AuditLogs />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>

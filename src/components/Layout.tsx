@@ -5,15 +5,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useState } from "react";
 
 const navItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Aksi Cepat", url: "/quick-actions", icon: ListTodo },
-  { title: "Dasbor Bulanan", url: "/monthly", icon: Calendar },
-  { title: "Anggaran & Tabungan", url: "/budget", icon: PiggyBank },
-  { title: "Laporan Tahunan", url: "/reports", icon: FileText },
-  { title: "Properties", url: "/properties", icon: Building2 },
-  { title: "Tenants", url: "/tenants", icon: Users },
-  { title: "Finances", url: "/finances", icon: DollarSign },
-  { title: "Tasks", url: "/tasks", icon: ListTodo },
+  { title: "Home", url: "/", icon: Home },
+  { title: "Meetings", url: "/meetings", icon: Users },
+  { title: "Inbox", url: "/inbox", icon: FileText },
+];
+
+const pagesItems = [
+  { title: "Nabila", url: "/nabila", icon: FileText },
+  { title: "Nabila ya keudia", url: "/nabila-keudia", icon: DollarSign },
+  { title: "Savings Plans v.1.01", url: "/savings", icon: PiggyBank },
+  { title: "Weekly 70-30 List", url: "/weekly", icon: ListTodo },
+  { title: "Monthly Budget", url: "/monthly-budget", icon: Calendar },
 ];
 
 const adminNavItems = [
@@ -55,6 +57,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
               key={item.url}
               to={item.url}
               end={item.url === "/"}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
+              activeClassName="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+            >
+              <item.icon className="h-5 w-5 flex-shrink-0" />
+              {sidebarOpen && <span className="text-sm font-medium">{item.title}</span>}
+            </NavLink>
+          ))}
+
+          {/* Pages Section */}
+          <div className="h-px bg-sidebar-border my-3" />
+          {sidebarOpen && (
+            <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Pages
+            </p>
+          )}
+          {pagesItems.map((item) => (
+            <NavLink
+              key={item.url}
+              to={item.url}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
               activeClassName="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
             >
