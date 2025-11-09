@@ -1,9 +1,7 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, Menu } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 
 const navItems = [
@@ -27,143 +25,143 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user, signOut, isSuperAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const getInitials = () => {
-    if (!user?.email) return "U";
-    return user.email.substring(0, 2).toUpperCase();
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Dark Sidebar */}
-      <aside className={`fixed left-0 top-0 z-40 h-screen transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))]`}>
-        <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className="flex h-16 items-center border-b border-[hsl(var(--sidebar-border))] px-6 justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-white" />
-              </div>
-              {sidebarOpen && (
-                <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  Financial Tracker
-                </span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]"
+    <div className="flex h-screen bg-background">
+      {/* White Sidebar - Velvet Style */}
+      <aside
+        className={`${
+          sidebarOpen ? "w-64" : "w-20"
+        } bg-sidebar-background border-r border-sidebar-border transition-all duration-300 flex flex-col shadow-sm`}
+      >
+        {/* Logo */}
+        <div className="h-16 flex items-center justify-center border-b border-sidebar-border px-4">
+          {sidebarOpen ? (
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Financial Tracker
+            </h1>
+          ) : (
+            <Home className="h-6 w-6 text-primary" />
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.url}
+              to={item.url}
+              end={item.url === "/"}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
+              activeClassName="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
             >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div>
+              <item.icon className="h-5 w-5 flex-shrink-0" />
+              {sidebarOpen && <span className="text-sm font-medium">{item.title}</span>}
+            </NavLink>
+          ))}
 
-          {/* Navigation */}
-          <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-            <div className="space-y-1">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.url}
-                  to={item.url}
-                  end={item.url === "/"}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[hsl(var(--sidebar-foreground))] transition-all hover:bg-[hsl(var(--sidebar-accent))]"
-                  activeClassName="bg-[hsl(var(--sidebar-primary))] text-white hover:bg-[hsl(var(--sidebar-primary))]/90"
-                >
-                  <item.icon className="h-5 w-5 flex-shrink-0" />
-                  {sidebarOpen && <span>{item.title}</span>}
-                </NavLink>
-              ))}
-            </div>
-
-            <div className="pt-4 mt-4 border-t border-[hsl(var(--sidebar-border))] space-y-1">
+          {/* Admin Section */}
+          {(isSuperAdmin || user) && adminNavItems.length > 0 && (
+            <>
+              <div className="h-px bg-sidebar-border my-3" />
+              {sidebarOpen && (
+                <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Admin
+                </p>
+              )}
               {adminNavItems.map((item) => {
                 if (item.superAdminOnly && !isSuperAdmin) return null;
                 return (
                   <NavLink
                     key={item.url}
                     to={item.url}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[hsl(var(--sidebar-foreground))] transition-all hover:bg-[hsl(var(--sidebar-accent))]"
-                    activeClassName="bg-[hsl(var(--sidebar-primary))] text-white hover:bg-[hsl(var(--sidebar-primary))]/90"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
+                    activeClassName="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
-                    {sidebarOpen && <span>{item.title}</span>}
+                    {sidebarOpen && <span className="text-sm font-medium">{item.title}</span>}
                   </NavLink>
                 );
               })}
-            </div>
-          </nav>
+            </>
+          )}
+        </nav>
 
-          {/* Footer */}
-          <div className="border-t border-[hsl(var(--sidebar-border))] p-4">
-            <div className="rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 p-3">
-              {sidebarOpen && (
-                <>
-                  <p className="text-xs font-semibold text-[hsl(var(--sidebar-foreground))]">Financial Planner</p>
-                  <p className="text-xs text-[hsl(var(--sidebar-foreground))]/70 mt-1">
-                    Metode Kakeibo - Versi 2025
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
+        {/* Sidebar Toggle Button */}
+        <div className="border-t border-sidebar-border p-3">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors"
+            aria-label="Toggle Sidebar"
+          >
+            {sidebarOpen ? (
+              <ChevronLeft className="h-5 w-5 text-sidebar-foreground" />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-sidebar-foreground" />
+            )}
+          </button>
         </div>
       </aside>
 
-      {/* Main Content with Header */}
-      <main className={`transition-all duration-300 ${sidebarOpen ? 'pl-64' : 'pl-20'}`}>
-        {/* Top Header */}
-        <header className="sticky top-0 z-30 h-16 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <div className="flex h-full items-center justify-between px-6">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="relative max-w-md w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Cari..."
-                  className="w-full pl-10 pr-4 py-2 text-sm bg-muted/50 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header - Velvet Style */}
+        <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4 flex-1">
+            {/* Search Bar */}
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              />
             </div>
+          </div>
 
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full"></span>
-              </Button>
+          <div className="flex items-center gap-3">
+            {/* Notifications */}
+            <button className="relative p-2 rounded-lg hover:bg-accent/10 transition-colors">
+              <Bell className="h-5 w-5 text-foreground" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
+            </button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {getInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{user?.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {isSuperAdmin ? 'Super Admin' : 'Admin'}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => signOut()} className="text-destructive focus:text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/10 transition-colors">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="text-left hidden md:block">
+                    <p className="text-sm font-medium text-foreground">
+                      {user?.email?.split("@")[0] || "User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isSuperAdmin ? "Super Admin" : "Admin"}
+                    </p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-popover">
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
-        <div className="min-h-[calc(100vh-4rem)]">{children}</div>
-      </main>
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto bg-background p-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
