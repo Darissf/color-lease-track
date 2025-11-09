@@ -12,6 +12,8 @@ import Register from "./pages/Register";
 import Nabila from "./pages/Nabila";
 import MonthlyView from "./pages/MonthlyView";
 import Dashboard from "./pages/Dashboard";
+import IncomeManagement from "./pages/IncomeManagement";
+import ExpenseTracker from "./pages/ExpenseTracker";
 import Settings from "./pages/Settings";
 import AuditLogs from "./pages/AuditLogs";
 import NotFound from "./pages/NotFound";
@@ -38,6 +40,8 @@ const App = () => (
                       <Route path="/nabila" element={<Nabila />} />
                       <Route path="/month/:month" element={<MonthlyView />} />
                       <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/income" element={<IncomeManagement />} />
+                      <Route path="/expenses" element={<ExpenseTracker />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/audit-logs" element={<AuditLogs />} />
                       <Route path="*" element={<NotFound />} />

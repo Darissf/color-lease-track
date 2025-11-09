@@ -1,195 +1,393 @@
-import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, DollarSign, Building2, Users, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { TrendingUp, TrendingDown, DollarSign, PiggyBank, CreditCard, Calendar, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { formatRupiah } from "@/lib/currency";
 
-const revenueData = [
-  { month: "Jan", revenue: 125000000, expenses: 85000000 },
-  { month: "Feb", revenue: 145000000, expenses: 75000000 },
-  { month: "Mar", revenue: 135000000, expenses: 92000000 },
-  { month: "Apr", revenue: 170000000, expenses: 82000000 },
-  { month: "May", revenue: 155000000, expenses: 78000000 },
-  { month: "Jun", revenue: 185000000, expenses: 88000000 },
-];
+interface DashboardStats {
+  totalIncome: number;
+  totalExpenses: number;
+  totalSavings: number;
+  monthlyBudget: number;
+  remainingBudget: number;
+  savingsRate: number;
+}
 
-const propertyData = [
-  { name: "Dihuni", value: 24, color: "hsl(var(--primary))" },
-  { name: "Kosong", value: 6, color: "hsl(var(--secondary))" },
-  { name: "Maintenance", value: 2, color: "hsl(var(--warning))" },
-];
+const COLORS = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
-const Dashboard = () => {
+export default function Dashboard() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalIncome: 0,
+    totalExpenses: 0,
+    totalSavings: 0,
+    monthlyBudget: 0,
+    remainingBudget: 0,
+    savingsRate: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
+  const [expensesByCategory, setExpensesByCategory] = useState<any[]>([]);
+  const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [user]);
+
+  const fetchDashboardData = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    const currentMonth = new Date().toLocaleString('id-ID', { month: 'long' }).toLowerCase();
+    const currentYear = new Date().getFullYear();
+
+    // Fetch monthly report
+    const { data: reportData } = await supabase
+      .from("monthly_reports")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("month", currentMonth)
+      .eq("year", currentYear)
+      .maybeSingle();
+
+    // Fetch total savings
+    const { data: savingsData } = await supabase
+      .from("savings_plans")
+      .select("current_amount")
+      .eq("user_id", user.id);
+
+    const totalSavings = savingsData?.reduce((sum, plan) => sum + (plan.current_amount || 0), 0) || 0;
+
+    // Fetch recent expenses
+    const { data: expensesData } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("date", { ascending: false })
+      .limit(5);
+
+    // Group expenses by category
+    const { data: allExpenses } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("user_id", user.id);
+
+    const categoryMap = new Map();
+    allExpenses?.forEach(exp => {
+      const current = categoryMap.get(exp.category) || 0;
+      categoryMap.set(exp.category, current + exp.amount);
+    });
+
+    const categoryData = Array.from(categoryMap.entries()).map(([name, value]) => ({
+      name,
+      value,
+    }));
+
+    // Fetch last 6 months reports
+    const { data: reportsData } = await supabase
+      .from("monthly_reports")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("year", currentYear)
+      .order("month", { ascending: true })
+      .limit(6);
+
+    const trendData = reportsData?.map(r => ({
+      month: r.month.substring(0, 3).toUpperCase(),
+      pemasukan: r.pemasukan || 0,
+      pengeluaran: r.pengeluaran || 0,
+    })) || [];
+
+    const income = reportData?.pemasukan || 0;
+    const expenses = reportData?.pengeluaran || 0;
+    const budget = reportData?.target_belanja || 0;
+    const remaining = budget - expenses;
+    const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
+
+    setStats({
+      totalIncome: income,
+      totalExpenses: expenses,
+      totalSavings,
+      monthlyBudget: budget,
+      remainingBudget: remaining,
+      savingsRate,
+    });
+
+    setRecentExpenses(expensesData || []);
+    setExpensesByCategory(categoryData);
+    setMonthlyTrend(trendData);
+    setLoading(false);
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-muted-foreground">Memuat dashboard...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen p-8">
+    <div className="max-w-7xl mx-auto space-y-6 p-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-2">
-          Dashboard Overview
-        </h1>
-        <p className="text-muted-foreground">Welcome back! Here's what's happening with your properties.</p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card className="p-6 gradient-card card-hover border-0 shadow-md">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Pendapatan</p>
-              <p className="text-3xl font-bold text-foreground mt-2">{formatRupiah(185000000)}</p>
-              <div className="flex items-center gap-1 mt-2">
-                <TrendingUp className="h-4 w-4 text-accent" />
-                <span className="text-sm font-semibold text-accent">+12.5%</span>
-                <span className="text-xs text-muted-foreground">vs bulan lalu</span>
-              </div>
-            </div>
-            <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-              <DollarSign className="h-6 w-6 text-white" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6 gradient-card card-hover border-0 shadow-md">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Properti Aktif</p>
-              <p className="text-3xl font-bold text-foreground mt-2">32</p>
-              <div className="flex items-center gap-1 mt-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-primary">+2</span>
-                <span className="text-xs text-muted-foreground">baru bulan ini</span>
-              </div>
-            </div>
-            <div className="h-12 w-12 rounded-xl gradient-success flex items-center justify-center shadow-lg">
-              <Building2 className="h-6 w-6 text-white" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6 gradient-card card-hover border-0 shadow-md">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Penyewa</p>
-              <p className="text-3xl font-bold text-foreground mt-2">24</p>
-              <div className="flex items-center gap-1 mt-2">
-                <span className="text-sm font-semibold text-muted-foreground">75%</span>
-                <span className="text-xs text-muted-foreground">tingkat hunian</span>
-              </div>
-            </div>
-            <div className="h-12 w-12 rounded-xl gradient-secondary flex items-center justify-center shadow-lg">
-              <Users className="h-6 w-6 text-white" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6 gradient-card card-hover border-0 shadow-md">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Tugas Tertunda</p>
-              <p className="text-3xl font-bold text-foreground mt-2">8</p>
-              <div className="flex items-center gap-1 mt-2">
-                <AlertCircle className="h-4 w-4 text-warning" />
-                <span className="text-sm font-semibold text-warning">3 urgent</span>
-              </div>
-            </div>
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-warning to-secondary flex items-center justify-center shadow-lg">
-              <AlertCircle className="h-6 w-6 text-white" />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-8">
-        <Card className="p-6 gradient-card border-0 shadow-md">
-          <h3 className="text-lg font-semibold mb-4 text-foreground">Pendapatan & Pengeluaran</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${(value / 1000000).toFixed(0)}jt`} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
-                formatter={(value: number) => formatRupiah(value)}
-              />
-              <Bar dataKey="revenue" name="Pendapatan" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="expenses" name="Pengeluaran" fill="hsl(var(--secondary))" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-
-        <Card className="p-6 gradient-card border-0 shadow-md">
-          <h3 className="text-lg font-semibold mb-4 text-foreground">Status Properti</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={propertyData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {propertyData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card className="p-6 gradient-card border-0 shadow-md">
-        <h3 className="text-lg font-semibold mb-4 text-foreground">Pembayaran Terbaru</h3>
-        <div className="space-y-4">
-          {[
-            { tenant: "Sarah Johnson", property: "Sunset Villa #12", amount: 7500000, status: "Lunas", date: "1 Jun 2025" },
-            { tenant: "Michael Chen", property: "Harbor View #7", amount: 5400000, status: "Lunas", date: "1 Jun 2025" },
-            { tenant: "Emily Rodriguez", property: "Garden Court #23", amount: 6500000, status: "Tertunda", date: "Jatuh tempo 5 Jun 2025" },
-            { tenant: "David Kim", property: "Parkside #15", amount: 5800000, status: "Lunas", date: "2 Jun 2025" },
-          ].map((payment, i) => (
-            <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full gradient-primary flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">{payment.tenant[0]}</span>
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">{payment.tenant}</p>
-                  <p className="text-sm text-muted-foreground">{payment.property}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-foreground">{formatRupiah(payment.amount)}</p>
-                <p className="text-sm text-muted-foreground">{payment.date}</p>
-              </div>
-              <div>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  payment.status === "Lunas" 
-                    ? "bg-accent/10 text-accent" 
-                    : "bg-warning/10 text-warning"
-                }`}>
-                  {payment.status}
-                </span>
-              </div>
-            </div>
-          ))}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Financial Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Ringkasan keuangan Anda bulan ini</p>
         </div>
-      </Card>
+        <Button onClick={() => navigate("/nabila")} size="sm">
+          Lihat Detail →
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Income */}
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Pemasukan
+            </CardTitle>
+            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+              <ArrowUpRight className="h-4 w-4 text-green-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalIncome)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Bulan ini</p>
+          </CardContent>
+        </Card>
+
+        {/* Total Expenses */}
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Pengeluaran
+            </CardTitle>
+            <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+              <ArrowDownRight className="h-4 w-4 text-red-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalExpenses)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Bulan ini</p>
+          </CardContent>
+        </Card>
+
+        {/* Total Savings */}
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Tabungan
+            </CardTitle>
+            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <PiggyBank className="h-4 w-4 text-blue-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalSavings)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Akumulasi</p>
+          </CardContent>
+        </Card>
+
+        {/* Savings Rate */}
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Savings Rate
+            </CardTitle>
+            <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+              <DollarSign className="h-4 w-4 text-purple-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.savingsRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground mt-1">Dari pendapatan</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Monthly Trend */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold">Trend 6 Bulan Terakhir</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={monthlyTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" style={{ fontSize: '12px' }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" style={{ fontSize: '12px' }} />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(value: number) => formatCurrency(value)}
+                />
+                <Line type="monotone" dataKey="pemasukan" stroke="#10b981" strokeWidth={2} name="Pemasukan" />
+                <Line type="monotone" dataKey="pengeluaran" stroke="#ef4444" strokeWidth={2} name="Pengeluaran" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Expenses by Category */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold">Pengeluaran per Kategori</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {expensesByCategory.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={expensesByCategory}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {expensesByCategory.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+                Belum ada data pengeluaran
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Budget Overview & Recent Expenses */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Budget Overview */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Budget Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Monthly Budget</span>
+              <span className="font-semibold">{formatCurrency(stats.monthlyBudget)}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Spent</span>
+              <span className="font-semibold text-red-600">{formatCurrency(stats.totalExpenses)}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Remaining</span>
+              <span className={`font-semibold ${stats.remainingBudget >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(stats.remainingBudget)}
+              </span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="space-y-2">
+              <div className="w-full bg-muted rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all ${
+                    stats.totalExpenses > stats.monthlyBudget ? 'bg-red-600' : 'bg-primary'
+                  }`}
+                  style={{
+                    width: `${Math.min((stats.totalExpenses / (stats.monthlyBudget || 1)) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                {((stats.totalExpenses / (stats.monthlyBudget || 1)) * 100).toFixed(1)}% digunakan
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Expenses */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Pengeluaran Terbaru
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentExpenses.length > 0 ? (
+              <div className="space-y-3">
+                {recentExpenses.map((expense) => (
+                  <div key={expense.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                      <p className="font-medium text-sm">{expense.description || expense.category}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(expense.date).toLocaleDateString('id-ID')} • {expense.category}
+                      </p>
+                    </div>
+                    <span className="font-semibold text-red-600 text-sm">
+                      -{formatCurrency(expense.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                Belum ada pengeluaran tercatat
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Button
+          variant="outline"
+          className="h-24 flex flex-col items-center justify-center gap-2"
+          onClick={() => navigate("/nabila")}
+        >
+          <TrendingUp className="h-5 w-5" />
+          <span className="text-sm font-medium">Tambah Pemasukan</span>
+        </Button>
+        <Button
+          variant="outline"
+          className="h-24 flex flex-col items-center justify-center gap-2"
+          onClick={() => navigate("/nabila")}
+        >
+          <TrendingDown className="h-5 w-5" />
+          <span className="text-sm font-medium">Catat Pengeluaran</span>
+        </Button>
+        <Button
+          variant="outline"
+          className="h-24 flex flex-col items-center justify-center gap-2"
+          onClick={() => navigate("/nabila")}
+        >
+          <PiggyBank className="h-5 w-5" />
+          <span className="text-sm font-medium">Update Tabungan</span>
+        </Button>
+      </div>
     </div>
   );
-};
-
-export default Dashboard;
+}
