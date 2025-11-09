@@ -33,63 +33,67 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* White Sidebar - Velvet Style */}
+      {/* Notion-style Sidebar */}
       <aside
         className={`${
           sidebarOpen ? "w-64" : "w-20"
-        } bg-sidebar-background border-r border-sidebar-border transition-all duration-300 flex flex-col shadow-sm`}
+        } bg-sidebar-background border-r border-sidebar-border transition-all duration-300 flex flex-col`}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-center border-b border-sidebar-border px-4">
+        <div className="h-14 flex items-center px-4 border-b border-sidebar-border">
           {sidebarOpen ? (
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Financial Tracker
+            <h1 className="text-sm font-semibold text-sidebar-foreground">
+              Financial Planner
             </h1>
           ) : (
-            <Home className="h-6 w-6 text-primary" />
+            <Home className="h-5 w-5 text-sidebar-foreground" />
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
           {navItems.map((item) => (
             <NavLink
               key={item.url}
               to={item.url}
               end={item.url === "/"}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
-              activeClassName="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+              className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors"
+              activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
             >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm font-medium">{item.title}</span>}
+              <item.icon className="h-4 w-4 flex-shrink-0" />
+              {sidebarOpen && <span>{item.title}</span>}
             </NavLink>
           ))}
 
           {/* Pages Section */}
-          <div className="h-px bg-sidebar-border my-3" />
-          {sidebarOpen && (
-            <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Pages
-            </p>
+          {pagesItems.length > 0 && (
+            <>
+              <div className="h-px bg-sidebar-border my-2" />
+              {sidebarOpen && (
+                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                  Pages
+                </p>
+              )}
+              {pagesItems.map((item) => (
+                <NavLink
+                  key={item.url}
+                  to={item.url}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors"
+                  activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                >
+                  <item.icon className="h-4 w-4 flex-shrink-0" />
+                  {sidebarOpen && <span>{item.title}</span>}
+                </NavLink>
+              ))}
+            </>
           )}
-          {pagesItems.map((item) => (
-            <NavLink
-              key={item.url}
-              to={item.url}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
-              activeClassName="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-            >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm font-medium">{item.title}</span>}
-            </NavLink>
-          ))}
 
           {/* Admin Section */}
           {(isSuperAdmin || user) && adminNavItems.length > 0 && (
             <>
-              <div className="h-px bg-sidebar-border my-3" />
+              <div className="h-px bg-sidebar-border my-2" />
               {sidebarOpen && (
-                <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
                   Admin
                 </p>
               )}
@@ -99,11 +103,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <NavLink
                     key={item.url}
                     to={item.url}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200"
-                    activeClassName="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                    className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors"
+                    activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                   >
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    {sidebarOpen && <span className="text-sm font-medium">{item.title}</span>}
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    {sidebarOpen && <span>{item.title}</span>}
                   </NavLink>
                 );
               })}
@@ -112,16 +116,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Sidebar Toggle Button */}
-        <div className="border-t border-sidebar-border p-3">
+        <div className="border-t border-sidebar-border p-2">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-sidebar-accent transition-colors"
+            className="w-full flex items-center justify-center p-1.5 rounded hover:bg-sidebar-accent transition-colors"
             aria-label="Toggle Sidebar"
           >
             {sidebarOpen ? (
-              <ChevronLeft className="h-5 w-5 text-sidebar-foreground" />
+              <ChevronLeft className="h-4 w-4 text-muted-foreground" />
             ) : (
-              <ChevronRight className="h-5 w-5 text-sidebar-foreground" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             )}
           </button>
         </div>
@@ -129,48 +133,43 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header - Velvet Style */}
-        <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4 flex-1">
+        {/* Header - Notion Style */}
+        <header className="h-14 bg-card border-b border-border px-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 flex-1">
             {/* Search Bar */}
             <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search..."
-                className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                className="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-ring transition-all"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Notifications */}
-            <button className="relative p-2 rounded-lg hover:bg-accent/10 transition-colors">
-              <Bell className="h-5 w-5 text-foreground" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
+            <button className="relative p-2 rounded hover:bg-accent transition-colors">
+              <Bell className="h-4 w-4 text-foreground" />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full"></span>
             </button>
 
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/10 transition-colors">
-                  <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
+                <button className="flex items-center gap-2 p-1.5 rounded hover:bg-accent transition-colors">
+                  <div className="w-6 h-6 bg-muted rounded flex items-center justify-center">
+                    <User className="h-3.5 w-3.5 text-foreground" />
                   </div>
-                  <div className="text-left hidden md:block">
-                    <p className="text-sm font-medium text-foreground">
-                      {user?.email?.split("@")[0] || "User"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {isSuperAdmin ? "Super Admin" : "Admin"}
-                    </p>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-popover">
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-                  <LogOut className="mr-2 h-4 w-4" />
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                  {user?.email?.split("@")[0] || "User"}
+                </div>
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-sm">
+                  <LogOut className="mr-2 h-3.5 w-3.5" />
                   <span>Logout</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -8,78 +8,77 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Base colors - Light background like Velvet */
-    --background: 220 14% 96%;
-    --foreground: 222 47% 11%;
+    /* Base colors - Notion style */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
     
-    /* Card colors - White cards */
+    /* Card colors */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 9%;
     
     /* Popover colors */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 9%;
     
-    /* Primary - Purple/Violet like Velvet */
-    --primary: 258 90% 66%;
+    /* Primary - Notion blue */
+    --primary: 0 0% 9%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 258 90% 80%;
+    --primary-glow: 0 0% 20%;
     
     /* Secondary colors */
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
     
     /* Muted colors */
-    --muted: 220 14% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
     
-    /* Accent colors - Teal/Cyan */
-    --accent: 179 100% 45%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent colors - Notion hover */
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
     
     /* Destructive colors */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Border colors - Subtle borders */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 258 90% 66%;
+    /* Border colors - Subtle */
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 9%;
     
     /* Chart colors */
-    --chart-1: 258 90% 66%;
-    --chart-2: 179 100% 45%;
+    --chart-1: 0 0% 9%;
+    --chart-2: 220 90% 56%;
     --chart-3: 142 76% 36%;
     --chart-4: 43 96% 56%;
     --chart-5: 0 84% 60%;
     
-    /* Radius - More rounded */
-    --radius: 0.75rem;
+    /* Radius - Notion style */
+    --radius: 0.375rem;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(258 90% 66%), hsl(258 90% 80%));
-    --gradient-secondary: linear-gradient(135deg, hsl(179 100% 45%), hsl(258 90% 66%));
-    --gradient-accent: linear-gradient(180deg, hsl(258 90% 66% / 0.1), hsl(258 90% 66% / 0.05));
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 9%), hsl(0 0% 20%));
+    --gradient-secondary: linear-gradient(135deg, hsl(220 90% 56%), hsl(0 0% 9%));
+    --gradient-accent: linear-gradient(180deg, hsl(0 0% 96%), hsl(0 0% 98%));
     
-    /* Shadows - Softer shadows */
-    --shadow-elegant: 0 2px 8px 0 rgb(0 0 0 / 0.05);
-    --shadow-glow: 0 0 20px hsl(258 90% 66% / 0.2);
+    /* Shadows - Minimal */
+    --shadow-elegant: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 2px 8px 0 rgb(0 0 0 / 0.06);
-    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    --shadow-card: none;
     
     /* Transitions */
-    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.15s ease;
     
-    /* Sidebar colors - White sidebar like Velvet */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 258 90% 66%;
+    /* Sidebar colors - Notion style */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 0 0% 9%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 258 90% 66%;
+    --sidebar-accent: 0 0% 93%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 93%;
+    --sidebar-ring: 0 0% 9%;
   }
 
   .dark {
