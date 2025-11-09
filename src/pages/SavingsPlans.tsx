@@ -9,9 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Target, Calendar, TrendingUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Target, Calendar, TrendingUp, ArrowUpCircle, ArrowDownCircle, History } from "lucide-react";
 import { formatRupiah } from "@/lib/currency";
 import { format, differenceInDays } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface SavingsPlan {
   id: string;
@@ -23,12 +27,25 @@ interface SavingsPlan {
   created_at: string;
 }
 
+interface SavingsTransaction {
+  id: string;
+  savings_plan_id: string;
+  transaction_type: "deposit" | "withdrawal";
+  amount: number;
+  notes: string | null;
+  transaction_date: string;
+  created_at: string;
+}
+
 export default function SavingsPlans() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [plans, setPlans] = useState<SavingsPlan[]>([]);
+  const [transactions, setTransactions] = useState<SavingsTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<SavingsPlan | null>(null);
   const [editingPlan, setEditingPlan] = useState<SavingsPlan | null>(null);
   const [formData, setFormData] = useState({
     plan_name: "",
@@ -37,10 +54,17 @@ export default function SavingsPlans() {
     deadline: "",
     notes: "",
   });
+  const [transactionFormData, setTransactionFormData] = useState({
+    transaction_type: "deposit" as "deposit" | "withdrawal",
+    amount: "",
+    notes: "",
+    transaction_date: format(new Date(), "yyyy-MM-dd"),
+  });
 
   useEffect(() => {
     if (user) {
       fetchPlans();
+      fetchTransactions();
     }
   }, [user]);
 
@@ -63,6 +87,21 @@ export default function SavingsPlans() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("savings_transactions")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("transaction_date", { ascending: false });
+
+      if (error) throw error;
+      setTransactions((data || []) as SavingsTransaction[]);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
     }
   };
 
@@ -104,6 +143,68 @@ export default function SavingsPlans() {
     }
   };
 
+  const handleTransactionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlan) return;
+
+    try {
+      const transactionData = {
+        savings_plan_id: selectedPlan.id,
+        user_id: user?.id,
+        transaction_type: transactionFormData.transaction_type,
+        amount: parseFloat(transactionFormData.amount),
+        notes: transactionFormData.notes || null,
+        transaction_date: transactionFormData.transaction_date,
+      };
+
+      const { error } = await supabase
+        .from("savings_transactions")
+        .insert([transactionData]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${transactionFormData.transaction_type === "deposit" ? "Deposit" : "Withdrawal"} berhasil ditambahkan`,
+      });
+
+      setTransactionDialogOpen(false);
+      resetTransactionForm();
+      fetchPlans();
+      fetchTransactions();
+    } catch (error) {
+      console.error("Error saving transaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save transaction",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteTransaction = async (id: string) => {
+    if (!confirm("Hapus transaksi ini?")) return;
+    try {
+      const { error } = await supabase
+        .from("savings_transactions")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: "Transaksi berhasil dihapus" });
+      fetchPlans();
+      fetchTransactions();
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete transaction",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this savings plan?")) return;
     try {
@@ -111,6 +212,7 @@ export default function SavingsPlans() {
       if (error) throw error;
       toast({ title: "Success", description: "Savings plan deleted successfully" });
       fetchPlans();
+      fetchTransactions();
     } catch (error) {
       console.error("Error deleting plan:", error);
       toast({
@@ -130,6 +232,21 @@ export default function SavingsPlans() {
       notes: "",
     });
     setEditingPlan(null);
+  };
+
+  const resetTransactionForm = () => {
+    setTransactionFormData({
+      transaction_type: "deposit",
+      amount: "",
+      notes: "",
+      transaction_date: format(new Date(), "yyyy-MM-dd"),
+    });
+    setSelectedPlan(null);
+  };
+
+  const openTransactionDialog = (plan: SavingsPlan) => {
+    setSelectedPlan(plan);
+    setTransactionDialogOpen(true);
   };
 
   const openEditDialog = (plan: SavingsPlan) => {
@@ -282,100 +399,270 @@ export default function SavingsPlans() {
         </Card>
       )}
 
-      {/* Savings Plans List */}
-      {plans.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Belum ada rencana tabungan</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Mulai dengan menambahkan rencana tabungan pertama Anda
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {plans.map((plan) => {
-            const progress = calculateProgress(plan.current_amount, plan.target_amount);
-            const daysRemaining = getDaysRemaining(plan.deadline);
-            const isOverdue = daysRemaining !== null && daysRemaining < 0;
+      {/* Savings Plans List with Tabs */}
+      <Tabs defaultValue="plans" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="plans">Rencana Tabungan</TabsTrigger>
+          <TabsTrigger value="transactions">History Transaksi</TabsTrigger>
+        </TabsList>
 
-            return (
-              <Card key={plan.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{plan.plan_name}</CardTitle>
-                      {plan.notes && (
-                        <CardDescription className="mt-1">{plan.notes}</CardDescription>
-                      )}
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => openEditDialog(plan)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleDelete(plan.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="font-medium">{progress.toFixed(1)}%</span>
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                    <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                      <span>{formatRupiah(plan.current_amount)}</span>
-                      <span>{formatRupiah(plan.target_amount)}</span>
-                    </div>
-                  </div>
+        <TabsContent value="plans" className="space-y-4">
+          {plans.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Belum ada rencana tabungan</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Mulai dengan menambahkan rencana tabungan pertama Anda
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {plans.map((plan) => {
+                const progress = calculateProgress(plan.current_amount, plan.target_amount);
+                const daysRemaining = getDaysRemaining(plan.deadline);
+                const isOverdue = daysRemaining !== null && daysRemaining < 0;
+                const planTransactions = transactions.filter(t => t.savings_plan_id === plan.id);
 
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Remaining</p>
-                        <p className="text-sm font-medium">
-                          {formatRupiah(plan.target_amount - plan.current_amount)}
-                        </p>
-                      </div>
-                    </div>
-                    {plan.deadline && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Deadline</p>
-                          <p className={`text-sm font-medium ${isOverdue ? "text-destructive" : ""}`}>
-                            {daysRemaining !== null && (
-                              <>
-                                {isOverdue ? "Overdue " : ""}
-                                {Math.abs(daysRemaining)} days
-                              </>
-                            )}
-                          </p>
+                return (
+                  <Card key={plan.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{plan.plan_name}</CardTitle>
+                          {plan.notes && (
+                            <CardDescription className="mt-1">{plan.notes}</CardDescription>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => openEditDialog(plan)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleDelete(plan.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-medium">{progress.toFixed(1)}%</span>
+                        </div>
+                        <Progress value={progress} className="h-2" />
+                        <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                          <span>{formatRupiah(plan.current_amount)}</span>
+                          <span>{formatRupiah(plan.target_amount)}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Remaining</p>
+                            <p className="text-sm font-medium">
+                              {formatRupiah(plan.target_amount - plan.current_amount)}
+                            </p>
+                          </div>
+                        </div>
+                        {plan.deadline && (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">Deadline</p>
+                              <p className={`text-sm font-medium ${isOverdue ? "text-destructive" : ""}`}>
+                                {daysRemaining !== null && (
+                                  <>
+                                    {isOverdue ? "Overdue " : ""}
+                                    {Math.abs(daysRemaining)} days
+                                  </>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => openTransactionDialog(plan)}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Tambah Transaksi
+                        </Button>
+                        {planTransactions.length > 0 && (
+                          <Badge variant="secondary" className="px-2 py-1">
+                            <History className="h-3 w-3 mr-1" />
+                            {planTransactions.length}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="transactions">
+          <Card>
+            <CardHeader>
+              <CardTitle>History Transaksi</CardTitle>
+              <CardDescription>Semua transaksi deposit dan penarikan</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {transactions.length === 0 ? (
+                <div className="py-12 text-center">
+                  <History className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Belum ada transaksi</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Rencana</TableHead>
+                      <TableHead>Tipe</TableHead>
+                      <TableHead>Jumlah</TableHead>
+                      <TableHead>Catatan</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.map((transaction) => {
+                      const plan = plans.find(p => p.id === transaction.savings_plan_id);
+                      return (
+                        <TableRow key={transaction.id}>
+                          <TableCell className="text-sm">
+                            {format(new Date(transaction.transaction_date), "dd MMM yyyy")}
+                          </TableCell>
+                          <TableCell className="font-medium">{plan?.plan_name}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={transaction.transaction_type === "deposit" ? "default" : "destructive"}
+                              className="gap-1"
+                            >
+                              {transaction.transaction_type === "deposit" ? (
+                                <ArrowUpCircle className="h-3 w-3" />
+                              ) : (
+                                <ArrowDownCircle className="h-3 w-3" />
+                              )}
+                              {transaction.transaction_type === "deposit" ? "Deposit" : "Penarikan"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {formatRupiah(transaction.amount)}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {transaction.notes || "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleDeleteTransaction(transaction.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Transaction Dialog */}
+      <Dialog open={transactionDialogOpen} onOpenChange={(open) => {
+        setTransactionDialogOpen(open);
+        if (!open) resetTransactionForm();
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tambah Transaksi - {selectedPlan?.plan_name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleTransactionSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="transaction_type">Tipe Transaksi</Label>
+              <Select
+                value={transactionFormData.transaction_type}
+                onValueChange={(value: "deposit" | "withdrawal") =>
+                  setTransactionFormData({ ...transactionFormData, transaction_type: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="deposit">Deposit (Menabung)</SelectItem>
+                  <SelectItem value="withdrawal">Withdrawal (Penarikan)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="amount">Jumlah</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={transactionFormData.amount}
+                onChange={(e) =>
+                  setTransactionFormData({ ...transactionFormData, amount: e.target.value })
+                }
+                placeholder="0"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="transaction_date">Tanggal</Label>
+              <Input
+                id="transaction_date"
+                type="date"
+                value={transactionFormData.transaction_date}
+                onChange={(e) =>
+                  setTransactionFormData({ ...transactionFormData, transaction_date: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="transaction_notes">Catatan</Label>
+              <Textarea
+                id="transaction_notes"
+                value={transactionFormData.notes}
+                onChange={(e) =>
+                  setTransactionFormData({ ...transactionFormData, notes: e.target.value })
+                }
+                placeholder="Catatan transaksi..."
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Simpan Transaksi
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
