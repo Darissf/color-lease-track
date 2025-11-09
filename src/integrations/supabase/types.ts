@@ -272,6 +272,59 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          next_execution_date: string
+          notes: string | null
+          savings_plan_id: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          end_date?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean
+          next_execution_date: string
+          notes?: string | null
+          savings_plan_id: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          next_execution_date?: string
+          notes?: string | null
+          savings_plan_id?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_savings_plan_id_fkey"
+            columns: ["savings_plan_id"]
+            isOneToOne: false
+            referencedRelation: "savings_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       savings_plans: {
         Row: {
           created_at: string

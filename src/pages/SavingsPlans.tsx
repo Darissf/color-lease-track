@@ -9,13 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Target, Calendar, TrendingUp, ArrowUpCircle, ArrowDownCircle, History } from "lucide-react";
+import { Plus, Pencil, Trash2, Target, Calendar, TrendingUp, ArrowUpCircle, ArrowDownCircle, History, Repeat } from "lucide-react";
 import { formatRupiah } from "@/lib/currency";
 import { format, differenceInDays } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 interface SavingsPlan {
@@ -38,14 +39,28 @@ interface SavingsTransaction {
   created_at: string;
 }
 
+interface RecurringTransaction {
+  id: string;
+  savings_plan_id: string;
+  amount: number;
+  frequency: "daily" | "weekly" | "monthly" | "yearly";
+  start_date: string;
+  end_date: string | null;
+  next_execution_date: string;
+  is_active: boolean;
+  notes: string | null;
+}
+
 export default function SavingsPlans() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [plans, setPlans] = useState<SavingsPlan[]>([]);
   const [transactions, setTransactions] = useState<SavingsTransaction[]>([]);
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
+  const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SavingsPlan | null>(null);
   const [editingPlan, setEditingPlan] = useState<SavingsPlan | null>(null);
   const [formData, setFormData] = useState({
@@ -61,11 +76,19 @@ export default function SavingsPlans() {
     notes: "",
     transaction_date: format(new Date(), "yyyy-MM-dd"),
   });
+  const [recurringFormData, setRecurringFormData] = useState({
+    amount: "",
+    frequency: "monthly" as "daily" | "weekly" | "monthly" | "yearly",
+    start_date: format(new Date(), "yyyy-MM-dd"),
+    end_date: "",
+    notes: "",
+  });
 
   useEffect(() => {
     if (user) {
       fetchPlans();
       fetchTransactions();
+      fetchRecurringTransactions();
     }
   }, [user]);
 
@@ -106,6 +129,21 @@ export default function SavingsPlans() {
     }
   };
 
+  const fetchRecurringTransactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("recurring_transactions")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setRecurringTransactions((data || []) as RecurringTransaction[]);
+    } catch (error) {
+      console.error("Error fetching recurring transactions:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -139,6 +177,47 @@ export default function SavingsPlans() {
       toast({
         title: "Error",
         description: "Failed to save savings plan",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRecurringSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlan) return;
+
+    try {
+      const recurringData = {
+        savings_plan_id: selectedPlan.id,
+        user_id: user?.id,
+        amount: parseFloat(recurringFormData.amount),
+        frequency: recurringFormData.frequency,
+        start_date: recurringFormData.start_date,
+        end_date: recurringFormData.end_date || null,
+        next_execution_date: recurringFormData.start_date,
+        notes: recurringFormData.notes || null,
+        is_active: true,
+      };
+
+      const { error } = await supabase
+        .from("recurring_transactions")
+        .insert([recurringData]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Recurring transaction berhasil dibuat",
+      });
+
+      setRecurringDialogOpen(false);
+      resetRecurringForm();
+      fetchRecurringTransactions();
+    } catch (error) {
+      console.error("Error saving recurring transaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save recurring transaction",
         variant: "destructive",
       });
     }
@@ -183,6 +262,53 @@ export default function SavingsPlans() {
     }
   };
 
+  const toggleRecurringStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("recurring_transactions")
+        .update({ is_active: !currentStatus })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Recurring transaction ${!currentStatus ? "activated" : "deactivated"}`,
+      });
+
+      fetchRecurringTransactions();
+    } catch (error) {
+      console.error("Error toggling recurring status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update recurring transaction",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteRecurring = async (id: string) => {
+    if (!confirm("Hapus recurring transaction ini?")) return;
+    try {
+      const { error } = await supabase
+        .from("recurring_transactions")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: "Recurring transaction berhasil dihapus" });
+      fetchRecurringTransactions();
+    } catch (error) {
+      console.error("Error deleting recurring transaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete recurring transaction",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteTransaction = async (id: string) => {
     if (!confirm("Hapus transaksi ini?")) return;
     try {
@@ -214,6 +340,7 @@ export default function SavingsPlans() {
       toast({ title: "Success", description: "Savings plan deleted successfully" });
       fetchPlans();
       fetchTransactions();
+      fetchRecurringTransactions();
     } catch (error) {
       console.error("Error deleting plan:", error);
       toast({
@@ -245,9 +372,25 @@ export default function SavingsPlans() {
     setSelectedPlan(null);
   };
 
+  const resetRecurringForm = () => {
+    setRecurringFormData({
+      amount: "",
+      frequency: "monthly",
+      start_date: format(new Date(), "yyyy-MM-dd"),
+      end_date: "",
+      notes: "",
+    });
+    setSelectedPlan(null);
+  };
+
   const openTransactionDialog = (plan: SavingsPlan) => {
     setSelectedPlan(plan);
     setTransactionDialogOpen(true);
+  };
+
+  const openRecurringDialog = (plan: SavingsPlan) => {
+    setSelectedPlan(plan);
+    setRecurringDialogOpen(true);
   };
 
   const openEditDialog = (plan: SavingsPlan) => {
@@ -512,6 +655,7 @@ export default function SavingsPlans() {
         <TabsList>
           <TabsTrigger value="plans">Rencana Tabungan</TabsTrigger>
           <TabsTrigger value="transactions">History Transaksi</TabsTrigger>
+          <TabsTrigger value="recurring">Auto-Deposit</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -605,22 +749,41 @@ export default function SavingsPlans() {
                         )}
                       </div>
 
-                      <div className="pt-2 border-t flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => openTransactionDialog(plan)}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Tambah Transaksi
-                        </Button>
-                        {planTransactions.length > 0 && (
-                          <Badge variant="secondary" className="px-2 py-1">
-                            <History className="h-3 w-3 mr-1" />
-                            {planTransactions.length}
-                          </Badge>
-                        )}
+                      <div className="pt-2 border-t space-y-2">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => openTransactionDialog(plan)}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Transaksi
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => openRecurringDialog(plan)}
+                          >
+                            <Repeat className="h-4 w-4 mr-1" />
+                            Auto-Deposit
+                          </Button>
+                        </div>
+                        <div className="flex gap-2">
+                          {planTransactions.length > 0 && (
+                            <Badge variant="secondary" className="px-2 py-1">
+                              <History className="h-3 w-3 mr-1" />
+                              {planTransactions.length} transaksi
+                            </Badge>
+                          )}
+                          {recurringTransactions.filter(r => r.savings_plan_id === plan.id && r.is_active).length > 0 && (
+                            <Badge variant="default" className="px-2 py-1">
+                              <Repeat className="h-3 w-3 mr-1" />
+                              Auto aktif
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -688,6 +851,87 @@ export default function SavingsPlans() {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() => handleDeleteTransaction(transaction.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="recurring">
+          <Card>
+            <CardHeader>
+              <CardTitle>Auto-Deposit Bulanan</CardTitle>
+              <CardDescription>Kelola recurring transactions untuk deposit otomatis</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recurringTransactions.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Repeat className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Belum ada auto-deposit</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Buat recurring transaction untuk deposit otomatis berkala
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Rencana</TableHead>
+                      <TableHead>Jumlah</TableHead>
+                      <TableHead>Frekuensi</TableHead>
+                      <TableHead>Tanggal Mulai</TableHead>
+                      <TableHead>Tanggal Berakhir</TableHead>
+                      <TableHead>Eksekusi Berikutnya</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recurringTransactions.map((recurring) => {
+                      const plan = plans.find(p => p.id === recurring.savings_plan_id);
+                      return (
+                        <TableRow key={recurring.id}>
+                          <TableCell className="font-medium">{plan?.plan_name}</TableCell>
+                          <TableCell>{formatRupiah(recurring.amount)}</TableCell>
+                          <TableCell className="capitalize">{recurring.frequency}</TableCell>
+                          <TableCell className="text-sm">
+                            {format(new Date(recurring.start_date), "dd MMM yyyy")}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {recurring.end_date 
+                              ? format(new Date(recurring.end_date), "dd MMM yyyy") 
+                              : "Tidak ada"}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {format(new Date(recurring.next_execution_date), "dd MMM yyyy")}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={recurring.is_active}
+                                onCheckedChange={() => 
+                                  toggleRecurringStatus(recurring.id, recurring.is_active)
+                                }
+                              />
+                              <span className="text-sm">
+                                {recurring.is_active ? "Aktif" : "Nonaktif"}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleDeleteRecurring(recurring.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -875,6 +1119,99 @@ export default function SavingsPlans() {
             </div>
             <Button type="submit" className="w-full">
               Simpan Transaksi
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recurring Transaction Dialog */}
+      <Dialog open={recurringDialogOpen} onOpenChange={(open) => {
+        setRecurringDialogOpen(open);
+        if (!open) resetRecurringForm();
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Setup Auto-Deposit - {selectedPlan?.plan_name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRecurringSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="recurring_amount">Jumlah Deposit</Label>
+              <Input
+                id="recurring_amount"
+                type="number"
+                value={recurringFormData.amount}
+                onChange={(e) =>
+                  setRecurringFormData({ ...recurringFormData, amount: e.target.value })
+                }
+                placeholder="0"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="frequency">Frekuensi</Label>
+              <Select
+                value={recurringFormData.frequency}
+                onValueChange={(value: "daily" | "weekly" | "monthly" | "yearly") =>
+                  setRecurringFormData({ ...recurringFormData, frequency: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Harian</SelectItem>
+                  <SelectItem value="weekly">Mingguan</SelectItem>
+                  <SelectItem value="monthly">Bulanan</SelectItem>
+                  <SelectItem value="yearly">Tahunan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="start_date">Tanggal Mulai</Label>
+              <Input
+                id="start_date"
+                type="date"
+                value={recurringFormData.start_date}
+                onChange={(e) =>
+                  setRecurringFormData({ ...recurringFormData, start_date: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="end_date">Tanggal Berakhir (Opsional)</Label>
+              <Input
+                id="end_date"
+                type="date"
+                value={recurringFormData.end_date}
+                onChange={(e) =>
+                  setRecurringFormData({ ...recurringFormData, end_date: e.target.value })
+                }
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Kosongkan jika tidak ada batas waktu
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="recurring_notes">Catatan</Label>
+              <Textarea
+                id="recurring_notes"
+                value={recurringFormData.notes}
+                onChange={(e) =>
+                  setRecurringFormData({ ...recurringFormData, notes: e.target.value })
+                }
+                placeholder="Catatan untuk auto-deposit..."
+              />
+            </div>
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-sm font-medium mb-1">ℹ️ Info</p>
+              <p className="text-xs text-muted-foreground">
+                Recurring transaction akan diproses otomatis setiap hari pukul 00:00 WIB. 
+                Saldo akan otomatis bertambah sesuai jadwal yang Anda tetapkan.
+              </p>
+            </div>
+            <Button type="submit" className="w-full">
+              Aktifkan Auto-Deposit
             </Button>
           </form>
         </DialogContent>
