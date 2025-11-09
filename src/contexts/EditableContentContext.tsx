@@ -22,7 +22,7 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
   const { user, userRole } = useAuth();
   const [isEditMode, setIsEditMode] = useState(false);
   const [content, setContent] = useState<EditableContent>({});
-  const isSuperAdmin = userRole === "super_admin" as any;
+  const isSuperAdmin = userRole?.role === 'super_admin';
 
   useEffect(() => {
     fetchContent();

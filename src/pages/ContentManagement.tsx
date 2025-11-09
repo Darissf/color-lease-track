@@ -21,7 +21,7 @@ interface ContentItem {
 }
 
 export default function ContentManagement() {
-  const { userRole } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -66,7 +66,7 @@ export default function ContentManagement() {
     }
   };
 
-  if (userRole !== ("super_admin" as any)) {
+  if (!isSuperAdmin) {
     return <Navigate to="/" replace />;
   }
 
