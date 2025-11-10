@@ -108,8 +108,14 @@ export function GlobalLiveEditor() {
     };
 
     // Prevent clicks/navigations while editing in edit mode
+    // But allow clicks on edit mode controls
     const handleMouseDown = (e: MouseEvent) => {
       if (isEditMode) {
+        const target = e.target as HTMLElement;
+        // Check if click is on or inside edit mode control
+        if (target.closest('[data-edit-mode-control]')) {
+          return; // Allow the click
+        }
         e.preventDefault();
         e.stopPropagation();
       }
@@ -117,6 +123,11 @@ export function GlobalLiveEditor() {
 
     const handleClick = (e: MouseEvent) => {
       if (isEditMode) {
+        const target = e.target as HTMLElement;
+        // Check if click is on or inside edit mode control
+        if (target.closest('[data-edit-mode-control]')) {
+          return; // Allow the click
+        }
         e.preventDefault();
         e.stopPropagation();
       }

@@ -21,6 +21,7 @@ export function EditModeToggle() {
             onClick={toggleEditMode}
             variant={isEditMode ? "default" : "outline"}
             size="sm"
+            data-edit-mode-control="true"
             className={cn(
               "fixed bottom-4 right-4 z-50 shadow-lg gap-2",
               isEditMode && "bg-yellow-500 hover:bg-yellow-600 text-white"
