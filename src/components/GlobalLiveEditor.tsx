@@ -60,6 +60,7 @@ export function GlobalLiveEditor() {
     if (htmlEl.closest?.("[data-edit-mode-control]")) return false;
     
     // IMPORTANT: Only allow true leaf elements (no element children) with text.
+    // This includes buttons and links that only have text content (no nested elements)
     if (el.childElementCount > 0) return false;
     const text = el.textContent?.trim();
     return !!text;
@@ -117,13 +118,11 @@ export function GlobalLiveEditor() {
       const target = e.target as HTMLElement;
       // Allow clicks on edit mode controls
       if (target.closest('[data-edit-mode-control]')) return;
-      // Allow focusing to edit; only block navigation on links/buttons
-      const linkOrButton = target.closest('a, button');
-      if (linkOrButton) {
-        e.preventDefault(); // prevent navigation/submit
+      // If this editable element is a button or link, prevent navigation
+      if (el.tagName === 'BUTTON' || el.tagName === 'A') {
+        e.preventDefault();
+        e.stopPropagation();
       }
-      // Always stop propagation so parent handlers (like cards/links) don't fire
-      e.stopPropagation();
     };
 
     const handleClick = (e: MouseEvent) => {
@@ -131,11 +130,11 @@ export function GlobalLiveEditor() {
       const target = e.target as HTMLElement;
       // Allow clicks on edit mode controls
       if (target.closest('[data-edit-mode-control]')) return;
-      const linkOrButton = target.closest('a, button');
-      if (linkOrButton) {
+      // If this editable element is a button or link, prevent navigation
+      if (el.tagName === 'BUTTON' || el.tagName === 'A') {
         e.preventDefault();
+        e.stopPropagation();
       }
-      e.stopPropagation();
     };
 
     el.addEventListener("keydown", handleKeyDown);
