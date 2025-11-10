@@ -14,6 +14,7 @@ interface EditableContentContextType {
   updateContent: (key: string, value: string, page: string, category?: string) => Promise<void>;
   getContent: (key: string, defaultValue: string) => string;
   toggleEditMode: () => void;
+  getEditedCountForPage: (pathname: string) => number;
 }
 
 const EditableContentContext = createContext<EditableContentContextType | undefined>(undefined);
@@ -109,6 +110,10 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
     toast.success(isEditMode ? "Mode edit dinonaktifkan" : "Mode edit diaktifkan - Double click pada text untuk mengedit");
   };
 
+  const getEditedCountForPage = (pathname: string): number => {
+    return Object.keys(content).filter(key => key.startsWith(`${pathname}::`)).length;
+  };
+
   return (
     <EditableContentContext.Provider
       value={{
@@ -117,7 +122,8 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
         content,
         updateContent,
         getContent,
-        toggleEditMode
+        toggleEditMode,
+        getEditedCountForPage
       }}
     >
       {children}
