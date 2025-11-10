@@ -52,15 +52,18 @@ export function GlobalLiveEditor() {
     ]);
     
     if (excludedTags.has(el.tagName)) return false;
-    if ((el as HTMLElement).dataset.nonEditable === "true") return false;
-    if ((el as HTMLElement).dataset.globalSkip === "true") return false;
-    if ((el as HTMLElement).contentEditable === "true") return false;
+    const htmlEl = el as HTMLElement;
+    if (htmlEl.dataset.nonEditable === "true") return false;
+    if (htmlEl.dataset.globalSkip === "true") return false;
+    if (htmlEl.contentEditable === "true") return false;
+    // Skip any element that is itself or inside an edit-mode control
+    if (htmlEl.closest?.("[data-edit-mode-control]")) return false;
     
-    // Must have direct text content or be a leaf with text
-    const hasText = hasDirectTextContent(el) || (el.childElementCount === 0 && el.textContent?.trim());
-    return !!hasText;
+    // IMPORTANT: Only allow true leaf elements (no element children) with text.
+    if (el.childElementCount > 0) return false;
+    const text = el.textContent?.trim();
+    return !!text;
   };
-
   const applySavedContent = (el: Element, key: string) => {
     const saved = content[key];
     if (typeof saved === "string" && saved.length > 0) {
