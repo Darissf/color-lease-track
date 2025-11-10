@@ -47,8 +47,8 @@ export function GlobalLiveEditor() {
 
   const isEditableElement = (el: Element): boolean => {
     const excludedTags = new Set([
-      "SCRIPT", "STYLE", "SVG", "PATH", "TEXTAREA", "INPUT", 
-      "SELECT", "OPTION", "BUTTON", "HTML", "HEAD", "BODY"
+      "SCRIPT", "STYLE", "SVG", "PATH", "TEXTAREA", "INPUT",
+      "SELECT", "OPTION", "HTML", "HEAD", "BODY"
     ]);
     
     if (excludedTags.has(el.tagName)) return false;
@@ -107,13 +107,33 @@ export function GlobalLiveEditor() {
       await updateContent(key, value, location.pathname, "auto");
     };
 
+    // Prevent clicks/navigations while editing in edit mode
+    const handleMouseDown = (e: MouseEvent) => {
+      if (isEditMode) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      if (isEditMode) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
     el.addEventListener("keydown", handleKeyDown);
     el.addEventListener("blur", handleBlur);
+    // Use capture to intercept before parent handlers (e.g., buttons/links)
+    el.addEventListener("mousedown", handleMouseDown, true);
+    el.addEventListener("click", handleClick, true);
 
     // Cleanup when edit mode toggles off
     (el as any)._cleanupGlobalLive = () => {
       el.removeEventListener("keydown", handleKeyDown);
       el.removeEventListener("blur", handleBlur);
+      el.removeEventListener("mousedown", handleMouseDown, true);
+      el.removeEventListener("click", handleClick, true);
       el.removeAttribute("contenteditable");
       el.classList.remove(
         "hover:bg-yellow-50",
