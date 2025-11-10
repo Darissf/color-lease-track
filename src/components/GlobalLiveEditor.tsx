@@ -220,7 +220,7 @@ export function GlobalLiveEditor() {
       const bound = Array.from(document.querySelectorAll("[data-global-edit-bound='true']"));
       for (const el of bound) disableEditable(el as HTMLElement);
     };
-  }, [isEditMode, location.pathname]);
+  }, [isEditMode, location.pathname, content]);
 
   return null;
 }
