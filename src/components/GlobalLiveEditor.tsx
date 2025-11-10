@@ -188,32 +188,34 @@ export function GlobalLiveEditor() {
   };
 
   useEffect(() => {
-    // Use a small delay to let React finish rendering before we process
-    const timeoutId = setTimeout(() => {
-      processAll();
-    }, 100);
+    // Cleanup all existing bindings first
+    const existingBound = Array.from(document.querySelectorAll("[data-global-edit-bound='true']"));
+    for (const el of existingBound) {
+      disableEditable(el as HTMLElement);
+    }
 
-    // Observe DOM changes but debounce to avoid conflicts with React
+    // Disconnect any existing observer
     observerRef.current?.disconnect();
-    let debounceTimer: number;
-    const observer = new MutationObserver(() => {
-      clearTimeout(debounceTimer);
-      debounceTimer = window.setTimeout(() => {
+    observerRef.current = null;
+
+    // Use requestAnimationFrame + setTimeout to ensure React has completely finished rendering
+    let rafId: number;
+    let timeoutId: number;
+    
+    rafId = requestAnimationFrame(() => {
+      timeoutId = window.setTimeout(() => {
         processAll();
-      }, 150);
+      }, 300); // Longer delay to ensure React is done
     });
-    observer.observe(document.body, { childList: true, subtree: true });
-    observerRef.current = observer;
 
     return () => {
+      cancelAnimationFrame(rafId);
       clearTimeout(timeoutId);
-      clearTimeout(debounceTimer);
-      observer.disconnect();
       // Cleanup all editable bindings
       const bound = Array.from(document.querySelectorAll("[data-global-edit-bound='true']"));
       for (const el of bound) disableEditable(el as HTMLElement);
     };
-  }, [isEditMode, location.pathname, content]);
+  }, [isEditMode, location.pathname]);
 
   return null;
 }
