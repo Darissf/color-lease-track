@@ -94,7 +94,7 @@ export function GlobalLiveEditor() {
   const enableEditable = (el: HTMLElement, key: string) => {
     if (el.dataset.globalEditBound === "true") return;
 
-    el.setAttribute("contenteditable", "plaintext-only");
+    el.contentEditable = "true";
     el.dataset.globalEditKey = key;
     el.dataset.globalEditBound = "true";
 
@@ -132,12 +132,14 @@ export function GlobalLiveEditor() {
     const handleMouseDown = (e: MouseEvent) => {
       if (!isEditMode) return;
       const target = e.target as HTMLElement;
-      // Allow clicks on edit mode controls
       if (target.closest('[data-edit-mode-control]')) return;
-      // Always stop propagation so parent handlers (like cards/links) don't fire
+      
+      // Stop parent handlers (cards/links) from firing
       e.stopPropagation();
-      // Prevent navigation/submission on anchors and buttons
-      if (el.tagName === 'BUTTON' || el.tagName === 'A') {
+      
+      // Block navigation/submit if this element or its parents are links/buttons
+      const linkOrButton = (el.closest?.('a, button')) || target.closest('a, button');
+      if (linkOrButton) {
         e.preventDefault();
       }
     };
@@ -145,12 +147,14 @@ export function GlobalLiveEditor() {
     const handleClick = (e: MouseEvent) => {
       if (!isEditMode) return;
       const target = e.target as HTMLElement;
-      // Allow clicks on edit mode controls
       if (target.closest('[data-edit-mode-control]')) return;
-      // Always stop propagation so parent handlers (like cards/links) don't fire
+      
+      // Stop parent handlers (cards/links) from firing
       e.stopPropagation();
-      // Prevent navigation/submission on anchors and buttons
-      if (el.tagName === 'BUTTON' || el.tagName === 'A') {
+      
+      // Block navigation/submit if this element or its parents are links/buttons
+      const linkOrButton = (el.closest?.('a, button')) || target.closest('a, button');
+      if (linkOrButton) {
         e.preventDefault();
       }
     };
