@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Library, Plus, Trash2, Edit, ArrowLeft } from "lucide-react";
+import { Library, Plus, Trash2, Edit, ArrowLeft, Wallet, TrendingUp, Eye, EyeOff } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import {
@@ -88,6 +89,34 @@ const AccountSettings = () => {
   };
 
   const handleSubmit = async () => {
+    // Validasi form
+    if (!formData.bank_name.trim()) {
+      toast({
+        title: "Error",
+        description: "Nama bank harus diisi",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.account_number.trim()) {
+      toast({
+        title: "Error",
+        description: "Nomor rekening harus diisi",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.balance < 0) {
+      toast({
+        title: "Error",
+        description: "Saldo tidak boleh negatif",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -178,6 +207,8 @@ const AccountSettings = () => {
   };
 
   const totalBalance = accounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
+  const activeAccounts = accounts.filter(acc => acc.is_active).length;
+  const inactiveAccounts = accounts.length - activeAccounts;
 
   return (
     <div className="min-h-screen p-8">
@@ -193,12 +224,49 @@ const AccountSettings = () => {
         </div>
       </div>
 
-      <Card className="p-6 mb-6 gradient-card border-0 shadow-lg">
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-2">Total Saldo</p>
-          <p className="text-3xl font-bold text-foreground">{formatCurrency(totalBalance)}</p>
-        </div>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-3 mb-6">
+        <Card className="gradient-card border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+                <Wallet className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Saldo</p>
+                <p className="text-2xl font-bold text-foreground">{formatCurrency(totalBalance)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <Eye className="h-6 w-6 text-green-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Rekening Aktif</p>
+                <p className="text-2xl font-bold text-foreground">{activeAccounts}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-gray-500/10 flex items-center justify-center">
+                <EyeOff className="h-6 w-6 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Rekening Nonaktif</p>
+                <p className="text-2xl font-bold text-foreground">{inactiveAccounts}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
@@ -241,20 +309,30 @@ const AccountSettings = () => {
             <TableBody>
               {accounts.map((account) => (
                 <TableRow key={account.id}>
-                  <TableCell className="font-medium">{account.bank_name}</TableCell>
-                  <TableCell>{account.account_number}</TableCell>
-                  <TableCell className="capitalize">{account.account_type}</TableCell>
-                  <TableCell>{formatCurrency(account.balance)}</TableCell>
                   <TableCell>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        account.is_active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Library className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="font-medium">{account.bank_name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono">{account.account_number}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {account.account_type === 'checking' ? 'Tabungan' : 
+                       account.account_type === 'savings' ? 'Giro' :
+                       account.account_type === 'investment' ? 'Investasi' : 'Lainnya'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-semibold">{formatCurrency(account.balance)}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={account.is_active ? "default" : "secondary"}
+                      className={account.is_active ? "bg-green-500" : ""}
                     >
                       {account.is_active ? "Aktif" : "Nonaktif"}
-                    </span>
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -338,16 +416,21 @@ const AccountSettings = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="balance">Saldo</Label>
+              <Label htmlFor="balance">Saldo Awal</Label>
               <Input
                 id="balance"
                 type="number"
                 placeholder="0"
+                min="0"
+                step="1000"
                 value={formData.balance}
                 onChange={(e) =>
                   setFormData({ ...formData, balance: Number(e.target.value) })
                 }
               />
+              <p className="text-xs text-muted-foreground">
+                Masukkan saldo awal rekening ini
+              </p>
             </div>
 
             <div className="flex items-center justify-between">
