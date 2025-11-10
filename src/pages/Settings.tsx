@@ -1,42 +1,56 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Library, LogIn, LogOut, Landmark, TrendingDown, Book, Settings as SettingsIcon } from "lucide-react";
+import { Library, LogIn, LogOut, Landmark, TrendingDown, Book, Settings as SettingsIcon, Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const settingsMenu = [
+  { 
+    id: 0, 
+    title: "Pengaturan Admin", 
+    icon: Shield, 
+    color: "gradient-primary",
+    description: "Kelola role dan hak akses pengguna",
+    path: "/settings/admin"
+  },
   { 
     id: 1, 
     title: "Pengaturan Akun Rekening", 
     icon: Library, 
     color: "gradient-primary",
-    description: "Kelola akun dan rekening bank Anda"
+    description: "Kelola akun dan rekening bank Anda",
+    path: "/settings/accounts"
   },
   { 
     id: 2, 
     title: "Pengaturan Pemasukan", 
     icon: LogIn, 
     color: "gradient-success",
-    description: "Atur sumber pemasukan tetap"
+    description: "Atur sumber pemasukan tetap",
+    path: "/settings/income"
   },
   { 
     id: 3, 
     title: "Pengaturan Pengeluaran Tetap", 
     icon: LogOut, 
     color: "gradient-secondary",
-    description: "Kelola pengeluaran rutin bulanan"
+    description: "Kelola pengeluaran rutin bulanan",
+    path: "#"
   },
   { 
     id: 4, 
     title: "Pengaturan Tabungan", 
     icon: Landmark, 
     color: "bg-gradient-to-br from-accent to-primary",
-    description: "Atur target dan alokasi tabungan"
+    description: "Atur target dan alokasi tabungan",
+    path: "/settings/savings"
   },
   { 
     id: 5, 
     title: "Pengaturan Pengeluaran Variabel", 
     icon: TrendingDown, 
     color: "bg-gradient-to-br from-warning to-secondary",
-    description: "Kategorikan pengeluaran tidak tetap"
+    description: "Kategorikan pengeluaran tidak tetap",
+    path: "#"
   },
 ];
 
@@ -59,6 +73,8 @@ const learningResources = [
 ];
 
 const Settings = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen p-8">
       {/* Header */}
@@ -75,6 +91,7 @@ const Settings = () => {
           <Card 
             key={setting.id} 
             className="p-6 gradient-card border-0 shadow-md card-hover cursor-pointer group"
+            onClick={() => setting.path !== "#" && navigate(setting.path)}
           >
             <div className="flex flex-col space-y-4">
               <div className={`h-16 w-16 rounded-xl ${setting.color} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all`}>
@@ -87,9 +104,10 @@ const Settings = () => {
                   variant="outline" 
                   size="sm"
                   className="w-full border-primary/20 text-primary hover:bg-primary/10"
+                  disabled={setting.path === "#"}
                 >
                   <SettingsIcon className="h-4 w-4 mr-2" />
-                  Atur
+                  {setting.path === "#" ? "Segera Hadir" : "Atur"}
                 </Button>
               </div>
             </div>

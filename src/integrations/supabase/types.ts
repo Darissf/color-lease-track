@@ -53,6 +53,45 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_accounts: {
+        Row: {
+          account_number: string
+          account_type: string
+          balance: number | null
+          bank_name: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_number: string
+          account_type?: string
+          balance?: number | null
+          bank_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_number?: string
+          account_type?: string
+          balance?: number | null
+          bank_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_history: {
         Row: {
           category: string
@@ -341,6 +380,59 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_income: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          created_at: string
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          source_name: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          source_name: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          source_name?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_income_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_transactions: {
         Row: {
           amount: number
@@ -425,6 +517,42 @@ export type Database = {
           notes?: string | null
           plan_name?: string
           target_amount?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      savings_settings: {
+        Row: {
+          auto_save_enabled: boolean | null
+          created_at: string
+          default_allocation_percentage: number | null
+          emergency_fund_current: number | null
+          emergency_fund_target: number | null
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_save_enabled?: boolean | null
+          created_at?: string
+          default_allocation_percentage?: number | null
+          emergency_fund_current?: number | null
+          emergency_fund_target?: number | null
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_save_enabled?: boolean | null
+          created_at?: string
+          default_allocation_percentage?: number | null
+          emergency_fund_current?: number | null
+          emergency_fund_target?: number | null
+          id?: string
+          notes?: string | null
           updated_at?: string
           user_id?: string
         }

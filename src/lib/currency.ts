@@ -7,6 +7,9 @@ export const formatRupiah = (amount: number): string => {
   }).format(amount);
 };
 
+// Alias for consistency
+export const formatCurrency = formatRupiah;
+
 export const parseRupiah = (rupiahString: string): number => {
   return parseInt(rupiahString.replace(/[^0-9]/g, '')) || 0;
 };

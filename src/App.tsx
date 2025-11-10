@@ -18,6 +18,10 @@ import IncomeManagement from "./pages/IncomeManagement";
 import ExpenseTracker from "./pages/ExpenseTracker";
 import SavingsPlans from "./pages/SavingsPlans";
 import Settings from "./pages/Settings";
+import AdminSettings from "./pages/AdminSettings";
+import AccountSettings from "./pages/AccountSettings";
+import IncomeSettings from "./pages/IncomeSettings";
+import SavingsSettings from "./pages/SavingsSettings";
 import AuditLogs from "./pages/AuditLogs";
 import ContentManagement from "./pages/ContentManagement";
 import NotFound from "./pages/NotFound";
@@ -50,6 +54,10 @@ const App = () => (
                       <Route path="/expenses" element={<ExpenseTracker />} />
                       <Route path="/savings" element={<SavingsPlans />} />
                       <Route path="/settings" element={<Settings />} />
+                      <Route path="/settings/admin" element={<AdminSettings />} />
+                      <Route path="/settings/accounts" element={<AccountSettings />} />
+                      <Route path="/settings/income" element={<IncomeSettings />} />
+                      <Route path="/settings/savings" element={<SavingsSettings />} />
                       <Route path="/audit-logs" element={<AuditLogs />} />
                       <Route path="/content-management" element={<ContentManagement />} />
                       <Route path="*" element={<NotFound />} />
