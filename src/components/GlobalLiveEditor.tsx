@@ -58,17 +58,30 @@ export function GlobalLiveEditor() {
     if (htmlEl.contentEditable === "true") return false;
     // Skip any element that is itself or inside an edit-mode control
     if (htmlEl.closest?.("[data-edit-mode-control]")) return false;
+    // Avoid nested contenteditables: if an ancestor is already bound, skip
+    if (htmlEl.closest?.("[data-global-edit-bound='true']")) return false;
+
+    // Must have some visible text
+    const text = el.textContent?.trim() ?? "";
+    if (!text) return false;
+
+    // Special-case: allow BUTTON/ANCHOR (or role=button) even if text is wrapped
+    if (
+      el.tagName === "BUTTON" ||
+      el.tagName === "A" ||
+      htmlEl.getAttribute("role") === "button"
+    ) {
+      return true;
+    }
 
     // Allow elements with visible text: either true leaf elements or elements
     // that contain direct text nodes (preserving child elements like icons)
-    const text = el.textContent?.trim() ?? "";
-    if (!text) return false;
     if (el.childElementCount === 0) return true;
     return hasDirectTextContent(el);
   };
   const applySavedContent = (el: Element, key: string) => {
     const saved = content[key];
-    if (typeof saved !== "string" || saved.length === 0) return;
+    if (saved === undefined || saved === null) return;
 
     const htmlEl = el as HTMLElement;
     
@@ -159,6 +172,9 @@ export function GlobalLiveEditor() {
       if (linkOrButton) {
         e.preventDefault();
       }
+
+      // Ensure focus so typing starts immediately
+      (el as HTMLElement).focus();
     };
 
     const handleClick = (e: MouseEvent) => {
@@ -174,6 +190,9 @@ export function GlobalLiveEditor() {
       if (linkOrButton) {
         e.preventDefault();
       }
+
+      // Ensure focus so typing starts immediately
+      (el as HTMLElement).focus();
     };
 
     el.addEventListener("keydown", handleKeyDown);
