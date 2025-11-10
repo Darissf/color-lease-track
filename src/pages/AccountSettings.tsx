@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Library, Plus, Trash2, Edit, ArrowLeft, Wallet, TrendingUp, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import BankLogo from "@/components/BankLogo";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import {
@@ -38,6 +39,7 @@ interface BankAccount {
   id: string;
   bank_name: string;
   account_number: string;
+  account_holder_name: string;
   account_type: string;
   balance: number;
   is_active: boolean;
@@ -52,6 +54,7 @@ const AccountSettings = () => {
   const [formData, setFormData] = useState({
     bank_name: "",
     account_number: "",
+    account_holder_name: "",
     account_type: "checking",
     balance: 0,
     is_active: true,
@@ -103,6 +106,15 @@ const AccountSettings = () => {
       toast({
         title: "Error",
         description: "Nomor rekening harus diisi",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.account_holder_name.trim()) {
+      toast({
+        title: "Error",
+        description: "Atas nama harus diisi",
         variant: "destructive",
       });
       return;
@@ -162,6 +174,7 @@ const AccountSettings = () => {
     setFormData({
       bank_name: account.bank_name,
       account_number: account.account_number,
+      account_holder_name: account.account_holder_name || "",
       account_type: account.account_type,
       balance: account.balance,
       is_active: account.is_active,
@@ -197,6 +210,7 @@ const AccountSettings = () => {
     setFormData({
       bank_name: "",
       account_number: "",
+      account_holder_name: "",
       account_type: "checking",
       balance: 0,
       is_active: true,
@@ -299,6 +313,7 @@ const AccountSettings = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Bank</TableHead>
+                <TableHead>Atas Nama</TableHead>
                 <TableHead>Nomor Rekening</TableHead>
                 <TableHead>Tipe</TableHead>
                 <TableHead>Saldo</TableHead>
@@ -310,14 +325,15 @@ const AccountSettings = () => {
               {accounts.map((account) => (
                 <TableRow key={account.id}>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Library className="h-4 w-4 text-primary" />
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <BankLogo bankName={account.bank_name} size="sm" />
                       <span className="font-medium">{account.bank_name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono">{account.account_number}</TableCell>
+                  <TableCell>
+                    <span className="font-medium">{account.account_holder_name}</span>
+                  </TableCell>
+                  <TableCell className="font-mono text-muted-foreground">{account.account_number}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">
                       {account.account_type === 'checking' ? 'Tabungan' : 
@@ -379,6 +395,18 @@ const AccountSettings = () => {
                 value={formData.bank_name}
                 onChange={(e) =>
                   setFormData({ ...formData, bank_name: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="account_holder_name">Atas Nama</Label>
+              <Input
+                id="account_holder_name"
+                placeholder="Nama pemilik rekening"
+                value={formData.account_holder_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, account_holder_name: e.target.value })
                 }
               />
             </div>
