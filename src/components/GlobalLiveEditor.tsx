@@ -113,27 +113,29 @@ export function GlobalLiveEditor() {
     // Prevent clicks/navigations while editing in edit mode
     // But allow clicks on edit mode controls
     const handleMouseDown = (e: MouseEvent) => {
-      if (isEditMode) {
-        const target = e.target as HTMLElement;
-        // Check if click is on or inside edit mode control
-        if (target.closest('[data-edit-mode-control]')) {
-          return; // Allow the click
-        }
-        e.preventDefault();
-        e.stopPropagation();
+      if (!isEditMode) return;
+      const target = e.target as HTMLElement;
+      // Allow clicks on edit mode controls
+      if (target.closest('[data-edit-mode-control]')) return;
+      // Allow focusing to edit; only block navigation on links/buttons
+      const linkOrButton = target.closest('a, button');
+      if (linkOrButton) {
+        e.preventDefault(); // prevent navigation/submit
       }
+      // Always stop propagation so parent handlers (like cards/links) don't fire
+      e.stopPropagation();
     };
 
     const handleClick = (e: MouseEvent) => {
-      if (isEditMode) {
-        const target = e.target as HTMLElement;
-        // Check if click is on or inside edit mode control
-        if (target.closest('[data-edit-mode-control]')) {
-          return; // Allow the click
-        }
+      if (!isEditMode) return;
+      const target = e.target as HTMLElement;
+      // Allow clicks on edit mode controls
+      if (target.closest('[data-edit-mode-control]')) return;
+      const linkOrButton = target.closest('a, button');
+      if (linkOrButton) {
         e.preventDefault();
-        e.stopPropagation();
       }
+      e.stopPropagation();
     };
 
     el.addEventListener("keydown", handleKeyDown);
