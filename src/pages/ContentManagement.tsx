@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Trash2, Search, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { ContentHistoryPanel } from "@/components/ContentHistoryPanel";
 
 interface ContentItem {
   id: string;
@@ -78,7 +79,9 @@ export default function ContentManagement() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4 space-y-6">
+        <ContentHistoryPanel />
+        
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">

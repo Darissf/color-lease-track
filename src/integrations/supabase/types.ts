@@ -53,6 +53,39 @@ export type Database = {
         }
         Relationships: []
       }
+      content_history: {
+        Row: {
+          category: string
+          content_key: string
+          content_value: string
+          created_at: string
+          id: string
+          page: string
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          category?: string
+          content_key: string
+          content_value: string
+          created_at?: string
+          id?: string
+          page: string
+          user_id: string
+          version_number?: number
+        }
+        Update: {
+          category?: string
+          content_key?: string
+          content_value?: string
+          created_at?: string
+          id?: string
+          page?: string
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: []
+      }
       editable_content: {
         Row: {
           category: string | null

@@ -137,13 +137,15 @@ export function GlobalLiveEditor() {
     );
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter") {
+      if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         (e.target as HTMLElement).blur();
       }
       if (e.key === "Escape") {
+        e.preventDefault();
         (e.target as HTMLElement).blur();
       }
+      // Allow all other keys including space to work normally
     };
 
     const handleBlur = async (e: FocusEvent) => {
