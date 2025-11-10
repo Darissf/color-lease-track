@@ -61,11 +61,7 @@ export function GlobalLiveEditor() {
     // Avoid nested contenteditables: if an ancestor is already bound, skip
     if (htmlEl.closest?.("[data-global-edit-bound='true']")) return false;
 
-    // Must have some visible text
-    const text = el.textContent?.trim() ?? "";
-    if (!text) return false;
-
-    // Special-case: allow BUTTON/ANCHOR (or role=button) even if text is wrapped
+    // Always allow interactive containers even if currently empty
     if (
       el.tagName === "BUTTON" ||
       el.tagName === "A" ||
@@ -74,10 +70,11 @@ export function GlobalLiveEditor() {
       return true;
     }
 
-    // Allow elements with visible text: either true leaf elements or elements
-    // that contain direct text nodes (preserving child elements like icons)
+    // Editable if it's a leaf or it contains direct text nodes (preserving child elements like icons)
     if (el.childElementCount === 0) return true;
-    return hasDirectTextContent(el);
+    if (hasDirectTextContent(el)) return true;
+
+    return false;
   };
   const applySavedContent = (el: Element, key: string) => {
     const saved = content[key];
