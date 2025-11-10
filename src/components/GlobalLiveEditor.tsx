@@ -77,17 +77,34 @@ export function GlobalLiveEditor() {
     
     // Only update if different
     if (currentText !== saved) {
-      // Store any child elements (icons, etc)
-      const childElements = Array.from(el.children);
-      
-      // Clear all content
-      el.textContent = "";
-      
-      // Add saved text first
-      el.appendChild(document.createTextNode(saved));
-      
-      // Re-append child elements after text
-      childElements.forEach(child => el.appendChild(child));
+      // For elements with no children, just update textContent
+      if (el.childElementCount === 0) {
+        el.textContent = saved;
+      } else {
+        // For elements with children (like buttons with icons),
+        // find and update only the text nodes
+        const walker = document.createTreeWalker(
+          el,
+          NodeFilter.SHOW_TEXT,
+          null
+        );
+        
+        const textNodes: Text[] = [];
+        let node: Node | null;
+        while ((node = walker.nextNode())) {
+          if (node.textContent?.trim()) {
+            textNodes.push(node as Text);
+          }
+        }
+        
+        // Replace the first text node with saved content, remove others
+        if (textNodes.length > 0) {
+          textNodes[0].textContent = saved;
+          for (let i = 1; i < textNodes.length; i++) {
+            textNodes[i].textContent = "";
+          }
+        }
+      }
     }
   };
 
