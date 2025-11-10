@@ -70,25 +70,25 @@ export function GlobalLiveEditor() {
     const saved = content[key];
     if (typeof saved !== "string" || saved.length === 0) return;
 
-    // If element has no child elements, safe to replace textContent entirely
-    if (el.childElementCount === 0) {
-      if (el.textContent !== saved) {
-        el.textContent = saved;
-      }
-      return;
-    }
-
-    // For elements with child elements (e.g., buttons with icons):
-    // Remove ALL existing text nodes, then insert new one at beginning
-    const childArray = Array.from(el.childNodes);
-    for (const child of childArray) {
-      if (child.nodeType === Node.TEXT_NODE) {
-        el.removeChild(child);
-      }
-    }
+    const htmlEl = el as HTMLElement;
     
-    // Insert the saved text at the beginning
-    el.insertBefore(document.createTextNode(saved), el.firstChild);
+    // Get current visible text (innerText strips hidden/script content)
+    const currentText = htmlEl.innerText?.trim() ?? "";
+    
+    // Only update if different
+    if (currentText !== saved) {
+      // Store any child elements (icons, etc)
+      const childElements = Array.from(el.children);
+      
+      // Clear all content
+      el.textContent = "";
+      
+      // Add saved text first
+      el.appendChild(document.createTextNode(saved));
+      
+      // Re-append child elements after text
+      childElements.forEach(child => el.appendChild(child));
+    }
   };
 
   const enableEditable = (el: HTMLElement, key: string) => {
@@ -121,7 +121,8 @@ export function GlobalLiveEditor() {
 
     const handleBlur = async (e: FocusEvent) => {
       const target = e.target as HTMLElement;
-      const value = (target.textContent ?? "").trim();
+      // Use innerText to get visible text only (excludes hidden elements)
+      const value = (target.innerText ?? "").trim();
       // Save under current page and auto category
       await updateContent(key, value, location.pathname, "auto");
     };
