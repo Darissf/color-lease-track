@@ -1,4 +1,7 @@
-import { Building2 } from "lucide-react";
+import bcaLogo from "@/assets/banks/bca-logo.png";
+import mandiriLogo from "@/assets/banks/mandiri-logo.png";
+import briLogo from "@/assets/banks/bri-logo.png";
+import bniLogo from "@/assets/banks/bni-logo.png";
 
 interface BankLogoProps {
   bankName: string;
@@ -7,24 +10,46 @@ interface BankLogoProps {
 
 const BankLogo = ({ bankName, size = "md" }: BankLogoProps) => {
   const sizeClasses = {
-    sm: "h-8 w-8 text-xs",
-    md: "h-10 w-10 text-sm",
-    lg: "h-12 w-12 text-base",
+    sm: "h-8 w-8",
+    md: "h-10 w-10",
+    lg: "h-12 w-12",
   };
 
-  // Bank color schemes
-  const getBankStyle = (name: string) => {
+  // Get bank logo
+  const getBankLogo = (name: string) => {
     const upperName = name.toUpperCase();
     
     if (upperName.includes("BCA")) {
-      return { bg: "bg-blue-500", text: "BCA" };
+      return { logo: bcaLogo, alt: "BCA" };
     } else if (upperName.includes("MANDIRI")) {
-      return { bg: "bg-yellow-500", text: "MDR" };
+      return { logo: mandiriLogo, alt: "Mandiri" };
     } else if (upperName.includes("BRI")) {
-      return { bg: "bg-blue-600", text: "BRI" };
+      return { logo: briLogo, alt: "BRI" };
     } else if (upperName.includes("BNI")) {
-      return { bg: "bg-orange-500", text: "BNI" };
-    } else if (upperName.includes("CIMB")) {
+      return { logo: bniLogo, alt: "BNI" };
+    } else {
+      // Fallback untuk bank lain
+      return null;
+    }
+  };
+
+  const bankData = getBankLogo(bankName);
+
+  if (bankData) {
+    return (
+      <img 
+        src={bankData.logo} 
+        alt={bankData.alt}
+        className={`${sizeClasses[size]} object-contain flex-shrink-0`}
+      />
+    );
+  }
+
+  // Fallback untuk bank yang tidak punya logo
+  const getBankInitial = (name: string) => {
+    const upperName = name.toUpperCase();
+    
+    if (upperName.includes("CIMB")) {
       return { bg: "bg-red-600", text: "CIMB" };
     } else if (upperName.includes("PERMATA")) {
       return { bg: "bg-green-600", text: "PMT" };
@@ -41,11 +66,11 @@ const BankLogo = ({ bankName, size = "md" }: BankLogoProps) => {
     }
   };
 
-  const style = getBankStyle(bankName);
+  const style = getBankInitial(bankName);
 
   return (
     <div className={`${sizeClasses[size]} rounded-full ${style.bg} flex items-center justify-center flex-shrink-0`}>
-      <span className="text-white font-bold">{style.text}</span>
+      <span className="text-white font-bold text-xs">{style.text}</span>
     </div>
   );
 };
