@@ -129,19 +129,62 @@ export function GlobalLiveEditor() {
   };
 
   const processAll = () => {
-    const all = Array.from(document.body.querySelectorAll("*:not([data-global-skip])"));
-    for (const el of all) {
-      if (!isLeafTextElement(el)) continue;
-      const key = `${location.pathname}::${getElementPath(el)}`;
+    // Wrap all text nodes across the page so EVERY piece of text becomes editable
+    const excludedTags = new Set(["SCRIPT", "STYLE", "SVG", "PATH", "TEXTAREA", "INPUT"]);
 
+    const shouldSkip = (el: Element | null): boolean => {
+      let cur: Element | null = el;
+      while (cur && cur !== document.body) {
+        const tag = cur.tagName?.toUpperCase();
+        if (tag && excludedTags.has(tag)) return true;
+        if ((cur as HTMLElement).dataset.nonEditable === "true") return true;
+        if ((cur as HTMLElement).dataset.globalSkip === "true") return true;
+        if ((cur as HTMLElement).isContentEditable) return true;
+        cur = cur.parentElement;
+      }
+      return false;
+    };
+
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          const text = node.nodeValue?.trim() ?? "";
+          if (!text) return NodeFilter.FILTER_REJECT;
+          const parent = (node as Text).parentElement;
+          if (!parent) return NodeFilter.FILTER_REJECT;
+          if (shouldSkip(parent)) return NodeFilter.FILTER_REJECT;
+          if (parent.closest('[data-global-text-wrapper="true"]')) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        },
+      }
+    );
+
+    const toWrap: Text[] = [];
+    let current: Node | null;
+    while ((current = walker.nextNode())) {
+      toWrap.push(current as Text);
+    }
+
+    for (const textNode of toWrap) {
+      const span = document.createElement("span");
+      span.dataset.globalTextWrapper = "true";
+      textNode.parentNode?.insertBefore(span, textNode);
+      span.appendChild(textNode);
+    }
+
+    const wrappers = Array.from(
+      document.querySelectorAll<HTMLElement>('span[data-global-text-wrapper="true"]')
+    );
+
+    for (const el of wrappers) {
+      const key = `${location.pathname}::${getElementPath(el)}`;
+      applySavedContent(el, key);
       if (!isEditMode) {
-        // Apply saved content and ensure element is not editable
-        applySavedContent(el, key);
-        disableEditable(el as HTMLElement);
+        disableEditable(el);
       } else {
-        // In edit mode, ensure content is editable and apply saved value first
-        applySavedContent(el, key);
-        enableEditable(el as HTMLElement, key);
+        enableEditable(el, key);
       }
     }
   };

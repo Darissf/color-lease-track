@@ -50,20 +50,6 @@ export default function Nabila() {
         </div>
       </Card>
 
-      {/* Halaman Section */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 text-foreground">Halaman</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard")}>
-            <Calendar className="h-4 w-4 mr-2" />
-            Phone Dashboard Isai
-          </Button>
-          <Button variant="outline" className="justify-start" onClick={() => navigate("/wallet")}>
-            <DollarSign className="h-4 w-4 mr-2" />
-            Phone Wallet
-          </Button>
-        </div>
-      </Card>
 
       {/* Aku Cepat Tamaluki Section */}
       <Card className="p-6">
