@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { EditableContentProvider } from "./contexts/EditableContentContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
+import { GlobalLiveEditor } from "./components/GlobalLiveEditor";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -31,6 +32,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <EditableContentProvider>
+            <GlobalLiveEditor />
             <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
