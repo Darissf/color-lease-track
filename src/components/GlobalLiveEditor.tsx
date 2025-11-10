@@ -35,23 +35,30 @@ export function GlobalLiveEditor() {
     return parts.join(">");
   };
 
-  const isLeafTextElement = (el: Element) => {
-    if (
-      el.tagName === "SCRIPT" ||
-      el.tagName === "STYLE" ||
-      el.tagName === "SVG" ||
-      el.tagName === "PATH" ||
-      el.tagName === "TEXTAREA" ||
-      el.tagName === "INPUT"
-    ) return false;
+  const hasDirectTextContent = (el: Element): boolean => {
+    // Check if element has text nodes as direct children (not just in descendants)
+    for (const child of el.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
+        return true;
+      }
+    }
+    return false;
+  };
 
+  const isEditableElement = (el: Element): boolean => {
+    const excludedTags = new Set([
+      "SCRIPT", "STYLE", "SVG", "PATH", "TEXTAREA", "INPUT", 
+      "SELECT", "OPTION", "BUTTON", "HTML", "HEAD", "BODY"
+    ]);
+    
+    if (excludedTags.has(el.tagName)) return false;
     if ((el as HTMLElement).dataset.nonEditable === "true") return false;
-
-    // Only leaf elements (no child elements) to avoid breaking nested structures
-    if (el.childElementCount > 0) return false;
-
-    const text = el.textContent?.trim() ?? "";
-    return text.length > 0;
+    if ((el as HTMLElement).dataset.globalSkip === "true") return false;
+    if ((el as HTMLElement).contentEditable === "true") return false;
+    
+    // Must have direct text content or be a leaf with text
+    const hasText = hasDirectTextContent(el) || (el.childElementCount === 0 && el.textContent?.trim());
+    return !!hasText;
   };
 
   const applySavedContent = (el: Element, key: string) => {
@@ -129,85 +136,52 @@ export function GlobalLiveEditor() {
   };
 
   const processAll = () => {
-    // Wrap all text nodes across the page so EVERY piece of text becomes editable
-    const excludedTags = new Set(["SCRIPT", "STYLE", "SVG", "PATH", "TEXTAREA", "INPUT"]);
-
-    const shouldSkip = (el: Element | null): boolean => {
-      let cur: Element | null = el;
-      while (cur && cur !== document.body) {
-        const tag = cur.tagName?.toUpperCase();
-        if (tag && excludedTags.has(tag)) return true;
-        if ((cur as HTMLElement).dataset.nonEditable === "true") return true;
-        if ((cur as HTMLElement).dataset.globalSkip === "true") return true;
-        if ((cur as HTMLElement).isContentEditable) return true;
-        cur = cur.parentElement;
-      }
-      return false;
-    };
-
-    const walker = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode(node) {
-          const text = node.nodeValue?.trim() ?? "";
-          if (!text) return NodeFilter.FILTER_REJECT;
-          const parent = (node as Text).parentElement;
-          if (!parent) return NodeFilter.FILTER_REJECT;
-          if (shouldSkip(parent)) return NodeFilter.FILTER_REJECT;
-          if (parent.closest('[data-global-text-wrapper="true"]')) return NodeFilter.FILTER_REJECT;
-          return NodeFilter.FILTER_ACCEPT;
-        },
-      }
-    );
-
-    const toWrap: Text[] = [];
-    let current: Node | null;
-    while ((current = walker.nextNode())) {
-      toWrap.push(current as Text);
-    }
-
-    for (const textNode of toWrap) {
-      const span = document.createElement("span");
-      span.dataset.globalTextWrapper = "true";
-      textNode.parentNode?.insertBefore(span, textNode);
-      span.appendChild(textNode);
-    }
-
-    const wrappers = Array.from(
-      document.querySelectorAll<HTMLElement>('span[data-global-text-wrapper="true"]')
-    );
-
-    for (const el of wrappers) {
+    // Find all elements in the page
+    const allElements = Array.from(document.body.querySelectorAll("*"));
+    
+    for (const el of allElements) {
+      if (!isEditableElement(el)) continue;
+      
+      const htmlEl = el as HTMLElement;
       const key = `${location.pathname}::${getElementPath(el)}`;
+      
+      // Apply saved content first
       applySavedContent(el, key);
+      
       if (!isEditMode) {
-        disableEditable(el);
+        disableEditable(htmlEl);
       } else {
-        enableEditable(el, key);
+        enableEditable(htmlEl, key);
       }
     }
   };
 
   useEffect(() => {
-    // Initial run
-    processAll();
-
-    // Observe DOM changes to re-apply behavior after React re-renders
-    observerRef.current?.disconnect();
-    const observer = new MutationObserver(() => {
+    // Use a small delay to let React finish rendering before we process
+    const timeoutId = setTimeout(() => {
       processAll();
+    }, 100);
+
+    // Observe DOM changes but debounce to avoid conflicts with React
+    observerRef.current?.disconnect();
+    let debounceTimer: number;
+    const observer = new MutationObserver(() => {
+      clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => {
+        processAll();
+      }, 150);
     });
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    observer.observe(document.body, { childList: true, subtree: true });
     observerRef.current = observer;
 
     return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(debounceTimer);
       observer.disconnect();
       // Cleanup all editable bindings
       const bound = Array.from(document.querySelectorAll("[data-global-edit-bound='true']"));
       for (const el of bound) disableEditable(el as HTMLElement);
     };
-    // Re-run when edit mode toggles, route changes, or content map updates
   }, [isEditMode, location.pathname, content]);
 
   return null;
