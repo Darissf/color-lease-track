@@ -78,26 +78,17 @@ export function GlobalLiveEditor() {
       return;
     }
 
-    // Preserve child elements (e.g., icons). Update only direct text nodes.
-    let updated = false;
-    for (const child of Array.from(el.childNodes)) {
+    // For elements with child elements (e.g., buttons with icons):
+    // Remove ALL existing text nodes, then insert new one at beginning
+    const childArray = Array.from(el.childNodes);
+    for (const child of childArray) {
       if (child.nodeType === Node.TEXT_NODE) {
-        if (!updated) {
-          if (child.textContent !== saved) {
-            child.textContent = saved;
-          }
-          updated = true;
-        } else if (child.textContent?.trim()) {
-          // Collapse extra text nodes
-          child.textContent = "";
-        }
+        el.removeChild(child);
       }
     }
-
-    // If no direct text node existed, insert one at the beginning
-    if (!updated) {
-      el.insertBefore(document.createTextNode(saved), el.firstChild);
-    }
+    
+    // Insert the saved text at the beginning
+    el.insertBefore(document.createTextNode(saved), el.firstChild);
   };
 
   const enableEditable = (el: HTMLElement, key: string) => {
