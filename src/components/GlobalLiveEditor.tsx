@@ -81,24 +81,36 @@ export function GlobalLiveEditor() {
     if (saved === undefined || saved === null) return;
 
     const htmlEl = el as HTMLElement;
-    
+
+    // If this is an interactive container, target the inner wrapper if present
+    const isInteractive =
+      htmlEl.tagName === "BUTTON" ||
+      htmlEl.tagName === "A" ||
+      htmlEl.getAttribute("role") === "button";
+
+    const wrapper = isInteractive
+      ? (htmlEl.querySelector('[data-global-edit-wrapper="true"]') as HTMLElement | null)
+      : null;
+
+    const targetEl = (wrapper ?? htmlEl) as HTMLElement;
+
     // Get current visible text (innerText strips hidden/script content)
-    const currentText = htmlEl.innerText?.trim() ?? "";
-    
+    const currentText = targetEl.innerText?.trim() ?? "";
+
     // Only update if different
     if (currentText !== saved) {
       // For elements with no children, just update textContent
-      if (el.childElementCount === 0) {
-        el.textContent = saved;
+      if (targetEl.childElementCount === 0) {
+        targetEl.textContent = saved;
       } else {
         // For elements with children (like buttons with icons),
         // find and update only the text nodes
         const walker = document.createTreeWalker(
-          el,
+          targetEl,
           NodeFilter.SHOW_TEXT,
           null
         );
-        
+
         const textNodes: Text[] = [];
         let node: Node | null;
         while ((node = walker.nextNode())) {
@@ -106,7 +118,7 @@ export function GlobalLiveEditor() {
             textNodes.push(node as Text);
           }
         }
-        
+
         // Replace the first text node with saved content, remove others
         if (textNodes.length > 0) {
           textNodes[0].textContent = saved;
@@ -121,12 +133,53 @@ export function GlobalLiveEditor() {
   const enableEditable = (el: HTMLElement, key: string) => {
     if (el.dataset.globalEditBound === "true") return;
 
-    el.contentEditable = "true";
-    el.dataset.globalEditKey = key;
-    el.dataset.globalEditBound = "true";
+    const isInteractive =
+      el.tagName === "BUTTON" ||
+      el.tagName === "A" ||
+      el.getAttribute("role") === "button";
 
-    // Visual hint similar to EditableText
-    el.classList.add(
+    const host = el; // element we mark as bound
+    let target: HTMLElement = el; // element we actually make editable
+
+    if (isInteractive) {
+      let wrapper = host.querySelector(
+        '[data-global-edit-wrapper="true"]'
+      ) as HTMLElement | null;
+
+      if (!wrapper) {
+        wrapper = document.createElement("span");
+        wrapper.setAttribute("data-global-edit-wrapper", "true");
+
+        // Move direct text nodes into wrapper to allow editing just the text
+        const textNodes: Node[] = [];
+        for (const child of Array.from(host.childNodes)) {
+          if (child.nodeType === Node.TEXT_NODE) textNodes.push(child);
+        }
+        if (textNodes.length > 0) {
+          textNodes.forEach((n) => wrapper!.appendChild(n));
+        } else {
+          // Seed with any visible text to ensure caret appears
+          wrapper.textContent = host.innerText?.trim() || "";
+        }
+
+        // Place wrapper at the start so icons/elements remain intact
+        if (host.firstChild) host.insertBefore(wrapper, host.firstChild);
+        else host.appendChild(wrapper);
+      }
+
+      target = wrapper;
+    }
+
+    // Mark the host as bound and key'd
+    host.dataset.globalEditKey = key;
+    host.dataset.globalEditBound = "true";
+
+    // Make the target contenteditable
+    target.contentEditable = "true";
+    target.dataset.globalEditKey = key;
+
+    // Visual hint similar to EditableText (on target)
+    target.classList.add(
       "hover:bg-yellow-50",
       "hover:outline",
       "hover:outline-2",
@@ -140,74 +193,69 @@ export function GlobalLiveEditor() {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         (e.target as HTMLElement).blur();
+        return;
       }
       if (e.key === "Escape") {
         e.preventDefault();
         (e.target as HTMLElement).blur();
+        return;
       }
-      // Allow all other keys including space to work normally
+      // Allow spaces and other keys to behave normally inside the editable wrapper
+      // No extra prevention here; focusing the wrapper avoids button/anchor activation
     };
 
     const handleBlur = async (e: FocusEvent) => {
-      const target = e.target as HTMLElement;
-      // Use innerText to get visible text only (excludes hidden elements)
-      const value = (target.innerText ?? "").trim();
-      // Save under current page and auto category
+      const t = e.target as HTMLElement;
+      const value = (t.innerText ?? "").trim();
       await updateContent(key, value, location.pathname, "auto");
     };
 
-    // Prevent clicks/navigations while editing in edit mode
-    // But allow clicks on edit mode controls
+    // Prevent clicks/navigations while editing in edit mode, and keep focus on target
     const handleMouseDown = (e: MouseEvent) => {
       if (!isEditMode) return;
-      const target = e.target as HTMLElement;
-      if (target.closest('[data-edit-mode-control]')) return;
-      
-      // Stop parent handlers (cards/links) from firing
+      const t = e.target as HTMLElement;
+      if (t.closest('[data-edit-mode-control]')) return;
+
       e.stopPropagation();
-      
-      // Block navigation/submit if this element or its parents are links/buttons
-      const linkOrButton = (el.closest?.('a, button')) || target.closest('a, button');
+
+      // Block navigation/submit if host is a link/button
+      const linkOrButton = host.closest?.("a, button") || t.closest("a, button");
       if (linkOrButton) {
         e.preventDefault();
       }
 
-      // Ensure focus so typing starts immediately
-      (el as HTMLElement).focus();
+      target.focus();
     };
 
     const handleClick = (e: MouseEvent) => {
       if (!isEditMode) return;
-      const target = e.target as HTMLElement;
-      if (target.closest('[data-edit-mode-control]')) return;
-      
-      // Stop parent handlers (cards/links) from firing
+      const t = e.target as HTMLElement;
+      if (t.closest('[data-edit-mode-control]')) return;
+
       e.stopPropagation();
-      
-      // Block navigation/submit if this element or its parents are links/buttons
-      const linkOrButton = (el.closest?.('a, button')) || target.closest('a, button');
+
+      const linkOrButton = host.closest?.("a, button") || t.closest("a, button");
       if (linkOrButton) {
         e.preventDefault();
       }
 
-      // Ensure focus so typing starts immediately
-      (el as HTMLElement).focus();
+      target.focus();
     };
 
-    el.addEventListener("keydown", handleKeyDown);
-    el.addEventListener("blur", handleBlur);
+    target.addEventListener("keydown", handleKeyDown);
+    target.addEventListener("blur", handleBlur);
     // Use capture to intercept before parent handlers (e.g., buttons/links)
-    el.addEventListener("mousedown", handleMouseDown, true);
-    el.addEventListener("click", handleClick, true);
+    target.addEventListener("mousedown", handleMouseDown, true);
+    target.addEventListener("click", handleClick, true);
 
-    // Cleanup when edit mode toggles off
-    (el as any)._cleanupGlobalLive = () => {
-      el.removeEventListener("keydown", handleKeyDown);
-      el.removeEventListener("blur", handleBlur);
-      el.removeEventListener("mousedown", handleMouseDown, true);
-      el.removeEventListener("click", handleClick, true);
-      el.removeAttribute("contenteditable");
-      el.classList.remove(
+    // Cleanup stored on the host element so disableEditable(host) works
+    (host as any)._cleanupGlobalLive = () => {
+      target.removeEventListener("keydown", handleKeyDown);
+      target.removeEventListener("blur", handleBlur);
+      target.removeEventListener("mousedown", handleMouseDown, true);
+      target.removeEventListener("click", handleClick, true);
+      target.removeAttribute("contenteditable");
+      target.classList.remove(
         "hover:bg-yellow-50",
         "hover:outline",
         "hover:outline-2",
@@ -216,9 +264,11 @@ export function GlobalLiveEditor() {
         "px-1",
         "transition-all"
       );
-      delete (el as any)._cleanupGlobalLive;
-      delete el.dataset.globalEditKey;
-      delete el.dataset.globalEditBound;
+      const wrapper = host.querySelector('[data-global-edit-wrapper="true"]') as HTMLElement | null;
+      if (wrapper) wrapper.removeAttribute("contenteditable");
+      delete (host as any)._cleanupGlobalLive;
+      delete host.dataset.globalEditKey;
+      delete host.dataset.globalEditBound;
     };
   };
 
