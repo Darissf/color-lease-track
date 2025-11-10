@@ -50,7 +50,7 @@ export function GlobalLiveEditor() {
       "SCRIPT", "STYLE", "SVG", "PATH", "TEXTAREA", "INPUT",
       "SELECT", "OPTION", "HTML", "HEAD", "BODY"
     ]);
-    
+
     if (excludedTags.has(el.tagName)) return false;
     const htmlEl = el as HTMLElement;
     if (htmlEl.dataset.nonEditable === "true") return false;
@@ -58,28 +58,52 @@ export function GlobalLiveEditor() {
     if (htmlEl.contentEditable === "true") return false;
     // Skip any element that is itself or inside an edit-mode control
     if (htmlEl.closest?.("[data-edit-mode-control]")) return false;
-    
-    // IMPORTANT: Only allow true leaf elements (no element children) with text.
-    // This includes buttons and links that only have text content (no nested elements)
-    if (el.childElementCount > 0) return false;
-    const text = el.textContent?.trim();
-    return !!text;
+
+    // Allow elements with visible text: either true leaf elements or elements
+    // that contain direct text nodes (preserving child elements like icons)
+    const text = el.textContent?.trim() ?? "";
+    if (!text) return false;
+    if (el.childElementCount === 0) return true;
+    return hasDirectTextContent(el);
   };
   const applySavedContent = (el: Element, key: string) => {
     const saved = content[key];
-    if (typeof saved === "string" && saved.length > 0) {
-      // Replace text content with saved value
-      // Use textContent to avoid injecting HTML
+    if (typeof saved !== "string" || saved.length === 0) return;
+
+    // If element has no child elements, safe to replace textContent entirely
+    if (el.childElementCount === 0) {
       if (el.textContent !== saved) {
         el.textContent = saved;
       }
+      return;
+    }
+
+    // Preserve child elements (e.g., icons). Update only direct text nodes.
+    let updated = false;
+    for (const child of Array.from(el.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        if (!updated) {
+          if (child.textContent !== saved) {
+            child.textContent = saved;
+          }
+          updated = true;
+        } else if (child.textContent?.trim()) {
+          // Collapse extra text nodes
+          child.textContent = "";
+        }
+      }
+    }
+
+    // If no direct text node existed, insert one at the beginning
+    if (!updated) {
+      el.insertBefore(document.createTextNode(saved), el.firstChild);
     }
   };
 
   const enableEditable = (el: HTMLElement, key: string) => {
     if (el.dataset.globalEditBound === "true") return;
 
-    el.contentEditable = "true";
+    el.setAttribute("contenteditable", "plaintext-only");
     el.dataset.globalEditKey = key;
     el.dataset.globalEditBound = "true";
 
@@ -118,10 +142,11 @@ export function GlobalLiveEditor() {
       const target = e.target as HTMLElement;
       // Allow clicks on edit mode controls
       if (target.closest('[data-edit-mode-control]')) return;
-      // If this editable element is a button or link, prevent navigation
+      // Always stop propagation so parent handlers (like cards/links) don't fire
+      e.stopPropagation();
+      // Prevent navigation/submission on anchors and buttons
       if (el.tagName === 'BUTTON' || el.tagName === 'A') {
         e.preventDefault();
-        e.stopPropagation();
       }
     };
 
@@ -130,10 +155,11 @@ export function GlobalLiveEditor() {
       const target = e.target as HTMLElement;
       // Allow clicks on edit mode controls
       if (target.closest('[data-edit-mode-control]')) return;
-      // If this editable element is a button or link, prevent navigation
+      // Always stop propagation so parent handlers (like cards/links) don't fire
+      e.stopPropagation();
+      // Prevent navigation/submission on anchors and buttons
       if (el.tagName === 'BUTTON' || el.tagName === 'A') {
         e.preventDefault();
-        e.stopPropagation();
       }
     };
 
