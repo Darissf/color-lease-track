@@ -538,20 +538,19 @@ const ClientGroups = () => {
         return group?.nama || "-";
       case "keterangan":
         return (
-          <div className="whitespace-pre-wrap break-words min-h-[40px] py-2">
+          <div className="truncate max-w-[300px]" title={contract.keterangan || "-"}>
             {contract.keterangan || "-"}
           </div>
         );
       case "periode":
         return (
-          <div className="text-sm">
-            <div>{format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })}</div>
-            <div className="text-muted-foreground text-xs">
-              s/d {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {remainingDays > 0 ? `${remainingDays} hari lagi` : "Berakhir"}
-            </div>
+          <div className="text-sm whitespace-nowrap">
+            <span>{format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })}</span>
+            <span className="text-muted-foreground"> s/d </span>
+            <span>{format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}</span>
+            <span className="text-muted-foreground ml-2">
+              ({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
+            </span>
           </div>
         );
       case "status":
