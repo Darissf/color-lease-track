@@ -65,6 +65,7 @@ const ClientGroups = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
+  const [clientSearchMode, setClientSearchMode] = useState<'phone' | 'name'>('phone');
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
     number: 80,
     invoice: 120,
@@ -731,14 +732,38 @@ const ClientGroups = () => {
                       >
                         {contractForm.client_group_id
                           ? clientGroups.find((group) => group.id === contractForm.client_group_id)?.nama
-                          : "Cari berdasarkan nomor HP..."}
+                          : "Cari kelompok client..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0" align="start">
                       <Command shouldFilter={false}>
+                        <div className="flex items-center border-b px-3 py-2 gap-2">
+                          <Button
+                            variant={clientSearchMode === 'phone' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setClientSearchMode('phone');
+                              setClientSearchQuery("");
+                            }}
+                            className="flex-1"
+                          >
+                            Nomor HP
+                          </Button>
+                          <Button
+                            variant={clientSearchMode === 'name' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setClientSearchMode('name');
+                              setClientSearchQuery("");
+                            }}
+                            className="flex-1"
+                          >
+                            Nama
+                          </Button>
+                        </div>
                         <CommandInput 
-                          placeholder="Ketik nomor HP (contoh: 085)..." 
+                          placeholder={clientSearchMode === 'phone' ? "Ketik nomor HP (contoh: 085)..." : "Ketik nama kelompok..."} 
                           value={clientSearchQuery}
                           onValueChange={setClientSearchQuery}
                         />
@@ -746,10 +771,13 @@ const ClientGroups = () => {
                           <CommandEmpty>Tidak ada kelompok client ditemukan.</CommandEmpty>
                           <CommandGroup>
                             {clientGroups
-                              .filter((group) => 
-                                group.nomor_telepon.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
-                                group.nama.toLowerCase().includes(clientSearchQuery.toLowerCase())
-                              )
+                              .filter((group) => {
+                                if (clientSearchMode === 'phone') {
+                                  return group.nomor_telepon.toLowerCase().includes(clientSearchQuery.toLowerCase());
+                                } else {
+                                  return group.nama.toLowerCase().includes(clientSearchQuery.toLowerCase());
+                                }
+                              })
                               .map((group) => (
                                 <CommandItem
                                   key={group.id}
