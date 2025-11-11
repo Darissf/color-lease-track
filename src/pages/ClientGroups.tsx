@@ -563,7 +563,7 @@ const ClientGroups = () => {
       case "tagihan":
         return <span className="text-warning font-medium">{formatRupiah(contract.tagihan_belum_bayar)}</span>;
       case "lunas":
-        return <span className="text-accent font-medium">{formatRupiah(contract.jumlah_lunas)}</span>;
+        return <span className="text-foreground font-medium">{formatRupiah(contract.jumlah_lunas)}</span>;
       case "aksi":
         return (
           <div className="flex items-center justify-center gap-1">
