@@ -303,7 +303,7 @@ const ClientGroups = () => {
         
         // Create income entry if jumlah_lunas changed and is > 0
         const jumlahLunasChange = jumlahLunas - oldJumlahLunas;
-        if (jumlahLunasChange > 0 && contractForm.bank_account_id) {
+        if (jumlahLunasChange > 0) {
           const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
           const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
           
@@ -328,7 +328,7 @@ const ClientGroups = () => {
         if (contractError) throw contractError;
 
         // Auto-create income entry if jumlah_lunas > 0
-        if (jumlahLunas > 0 && contractForm.bank_account_id) {
+        if (jumlahLunas > 0) {
           const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
           const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
           
