@@ -528,6 +528,7 @@ export type Database = {
           end_date: string
           google_maps_link: string | null
           id: string
+          invoice: number | null
           jumlah_lunas: number | null
           notes: string | null
           start_date: string
@@ -544,6 +545,7 @@ export type Database = {
           end_date: string
           google_maps_link?: string | null
           id?: string
+          invoice?: number | null
           jumlah_lunas?: number | null
           notes?: string | null
           start_date: string
@@ -560,6 +562,7 @@ export type Database = {
           end_date?: string
           google_maps_link?: string | null
           id?: string
+          invoice?: number | null
           jumlah_lunas?: number | null
           notes?: string | null
           start_date?: string

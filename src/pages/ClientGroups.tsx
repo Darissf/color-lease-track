@@ -33,6 +33,7 @@ interface RentalContract {
   status: string;
   tagihan_belum_bayar: number;
   jumlah_lunas: number;
+  invoice: number | null;
   bukti_pembayaran_files: Array<{ name: string; url: string }>;
   bank_account_id: string | null;
   google_maps_link: string | null;
@@ -70,6 +71,7 @@ const ClientGroups = () => {
     status: "masa sewa",
     tagihan_belum_bayar: "",
     jumlah_lunas: "",
+    invoice: "",
     bank_account_id: "",
     google_maps_link: "",
     notes: "",
@@ -207,6 +209,7 @@ const ClientGroups = () => {
           status: contractForm.status,
           tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
           jumlah_lunas: jumlahLunas,
+          invoice: parseFloat(contractForm.invoice) || null,
           bukti_pembayaran_files: paymentProofUrls,
           bank_account_id: contractForm.bank_account_id || null,
           google_maps_link: contractForm.google_maps_link || null,
@@ -287,6 +290,7 @@ const ClientGroups = () => {
       status: "masa sewa",
       tagihan_belum_bayar: "",
       jumlah_lunas: "",
+      invoice: "",
       bank_account_id: "",
       google_maps_link: "",
       notes: "",
@@ -403,6 +407,25 @@ const ClientGroups = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {contractForm.client_group_id && (
+                  <div className="p-3 bg-muted rounded-lg">
+                    <Label className="text-sm text-muted-foreground">Nama Client</Label>
+                    <p className="font-medium">
+                      {clientGroups.find(g => g.id === contractForm.client_group_id)?.nama}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <Label>Invoice</Label>
+                  <Input
+                    type="number"
+                    value={contractForm.invoice}
+                    onChange={(e) => setContractForm({ ...contractForm, invoice: e.target.value })}
+                    placeholder="Nomor invoice"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -635,6 +658,11 @@ const ClientGroups = () => {
                               <span className="text-xs text-muted-foreground">
                                 Sisa waktu: {remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"}
                               </span>
+                              {contract.invoice && (
+                                <span className="text-xs text-muted-foreground">
+                                  Invoice: #{contract.invoice}
+                                </span>
+                              )}
                             </div>
                           </div>
 
