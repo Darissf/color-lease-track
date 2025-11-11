@@ -539,19 +539,25 @@ const ClientGroups = () => {
         return <span className="truncate block max-w-[200px]" title={group?.nama || "-"}>{group?.nama || "-"}</span>;
       case "keterangan":
         const keteranganText = contract.keterangan || "-";
+        const isLongText = keteranganText.length > 50;
         return (
-          <TooltipProvider>
-            <Tooltip delayDuration={200}>
-              <TooltipTrigger asChild>
-                <div className="truncate max-w-[300px] cursor-help">
+          <Dialog>
+            <DialogTrigger asChild>
+              <div className={`truncate max-w-[300px] ${isLongText ? 'cursor-pointer hover:text-primary underline decoration-dotted' : ''}`}>
+                {keteranganText}
+              </div>
+            </DialogTrigger>
+            {isLongText && (
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Keterangan Lengkap</DialogTitle>
+                </DialogHeader>
+                <div className="mt-4 whitespace-pre-wrap break-words">
                   {keteranganText}
                 </div>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-sm break-words">
-                <p>{keteranganText}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+              </DialogContent>
+            )}
+          </Dialog>
         );
       case "periode":
         return (
