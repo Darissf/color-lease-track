@@ -34,6 +34,7 @@ interface RentalContract {
   tagihan_belum_bayar: number;
   jumlah_lunas: number;
   invoice: number | null;
+  keterangan: string | null;
   bukti_pembayaran_files: Array<{ name: string; url: string }>;
   bank_account_id: string | null;
   google_maps_link: string | null;
@@ -72,6 +73,7 @@ const ClientGroups = () => {
     tagihan_belum_bayar: "",
     jumlah_lunas: "",
     invoice: "",
+    keterangan: "",
     bank_account_id: "",
     google_maps_link: "",
     notes: "",
@@ -210,6 +212,7 @@ const ClientGroups = () => {
           tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
           jumlah_lunas: jumlahLunas,
           invoice: parseFloat(contractForm.invoice) || null,
+          keterangan: contractForm.keterangan || null,
           bukti_pembayaran_files: paymentProofUrls,
           bank_account_id: contractForm.bank_account_id || null,
           google_maps_link: contractForm.google_maps_link || null,
@@ -291,6 +294,7 @@ const ClientGroups = () => {
       tagihan_belum_bayar: "",
       jumlah_lunas: "",
       invoice: "",
+      keterangan: "",
       bank_account_id: "",
       google_maps_link: "",
       notes: "",
@@ -409,14 +413,14 @@ const ClientGroups = () => {
                   </Select>
                 </div>
 
-                {contractForm.client_group_id && (
-                  <div className="p-3 bg-muted rounded-lg">
-                    <Label className="text-sm text-muted-foreground">Nama Client</Label>
-                    <p className="font-medium">
-                      {clientGroups.find(g => g.id === contractForm.client_group_id)?.nama}
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <Label>Keterangan</Label>
+                  <Input
+                    value={contractForm.keterangan}
+                    onChange={(e) => setContractForm({ ...contractForm, keterangan: e.target.value })}
+                    placeholder="Keterangan nama client"
+                  />
+                </div>
 
                 <div>
                   <Label>Invoice</Label>

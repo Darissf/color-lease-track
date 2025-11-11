@@ -530,6 +530,7 @@ export type Database = {
           id: string
           invoice: number | null
           jumlah_lunas: number | null
+          keterangan: string | null
           notes: string | null
           start_date: string
           status: string
@@ -547,6 +548,7 @@ export type Database = {
           id?: string
           invoice?: number | null
           jumlah_lunas?: number | null
+          keterangan?: string | null
           notes?: string | null
           start_date: string
           status?: string
@@ -564,6 +566,7 @@ export type Database = {
           id?: string
           invoice?: number | null
           jumlah_lunas?: number | null
+          keterangan?: string | null
           notes?: string | null
           start_date?: string
           status?: string
