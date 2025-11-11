@@ -60,8 +60,7 @@ const ClientGroups = () => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [isTableLocked, setIsTableLocked] = useState(true);
-  const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'lunas' | 'none'>('none');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortConfig, setSortConfig] = useState<string>('none');
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
     number: 80,
     invoice: 120,
@@ -494,15 +493,8 @@ const ClientGroups = () => {
     return labels[key] || key;
   };
 
-  const handleSort = (column: typeof sortBy) => {
-    if (column === 'none') return;
-    
-    if (sortBy === column) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(column);
-      setSortOrder('asc');
-    }
+  const handleSortChange = (value: string) => {
+    setSortConfig(value);
   };
 
   const getColumnAlignment = (key: string) => {
@@ -516,7 +508,10 @@ const ClientGroups = () => {
     
     let sorted = [...rentalContracts];
     
-    if (sortBy !== 'none') {
+    if (sortConfig !== 'none') {
+      const [sortBy, order] = sortConfig.split('-');
+      const sortOrder = order as 'asc' | 'desc';
+      
       sorted.sort((a, b) => {
         let comparison = 0;
         
@@ -558,7 +553,7 @@ const ClientGroups = () => {
     }
     
     return sorted;
-  }, [rentalContracts, sortBy, sortOrder, clientGroups]);
+  }, [rentalContracts, sortConfig, clientGroups]);
 
   const renderCellContent = (contract: RentalContract, columnKey: string, index: number) => {
     const group = clientGroups.find(g => g.id === contract.client_group_id);
@@ -953,20 +948,28 @@ const ClientGroups = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-foreground">Daftar Kontrak Sewa</h2>
             <div className="flex gap-2">
-              <Select value={sortBy} onValueChange={(value) => handleSort(value as typeof sortBy)}>
+              <Select value={sortConfig} onValueChange={handleSortChange}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Sort by..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Tanpa Sort</SelectItem>
-                  <SelectItem value="number">No {sortBy === 'number' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
-                  <SelectItem value="invoice">Invoice {sortBy === 'invoice' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
-                  <SelectItem value="group">Kelompok Client {sortBy === 'group' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
-                  <SelectItem value="keterangan">Keterangan {sortBy === 'keterangan' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
-                  <SelectItem value="periode">Periode {sortBy === 'periode' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
-                  <SelectItem value="status">Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
-                  <SelectItem value="tagihan">Tagihan {sortBy === 'tagihan' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
-                  <SelectItem value="lunas">Lunas {sortBy === 'lunas' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="number-asc">No ↑</SelectItem>
+                  <SelectItem value="number-desc">No ↓</SelectItem>
+                  <SelectItem value="invoice-asc">Invoice ↑</SelectItem>
+                  <SelectItem value="invoice-desc">Invoice ↓</SelectItem>
+                  <SelectItem value="group-asc">Kelompok Client ↑</SelectItem>
+                  <SelectItem value="group-desc">Kelompok Client ↓</SelectItem>
+                  <SelectItem value="keterangan-asc">Keterangan ↑</SelectItem>
+                  <SelectItem value="keterangan-desc">Keterangan ↓</SelectItem>
+                  <SelectItem value="periode-asc">Periode ↑</SelectItem>
+                  <SelectItem value="periode-desc">Periode ↓</SelectItem>
+                  <SelectItem value="status-asc">Status ↑</SelectItem>
+                  <SelectItem value="status-desc">Status ↓</SelectItem>
+                  <SelectItem value="tagihan-asc">Tagihan ↑</SelectItem>
+                  <SelectItem value="tagihan-desc">Tagihan ↓</SelectItem>
+                  <SelectItem value="lunas-asc">Lunas ↑</SelectItem>
+                  <SelectItem value="lunas-desc">Lunas ↓</SelectItem>
                 </SelectContent>
               </Select>
               <Button
