@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,7 @@ interface RentalContract {
   status: string;
   tagihan_belum_bayar: number;
   jumlah_lunas: number;
-  invoice: number | null;
+  invoice: string | null;
   keterangan: string | null;
   bukti_pembayaran_files: Array<{ name: string; url: string }>;
   bank_account_id: string | null;
@@ -59,10 +59,13 @@ const ClientGroups = () => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [isTableLocked, setIsTableLocked] = useState(true);
+  const [sortBy, setSortBy] = useState<'invoice' | 'none'>('none');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
-    invoice: 100,
-    group: 180,
-    keterangan: 200,
+    number: 80,
+    invoice: 120,
+    group: 200,
+    keterangan: 250,
     periode: 180,
     status: 120,
     tagihan: 130,
@@ -70,6 +73,7 @@ const ClientGroups = () => {
     aksi: 100,
   });
   const [columnOrder, setColumnOrder] = useState([
+    "number",
     "invoice",
     "group",
     "keterangan",
@@ -272,7 +276,7 @@ const ClientGroups = () => {
         status: contractForm.status,
         tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
         jumlah_lunas: jumlahLunas,
-        invoice: parseFloat(contractForm.invoice) || null,
+        invoice: contractForm.invoice || null,
         keterangan: contractForm.keterangan || null,
         bukti_pembayaran_files: paymentProofUrls,
         bank_account_id: contractForm.bank_account_id || null,
@@ -351,7 +355,7 @@ const ClientGroups = () => {
       status: contract.status,
       tagihan_belum_bayar: contract.tagihan_belum_bayar.toString(),
       jumlah_lunas: contract.jumlah_lunas.toString(),
-      invoice: contract.invoice?.toString() || "",
+      invoice: contract.invoice || "",
       keterangan: contract.keterangan || "",
       bank_account_id: contract.bank_account_id || "",
       google_maps_link: contract.google_maps_link || "",
@@ -476,6 +480,7 @@ const ClientGroups = () => {
 
   const getColumnLabel = (key: string) => {
     const labels: Record<string, string> = {
+      number: "No",
       invoice: "Invoice",
       group: "Kelompok Client",
       keterangan: "Keterangan",
@@ -488,23 +493,55 @@ const ClientGroups = () => {
     return labels[key] || key;
   };
 
+  const handleSortByInvoice = () => {
+    if (sortBy === 'invoice') {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy('invoice');
+      setSortOrder('asc');
+    }
+  };
+
   const getColumnAlignment = (key: string) => {
     if (key === "tagihan" || key === "lunas") return "text-right";
-    if (key === "aksi") return "text-center";
+    if (key === "aksi" || key === "number") return "text-center";
     return "";
   };
 
-  const renderCellContent = (contract: RentalContract, columnKey: string) => {
+  const sortedContracts = React.useMemo(() => {
+    if (!rentalContracts) return [];
+    
+    let sorted = [...rentalContracts];
+    
+    if (sortBy === 'invoice') {
+      sorted.sort((a, b) => {
+        const invoiceA = a.invoice || '';
+        const invoiceB = b.invoice || '';
+        const comparison = invoiceA.localeCompare(invoiceB, undefined, { numeric: true });
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+    }
+    
+    return sorted;
+  }, [rentalContracts, sortBy, sortOrder]);
+
+  const renderCellContent = (contract: RentalContract, columnKey: string, index: number) => {
     const group = clientGroups.find(g => g.id === contract.client_group_id);
     const remainingDays = getRemainingDays(contract.end_date);
 
     switch (columnKey) {
+      case "number":
+        return <span className="font-medium">{index + 1}</span>;
       case "invoice":
-        return <span className="font-medium">{contract.invoice ? `#${contract.invoice}` : "-"}</span>;
+        return <span className="font-medium">{contract.invoice || "-"}</span>;
       case "group":
         return group?.nama || "-";
       case "keterangan":
-        return <span className="max-w-[200px] truncate block">{contract.keterangan || "-"}</span>;
+        return (
+          <div className="whitespace-pre-wrap break-words min-h-[40px] py-2">
+            {contract.keterangan || "-"}
+          </div>
+        );
       case "periode":
         return (
           <div className="text-sm">
@@ -663,10 +700,10 @@ const ClientGroups = () => {
                 <div>
                   <Label>Invoice</Label>
                   <Input
-                    type="number"
+                    type="text"
                     value={contractForm.invoice}
                     onChange={(e) => setContractForm({ ...contractForm, invoice: e.target.value })}
-                    placeholder="Nomor invoice"
+                    placeholder="Contoh: 000178"
                   />
                 </div>
 
@@ -865,27 +902,37 @@ const ClientGroups = () => {
         <Card className="p-6 gradient-card border-0 shadow-md">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-foreground">Daftar Kontrak Sewa</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsTableLocked(!isTableLocked)}
-              className={cn(
-                "gap-2",
-                !isTableLocked && "border-primary text-primary"
-              )}
-            >
-              {isTableLocked ? (
-                <>
-                  <Lock className="h-4 w-4" />
-                  Terkunci
-                </>
-              ) : (
-                <>
-                  <Unlock className="h-4 w-4" />
-                  Bisa Diatur
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSortByInvoice}
+                className="gap-2"
+              >
+                Sort by Invoice {sortBy === 'invoice' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsTableLocked(!isTableLocked)}
+                className={cn(
+                  "gap-2",
+                  !isTableLocked && "border-primary text-primary"
+                )}
+              >
+                {isTableLocked ? (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    Terkunci
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="h-4 w-4" />
+                    Bisa Diatur
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
           
           {!isTableLocked && (
@@ -926,7 +973,7 @@ const ClientGroups = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rentalContracts.map((contract) => (
+                {sortedContracts.map((contract, index) => (
                   <TableRow key={contract.id}>
                     {columnOrder.map((columnKey) => (
                       <TableCell
@@ -937,7 +984,7 @@ const ClientGroups = () => {
                         )}
                         style={{ width: columnWidths[columnKey] }}
                       >
-                        {renderCellContent(contract, columnKey)}
+                        {renderCellContent(contract, columnKey, index)}
                       </TableCell>
                     ))}
                   </TableRow>

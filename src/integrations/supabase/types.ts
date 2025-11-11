@@ -528,7 +528,7 @@ export type Database = {
           end_date: string
           google_maps_link: string | null
           id: string
-          invoice: number | null
+          invoice: string | null
           jumlah_lunas: number | null
           keterangan: string | null
           notes: string | null
@@ -546,7 +546,7 @@ export type Database = {
           end_date: string
           google_maps_link?: string | null
           id?: string
-          invoice?: number | null
+          invoice?: string | null
           jumlah_lunas?: number | null
           keterangan?: string | null
           notes?: string | null
@@ -564,7 +564,7 @@ export type Database = {
           end_date?: string
           google_maps_link?: string | null
           id?: string
-          invoice?: number | null
+          invoice?: string | null
           jumlah_lunas?: number | null
           keterangan?: string | null
           notes?: string | null
