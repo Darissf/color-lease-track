@@ -301,27 +301,59 @@ const ClientGroups = () => {
 
         if (contractError) throw contractError;
         
-        // Create income entry if jumlah_lunas changed and is > 0
-        const jumlahLunasChange = jumlahLunas - oldJumlahLunas;
-        console.log('Edit kontrak: oldJumlahLunas', oldJumlahLunas, 'new', jumlahLunas, 'change', jumlahLunasChange);
-        if (jumlahLunasChange > 0) {
-          const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
-          const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
-          
-          const { error: incomeError } = await supabase
+        // Upsert income entry based on contract_id
+        const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
+        const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
+        
+        if (jumlahLunas > 0) {
+          // Create or update income entry for this contract
+          const incomeData = {
+            user_id: user?.id,
+            source_name: `Sewa - ${clientGroup?.nama || "Client"}`,
+            bank_name: bankAccount?.bank_name || "Unknown",
+            amount: jumlahLunas,
+            date: format(new Date(), "yyyy-MM-dd"),
+            contract_id: editingContractId,
+          };
+
+          // Check if income entry exists for this contract
+          const { data: existingIncome } = await supabase
             .from("income_sources")
-            .insert({
-              user_id: user?.id,
-              source_name: `Sewa - ${clientGroup?.nama || "Client"}`,
-              bank_name: bankAccount?.bank_name || "Unknown",
-              amount: jumlahLunasChange,
-              date: format(new Date(), "yyyy-MM-dd"),
-            });
-          if (incomeError) {
-            console.error("Income insert (edit) failed:", incomeError);
-            toast.error("Gagal mencatat pemasukan: " + incomeError.message);
+            .select("id")
+            .eq("contract_id", editingContractId)
+            .maybeSingle();
+
+          if (existingIncome) {
+            // Update existing entry
+            const { error: incomeError } = await supabase
+              .from("income_sources")
+              .update(incomeData)
+              .eq("id", existingIncome.id);
+            
+            if (incomeError) {
+              console.error("Income update failed:", incomeError);
+              toast.error("Gagal update pemasukan: " + incomeError.message);
+            }
           } else {
-            toast.success("Pemasukan bertambah " + formatRupiah(jumlahLunasChange));
+            // Insert new entry
+            const { error: incomeError } = await supabase
+              .from("income_sources")
+              .insert(incomeData);
+            
+            if (incomeError) {
+              console.error("Income insert failed:", incomeError);
+              toast.error("Gagal mencatat pemasukan: " + incomeError.message);
+            }
+          }
+        } else {
+          // If jumlah_lunas is 0, delete income entry if exists
+          const { error: deleteError } = await supabase
+            .from("income_sources")
+            .delete()
+            .eq("contract_id", editingContractId);
+          
+          if (deleteError) {
+            console.error("Income delete failed:", deleteError);
           }
         }
         
@@ -334,8 +366,18 @@ const ClientGroups = () => {
 
         if (contractError) throw contractError;
 
+        // Get the newly created contract ID
+        const { data: newContract } = await supabase
+          .from("rental_contracts")
+          .select("id")
+          .eq("user_id", user?.id)
+          .eq("client_group_id", contractForm.client_group_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
         // Auto-create income entry if jumlah_lunas > 0
-        if (jumlahLunas > 0) {
+        if (jumlahLunas > 0 && newContract) {
           const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
           const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
           
@@ -347,12 +389,11 @@ const ClientGroups = () => {
               bank_name: bankAccount?.bank_name || "Unknown",
               amount: jumlahLunas,
               date: format(new Date(), "yyyy-MM-dd"),
+              contract_id: newContract.id,
             });
           if (incomeError) {
             console.error("Income insert (create) failed:", incomeError);
             toast.error("Gagal mencatat pemasukan: " + incomeError.message);
-          } else {
-            toast.success("Pemasukan bertambah " + formatRupiah(jumlahLunas));
           }
         }
 

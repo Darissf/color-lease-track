@@ -237,6 +237,7 @@ export type Database = {
         Row: {
           amount: number | null
           bank_name: string | null
+          contract_id: string | null
           created_at: string
           date: string | null
           id: string
@@ -247,6 +248,7 @@ export type Database = {
         Insert: {
           amount?: number | null
           bank_name?: string | null
+          contract_id?: string | null
           created_at?: string
           date?: string | null
           id?: string
@@ -257,6 +259,7 @@ export type Database = {
         Update: {
           amount?: number | null
           bank_name?: string | null
+          contract_id?: string | null
           created_at?: string
           date?: string | null
           id?: string
@@ -264,7 +267,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "income_sources_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monthly_budgets: {
         Row: {
