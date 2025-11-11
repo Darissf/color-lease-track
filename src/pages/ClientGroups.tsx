@@ -736,7 +736,7 @@ const ClientGroups = () => {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0" align="start">
-                      <Command>
+                      <Command shouldFilter={false}>
                         <CommandInput 
                           placeholder="Ketik nomor HP (contoh: 085)..." 
                           value={clientSearchQuery}
