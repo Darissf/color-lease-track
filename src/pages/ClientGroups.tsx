@@ -60,7 +60,7 @@ const ClientGroups = () => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [isTableLocked, setIsTableLocked] = useState(true);
-  const [sortBy, setSortBy] = useState<'invoice' | 'none'>('none');
+  const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'lunas' | 'none'>('none');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
     number: 80,
@@ -494,11 +494,13 @@ const ClientGroups = () => {
     return labels[key] || key;
   };
 
-  const handleSortByInvoice = () => {
-    if (sortBy === 'invoice') {
+  const handleSort = (column: typeof sortBy) => {
+    if (column === 'none') return;
+    
+    if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortBy('invoice');
+      setSortBy(column);
       setSortOrder('asc');
     }
   };
@@ -514,17 +516,49 @@ const ClientGroups = () => {
     
     let sorted = [...rentalContracts];
     
-    if (sortBy === 'invoice') {
+    if (sortBy !== 'none') {
       sorted.sort((a, b) => {
-        const invoiceA = a.invoice || '';
-        const invoiceB = b.invoice || '';
-        const comparison = invoiceA.localeCompare(invoiceB, undefined, { numeric: true });
+        let comparison = 0;
+        
+        switch(sortBy) {
+          case 'number':
+            comparison = rentalContracts.indexOf(a) - rentalContracts.indexOf(b);
+            break;
+          case 'invoice':
+            const invoiceA = a.invoice || '';
+            const invoiceB = b.invoice || '';
+            comparison = invoiceA.localeCompare(invoiceB, undefined, { numeric: true });
+            break;
+          case 'group':
+            const groupA = clientGroups.find(g => g.id === a.client_group_id)?.nama || '';
+            const groupB = clientGroups.find(g => g.id === b.client_group_id)?.nama || '';
+            comparison = groupA.localeCompare(groupB);
+            break;
+          case 'keterangan':
+            const ketA = a.keterangan || '';
+            const ketB = b.keterangan || '';
+            comparison = ketA.localeCompare(ketB);
+            break;
+          case 'periode':
+            comparison = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+            break;
+          case 'status':
+            comparison = a.status.localeCompare(b.status);
+            break;
+          case 'tagihan':
+            comparison = (a.tagihan_belum_bayar || 0) - (b.tagihan_belum_bayar || 0);
+            break;
+          case 'lunas':
+            comparison = (a.jumlah_lunas || 0) - (b.jumlah_lunas || 0);
+            break;
+        }
+        
         return sortOrder === 'asc' ? comparison : -comparison;
       });
     }
     
     return sorted;
-  }, [rentalContracts, sortBy, sortOrder]);
+  }, [rentalContracts, sortBy, sortOrder, clientGroups]);
 
   const renderCellContent = (contract: RentalContract, columnKey: string, index: number) => {
     const group = clientGroups.find(g => g.id === contract.client_group_id);
@@ -919,14 +953,22 @@ const ClientGroups = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-foreground">Daftar Kontrak Sewa</h2>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSortByInvoice}
-                className="gap-2"
-              >
-                Sort by Invoice {sortBy === 'invoice' && (sortOrder === 'asc' ? '↑' : '↓')}
-              </Button>
+              <Select value={sortBy} onValueChange={(value) => handleSort(value as typeof sortBy)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Sort by..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Tanpa Sort</SelectItem>
+                  <SelectItem value="number">No {sortBy === 'number' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="invoice">Invoice {sortBy === 'invoice' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="group">Kelompok Client {sortBy === 'group' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="keterangan">Keterangan {sortBy === 'keterangan' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="periode">Periode {sortBy === 'periode' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="status">Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="tagihan">Tagihan {sortBy === 'tagihan' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
+                  <SelectItem value="lunas">Lunas {sortBy === 'lunas' && (sortOrder === 'asc' ? '↑' : '↓')}</SelectItem>
+                </SelectContent>
+              </Select>
               <Button
                 variant="outline"
                 size="sm"
