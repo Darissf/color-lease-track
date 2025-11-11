@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Users, Calendar as CalendarIcon, FileText, MapPin, Trash2, Edit, ExternalLink, Lock, Unlock } from "lucide-react";
+import { Plus, Users, Calendar as CalendarIcon, FileText, MapPin, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +63,8 @@ const ClientGroups = () => {
   const [isTableLocked, setIsTableLocked] = useState(true);
   const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'lunas' | 'none'>('none');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [clientSearchOpen, setClientSearchOpen] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
     number: 80,
     invoice: 120,
@@ -718,21 +721,62 @@ const ClientGroups = () => {
               <div className="space-y-4">
                 <div>
                   <Label>Pilih Kelompok Client *</Label>
-                  <Select
-                    value={contractForm.client_group_id}
-                    onValueChange={(value) => setContractForm({ ...contractForm, client_group_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih kelompok" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clientGroups.map((group) => (
-                        <SelectItem key={group.id} value={group.id}>
-                          {group.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={clientSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        {contractForm.client_group_id
+                          ? clientGroups.find((group) => group.id === contractForm.client_group_id)?.nama
+                          : "Cari berdasarkan nomor HP..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Ketik nomor HP (contoh: 085)..." 
+                          value={clientSearchQuery}
+                          onValueChange={setClientSearchQuery}
+                        />
+                        <CommandList>
+                          <CommandEmpty>Tidak ada kelompok client ditemukan.</CommandEmpty>
+                          <CommandGroup>
+                            {clientGroups
+                              .filter((group) => 
+                                group.nomor_telepon.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+                                group.nama.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                              )
+                              .map((group) => (
+                                <CommandItem
+                                  key={group.id}
+                                  value={group.id}
+                                  onSelect={() => {
+                                    setContractForm({ ...contractForm, client_group_id: group.id });
+                                    setClientSearchOpen(false);
+                                    setClientSearchQuery("");
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      contractForm.client_group_id === group.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{group.nama}</span>
+                                    <span className="text-xs text-muted-foreground">{group.nomor_telepon}</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div>
