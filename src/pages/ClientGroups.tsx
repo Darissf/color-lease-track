@@ -303,11 +303,12 @@ const ClientGroups = () => {
         
         // Create income entry if jumlah_lunas changed and is > 0
         const jumlahLunasChange = jumlahLunas - oldJumlahLunas;
+        console.log('Edit kontrak: oldJumlahLunas', oldJumlahLunas, 'new', jumlahLunas, 'change', jumlahLunasChange);
         if (jumlahLunasChange > 0) {
           const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
           const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
           
-          await supabase
+          const { error: incomeError } = await supabase
             .from("income_sources")
             .insert({
               user_id: user?.id,
@@ -316,6 +317,12 @@ const ClientGroups = () => {
               amount: jumlahLunasChange,
               date: format(new Date(), "yyyy-MM-dd"),
             });
+          if (incomeError) {
+            console.error("Income insert (edit) failed:", incomeError);
+            toast.error("Gagal mencatat pemasukan: " + incomeError.message);
+          } else {
+            toast.success("Pemasukan bertambah " + formatRupiah(jumlahLunasChange));
+          }
         }
         
         toast.success("Kontrak berhasil diupdate");
@@ -332,7 +339,7 @@ const ClientGroups = () => {
           const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
           const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
           
-          await supabase
+          const { error: incomeError } = await supabase
             .from("income_sources")
             .insert({
               user_id: user?.id,
@@ -341,6 +348,12 @@ const ClientGroups = () => {
               amount: jumlahLunas,
               date: format(new Date(), "yyyy-MM-dd"),
             });
+          if (incomeError) {
+            console.error("Income insert (create) failed:", incomeError);
+            toast.error("Gagal mencatat pemasukan: " + incomeError.message);
+          } else {
+            toast.success("Pemasukan bertambah " + formatRupiah(jumlahLunas));
+          }
         }
 
         toast.success("Kontrak sewa berhasil ditambahkan");
