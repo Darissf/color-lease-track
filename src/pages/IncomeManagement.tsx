@@ -246,36 +246,46 @@ export default function IncomeManagement() {
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : incomeSources.length > 0 ? (
-            <div className="space-y-2">
-              {incomeSources.map((income) => (
-                <div key={income.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="flex-1">
-                      <div className="font-medium">{income.keterangan || income.source_name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {income.bank_name || "-"} • {income.date ? new Date(income.date).toLocaleDateString('id-ID') : "-"}
-                      </div>
-                    </div>
-                    <div className="text-right font-semibold text-green-600 text-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">No</TableHead>
+                  <TableHead>Keterangan</TableHead>
+                  <TableHead>Bank/Metode</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead className="text-right">Jumlah</TableHead>
+                  <TableHead className="text-right w-24">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {incomeSources.map((income, index) => (
+                  <TableRow key={income.id}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
+                    <TableCell className="font-medium">{income.keterangan || income.source_name}</TableCell>
+                    <TableCell>{income.bank_name || "-"}</TableCell>
+                    <TableCell>{income.date ? new Date(income.date).toLocaleDateString('id-ID') : "-"}</TableCell>
+                    <TableCell className="text-right font-semibold text-green-600">
                       {formatCurrency(income.amount)}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button size="sm" variant="ghost" onClick={() => handleEdit(income)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(income.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => handleEdit(income)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(income.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               Belum ada sumber pemasukan. Klik tombol "Tambah Pemasukan" untuk memulai.
