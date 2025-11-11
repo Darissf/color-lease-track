@@ -904,7 +904,7 @@ const ClientGroups = () => {
                       className={cn(
                         "relative select-none",
                         getColumnAlignment(columnKey),
-                        !isTableLocked && "cursor-move"
+                        !isTableLocked && "cursor-move border-r border-black"
                       )}
                       style={{ width: columnWidths[columnKey] }}
                       draggable={!isTableLocked}
@@ -916,7 +916,7 @@ const ClientGroups = () => {
                         <span>{getColumnLabel(columnKey)}</span>
                         {!isTableLocked && (
                           <div
-                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors"
+                            className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize bg-black/30 hover:bg-primary transition-colors"
                             onMouseDown={(e) => handleResizeStart(columnKey, e)}
                           />
                         )}
@@ -931,7 +931,10 @@ const ClientGroups = () => {
                     {columnOrder.map((columnKey) => (
                       <TableCell
                         key={columnKey}
-                        className={getColumnAlignment(columnKey)}
+                        className={cn(
+                          getColumnAlignment(columnKey),
+                          !isTableLocked && "border-r border-black"
+                        )}
                         style={{ width: columnWidths[columnKey] }}
                       >
                         {renderCellContent(contract, columnKey)}
