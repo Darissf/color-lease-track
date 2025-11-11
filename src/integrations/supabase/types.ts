@@ -95,6 +95,36 @@ export type Database = {
         }
         Relationships: []
       }
+      client_groups: {
+        Row: {
+          created_at: string
+          id: string
+          ktp_files: Json | null
+          nama: string
+          nomor_telepon: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ktp_files?: Json | null
+          nama: string
+          nomor_telepon: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ktp_files?: Json | null
+          nama?: string
+          nomor_telepon?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_history: {
         Row: {
           category: string
@@ -485,6 +515,72 @@ export type Database = {
             columns: ["savings_plan_id"]
             isOneToOne: false
             referencedRelation: "savings_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_contracts: {
+        Row: {
+          bank_account_id: string | null
+          bukti_pembayaran_files: Json | null
+          client_group_id: string
+          created_at: string
+          end_date: string
+          google_maps_link: string | null
+          id: string
+          jumlah_lunas: number | null
+          notes: string | null
+          start_date: string
+          status: string
+          tagihan_belum_bayar: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_account_id?: string | null
+          bukti_pembayaran_files?: Json | null
+          client_group_id: string
+          created_at?: string
+          end_date: string
+          google_maps_link?: string | null
+          id?: string
+          jumlah_lunas?: number | null
+          notes?: string | null
+          start_date: string
+          status?: string
+          tagihan_belum_bayar?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_account_id?: string | null
+          bukti_pembayaran_files?: Json | null
+          client_group_id?: string
+          created_at?: string
+          end_date?: string
+          google_maps_link?: string | null
+          id?: string
+          jumlah_lunas?: number | null
+          notes?: string | null
+          start_date?: string
+          status?: string
+          tagihan_belum_bayar?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_contracts_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_client_group_id_fkey"
+            columns: ["client_group_id"]
+            isOneToOne: false
+            referencedRelation: "client_groups"
             referencedColumns: ["id"]
           },
         ]

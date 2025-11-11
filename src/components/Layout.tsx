@@ -14,6 +14,7 @@ const navItems = [
 const pagesItems = [
   { title: "Nabila", url: "/nabila", icon: FileText },
   { title: "Dashboard", url: "/dashboard", icon: Home },
+  { title: "Kelompok Client", url: "/client-groups", icon: Users },
   { title: "Pemasukan", url: "/income", icon: DollarSign },
   { title: "Pengeluaran", url: "/expenses", icon: TrendingDown },
   { title: "Savings Plans", url: "/savings", icon: PiggyBank },
