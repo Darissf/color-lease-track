@@ -16,6 +16,8 @@ interface IncomeSource {
   bank_name: string | null;
   amount: number | null;
   date: string | null;
+  contract_id: string | null;
+  keterangan?: string | null;
 }
 
 export default function IncomeManagement() {
@@ -42,14 +44,22 @@ export default function IncomeManagement() {
     setLoading(true);
     const { data, error } = await supabase
       .from("income_sources")
-      .select("*")
+      .select(`
+        *,
+        rental_contracts!income_sources_contract_id_fkey(keterangan)
+      `)
       .eq("user_id", user.id)
       .order("date", { ascending: false });
 
     if (error) {
       toast({ title: "Error", description: "Failed to fetch income sources", variant: "destructive" });
     } else {
-      setIncomeSources(data || []);
+      // Flatten the nested rental_contracts data
+      const formattedData = (data || []).map((item: any) => ({
+        ...item,
+        keterangan: item.rental_contracts?.keterangan || null,
+      }));
+      setIncomeSources(formattedData);
     }
     setLoading(false);
   };
@@ -249,7 +259,7 @@ export default function IncomeManagement() {
               <TableBody>
                 {incomeSources.map((income) => (
                   <TableRow key={income.id}>
-                    <TableCell className="font-medium">{income.source_name}</TableCell>
+                    <TableCell className="font-medium">{income.keterangan || income.source_name}</TableCell>
                     <TableCell>{income.bank_name || "-"}</TableCell>
                     <TableCell className="text-right font-semibold text-green-600">
                       {formatCurrency(income.amount)}
