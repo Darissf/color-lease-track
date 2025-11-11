@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -537,10 +538,20 @@ const ClientGroups = () => {
       case "group":
         return <span className="truncate block max-w-[200px]" title={group?.nama || "-"}>{group?.nama || "-"}</span>;
       case "keterangan":
+        const keteranganText = contract.keterangan || "-";
         return (
-          <div className="truncate max-w-[300px]" title={contract.keterangan || "-"}>
-            {contract.keterangan || "-"}
-          </div>
+          <TooltipProvider>
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <div className="truncate max-w-[300px] cursor-help">
+                  {keteranganText}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-sm break-words">
+                <p>{keteranganText}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         );
       case "periode":
         return (
