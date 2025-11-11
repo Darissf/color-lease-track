@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Users, Calendar as CalendarIcon, FileText, MapPin, Trash2, Edit, ExternalLink } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -56,6 +57,7 @@ const ClientGroups = () => {
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [editingContractId, setEditingContractId] = useState<string | null>(null);
 
   // Form states for Client Group
   const [groupForm, setGroupForm] = useState({
@@ -195,51 +197,81 @@ const ClientGroups = () => {
       }
 
       let paymentProofUrls: Array<{ name: string; url: string }> = [];
-      if (paymentProofFiles.length > 0) {
-        paymentProofUrls = await uploadFiles(paymentProofFiles, "payment-proofs");
+      
+      if (editingContractId) {
+        // Edit mode - get existing files first
+        const existingContract = rentalContracts.find(c => c.id === editingContractId);
+        paymentProofUrls = existingContract?.bukti_pembayaran_files || [];
+        
+        // Add new files if any
+        if (paymentProofFiles.length > 0) {
+          const newFiles = await uploadFiles(paymentProofFiles, "payment-proofs");
+          paymentProofUrls = [...paymentProofUrls, ...newFiles];
+        }
+      } else {
+        // Create mode
+        if (paymentProofFiles.length > 0) {
+          paymentProofUrls = await uploadFiles(paymentProofFiles, "payment-proofs");
+        }
       }
 
       const jumlahLunas = parseFloat(contractForm.jumlah_lunas) || 0;
 
-      const { error: contractError } = await supabase
-        .from("rental_contracts")
-        .insert({
-          user_id: user?.id,
-          client_group_id: contractForm.client_group_id,
-          start_date: format(contractForm.start_date, "yyyy-MM-dd"),
-          end_date: format(contractForm.end_date, "yyyy-MM-dd"),
-          status: contractForm.status,
-          tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
-          jumlah_lunas: jumlahLunas,
-          invoice: parseFloat(contractForm.invoice) || null,
-          keterangan: contractForm.keterangan || null,
-          bukti_pembayaran_files: paymentProofUrls,
-          bank_account_id: contractForm.bank_account_id || null,
-          google_maps_link: contractForm.google_maps_link || null,
-          notes: contractForm.notes || null,
-        });
+      const contractData = {
+        user_id: user?.id,
+        client_group_id: contractForm.client_group_id,
+        start_date: format(contractForm.start_date, "yyyy-MM-dd"),
+        end_date: format(contractForm.end_date, "yyyy-MM-dd"),
+        status: contractForm.status,
+        tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
+        jumlah_lunas: jumlahLunas,
+        invoice: parseFloat(contractForm.invoice) || null,
+        keterangan: contractForm.keterangan || null,
+        bukti_pembayaran_files: paymentProofUrls,
+        bank_account_id: contractForm.bank_account_id || null,
+        google_maps_link: contractForm.google_maps_link || null,
+        notes: contractForm.notes || null,
+      };
 
-      if (contractError) throw contractError;
+      if (editingContractId) {
+        // Update existing contract
+        const { error: contractError } = await supabase
+          .from("rental_contracts")
+          .update(contractData)
+          .eq("id", editingContractId);
 
-      // Auto-create income entry if jumlah_lunas > 0
-      if (jumlahLunas > 0 && contractForm.bank_account_id) {
-        const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
-        const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
-        
-        await supabase
-          .from("income_sources")
-          .insert({
-            user_id: user?.id,
-            source_name: `Sewa - ${clientGroup?.nama || "Client"}`,
-            bank_name: bankAccount?.bank_name || "Unknown",
-            amount: jumlahLunas,
-            date: format(new Date(), "yyyy-MM-dd"),
-          });
+        if (contractError) throw contractError;
+        toast.success("Kontrak berhasil diupdate");
+      } else {
+        // Insert new contract
+        const { error: contractError } = await supabase
+          .from("rental_contracts")
+          .insert(contractData);
+
+        if (contractError) throw contractError;
+
+        // Auto-create income entry if jumlah_lunas > 0
+        if (jumlahLunas > 0 && contractForm.bank_account_id) {
+          const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
+          const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
+          
+          await supabase
+            .from("income_sources")
+            .insert({
+              user_id: user?.id,
+              source_name: `Sewa - ${clientGroup?.nama || "Client"}`,
+              bank_name: bankAccount?.bank_name || "Unknown",
+              amount: jumlahLunas,
+              date: format(new Date(), "yyyy-MM-dd"),
+            });
+        }
+
+        toast.success("Kontrak sewa berhasil ditambahkan");
       }
 
-      toast.success("Kontrak sewa berhasil ditambahkan");
       setIsContractDialogOpen(false);
       resetContractForm();
+      setEditingContractId(null);
       fetchData();
     } catch (error: any) {
       toast.error("Gagal menyimpan: " + error.message);
@@ -261,6 +293,25 @@ const ClientGroups = () => {
     } catch (error: any) {
       toast.error("Gagal menghapus: " + error.message);
     }
+  };
+
+  const handleEditContract = (contract: RentalContract) => {
+    setEditingContractId(contract.id);
+    setContractForm({
+      client_group_id: contract.client_group_id,
+      start_date: new Date(contract.start_date),
+      end_date: new Date(contract.end_date),
+      status: contract.status,
+      tagihan_belum_bayar: contract.tagihan_belum_bayar.toString(),
+      jumlah_lunas: contract.jumlah_lunas.toString(),
+      invoice: contract.invoice?.toString() || "",
+      keterangan: contract.keterangan || "",
+      bank_account_id: contract.bank_account_id || "",
+      google_maps_link: contract.google_maps_link || "",
+      notes: contract.notes || "",
+    });
+    setPaymentProofFiles([]);
+    setIsContractDialogOpen(true);
   };
 
   const handleDeleteContract = async (id: string) => {
@@ -300,6 +351,7 @@ const ClientGroups = () => {
       notes: "",
     });
     setPaymentProofFiles([]);
+    setEditingContractId(null);
   };
 
   const getContractsForGroup = (groupId: string) => {
@@ -382,7 +434,12 @@ const ClientGroups = () => {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={isContractDialogOpen} onOpenChange={setIsContractDialogOpen}>
+          <Dialog open={isContractDialogOpen} onOpenChange={(open) => {
+            setIsContractDialogOpen(open);
+            if (!open) {
+              resetContractForm();
+            }
+          }}>
             <DialogTrigger asChild>
               <Button variant="outline" className="border-primary/20 text-primary hover:bg-primary/10">
                 <Plus className="mr-2 h-4 w-4" />
@@ -391,7 +448,7 @@ const ClientGroups = () => {
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Tambah Kontrak Sewa</DialogTitle>
+                <DialogTitle>{editingContractId ? "Edit Kontrak Sewa" : "Tambah Kontrak Sewa"}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -580,7 +637,7 @@ const ClientGroups = () => {
                 </div>
 
                 <Button onClick={handleSaveContract} className="w-full">
-                  Simpan Kontrak
+                  {editingContractId ? "Update Kontrak" : "Simpan Kontrak"}
                 </Button>
               </div>
             </DialogContent>
@@ -588,28 +645,24 @@ const ClientGroups = () => {
         </div>
       </div>
 
-      {/* Client Groups Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Client Groups List */}
+      <div className="grid gap-6 md:grid-cols-3 mb-8">
         {clientGroups.map((group) => {
           const contracts = getContractsForGroup(group.id);
-          const activeContracts = contracts.filter(c => c.status === "masa sewa" || c.status === "berulang");
 
           return (
-            <Card key={group.id} className="p-6 gradient-card border-0 shadow-md card-hover">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full gradient-primary flex items-center justify-center text-2xl font-bold text-white shadow-lg">
-                    <Users className="h-8 w-8" />
+            <Card key={group.id} className="p-4 gradient-card border-0 shadow-md card-hover">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center text-white shadow-lg">
+                    <Users className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-foreground">{group.nama}</h3>
-                    <p className="text-sm text-muted-foreground">{group.nomor_telepon}</p>
-                    {group.ktp_files && group.ktp_files.length > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        <FileText className="inline h-3 w-3 mr-1" />
-                        {group.ktp_files.length} file KTP
-                      </p>
-                    )}
+                    <h3 className="font-bold text-foreground">{group.nama}</h3>
+                    <p className="text-xs text-muted-foreground">{group.nomor_telepon}</p>
+                    <Badge className="bg-primary/10 text-primary border-primary/20 border text-xs mt-1">
+                      {contracts.length} kontrak
+                    </Badge>
                   </div>
                 </div>
                 <Button
@@ -621,101 +674,97 @@ const ClientGroups = () => {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-
-              {/* Contracts for this group */}
-              <div className="space-y-3 mt-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">Kontrak Sewa</span>
-                  <Badge className="bg-primary/10 text-primary border-primary/20 border">
-                    {contracts.length} kontrak
-                  </Badge>
-                </div>
-
-                {contracts.length > 0 ? (
-                  <div className="space-y-2">
-                    {contracts.map((contract) => {
-                      const remainingDays = getRemainingDays(contract.end_date);
-                      return (
-                        <div key={contract.id} className="border border-border rounded-lg p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Badge className={`${getStatusBadge(contract.status)} border`}>
-                              {contract.status}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteContract(contract.id)}
-                              className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-
-                          <div className="text-sm space-y-1">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <CalendarIcon className="h-3 w-3" />
-                              <span>
-                                {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">
-                                Sisa waktu: {remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"}
-                              </span>
-                              {contract.invoice && (
-                                <span className="text-xs text-muted-foreground">
-                                  Invoice: #{contract.invoice}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {(contract.tagihan_belum_bayar > 0 || contract.jumlah_lunas > 0) && (
-                            <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
-                              <div>
-                                <span className="text-muted-foreground">Tagihan: </span>
-                                <span className="text-warning font-medium">{formatRupiah(contract.tagihan_belum_bayar)}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Lunas: </span>
-                                <span className="text-accent font-medium">{formatRupiah(contract.jumlah_lunas)}</span>
-                              </div>
-                            </div>
-                          )}
-
-                          {contract.google_maps_link && (
-                            <a
-                              href={contract.google_maps_link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-xs text-primary hover:underline"
-                            >
-                              <MapPin className="h-3 w-3" />
-                              Buka lokasi di Google Maps
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-
-                          {contract.bukti_pembayaran_files && contract.bukti_pembayaran_files.length > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              <FileText className="inline h-3 w-3 mr-1" />
-                              {contract.bukti_pembayaran_files.length} bukti pembayaran
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Belum ada kontrak
-                  </p>
-                )}
-              </div>
             </Card>
           );
         })}
       </div>
+
+      {/* Contracts Table */}
+      {rentalContracts.length > 0 && (
+        <Card className="p-6 gradient-card border-0 shadow-md">
+          <h2 className="text-2xl font-bold text-foreground mb-4">Daftar Kontrak Sewa</h2>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Invoice</TableHead>
+                  <TableHead>Kelompok Client</TableHead>
+                  <TableHead>Keterangan</TableHead>
+                  <TableHead>Periode</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Tagihan</TableHead>
+                  <TableHead className="text-right">Lunas</TableHead>
+                  <TableHead className="text-center">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rentalContracts.map((contract) => {
+                  const group = clientGroups.find(g => g.id === contract.client_group_id);
+                  const remainingDays = getRemainingDays(contract.end_date);
+                  
+                  return (
+                    <TableRow key={contract.id}>
+                      <TableCell className="font-medium">
+                        {contract.invoice ? `#${contract.invoice}` : "-"}
+                      </TableCell>
+                      <TableCell>{group?.nama || "-"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        {contract.keterangan || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div>{format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })}</div>
+                          <div className="text-muted-foreground text-xs">
+                            s/d {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {remainingDays > 0 ? `${remainingDays} hari lagi` : "Berakhir"}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${getStatusBadge(contract.status)} border`}>
+                          {contract.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-warning font-medium">
+                          {formatRupiah(contract.tagihan_belum_bayar)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-accent font-medium">
+                          {formatRupiah(contract.jumlah_lunas)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditContract(contract)}
+                            className="h-8 w-8 text-primary hover:bg-primary/10"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteContract(contract.id)}
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
 
       {clientGroups.length === 0 && (
         <div className="text-center py-12">
