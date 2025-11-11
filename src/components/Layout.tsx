@@ -44,7 +44,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         } bg-sidebar-background border-r border-sidebar-border transition-all duration-300 flex flex-col`}
       >
         {/* Logo */}
-        <div className="h-14 flex items-center px-4 border-b border-sidebar-border">
+        <div className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border">
           {sidebarOpen ? (
             <h1 className="text-sm font-semibold text-sidebar-foreground">
               Financial Planner
@@ -61,7 +61,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               key={item.url}
               to={item.url}
               end={item.url === "/"}
-              className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors"
+              className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : ""}`}
               activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
             >
               <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -82,7 +82,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <NavLink
                   key={item.url}
                   to={item.url}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors"
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : ""}`}
                   activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                 >
                   <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -107,7 +107,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <NavLink
                     key={item.url}
                     to={item.url}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors"
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : ""}`}
                     activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                   >
                     <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -123,13 +123,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="border-t border-sidebar-border p-2">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-full flex items-center justify-center p-1.5 rounded hover:bg-sidebar-accent transition-colors"
-            aria-label="Toggle Sidebar"
+            className="w-full flex items-center justify-center p-2 rounded hover:bg-sidebar-accent transition-colors group"
+            aria-label={sidebarOpen ? "Sembunyikan Menu" : "Tampilkan Menu"}
+            title={sidebarOpen ? "Sembunyikan Menu" : "Tampilkan Menu"}
           >
             {sidebarOpen ? (
-              <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+              <>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                <span className="ml-2 text-xs text-muted-foreground group-hover:text-foreground">Sembunyikan</span>
+              </>
             ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
             )}
           </button>
         </div>
