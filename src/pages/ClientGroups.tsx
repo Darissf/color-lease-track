@@ -291,12 +291,33 @@ const ClientGroups = () => {
 
       if (editingContractId) {
         // Update existing contract
+        const existingContract = rentalContracts.find(c => c.id === editingContractId);
+        const oldJumlahLunas = existingContract?.jumlah_lunas || 0;
+        
         const { error: contractError } = await supabase
           .from("rental_contracts")
           .update(contractData)
           .eq("id", editingContractId);
 
         if (contractError) throw contractError;
+        
+        // Create income entry if jumlah_lunas changed and is > 0
+        const jumlahLunasChange = jumlahLunas - oldJumlahLunas;
+        if (jumlahLunasChange > 0 && contractForm.bank_account_id) {
+          const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
+          const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
+          
+          await supabase
+            .from("income_sources")
+            .insert({
+              user_id: user?.id,
+              source_name: `Sewa - ${clientGroup?.nama || "Client"}`,
+              bank_name: bankAccount?.bank_name || "Unknown",
+              amount: jumlahLunasChange,
+              date: format(new Date(), "yyyy-MM-dd"),
+            });
+        }
+        
         toast.success("Kontrak berhasil diupdate");
       } else {
         // Insert new contract
