@@ -535,7 +535,7 @@ const ClientGroups = () => {
       case "invoice":
         return <span className="font-medium">{contract.invoice || "-"}</span>;
       case "group":
-        return group?.nama || "-";
+        return <span className="truncate block max-w-[200px]" title={group?.nama || "-"}>{group?.nama || "-"}</span>;
       case "keterangan":
         return (
           <div className="truncate max-w-[300px]" title={contract.keterangan || "-"}>
@@ -548,14 +548,14 @@ const ClientGroups = () => {
             <span>{format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })}</span>
             <span className="text-muted-foreground"> s/d </span>
             <span>{format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}</span>
-            <span className="text-muted-foreground ml-2">
+            <span className={`ml-2 font-medium ${remainingDays > 0 ? 'text-green-600' : 'text-red-600'}`}>
               ({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
             </span>
           </div>
         );
       case "status":
         return (
-          <Badge className={`${getStatusBadge(contract.status)} border`}>
+          <Badge className={`${getStatusBadge(contract.status)} border whitespace-nowrap`}>
             {contract.status}
           </Badge>
         );
