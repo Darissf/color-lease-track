@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Users, Calendar as CalendarIcon, FileText, MapPin, Trash2, Edit, ExternalLink } from "lucide-react";
+import { Plus, Users, Calendar as CalendarIcon, FileText, MapPin, Trash2, Edit, ExternalLink, Lock, Unlock } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +58,31 @@ const ClientGroups = () => {
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
+  const [isTableLocked, setIsTableLocked] = useState(true);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
+    invoice: 100,
+    group: 180,
+    keterangan: 200,
+    periode: 180,
+    status: 120,
+    tagihan: 130,
+    lunas: 130,
+    aksi: 100,
+  });
+  const [columnOrder, setColumnOrder] = useState([
+    "invoice",
+    "group",
+    "keterangan",
+    "periode",
+    "status",
+    "tagihan",
+    "lunas",
+    "aksi",
+  ]);
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [resizeStartWidth, setResizeStartWidth] = useState(0);
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
 
   // Form states for Client Group
   const [groupForm, setGroupForm] = useState({
@@ -87,6 +112,28 @@ const ClientGroups = () => {
       fetchData();
     }
   }, [user]);
+
+  // Load saved preferences
+  useEffect(() => {
+    const savedWidths = localStorage.getItem("contractTableWidths");
+    const savedOrder = localStorage.getItem("contractTableOrder");
+    
+    if (savedWidths) {
+      setColumnWidths(JSON.parse(savedWidths));
+    }
+    if (savedOrder) {
+      setColumnOrder(JSON.parse(savedOrder));
+    }
+  }, []);
+
+  // Save preferences
+  useEffect(() => {
+    localStorage.setItem("contractTableWidths", JSON.stringify(columnWidths));
+  }, [columnWidths]);
+
+  useEffect(() => {
+    localStorage.setItem("contractTableOrder", JSON.stringify(columnOrder));
+  }, [columnOrder]);
 
   const fetchData = async () => {
     try {
@@ -370,6 +417,140 @@ const ClientGroups = () => {
       "berulang": "bg-purple-500/10 text-purple-500 border-purple-500/20",
     };
     return styles[status as keyof typeof styles] || "bg-gray-500/10 text-gray-500 border-gray-500/20";
+  };
+
+  const handleResizeStart = (columnKey: string, e: React.MouseEvent) => {
+    if (isTableLocked) return;
+    e.preventDefault();
+    setResizingColumn(columnKey);
+    setResizeStartX(e.clientX);
+    setResizeStartWidth(columnWidths[columnKey]);
+  };
+
+  const handleResizeMove = (e: MouseEvent) => {
+    if (!resizingColumn) return;
+    const diff = e.clientX - resizeStartX;
+    const newWidth = Math.max(80, resizeStartWidth + diff);
+    setColumnWidths(prev => ({ ...prev, [resizingColumn]: newWidth }));
+  };
+
+  const handleResizeEnd = () => {
+    setResizingColumn(null);
+  };
+
+  useEffect(() => {
+    if (resizingColumn) {
+      window.addEventListener("mousemove", handleResizeMove);
+      window.addEventListener("mouseup", handleResizeEnd);
+      return () => {
+        window.removeEventListener("mousemove", handleResizeMove);
+        window.removeEventListener("mouseup", handleResizeEnd);
+      };
+    }
+  }, [resizingColumn, resizeStartX, resizeStartWidth]);
+
+  const handleDragStart = (columnKey: string) => {
+    if (isTableLocked) return;
+    setDraggedColumn(columnKey);
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnKey: string) => {
+    if (isTableLocked || !draggedColumn) return;
+    e.preventDefault();
+    
+    if (draggedColumn !== columnKey) {
+      const newOrder = [...columnOrder];
+      const draggedIdx = newOrder.indexOf(draggedColumn);
+      const targetIdx = newOrder.indexOf(columnKey);
+      
+      newOrder.splice(draggedIdx, 1);
+      newOrder.splice(targetIdx, 0, draggedColumn);
+      
+      setColumnOrder(newOrder);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColumn(null);
+  };
+
+  const getColumnLabel = (key: string) => {
+    const labels: Record<string, string> = {
+      invoice: "Invoice",
+      group: "Kelompok Client",
+      keterangan: "Keterangan",
+      periode: "Periode",
+      status: "Status",
+      tagihan: "Tagihan",
+      lunas: "Lunas",
+      aksi: "Aksi",
+    };
+    return labels[key] || key;
+  };
+
+  const getColumnAlignment = (key: string) => {
+    if (key === "tagihan" || key === "lunas") return "text-right";
+    if (key === "aksi") return "text-center";
+    return "";
+  };
+
+  const renderCellContent = (contract: RentalContract, columnKey: string) => {
+    const group = clientGroups.find(g => g.id === contract.client_group_id);
+    const remainingDays = getRemainingDays(contract.end_date);
+
+    switch (columnKey) {
+      case "invoice":
+        return <span className="font-medium">{contract.invoice ? `#${contract.invoice}` : "-"}</span>;
+      case "group":
+        return group?.nama || "-";
+      case "keterangan":
+        return <span className="max-w-[200px] truncate block">{contract.keterangan || "-"}</span>;
+      case "periode":
+        return (
+          <div className="text-sm">
+            <div>{format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })}</div>
+            <div className="text-muted-foreground text-xs">
+              s/d {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {remainingDays > 0 ? `${remainingDays} hari lagi` : "Berakhir"}
+            </div>
+          </div>
+        );
+      case "status":
+        return (
+          <Badge className={`${getStatusBadge(contract.status)} border`}>
+            {contract.status}
+          </Badge>
+        );
+      case "tagihan":
+        return <span className="text-warning font-medium">{formatRupiah(contract.tagihan_belum_bayar)}</span>;
+      case "lunas":
+        return <span className="text-accent font-medium">{formatRupiah(contract.jumlah_lunas)}</span>;
+      case "aksi":
+        return (
+          <div className="flex items-center justify-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEditContract(contract)}
+              className="h-8 w-8 text-primary hover:bg-primary/10"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDeleteContract(contract.id)}
+              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   if (loading) {
@@ -682,84 +863,82 @@ const ClientGroups = () => {
       {/* Contracts Table */}
       {rentalContracts.length > 0 && (
         <Card className="p-6 gradient-card border-0 shadow-md">
-          <h2 className="text-2xl font-bold text-foreground mb-4">Daftar Kontrak Sewa</h2>
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-foreground">Daftar Kontrak Sewa</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTableLocked(!isTableLocked)}
+              className={cn(
+                "gap-2",
+                !isTableLocked && "border-primary text-primary"
+              )}
+            >
+              {isTableLocked ? (
+                <>
+                  <Lock className="h-4 w-4" />
+                  Terkunci
+                </>
+              ) : (
+                <>
+                  <Unlock className="h-4 w-4" />
+                  Bisa Diatur
+                </>
+              )}
+            </Button>
+          </div>
+          
+          {!isTableLocked && (
+            <p className="text-sm text-muted-foreground mb-3">
+              Drag kolom untuk mengubah urutan, drag tepi kanan kolom untuk mengatur lebar
+            </p>
+          )}
+
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Kelompok Client</TableHead>
-                  <TableHead>Keterangan</TableHead>
-                  <TableHead>Periode</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Tagihan</TableHead>
-                  <TableHead className="text-right">Lunas</TableHead>
-                  <TableHead className="text-center">Aksi</TableHead>
+                  {columnOrder.map((columnKey) => (
+                    <TableHead
+                      key={columnKey}
+                      className={cn(
+                        "relative select-none",
+                        getColumnAlignment(columnKey),
+                        !isTableLocked && "cursor-move"
+                      )}
+                      style={{ width: columnWidths[columnKey] }}
+                      draggable={!isTableLocked}
+                      onDragStart={() => handleDragStart(columnKey)}
+                      onDragOver={(e) => handleDragOver(e, columnKey)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span>{getColumnLabel(columnKey)}</span>
+                        {!isTableLocked && (
+                          <div
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors"
+                            onMouseDown={(e) => handleResizeStart(columnKey, e)}
+                          />
+                        )}
+                      </div>
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rentalContracts.map((contract) => {
-                  const group = clientGroups.find(g => g.id === contract.client_group_id);
-                  const remainingDays = getRemainingDays(contract.end_date);
-                  
-                  return (
-                    <TableRow key={contract.id}>
-                      <TableCell className="font-medium">
-                        {contract.invoice ? `#${contract.invoice}` : "-"}
+                {rentalContracts.map((contract) => (
+                  <TableRow key={contract.id}>
+                    {columnOrder.map((columnKey) => (
+                      <TableCell
+                        key={columnKey}
+                        className={getColumnAlignment(columnKey)}
+                        style={{ width: columnWidths[columnKey] }}
+                      >
+                        {renderCellContent(contract, columnKey)}
                       </TableCell>
-                      <TableCell>{group?.nama || "-"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {contract.keterangan || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>{format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })}</div>
-                          <div className="text-muted-foreground text-xs">
-                            s/d {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {remainingDays > 0 ? `${remainingDays} hari lagi` : "Berakhir"}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`${getStatusBadge(contract.status)} border`}>
-                          {contract.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-warning font-medium">
-                          {formatRupiah(contract.tagihan_belum_bayar)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-accent font-medium">
-                          {formatRupiah(contract.jumlah_lunas)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditContract(contract)}
-                            className="h-8 w-8 text-primary hover:bg-primary/10"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteContract(contract.id)}
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                    ))}
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
