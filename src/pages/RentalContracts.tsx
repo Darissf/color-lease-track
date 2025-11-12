@@ -59,7 +59,7 @@ const RentalContracts = () => {
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [isTableLocked, setIsTableLocked] = useState(true);
-  const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'lunas' | 'none'>('none');
+  const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'lunas' | 'tanggal' | 'none'>('none');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
@@ -395,6 +395,11 @@ const RentalContracts = () => {
           case 'lunas':
             comparison = (a.jumlah_lunas || 0) - (b.jumlah_lunas || 0);
             break;
+          case 'tanggal':
+            const dateA = a.tanggal ? new Date(a.tanggal).getTime() : 0;
+            const dateB = b.tanggal ? new Date(b.tanggal).getTime() : 0;
+            comparison = dateA - dateB;
+            break;
         }
         
         return sortOrder === 'asc' ? comparison : -comparison;
@@ -712,6 +717,7 @@ const RentalContracts = () => {
                 <SelectContent>
                   <SelectItem value="none">Tidak Ada</SelectItem>
                   <SelectItem value="number">Nomor</SelectItem>
+                  <SelectItem value="tanggal">Tanggal</SelectItem>
                   <SelectItem value="invoice">Invoice</SelectItem>
                   <SelectItem value="group">Kelompok</SelectItem>
                   <SelectItem value="keterangan">Keterangan</SelectItem>
