@@ -51,27 +51,6 @@ export default function Nabila() {
       </Card>
 
 
-      {/* Aku Cepat Tamaluki Section */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 text-foreground">Aku Cepat Tamaluki</h3>
-        <div className="space-y-2">
-          <Button variant="ghost" className="w-full justify-start text-sm">
-            Tombol Pengurusan Variabel
-          </Button>
-          <Button variant="ghost" className="w-full justify-start text-sm">
-            Tombol Transfer Umbi
-          </Button>
-          <Button variant="ghost" className="w-full justify-start text-sm">
-            Tombol Permukaan
-          </Button>
-          <Button variant="ghost" className="w-full justify-start text-sm">
-            Tombol Pengeluaran Tetap
-          </Button>
-          <Button variant="ghost" className="w-full justify-start text-sm">
-            Tombol Tabungan
-          </Button>
-        </div>
-      </Card>
 
       {/* Laporan Bulanan Finansial - Quarters */}
       <Card className="p-6">
