@@ -128,7 +128,14 @@ Berikan response dalam format JSON dengan penjelasan dalam BAHASA INDONESIA:
 
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-      aiResponse = JSON.parse(text.replace(/```json\n?|\n?```/g, ""));
+      console.log("Gemini raw response:", text);
+      try {
+        const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
+        aiResponse = JSON.parse(cleanText);
+      } catch (parseError) {
+        console.error("Failed to parse Gemini response:", parseError, "Text:", text);
+        throw new Error("Failed to parse AI response");
+      }
 
     } else if (aiSettings.ai_provider === "openai") {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -163,7 +170,14 @@ Berikan response dalam format JSON dengan penjelasan dalam BAHASA INDONESIA:
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content || "{}";
-      aiResponse = JSON.parse(text.replace(/```json\n?|\n?```/g, ""));
+      console.log("OpenAI raw response:", text);
+      try {
+        const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
+        aiResponse = JSON.parse(cleanText);
+      } catch (parseError) {
+        console.error("Failed to parse OpenAI response:", parseError, "Text:", text);
+        throw new Error("Failed to parse AI response");
+      }
 
     } else if (aiSettings.ai_provider === "claude") {
       const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -199,7 +213,14 @@ Berikan response dalam format JSON dengan penjelasan dalam BAHASA INDONESIA:
 
       const data = await response.json();
       const text = data.content?.[0]?.text || "{}";
-      aiResponse = JSON.parse(text.replace(/```json\n?|\n?```/g, ""));
+      console.log("Claude raw response:", text);
+      try {
+        const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
+        aiResponse = JSON.parse(cleanText);
+      } catch (parseError) {
+        console.error("Failed to parse Claude response:", parseError, "Text:", text);
+        throw new Error("Failed to parse AI response");
+      }
     }
 
     hasWhatsApp = aiResponse?.has_whatsapp || false;
