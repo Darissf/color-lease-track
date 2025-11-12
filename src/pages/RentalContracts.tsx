@@ -780,7 +780,7 @@ const RentalContracts = () => {
                   return (
                     <TableRow key={contract.id}>
                       <TableCell className="text-center font-medium">{startIndex + index + 1}</TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center whitespace-nowrap">
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
@@ -821,7 +821,11 @@ const RentalContracts = () => {
                           </PopoverContent>
                         </Popover>
                       </TableCell>
-                      <TableCell className="font-medium">{contract.invoice || "-"}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        <span className="truncate block max-w-[120px]" title={contract.invoice || "-"}>
+                          {contract.invoice || "-"}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <span className="truncate block max-w-[200px]" title={group?.nama || "-"}>
                           {group?.nama || "-"}
@@ -833,9 +837,8 @@ const RentalContracts = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
-                        <div>{format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })}</div>
-                        <div className="text-muted-foreground text-xs">s/d {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}</div>
-                        <span className={`text-xs font-medium ${remainingDays > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}{" "}
+                        <span className={cn("text-xs font-medium ml-1", remainingDays > 0 ? "text-green-600" : "text-red-600")}>
                           ({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
                         </span>
                       </TableCell>
