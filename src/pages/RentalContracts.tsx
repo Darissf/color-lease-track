@@ -33,6 +33,7 @@ interface RentalContract {
   start_date: string;
   end_date: string;
   tanggal: string | null;
+  tanggal_lunas: string | null;
   status: string;
   tagihan_belum_bayar: number;
   jumlah_lunas: number;
@@ -73,6 +74,7 @@ const RentalContracts = () => {
     start_date: undefined as Date | undefined,
     end_date: undefined as Date | undefined,
     tanggal: undefined as Date | undefined,
+    tanggal_lunas: undefined as Date | undefined,
     status: "masa sewa",
     tagihan_belum_bayar: "",
     jumlah_lunas: "",
@@ -201,6 +203,7 @@ const RentalContracts = () => {
         start_date: format(contractForm.start_date, "yyyy-MM-dd"),
         end_date: format(contractForm.end_date, "yyyy-MM-dd"),
         tanggal: contractForm.tanggal ? format(contractForm.tanggal, "yyyy-MM-dd") : null,
+        tanggal_lunas: contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "yyyy-MM-dd") : null,
         status: contractForm.status,
         tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
         jumlah_lunas: jumlahLunas,
@@ -307,6 +310,7 @@ const RentalContracts = () => {
       start_date: new Date(contract.start_date),
       end_date: new Date(contract.end_date),
       tanggal: contract.tanggal ? new Date(contract.tanggal) : undefined,
+      tanggal_lunas: contract.tanggal_lunas ? new Date(contract.tanggal_lunas) : undefined,
       status: contract.status,
       tagihan_belum_bayar: contract.tagihan_belum_bayar.toString(),
       jumlah_lunas: contract.jumlah_lunas.toString(),
@@ -348,6 +352,7 @@ const RentalContracts = () => {
       start_date: undefined,
       end_date: undefined,
       tanggal: undefined,
+      tanggal_lunas: undefined,
       status: "masa sewa",
       tagihan_belum_bayar: "",
       jumlah_lunas: "",
@@ -665,6 +670,33 @@ const RentalContracts = () => {
               </div>
 
               <div>
+                <Label>Tanggal Lunas</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !contractForm.tanggal_lunas && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "PPP", { locale: localeId }) : "Pilih tanggal lunas"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={contractForm.tanggal_lunas}
+                      onSelect={(date) => setContractForm({ ...contractForm, tanggal_lunas: date })}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
                 <Label>Akun Penerima</Label>
                 <Select
                   value={contractForm.bank_account_id}
@@ -797,13 +829,14 @@ const RentalContracts = () => {
                 <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Status</TableHead>
                 <TableHead className={cn("text-right", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
                 <TableHead className={cn("text-right", isCompactMode && "py-1 text-xs")}>Lunas</TableHead>
+                <TableHead className={cn("text-center w-32", isCompactMode && "py-1 text-xs")}>Tombol Lunas</TableHead>
                 <TableHead className={cn("text-center w-24", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedContracts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                     <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p>Belum ada kontrak sewa</p>
                   </TableCell>
@@ -889,6 +922,48 @@ const RentalContracts = () => {
                       </TableCell>
                       <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="text-foreground font-medium">{formatRupiah(contract.jumlah_lunas)}</span>
+                      </TableCell>
+                      <TableCell className={cn("text-center whitespace-nowrap", isCompactMode && "py-1 px-2")}>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              disabled={isTableLocked}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !contract.tanggal_lunas && "text-muted-foreground",
+                                isCompactMode ? "h-7 text-xs px-2" : "h-9"
+                              )}
+                            >
+                              <CalendarIcon className={cn("mr-2", isCompactMode ? "h-3 w-3" : "h-4 w-4")} />
+                              {contract.tanggal_lunas ? format(new Date(contract.tanggal_lunas), "dd/MM/yyyy") : "Pilih"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={contract.tanggal_lunas ? new Date(contract.tanggal_lunas) : undefined}
+                              onSelect={async (date) => {
+                                if (date) {
+                                  try {
+                                    const { error } = await supabase
+                                      .from("rental_contracts")
+                                      .update({ tanggal_lunas: format(date, "yyyy-MM-dd") })
+                                      .eq("id", contract.id);
+                                    
+                                    if (error) throw error;
+                                    toast.success("Tanggal lunas berhasil diupdate");
+                                    fetchData();
+                                  } catch (error: any) {
+                                    toast.error("Gagal update tanggal lunas: " + error.message);
+                                  }
+                                }
+                              }}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell className={cn(isCompactMode && "py-1 px-2")}>
                         <div className="flex items-center justify-center gap-1">
