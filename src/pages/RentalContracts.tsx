@@ -1035,57 +1035,64 @@ const RentalContracts = () => {
                               mode="single"
                               selected={contract.tanggal_lunas ? new Date(contract.tanggal_lunas) : undefined}
                               onSelect={async (date) => {
-                                if (date) {
-                                  try {
-                                    // Update tanggal_lunas
-                                    const { error: updateError } = await supabase
-                                      .from("rental_contracts")
-                                      .update({ tanggal_lunas: format(date, "yyyy-MM-dd") } as any)
-                                      .eq("id", contract.id);
-                                    
-                                    if (updateError) throw updateError;
+                                try {
+                                  // Update tanggal_lunas
+                                  const { error: updateError } = await supabase
+                                    .from("rental_contracts")
+                                    .update({ tanggal_lunas: date ? format(date, "yyyy-MM-dd") : null } as any)
+                                    .eq("id", contract.id);
+                                  
+                                  if (updateError) throw updateError;
 
-                                    // Check if income already exists for this contract
+                                  if (date && contract.jumlah_lunas > 0) {
+                                    // If tanggal_lunas is filled and jumlah_lunas > 0, create or update income
+                                    const clientGroup = clientGroups.find(g => g.id === contract.client_group_id);
+                                    const sourceName = contract.invoice 
+                                      ? `${contract.invoice} - ${clientGroup?.nama || 'Unknown'}` 
+                                      : clientGroup?.nama || 'Pembayaran Sewa';
+
+                                    const incomeData = {
+                                      user_id: user?.id,
+                                      contract_id: contract.id,
+                                      source_name: sourceName,
+                                      amount: contract.jumlah_lunas,
+                                      date: format(date, "yyyy-MM-dd"),
+                                      bank_name: contract.bank_account_id ? 
+                                        (bankAccounts.find(b => b.id === contract.bank_account_id)?.bank_name || null) 
+                                        : null,
+                                    };
+
                                     const { data: existingIncome } = await supabase
                                       .from("income_sources")
                                       .select("id")
                                       .eq("contract_id", contract.id)
                                       .maybeSingle();
 
-                                    // If no existing income and jumlah_lunas > 0, create income entry
-                                    if (!existingIncome && contract.jumlah_lunas > 0) {
-                                      const clientGroup = clientGroups.find(g => g.id === contract.client_group_id);
-                                      const sourceName = contract.invoice 
-                                        ? `${contract.invoice} - ${clientGroup?.nama || 'Unknown'}` 
-                                        : clientGroup?.nama || 'Pembayaran Sewa';
-
-                                      const { error: incomeError } = await supabase
+                                    if (existingIncome) {
+                                      await supabase
                                         .from("income_sources")
-                                        .insert({
-                                          user_id: user?.id,
-                                          contract_id: contract.id,
-                                          source_name: sourceName,
-                                          amount: contract.jumlah_lunas,
-                                          date: format(date, "yyyy-MM-dd"),
-                                          bank_name: contract.bank_account_id ? 
-                                            (bankAccounts.find(b => b.id === contract.bank_account_id)?.bank_name || null) 
-                                            : null,
-                                        });
-
-                                      if (incomeError) {
-                                        console.error("Failed to create income:", incomeError);
-                                        toast.error("Tanggal lunas diupdate tapi gagal membuat pemasukan");
-                                      } else {
-                                        toast.success("Tanggal lunas diupdate dan pemasukan berhasil ditambahkan");
-                                      }
+                                        .update(incomeData)
+                                        .eq("id", existingIncome.id);
                                     } else {
-                                      toast.success("Tanggal lunas berhasil diupdate");
+                                      await supabase
+                                        .from("income_sources")
+                                        .insert(incomeData);
                                     }
+
+                                    toast.success("Tanggal lunas diupdate dan pemasukan berhasil disinkronkan");
+                                  } else {
+                                    // If tanggal_lunas is cleared, delete income entry
+                                    await supabase
+                                      .from("income_sources")
+                                      .delete()
+                                      .eq("contract_id", contract.id);
                                     
-                                    fetchData();
-                                  } catch (error: any) {
-                                    toast.error("Gagal update tanggal lunas: " + error.message);
+                                    toast.success("Tanggal lunas dikosongkan dan pemasukan dihapus");
                                   }
+                                  
+                                  fetchData();
+                                } catch (error: any) {
+                                  toast.error("Gagal update tanggal lunas: " + error.message);
                                 }
                               }}
                               initialFocus
