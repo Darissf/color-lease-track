@@ -60,6 +60,7 @@ const ClientGroups = () => {
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [isTableLocked, setIsTableLocked] = useState(true);
   const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'lunas' | 'none'>('none');
@@ -224,22 +225,50 @@ const ClientGroups = () => {
       }
 
       let ktpFileUrls: Array<{ name: string; url: string }> = [];
-      if (ktpFiles.length > 0) {
-        ktpFileUrls = await uploadFiles(ktpFiles, "ktp-documents");
+      
+      if (editingGroupId) {
+        // Edit mode - get existing files first
+        const existingGroup = clientGroups.find(g => g.id === editingGroupId);
+        ktpFileUrls = existingGroup?.ktp_files || [];
+        
+        // Add new files if any
+        if (ktpFiles.length > 0) {
+          const newFiles = await uploadFiles(ktpFiles, "ktp-documents");
+          ktpFileUrls = [...ktpFileUrls, ...newFiles];
+        }
+      } else {
+        // Create mode
+        if (ktpFiles.length > 0) {
+          ktpFileUrls = await uploadFiles(ktpFiles, "ktp-documents");
+        }
       }
 
-      const { error } = await supabase
-        .from("client_groups")
-        .insert({
-          user_id: user?.id,
-          nama: groupForm.nama,
-          nomor_telepon: groupForm.nomor_telepon,
-          ktp_files: ktpFileUrls,
-        });
+      const groupData = {
+        user_id: user?.id,
+        nama: groupForm.nama,
+        nomor_telepon: groupForm.nomor_telepon,
+        ktp_files: ktpFileUrls,
+      };
 
-      if (error) throw error;
+      if (editingGroupId) {
+        // Update existing group
+        const { error } = await supabase
+          .from("client_groups")
+          .update(groupData)
+          .eq("id", editingGroupId);
 
-      toast.success("Kelompok client berhasil ditambahkan");
+        if (error) throw error;
+        toast.success("Kelompok client berhasil diupdate");
+      } else {
+        // Insert new group
+        const { error } = await supabase
+          .from("client_groups")
+          .insert(groupData);
+
+        if (error) throw error;
+        toast.success("Kelompok client berhasil ditambahkan");
+      }
+
       setIsGroupDialogOpen(false);
       resetGroupForm();
       fetchData();
@@ -412,6 +441,16 @@ const ClientGroups = () => {
     }
   };
 
+  const handleEditGroup = (group: ClientGroup) => {
+    setEditingGroupId(group.id);
+    setGroupForm({
+      nama: group.nama,
+      nomor_telepon: group.nomor_telepon,
+    });
+    setKtpFiles([]);
+    setIsGroupDialogOpen(true);
+  };
+
   const handleDeleteGroup = async (id: string) => {
     if (!confirm("Yakin ingin menghapus kelompok ini? Semua kontrak terkait akan terhapus.")) return;
     
@@ -468,6 +507,7 @@ const ClientGroups = () => {
   const resetGroupForm = () => {
     setGroupForm({ nama: "", nomor_telepon: "" });
     setKtpFiles([]);
+    setEditingGroupId(null);
   };
 
   const resetContractForm = () => {
@@ -739,7 +779,10 @@ const ClientGroups = () => {
           <p className="text-muted-foreground">Kelola client dan kontrak sewa peralatan</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
+          <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
+            setIsGroupDialogOpen(open);
+            if (!open) resetGroupForm();
+          }}>
             <DialogTrigger asChild>
               <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
                 <Plus className="mr-2 h-4 w-4" />
@@ -748,7 +791,7 @@ const ClientGroups = () => {
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Tambah Kelompok Client</DialogTitle>
+                <DialogTitle>{editingGroupId ? "Edit Kelompok Client" : "Tambah Kelompok Client"}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -780,7 +823,7 @@ const ClientGroups = () => {
                   )}
                 </div>
                 <Button onClick={handleSaveGroup} className="w-full">
-                  Simpan
+                  {editingGroupId ? "Update Kelompok" : "Simpan Kelompok"}
                 </Button>
               </div>
             </DialogContent>
@@ -1085,14 +1128,24 @@ const ClientGroups = () => {
                     </Badge>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDeleteGroup(group.id)}
-                  className="text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditGroup(group)}
+                    className="text-primary hover:bg-primary/10"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteGroup(group.id)}
+                    className="text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </Card>
           );
