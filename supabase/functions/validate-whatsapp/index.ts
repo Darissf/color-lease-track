@@ -117,8 +117,13 @@ Respond with JSON only:
       );
 
       if (!response.ok) {
-        console.error("Gemini API error:", await response.text());
-        throw new Error("Gemini API request failed");
+        const errorText = await response.text();
+        console.error("Gemini API error:", errorText);
+        
+        if (response.status === 429) {
+          throw new Error("Gemini API quota exceeded. Please check your API key quota at ai.google.dev/usage or try a different provider.");
+        }
+        throw new Error(`Gemini API error (${response.status}): ${errorText.substring(0, 100)}`);
       }
 
       const data = await response.json();
@@ -144,8 +149,16 @@ Respond with JSON only:
       });
 
       if (!response.ok) {
-        console.error("OpenAI API error:", await response.text());
-        throw new Error("OpenAI API request failed");
+        const errorText = await response.text();
+        console.error("OpenAI API error:", errorText);
+        
+        if (response.status === 429) {
+          throw new Error("OpenAI API rate limit exceeded. Please check your API key quota or try again later.");
+        }
+        if (response.status === 401) {
+          throw new Error("OpenAI API key invalid. Please check your API key in settings.");
+        }
+        throw new Error(`OpenAI API error (${response.status}): ${errorText.substring(0, 100)}`);
       }
 
       const data = await response.json();
@@ -172,8 +185,16 @@ Respond with JSON only:
       });
 
       if (!response.ok) {
-        console.error("Claude API error:", await response.text());
-        throw new Error("Claude API request failed");
+        const errorText = await response.text();
+        console.error("Claude API error:", errorText);
+        
+        if (response.status === 429) {
+          throw new Error("Claude API rate limit exceeded. Please check your API key quota or try again later.");
+        }
+        if (response.status === 401) {
+          throw new Error("Claude API key invalid. Please check your API key in settings.");
+        }
+        throw new Error(`Claude API error (${response.status}): ${errorText.substring(0, 100)}`);
       }
 
       const data = await response.json();
