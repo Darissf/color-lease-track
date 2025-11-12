@@ -387,7 +387,11 @@ const RentalContracts = () => {
     
     // Filter by date range first
     let filtered = rentalContracts.filter(contract => {
-      if (!contract.tanggal) return true; // Include contracts without tanggal
+      // If date filters are active, exclude contracts without tanggal
+      if ((startDateFilter || endDateFilter) && !contract.tanggal) return false;
+      
+      // If no date filters, include all contracts
+      if (!startDateFilter && !endDateFilter) return true;
       
       // Compare dates without time (YYYY-MM-DD format)
       const contractDateStr = contract.tanggal; // Already in YYYY-MM-DD format from database
