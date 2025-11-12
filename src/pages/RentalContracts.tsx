@@ -65,6 +65,7 @@ const RentalContracts = () => {
   const [clientSearchQuery, setClientSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [isCompactMode, setIsCompactMode] = useState(false);
 
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
@@ -736,13 +737,22 @@ const RentalContracts = () => {
               </Button>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setIsTableLocked(!isTableLocked)}
-          >
-            {isTableLocked ? <Lock className="h-4 w-4 mr-2" /> : <Unlock className="h-4 w-4 mr-2" />}
-            {isTableLocked ? "Unlock Table" : "Lock Table"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={isCompactMode ? "default" : "outline"}
+              onClick={() => setIsCompactMode(!isCompactMode)}
+              className="whitespace-nowrap"
+            >
+              Compact Mode
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsTableLocked(!isTableLocked)}
+            >
+              {isTableLocked ? <Lock className="h-4 w-4 mr-2" /> : <Unlock className="h-4 w-4 mr-2" />}
+              {isTableLocked ? "Unlock Table" : "Lock Table"}
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -751,17 +761,17 @@ const RentalContracts = () => {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="text-center w-20">No</TableHead>
-                <TableHead className="text-center w-32">Tanggal</TableHead>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Kelompok</TableHead>
-                <TableHead>Keterangan</TableHead>
-                <TableHead>Periode</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Tagihan</TableHead>
-                <TableHead className="text-right">Lunas</TableHead>
-                <TableHead className="text-center w-24">Aksi</TableHead>
+              <TableRow className={cn(isCompactMode && "h-8")}>
+                <TableHead className={cn("text-center w-20", isCompactMode && "py-1 text-xs")}>No</TableHead>
+                <TableHead className={cn("text-center w-32", isCompactMode && "py-1 text-xs")}>Tanggal</TableHead>
+                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Invoice</TableHead>
+                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Kelompok</TableHead>
+                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Keterangan</TableHead>
+                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Periode</TableHead>
+                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Status</TableHead>
+                <TableHead className={cn("text-right", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
+                <TableHead className={cn("text-right", isCompactMode && "py-1 text-xs")}>Lunas</TableHead>
+                <TableHead className={cn("text-center w-24", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -778,20 +788,21 @@ const RentalContracts = () => {
                   const remainingDays = getRemainingDays(contract.end_date);
 
                   return (
-                    <TableRow key={contract.id}>
-                      <TableCell className="text-center font-medium">{startIndex + index + 1}</TableCell>
-                      <TableCell className="text-center whitespace-nowrap">
+                    <TableRow key={contract.id} className={cn(isCompactMode && "h-10")}>
+                      <TableCell className={cn("text-center font-medium", isCompactMode && "py-1 px-2 text-xs")}>{startIndex + index + 1}</TableCell>
+                      <TableCell className={cn("text-center whitespace-nowrap", isCompactMode && "py-1 px-2")}>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
                               disabled={isTableLocked}
                               className={cn(
-                                "w-full justify-start text-left font-normal h-9",
-                                !contract.tanggal && "text-muted-foreground"
+                                "w-full justify-start text-left font-normal",
+                                !contract.tanggal && "text-muted-foreground",
+                                isCompactMode ? "h-7 text-xs px-2" : "h-9"
                               )}
                             >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              <CalendarIcon className={cn("mr-2", isCompactMode ? "h-3 w-3" : "h-4 w-4")} />
                               {contract.tanggal ? format(new Date(contract.tanggal), "dd/MM/yyyy") : "Pilih"}
                             </Button>
                           </PopoverTrigger>
@@ -821,55 +832,55 @@ const RentalContracts = () => {
                           </PopoverContent>
                         </Popover>
                       </TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">
+                      <TableCell className={cn("font-medium whitespace-nowrap", isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="truncate block max-w-[120px]" title={contract.invoice || "-"}>
                           {contract.invoice || "-"}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={cn(isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="truncate block max-w-[200px]" title={group?.nama || "-"}>
                           {group?.nama || "-"}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={cn(isCompactMode && "py-1 px-2 text-xs")}>
                         <div className="truncate max-w-[250px]">
                           {contract.keterangan || "-"}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">
+                      <TableCell className={cn("text-sm whitespace-nowrap", isCompactMode && "py-1 px-2 text-xs")}>
                         {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}{" "}
-                        <span className={cn("text-xs font-medium ml-1", remainingDays > 0 ? "text-green-600" : "text-red-600")}>
+                        <span className={cn("text-xs font-medium ml-1", remainingDays > 0 ? "text-green-600" : "text-red-600", isCompactMode && "text-[10px]")}>
                           ({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <Badge className={`${getStatusBadge(contract.status)} border whitespace-nowrap`}>
+                      <TableCell className={cn(isCompactMode && "py-1 px-2")}>
+                        <Badge className={cn(getStatusBadge(contract.status), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
                           {contract.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="text-warning font-medium">{formatRupiah(contract.tagihan_belum_bayar)}</span>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="text-foreground font-medium">{formatRupiah(contract.jumlah_lunas)}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={cn(isCompactMode && "py-1 px-2")}>
                         <div className="flex items-center justify-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditContract(contract)}
-                            className="h-8 w-8 text-primary hover:bg-primary/10"
+                            className={cn("text-primary hover:bg-primary/10", isCompactMode ? "h-6 w-6" : "h-8 w-8")}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className={cn(isCompactMode ? "h-3 w-3" : "h-4 w-4")} />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteContract(contract.id)}
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            className={cn("text-destructive hover:bg-destructive/10", isCompactMode ? "h-6 w-6" : "h-8 w-8")}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className={cn(isCompactMode ? "h-3 w-3" : "h-4 w-4")} />
                           </Button>
                         </div>
                       </TableCell>
