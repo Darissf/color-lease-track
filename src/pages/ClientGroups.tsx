@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Users, Calendar as CalendarIcon, FileText, MapPin, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Users, Calendar as CalendarIcon, FileText, MapPin, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,8 @@ interface ClientGroup {
   nama: string;
   nomor_telepon: string;
   ktp_files: Array<{ name: string; url: string }>;
+  has_whatsapp: boolean | null;
+  whatsapp_checked_at: string | null;
 }
 
 interface RentalContract {
@@ -112,12 +114,13 @@ const ClientGroups = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Form states for Client Group
   const [groupForm, setGroupForm] = useState({
     nama: "",
     nomor_telepon: "",
   });
   const [phoneError, setPhoneError] = useState<string>("");
+  const [validatingWhatsApp, setValidatingWhatsApp] = useState(false);
+  const [whatsappStatus, setWhatsappStatus] = useState<{has_whatsapp: boolean | null; confidence: string; reason: string} | null>(null);
   const [ktpFiles, setKtpFiles] = useState<File[]>([]);
 
   // Form states for Rental Contract
@@ -178,7 +181,9 @@ const ClientGroups = () => {
       if (groupsError) throw groupsError;
       setClientGroups((groups || []).map(g => ({
         ...g,
-        ktp_files: (g.ktp_files as any) || []
+        ktp_files: (g.ktp_files as any) || [],
+        has_whatsapp: g.has_whatsapp,
+        whatsapp_checked_at: g.whatsapp_checked_at
       })));
 
       // Fetch rental contracts
@@ -233,6 +238,56 @@ const ClientGroups = () => {
     return uploadedFiles;
   };
 
+  // Debounced WhatsApp validation
+  useEffect(() => {
+    if (!groupForm.nomor_telepon || phoneError) {
+      setWhatsappStatus(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      await validateWhatsApp(groupForm.nomor_telepon);
+    }, 1500); // Wait 1.5s after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [groupForm.nomor_telepon, phoneError]);
+
+  const validateWhatsApp = async (phoneNumber: string) => {
+    try {
+      setValidatingWhatsApp(true);
+      setWhatsappStatus(null);
+
+      const { data, error } = await supabase.functions.invoke("validate-whatsapp", {
+        body: { phoneNumber }
+      });
+
+      if (error) {
+        if (error.message.includes("AI settings not configured")) {
+          toast.error("Konfigurasi AI belum disetup. Silakan ke Settings → AI");
+        } else {
+          console.error("WhatsApp validation error:", error);
+        }
+        return;
+      }
+
+      setWhatsappStatus({
+        has_whatsapp: data.has_whatsapp,
+        confidence: data.confidence,
+        reason: data.reason
+      });
+
+      if (data.has_whatsapp) {
+        toast.success(`✅ ${data.confidence === "high" ? "Kemungkinan besar" : "Mungkin"} ada WhatsApp`);
+      } else {
+        toast.info(`❌ ${data.confidence === "high" ? "Kemungkinan besar" : "Mungkin"} tidak ada WhatsApp`);
+      }
+    } catch (error: any) {
+      console.error("Error validating WhatsApp:", error);
+    } finally {
+      setValidatingWhatsApp(false);
+    }
+  };
+
   const handleSaveGroup = async () => {
     try {
       if (!groupForm.nama || !groupForm.nomor_telepon) {
@@ -273,6 +328,8 @@ const ClientGroups = () => {
         nama: groupForm.nama,
         nomor_telepon: groupForm.nomor_telepon,
         ktp_files: ktpFileUrls,
+        has_whatsapp: whatsappStatus?.has_whatsapp || null,
+        whatsapp_checked_at: whatsappStatus ? new Date().toISOString() : null,
       };
 
       if (editingGroupId) {
@@ -532,6 +589,8 @@ const ClientGroups = () => {
   const resetGroupForm = () => {
     setGroupForm({ nama: "", nomor_telepon: "" });
     setPhoneError("");
+    setWhatsappStatus(null);
+    setValidatingWhatsApp(false);
     setKtpFiles([]);
     setEditingGroupId(null);
   };
@@ -830,17 +889,43 @@ const ClientGroups = () => {
                 </div>
                 <div>
                   <Label>Nomor Telepon</Label>
-                  <Input
-                    value={groupForm.nomor_telepon}
-                    onChange={(e) => {
-                      setGroupForm({ ...groupForm, nomor_telepon: e.target.value });
-                      setPhoneError("");
-                    }}
-                    placeholder="+62812345678 atau 08123456789"
-                    className={phoneError ? "border-destructive" : ""}
-                  />
+                  <div className="relative">
+                    <Input
+                      value={groupForm.nomor_telepon}
+                      onChange={(e) => {
+                        setGroupForm({ ...groupForm, nomor_telepon: e.target.value });
+                        setPhoneError("");
+                      }}
+                      placeholder="+62812345678 atau 08123456789"
+                      className={cn(
+                        phoneError && "border-destructive",
+                        validatingWhatsApp && "pr-10"
+                      )}
+                    />
+                    {validatingWhatsApp && (
+                      <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3 text-muted-foreground" />
+                    )}
+                  </div>
                   {phoneError && (
                     <p className="text-sm text-destructive mt-1">{phoneError}</p>
+                  )}
+                  {whatsappStatus && !phoneError && (
+                    <div className={cn(
+                      "flex items-center gap-2 text-sm mt-2 p-2 rounded-md",
+                      whatsappStatus.has_whatsapp 
+                        ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300"
+                        : "bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300"
+                    )}>
+                      {whatsappStatus.has_whatsapp ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <XCircle className="h-4 w-4" />
+                      )}
+                      <span className="flex-1">{whatsappStatus.reason}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {whatsappStatus.confidence}
+                      </Badge>
+                    </div>
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
                     Format: +62xxx atau 08xx (minimal 10 digit)
@@ -1158,7 +1243,41 @@ const ClientGroups = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-foreground">{group.nama}</h3>
-                    <p className="text-xs text-muted-foreground">{group.nomor_telepon}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">{group.nomor_telepon}</p>
+                      {group.has_whatsapp !== null && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              {group.has_whatsapp ? (
+                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">
+                                {group.has_whatsapp 
+                                  ? "Kemungkinan ada WhatsApp" 
+                                  : "Kemungkinan tidak ada WhatsApp"}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      {group.has_whatsapp === null && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">Status WhatsApp belum dicek</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                     <Badge className="bg-primary/10 text-primary border-primary/20 border text-xs mt-1">
                       {contracts.length} kontrak
                     </Badge>

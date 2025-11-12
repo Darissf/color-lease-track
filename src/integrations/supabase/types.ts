@@ -98,30 +98,36 @@ export type Database = {
       client_groups: {
         Row: {
           created_at: string
+          has_whatsapp: boolean | null
           id: string
           ktp_files: Json | null
           nama: string
           nomor_telepon: string
           updated_at: string
           user_id: string
+          whatsapp_checked_at: string | null
         }
         Insert: {
           created_at?: string
+          has_whatsapp?: boolean | null
           id?: string
           ktp_files?: Json | null
           nama: string
           nomor_telepon: string
           updated_at?: string
           user_id: string
+          whatsapp_checked_at?: string | null
         }
         Update: {
           created_at?: string
+          has_whatsapp?: boolean | null
           id?: string
           ktp_files?: Json | null
           nama?: string
           nomor_telepon?: string
           updated_at?: string
           user_id?: string
+          whatsapp_checked_at?: string | null
         }
         Relationships: []
       }
@@ -717,6 +723,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_ai_settings: {
+        Row: {
+          ai_provider: string
+          api_key: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_provider: string
+          api_key: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_provider?: string
+          api_key?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
