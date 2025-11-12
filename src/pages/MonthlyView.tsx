@@ -150,19 +150,19 @@ export default function MonthlyView() {
         value: income.amount || 0,
       })) || [];
 
-      // Fetch rental contracts for this month
-      const { data: contractsData } = await supabase
-        .from("rental_contracts")
+      // Fetch income from rental contracts with tanggal_lunas in this month
+      const { data: contractIncomeData } = await supabase
+        .from("income_sources")
         .select(`
-          *,
-          client_groups (nama, nomor_telepon)
+          *
         `)
         .eq("user_id", user.id)
-        .gte("tanggal", startDate.toISOString().split('T')[0])
-        .lte("tanggal", endDate.toISOString().split('T')[0])
-        .order("tanggal", { ascending: false });
+        .not("contract_id", "is", null)
+        .gte("date", startDate.toISOString().split('T')[0])
+        .lte("date", endDate.toISOString().split('T')[0])
+        .order("date", { ascending: false });
 
-      setRentalContracts(contractsData || []);
+      setRentalContracts(contractIncomeData || []);
 
       const income = report?.pemasukan || 0;
       const expenses = report?.pengeluaran || 0;
@@ -452,41 +452,39 @@ export default function MonthlyView() {
         </Card>
       </div>
 
-      {/* Rental Contracts */}
+      {/* Income from Rental Contracts */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Kontrak Sewa Bulan {month}
+            <DollarSign className="h-4 w-4" />
+            Pemasukan Bulan {month}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {rentalContracts.length > 0 ? (
             <div className="space-y-2">
-              {rentalContracts.map((contract) => (
-                <div key={contract.id} className="flex items-center justify-between py-2 px-3 border border-border rounded-md text-xs">
-                  <span className="font-medium truncate">{contract.client_groups?.nama || '-'}</span>
-                  <span className="text-muted-foreground whitespace-nowrap mx-2">
-                    {new Date(contract.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+              {rentalContracts.map((income) => (
+                <div key={income.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">
+                      {income.source_name}
+                    </p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                      <span>Tanggal Lunas: {new Date(income.date).toLocaleDateString('id-ID')}</span>
+                      {income.bank_name && (
+                        <span>Bank: {income.bank_name}</span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="font-semibold text-green-600 text-sm">
+                    {formatCurrency(income.amount)}
                   </span>
-                  <span className="text-muted-foreground">{contract.status}</span>
-                  {contract.invoice && (
-                    <span className="text-muted-foreground mx-2 truncate max-w-[100px]">{contract.invoice}</span>
-                  )}
-                  <span className="font-semibold text-green-600 whitespace-nowrap ml-auto">
-                    {formatCurrency(contract.jumlah_lunas || 0)}
-                  </span>
-                  {contract.tagihan_belum_bayar > 0 && (
-                    <span className="text-red-600 whitespace-nowrap ml-2">
-                      ({formatCurrency(contract.tagihan_belum_bayar)})
-                    </span>
-                  )}
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground text-sm">
-              Belum ada kontrak sewa pada bulan ini
+              Belum ada pemasukan dari kontrak sewa bulan ini
             </div>
           )}
         </CardContent>
