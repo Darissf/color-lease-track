@@ -713,7 +713,7 @@ const RentalContracts = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-center w-20">No</TableHead>
-                <TableHead className="text-center w-24">Kalender</TableHead>
+                <TableHead className="text-center w-32">Tanggal</TableHead>
                 <TableHead>Invoice</TableHead>
                 <TableHead>Kelompok</TableHead>
                 <TableHead>Keterangan</TableHead>
@@ -741,12 +741,45 @@ const RentalContracts = () => {
                     <TableRow key={contract.id}>
                       <TableCell className="text-center font-medium">{startIndex + index + 1}</TableCell>
                       <TableCell className="text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <CalendarIcon className="h-5 w-5 text-primary" />
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(contract.start_date), "dd/MM/yy")}
-                          </div>
-                        </div>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              disabled={isTableLocked}
+                              className={cn(
+                                "w-full justify-start text-left font-normal h-9",
+                                !contract.start_date && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {contract.start_date ? format(new Date(contract.start_date), "dd/MM/yyyy") : "Pilih"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={new Date(contract.start_date)}
+                              onSelect={async (date) => {
+                                if (date) {
+                                  try {
+                                    const { error } = await supabase
+                                      .from("rental_contracts")
+                                      .update({ start_date: format(date, "yyyy-MM-dd") })
+                                      .eq("id", contract.id);
+                                    
+                                    if (error) throw error;
+                                    toast.success("Tanggal berhasil diupdate");
+                                    fetchData();
+                                  } catch (error: any) {
+                                    toast.error("Gagal update tanggal: " + error.message);
+                                  }
+                                }
+                              }}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell className="font-medium">{contract.invoice || "-"}</TableCell>
                       <TableCell>
