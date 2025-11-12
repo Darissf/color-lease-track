@@ -73,22 +73,6 @@ export default function Nabila() {
         </div>
       </Card>
 
-      {/* Bayar Section */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 text-foreground">Pembayaran</h3>
-        <div className="space-y-2">
-          <Button variant="ghost" className="w-full justify-start text-sm">
-            Bayar Tidak Langsung
-          </Button>
-          <Button variant="ghost" className="w-full justify-start text-sm">
-            Bayar Hutang
-          </Button>
-          <Button variant="ghost" className="w-full justify-start text-sm">
-            Bayar Cicilan
-          </Button>
-        </div>
-      </Card>
-
       {/* Laporan Bulanan Finansial - Quarters */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-6 text-foreground flex items-center gap-2">
