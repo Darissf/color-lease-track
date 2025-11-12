@@ -54,6 +54,7 @@ const ClientGroups = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [groupForm, setGroupForm] = useState({
     nama: "",
@@ -276,10 +277,20 @@ const ClientGroups = () => {
   const sortedGroups = React.useMemo(() => {
     if (!clientGroups) return [];
     
-    let sorted = [...clientGroups];
+    let filtered = [...clientGroups];
     
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(group => 
+        group.nama.toLowerCase().includes(query) || 
+        group.nomor_telepon.includes(query)
+      );
+    }
+    
+    // Apply sorting
     if (sortBy !== 'none') {
-      sorted.sort((a, b) => {
+      filtered.sort((a, b) => {
         let comparison = 0;
         
         switch(sortBy) {
@@ -306,8 +317,8 @@ const ClientGroups = () => {
       });
     }
     
-    return sorted;
-  }, [clientGroups, sortBy, sortOrder]);
+    return filtered;
+  }, [clientGroups, sortBy, sortOrder, searchQuery]);
 
   const totalPages = Math.ceil(sortedGroups.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -409,34 +420,49 @@ const ClientGroups = () => {
 
       {/* Controls */}
       <Card className="p-4 mb-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label>Sort By:</Label>
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Tidak Ada</SelectItem>
-                  <SelectItem value="number">Nomor</SelectItem>
-                  <SelectItem value="nama">Nama</SelectItem>
-                  <SelectItem value="telepon">Telepon</SelectItem>
-                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  <SelectItem value="created">Tanggal Dibuat</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Button>
+            <div className="flex-1">
+              <Input
+                placeholder="Cari berdasarkan nama atau nomor telepon..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="max-w-md"
+              />
             </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            Total: {clientGroups.length} kelompok
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label>Sort By:</Label>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Tidak Ada</SelectItem>
+                    <SelectItem value="number">Nomor</SelectItem>
+                    <SelectItem value="nama">Nama</SelectItem>
+                    <SelectItem value="telepon">Telepon</SelectItem>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    <SelectItem value="created">Tanggal Dibuat</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                >
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </Button>
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {searchQuery ? `${sortedGroups.length} dari ${clientGroups.length}` : `Total: ${clientGroups.length}`} kelompok
+            </div>
           </div>
         </div>
       </Card>
