@@ -39,6 +39,7 @@ export default function MonthlyView() {
   const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
   const [expensesByCategory, setExpensesByCategory] = useState<any[]>([]);
   const [incomeData, setIncomeData] = useState<any[]>([]);
+  const [rentalContracts, setRentalContracts] = useState<any[]>([]);
 
   useEffect(() => {
     fetchMonthlyReport();
@@ -148,6 +149,20 @@ export default function MonthlyView() {
         name: income.source_name,
         value: income.amount || 0,
       })) || [];
+
+      // Fetch rental contracts for this month
+      const { data: contractsData } = await supabase
+        .from("rental_contracts")
+        .select(`
+          *,
+          client_groups (nama, nomor_telepon)
+        `)
+        .eq("user_id", user.id)
+        .gte("tanggal", startDate.toISOString().split('T')[0])
+        .lte("tanggal", endDate.toISOString().split('T')[0])
+        .order("tanggal", { ascending: false });
+
+      setRentalContracts(contractsData || []);
 
       const income = report?.pemasukan || 0;
       const expenses = report?.pengeluaran || 0;
@@ -436,6 +451,49 @@ export default function MonthlyView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Rental Contracts */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Kontrak Sewa Bulan {month}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {rentalContracts.length > 0 ? (
+            <div className="space-y-3">
+              {rentalContracts.map((contract) => (
+                <div key={contract.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{contract.client_groups?.nama || '-'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(contract.tanggal).toLocaleDateString('id-ID')} • {contract.status}
+                    </p>
+                    {contract.invoice && (
+                      <p className="text-xs text-muted-foreground mt-1">Invoice: {contract.invoice}</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-green-600 text-sm">
+                      {formatCurrency(contract.jumlah_lunas || 0)}
+                    </p>
+                    {contract.tagihan_belum_bayar > 0 && (
+                      <p className="text-xs text-red-600">
+                        Belum: {formatCurrency(contract.tagihan_belum_bayar)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Belum ada kontrak sewa pada bulan ini
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
