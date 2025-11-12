@@ -12,6 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Plus, Users, Calendar as CalendarIcon, FileText, MapPin, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -92,6 +93,8 @@ const ClientGroups = () => {
   const [resizeStartX, setResizeStartX] = useState(0);
   const [resizeStartWidth, setResizeStartWidth] = useState(0);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Form states for Client Group
   const [groupForm, setGroupForm] = useState({
@@ -636,13 +639,18 @@ const ClientGroups = () => {
     return sorted;
   }, [rentalContracts, sortBy, sortOrder, clientGroups]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(sortedContracts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedContracts = sortedContracts.slice(startIndex, startIndex + itemsPerPage);
+
   const renderCellContent = (contract: RentalContract, columnKey: string, index: number) => {
     const group = clientGroups.find(g => g.id === contract.client_group_id);
     const remainingDays = getRemainingDays(contract.end_date);
 
     switch (columnKey) {
       case "number":
-        return <span className="font-medium">{index + 1}</span>;
+        return <span className="font-medium">{startIndex + index + 1}</span>;
       case "invoice":
         return <span className="font-medium">{contract.invoice || "-"}</span>;
       case "group":
@@ -1185,7 +1193,7 @@ const ClientGroups = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedContracts.map((contract, index) => (
+                {paginatedContracts.map((contract, index) => (
                   <TableRow key={contract.id}>
                     {columnOrder.map((columnKey) => (
                       <TableCell
@@ -1204,6 +1212,38 @@ const ClientGroups = () => {
               </TableBody>
             </Table>
           </div>
+
+          {totalPages > 1 && (
+            <div className="mt-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </Card>
       )}
 
