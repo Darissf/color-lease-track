@@ -80,7 +80,7 @@ const BudgetTracker = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold text-foreground mb-2">
             Pelacak Anggaran & Tabungan
           </h1>
           <p className="text-muted-foreground">Monitor anggaran bulanan dan progress tabungan Anda</p>

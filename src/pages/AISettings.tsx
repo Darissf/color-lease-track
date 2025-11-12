@@ -150,7 +150,7 @@ const AISettings = () => {
     <div className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold text-foreground mb-2">
             Pengaturan AI
           </h1>
           <p className="text-muted-foreground">
