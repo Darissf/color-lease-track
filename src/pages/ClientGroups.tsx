@@ -5,21 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Users, Calendar as CalendarIcon, FileText, MapPin, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
-import { id as localeId } from "date-fns/locale";
+import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { formatRupiah } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 
@@ -30,28 +20,6 @@ interface ClientGroup {
   ktp_files: Array<{ name: string; url: string }>;
   has_whatsapp: boolean | null;
   whatsapp_checked_at: string | null;
-}
-
-interface RentalContract {
-  id: string;
-  client_group_id: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-  tagihan_belum_bayar: number;
-  jumlah_lunas: number;
-  invoice: string | null;
-  keterangan: string | null;
-  bukti_pembayaran_files: Array<{ name: string; url: string }>;
-  bank_account_id: string | null;
-  google_maps_link: string | null;
-  notes: string | null;
-}
-
-interface BankAccount {
-  id: string;
-  bank_name: string;
-  account_number: string;
 }
 
 // Validation schema for Indonesian phone numbers
@@ -71,73 +39,18 @@ const phoneSchema = z.string()
 const ClientGroups = () => {
   const { user } = useAuth();
   const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
-  const [rentalContracts, setRentalContracts] = useState<RentalContract[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
-  const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-  const [editingContractId, setEditingContractId] = useState<string | null>(null);
-  const [isTableLocked, setIsTableLocked] = useState(true);
-  const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'lunas' | 'none'>('none');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [clientSearchOpen, setClientSearchOpen] = useState(false);
-  const [clientSearchQuery, setClientSearchQuery] = useState("");
-  const [clientSearchMode, setClientSearchMode] = useState<'phone' | 'name'>('phone');
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
-    number: 80,
-    invoice: 120,
-    group: 200,
-    keterangan: 250,
-    periode: 180,
-    status: 120,
-    tagihan: 130,
-    lunas: 130,
-    aksi: 100,
-  });
-  const [columnOrder, setColumnOrder] = useState([
-    "number",
-    "invoice",
-    "group",
-    "keterangan",
-    "periode",
-    "status",
-    "tagihan",
-    "lunas",
-    "aksi",
-  ]);
-  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
-  const [resizeStartX, setResizeStartX] = useState(0);
-  const [resizeStartWidth, setResizeStartWidth] = useState(0);
-  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [validatingWhatsApp, setValidatingWhatsApp] = useState(false);
+  const [whatsappStatus, setWhatsappStatus] = useState<{has_whatsapp: boolean | null; confidence: string; reason: string} | null>(null);
 
   const [groupForm, setGroupForm] = useState({
     nama: "",
     nomor_telepon: "",
   });
   const [phoneError, setPhoneError] = useState<string>("");
-  const [validatingWhatsApp, setValidatingWhatsApp] = useState(false);
-  const [whatsappStatus, setWhatsappStatus] = useState<{has_whatsapp: boolean | null; confidence: string; reason: string} | null>(null);
   const [ktpFiles, setKtpFiles] = useState<File[]>([]);
-
-  // Form states for Rental Contract
-  const [contractForm, setContractForm] = useState({
-    client_group_id: "",
-    start_date: undefined as Date | undefined,
-    end_date: undefined as Date | undefined,
-    status: "masa sewa",
-    tagihan_belum_bayar: "",
-    jumlah_lunas: "",
-    invoice: "",
-    keterangan: "",
-    bank_account_id: "",
-    google_maps_link: "",
-    notes: "",
-  });
-  const [paymentProofFiles, setPaymentProofFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -145,33 +58,24 @@ const ClientGroups = () => {
     }
   }, [user]);
 
-  // Load saved preferences
+  // Debounced WhatsApp validation
   useEffect(() => {
-    const savedWidths = localStorage.getItem("contractTableWidths");
-    const savedOrder = localStorage.getItem("contractTableOrder");
-    
-    if (savedWidths) {
-      setColumnWidths(JSON.parse(savedWidths));
+    if (!groupForm.nomor_telepon || phoneError) {
+      setWhatsappStatus(null);
+      return;
     }
-    if (savedOrder) {
-      setColumnOrder(JSON.parse(savedOrder));
-    }
-  }, []);
 
-  // Save preferences
-  useEffect(() => {
-    localStorage.setItem("contractTableWidths", JSON.stringify(columnWidths));
-  }, [columnWidths]);
+    const timer = setTimeout(async () => {
+      await validateWhatsApp(groupForm.nomor_telepon);
+    }, 1500);
 
-  useEffect(() => {
-    localStorage.setItem("contractTableOrder", JSON.stringify(columnOrder));
-  }, [columnOrder]);
+    return () => clearTimeout(timer);
+  }, [groupForm.nomor_telepon, phoneError]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       
-      // Fetch client groups
       const { data: groups, error: groupsError } = await supabase
         .from("client_groups")
         .select("*")
@@ -185,29 +89,6 @@ const ClientGroups = () => {
         has_whatsapp: g.has_whatsapp,
         whatsapp_checked_at: g.whatsapp_checked_at
       })));
-
-      // Fetch rental contracts
-      const { data: contracts, error: contractsError } = await supabase
-        .from("rental_contracts")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false });
-
-      if (contractsError) throw contractsError;
-      setRentalContracts((contracts || []).map(c => ({
-        ...c,
-        bukti_pembayaran_files: (c.bukti_pembayaran_files as any) || []
-      })));
-
-      // Fetch bank accounts
-      const { data: banks, error: banksError } = await supabase
-        .from("bank_accounts")
-        .select("id, bank_name, account_number")
-        .eq("user_id", user?.id)
-        .eq("is_active", true);
-
-      if (banksError) throw banksError;
-      setBankAccounts(banks || []);
     } catch (error: any) {
       toast.error("Gagal memuat data: " + error.message);
     } finally {
@@ -237,20 +118,6 @@ const ClientGroups = () => {
 
     return uploadedFiles;
   };
-
-  // Debounced WhatsApp validation
-  useEffect(() => {
-    if (!groupForm.nomor_telepon || phoneError) {
-      setWhatsappStatus(null);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      await validateWhatsApp(groupForm.nomor_telepon);
-    }, 1500); // Wait 1.5s after user stops typing
-
-    return () => clearTimeout(timer);
-  }, [groupForm.nomor_telepon, phoneError]);
 
   const validateWhatsApp = async (phoneNumber: string) => {
     try {
@@ -295,7 +162,6 @@ const ClientGroups = () => {
         return;
       }
 
-      // Validate phone number
       const phoneValidation = phoneSchema.safeParse(groupForm.nomor_telepon);
       if (!phoneValidation.success) {
         setPhoneError(phoneValidation.error.errors[0].message);
@@ -307,17 +173,14 @@ const ClientGroups = () => {
       let ktpFileUrls: Array<{ name: string; url: string }> = [];
       
       if (editingGroupId) {
-        // Edit mode - get existing files first
         const existingGroup = clientGroups.find(g => g.id === editingGroupId);
         ktpFileUrls = existingGroup?.ktp_files || [];
         
-        // Add new files if any
         if (ktpFiles.length > 0) {
           const newFiles = await uploadFiles(ktpFiles, "ktp-documents");
           ktpFileUrls = [...ktpFileUrls, ...newFiles];
         }
       } else {
-        // Create mode
         if (ktpFiles.length > 0) {
           ktpFileUrls = await uploadFiles(ktpFiles, "ktp-documents");
         }
@@ -333,7 +196,6 @@ const ClientGroups = () => {
       };
 
       if (editingGroupId) {
-        // Update existing group
         const { error } = await supabase
           .from("client_groups")
           .update(groupData)
@@ -342,7 +204,6 @@ const ClientGroups = () => {
         if (error) throw error;
         toast.success("Kelompok client berhasil diupdate");
       } else {
-        // Insert new group
         const { error } = await supabase
           .from("client_groups")
           .insert(groupData);
@@ -359,227 +220,32 @@ const ClientGroups = () => {
     }
   };
 
-  const handleSaveContract = async () => {
-    try {
-      if (!contractForm.client_group_id || !contractForm.start_date || !contractForm.end_date) {
-        toast.error("Mohon lengkapi field wajib");
-        return;
-      }
-
-      let paymentProofUrls: Array<{ name: string; url: string }> = [];
-      
-      if (editingContractId) {
-        // Edit mode - get existing files first
-        const existingContract = rentalContracts.find(c => c.id === editingContractId);
-        paymentProofUrls = existingContract?.bukti_pembayaran_files || [];
-        
-        // Add new files if any
-        if (paymentProofFiles.length > 0) {
-          const newFiles = await uploadFiles(paymentProofFiles, "payment-proofs");
-          paymentProofUrls = [...paymentProofUrls, ...newFiles];
-        }
-      } else {
-        // Create mode
-        if (paymentProofFiles.length > 0) {
-          paymentProofUrls = await uploadFiles(paymentProofFiles, "payment-proofs");
-        }
-      }
-
-      const jumlahLunas = parseFloat(contractForm.jumlah_lunas) || 0;
-
-      const contractData = {
-        user_id: user?.id,
-        client_group_id: contractForm.client_group_id,
-        start_date: format(contractForm.start_date, "yyyy-MM-dd"),
-        end_date: format(contractForm.end_date, "yyyy-MM-dd"),
-        status: contractForm.status,
-        tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
-        jumlah_lunas: jumlahLunas,
-        invoice: contractForm.invoice || null,
-        keterangan: contractForm.keterangan || null,
-        bukti_pembayaran_files: paymentProofUrls,
-        bank_account_id: contractForm.bank_account_id || null,
-        google_maps_link: contractForm.google_maps_link || null,
-        notes: contractForm.notes || null,
-      };
-
-      if (editingContractId) {
-        // Update existing contract
-        const existingContract = rentalContracts.find(c => c.id === editingContractId);
-        const oldJumlahLunas = existingContract?.jumlah_lunas || 0;
-        
-        const { error: contractError } = await supabase
-          .from("rental_contracts")
-          .update(contractData)
-          .eq("id", editingContractId);
-
-        if (contractError) throw contractError;
-        
-        // Upsert income entry based on contract_id
-        const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
-        const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
-        
-        if (jumlahLunas > 0) {
-          // Create or update income entry for this contract
-          const incomeData = {
-            user_id: user?.id,
-            source_name: `Sewa - ${clientGroup?.nama || "Client"}`,
-            bank_name: bankAccount?.bank_name || "Unknown",
-            amount: jumlahLunas,
-            date: format(new Date(), "yyyy-MM-dd"),
-            contract_id: editingContractId,
-          };
-
-          // Check if income entry exists for this contract
-          const { data: existingIncome } = await supabase
-            .from("income_sources")
-            .select("id")
-            .eq("contract_id", editingContractId)
-            .maybeSingle();
-
-          if (existingIncome) {
-            // Update existing entry
-            const { error: incomeError } = await supabase
-              .from("income_sources")
-              .update(incomeData)
-              .eq("id", existingIncome.id);
-            
-            if (incomeError) {
-              console.error("Income update failed:", incomeError);
-              toast.error("Gagal update pemasukan: " + incomeError.message);
-            }
-          } else {
-            // Insert new entry
-            const { error: incomeError } = await supabase
-              .from("income_sources")
-              .insert(incomeData);
-            
-            if (incomeError) {
-              console.error("Income insert failed:", incomeError);
-              toast.error("Gagal mencatat pemasukan: " + incomeError.message);
-            }
-          }
-        } else {
-          // If jumlah_lunas is 0, delete income entry if exists
-          const { error: deleteError } = await supabase
-            .from("income_sources")
-            .delete()
-            .eq("contract_id", editingContractId);
-          
-          if (deleteError) {
-            console.error("Income delete failed:", deleteError);
-          }
-        }
-        
-        toast.success("Kontrak berhasil diupdate");
-      } else {
-        // Insert new contract
-        const { error: contractError } = await supabase
-          .from("rental_contracts")
-          .insert(contractData);
-
-        if (contractError) throw contractError;
-
-        // Get the newly created contract ID
-        const { data: newContract } = await supabase
-          .from("rental_contracts")
-          .select("id")
-          .eq("user_id", user?.id)
-          .eq("client_group_id", contractForm.client_group_id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        // Auto-create income entry if jumlah_lunas > 0
-        if (jumlahLunas > 0 && newContract) {
-          const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
-          const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
-          
-          const { error: incomeError } = await supabase
-            .from("income_sources")
-            .insert({
-              user_id: user?.id,
-              source_name: `Sewa - ${clientGroup?.nama || "Client"}`,
-              bank_name: bankAccount?.bank_name || "Unknown",
-              amount: jumlahLunas,
-              date: format(new Date(), "yyyy-MM-dd"),
-              contract_id: newContract.id,
-            });
-          if (incomeError) {
-            console.error("Income insert (create) failed:", incomeError);
-            toast.error("Gagal mencatat pemasukan: " + incomeError.message);
-          }
-        }
-
-        toast.success("Kontrak sewa berhasil ditambahkan");
-      }
-
-      setIsContractDialogOpen(false);
-      resetContractForm();
-      setEditingContractId(null);
-      fetchData();
-    } catch (error: any) {
-      toast.error("Gagal menyimpan: " + error.message);
-    }
-  };
-
   const handleEditGroup = (group: ClientGroup) => {
     setEditingGroupId(group.id);
     setGroupForm({
       nama: group.nama,
       nomor_telepon: group.nomor_telepon,
     });
-    setKtpFiles([]);
     setIsGroupDialogOpen(true);
   };
 
   const handleDeleteGroup = async (id: string) => {
-    if (!confirm("Yakin ingin menghapus kelompok ini? Semua kontrak terkait akan terhapus.")) return;
-    
+    if (!confirm("Yakin ingin menghapus kelompok client ini? Semua kontrak terkait juga akan terhapus.")) return;
+
     try {
+      // Delete related contracts first
+      await supabase
+        .from("rental_contracts")
+        .delete()
+        .eq("client_group_id", id);
+
       const { error } = await supabase
         .from("client_groups")
         .delete()
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Kelompok berhasil dihapus");
-      fetchData();
-    } catch (error: any) {
-      toast.error("Gagal menghapus: " + error.message);
-    }
-  };
-
-  const handleEditContract = (contract: RentalContract) => {
-    setEditingContractId(contract.id);
-    setContractForm({
-      client_group_id: contract.client_group_id,
-      start_date: new Date(contract.start_date),
-      end_date: new Date(contract.end_date),
-      status: contract.status,
-      tagihan_belum_bayar: contract.tagihan_belum_bayar.toString(),
-      jumlah_lunas: contract.jumlah_lunas.toString(),
-      invoice: contract.invoice || "",
-      keterangan: contract.keterangan || "",
-      bank_account_id: contract.bank_account_id || "",
-      google_maps_link: contract.google_maps_link || "",
-      notes: contract.notes || "",
-    });
-    setPaymentProofFiles([]);
-    setIsContractDialogOpen(true);
-  };
-
-  const handleDeleteContract = async (id: string) => {
-    if (!confirm("Yakin ingin menghapus kontrak ini?")) return;
-    
-    try {
-      const { error } = await supabase
-        .from("rental_contracts")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-      toast.success("Kontrak berhasil dihapus");
+      toast.success("Kelompok client berhasil dihapus");
       fetchData();
     } catch (error: any) {
       toast.error("Gagal menghapus: " + error.message);
@@ -587,266 +253,19 @@ const ClientGroups = () => {
   };
 
   const resetGroupForm = () => {
-    setGroupForm({ nama: "", nomor_telepon: "" });
+    setEditingGroupId(null);
+    setGroupForm({
+      nama: "",
+      nomor_telepon: "",
+    });
+    setKtpFiles([]);
     setPhoneError("");
     setWhatsappStatus(null);
-    setValidatingWhatsApp(false);
-    setKtpFiles([]);
-    setEditingGroupId(null);
   };
 
-  const resetContractForm = () => {
-    setContractForm({
-      client_group_id: "",
-      start_date: undefined,
-      end_date: undefined,
-      status: "masa sewa",
-      tagihan_belum_bayar: "",
-      jumlah_lunas: "",
-      invoice: "",
-      keterangan: "",
-      bank_account_id: "",
-      google_maps_link: "",
-      notes: "",
-    });
-    setPaymentProofFiles([]);
-    setEditingContractId(null);
-  };
-
-  const getContractsForGroup = (groupId: string) => {
-    return rentalContracts.filter(c => c.client_group_id === groupId);
-  };
-
-  const getRemainingDays = (endDate: string) => {
-    return differenceInDays(new Date(endDate), new Date());
-  };
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      "perpanjangan": "bg-blue-500/10 text-blue-500 border-blue-500/20",
-      "pending": "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-      "masa sewa": "bg-green-500/10 text-green-500 border-green-500/20",
-      "berulang": "bg-purple-500/10 text-purple-500 border-purple-500/20",
-    };
-    return styles[status as keyof typeof styles] || "bg-gray-500/10 text-gray-500 border-gray-500/20";
-  };
-
-  const handleResizeStart = (columnKey: string, e: React.MouseEvent) => {
-    if (isTableLocked) return;
-    e.preventDefault();
-    setResizingColumn(columnKey);
-    setResizeStartX(e.clientX);
-    setResizeStartWidth(columnWidths[columnKey]);
-  };
-
-  const handleResizeMove = (e: MouseEvent) => {
-    if (!resizingColumn) return;
-    const diff = e.clientX - resizeStartX;
-    const newWidth = Math.max(80, resizeStartWidth + diff);
-    setColumnWidths(prev => ({ ...prev, [resizingColumn]: newWidth }));
-  };
-
-  const handleResizeEnd = () => {
-    setResizingColumn(null);
-  };
-
-  useEffect(() => {
-    if (resizingColumn) {
-      window.addEventListener("mousemove", handleResizeMove);
-      window.addEventListener("mouseup", handleResizeEnd);
-      return () => {
-        window.removeEventListener("mousemove", handleResizeMove);
-        window.removeEventListener("mouseup", handleResizeEnd);
-      };
-    }
-  }, [resizingColumn, resizeStartX, resizeStartWidth]);
-
-  const handleDragStart = (columnKey: string) => {
-    if (isTableLocked) return;
-    setDraggedColumn(columnKey);
-  };
-
-  const handleDragOver = (e: React.DragEvent, columnKey: string) => {
-    if (isTableLocked || !draggedColumn) return;
-    e.preventDefault();
-    
-    if (draggedColumn !== columnKey) {
-      const newOrder = [...columnOrder];
-      const draggedIdx = newOrder.indexOf(draggedColumn);
-      const targetIdx = newOrder.indexOf(columnKey);
-      
-      newOrder.splice(draggedIdx, 1);
-      newOrder.splice(targetIdx, 0, draggedColumn);
-      
-      setColumnOrder(newOrder);
-    }
-  };
-
-  const handleDragEnd = () => {
-    setDraggedColumn(null);
-  };
-
-  const getColumnLabel = (key: string) => {
-    const labels: Record<string, string> = {
-      number: "No",
-      invoice: "Invoice",
-      group: "Kelompok Client",
-      keterangan: "Keterangan",
-      periode: "Periode",
-      status: "Status",
-      tagihan: "Tagihan",
-      lunas: "Lunas",
-      aksi: "Aksi",
-    };
-    return labels[key] || key;
-  };
-
-  const handleSortColumnChange = (value: string) => {
-    setSortBy(value as typeof sortBy);
-  };
-
-  const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-  };
-
-  const getColumnAlignment = (key: string) => {
-    if (key === "tagihan" || key === "lunas") return "text-right";
-    if (key === "aksi" || key === "number") return "text-center";
-    return "";
-  };
-
-  const sortedContracts = React.useMemo(() => {
-    if (!rentalContracts) return [];
-    
-    let sorted = [...rentalContracts];
-    
-    if (sortBy !== 'none') {
-      sorted.sort((a, b) => {
-        let comparison = 0;
-        
-        switch(sortBy) {
-          case 'number':
-            comparison = rentalContracts.indexOf(a) - rentalContracts.indexOf(b);
-            break;
-          case 'invoice':
-            const invoiceA = a.invoice || '';
-            const invoiceB = b.invoice || '';
-            comparison = invoiceA.localeCompare(invoiceB, undefined, { numeric: true });
-            break;
-          case 'group':
-            const groupA = clientGroups.find(g => g.id === a.client_group_id)?.nama || '';
-            const groupB = clientGroups.find(g => g.id === b.client_group_id)?.nama || '';
-            comparison = groupA.localeCompare(groupB);
-            break;
-          case 'keterangan':
-            const ketA = a.keterangan || '';
-            const ketB = b.keterangan || '';
-            comparison = ketA.localeCompare(ketB);
-            break;
-          case 'periode':
-            comparison = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
-            break;
-          case 'status':
-            comparison = a.status.localeCompare(b.status);
-            break;
-          case 'tagihan':
-            comparison = (a.tagihan_belum_bayar || 0) - (b.tagihan_belum_bayar || 0);
-            break;
-          case 'lunas':
-            comparison = (a.jumlah_lunas || 0) - (b.jumlah_lunas || 0);
-            break;
-        }
-        
-        return sortOrder === 'asc' ? comparison : -comparison;
-      });
-    }
-    
-    return sorted;
-  }, [rentalContracts, sortBy, sortOrder, clientGroups]);
-
-  // Pagination logic
-  const totalPages = Math.ceil(sortedContracts.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedContracts = sortedContracts.slice(startIndex, startIndex + itemsPerPage);
-
-  const renderCellContent = (contract: RentalContract, columnKey: string, index: number) => {
-    const group = clientGroups.find(g => g.id === contract.client_group_id);
-    const remainingDays = getRemainingDays(contract.end_date);
-
-    switch (columnKey) {
-      case "number":
-        return <span className="font-medium">{startIndex + index + 1}</span>;
-      case "invoice":
-        return <span className="font-medium">{contract.invoice || "-"}</span>;
-      case "group":
-        return <span className="truncate block max-w-[200px]" title={group?.nama || "-"}>{group?.nama || "-"}</span>;
-      case "keterangan":
-        const keteranganText = contract.keterangan || "-";
-        const isLongText = keteranganText.length > 50;
-        return (
-          <Dialog>
-            <DialogTrigger asChild>
-              <div className={`truncate max-w-[300px] ${isLongText ? 'cursor-pointer hover:text-primary underline decoration-dotted' : ''}`}>
-                {keteranganText}
-              </div>
-            </DialogTrigger>
-            {isLongText && (
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Keterangan Lengkap</DialogTitle>
-                </DialogHeader>
-                <div className="mt-4 whitespace-pre-wrap break-words">
-                  {keteranganText}
-                </div>
-              </DialogContent>
-            )}
-          </Dialog>
-        );
-      case "periode":
-        return (
-          <div className="text-sm whitespace-nowrap">
-            <span>{format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })}</span>
-            <span className="text-muted-foreground"> s/d </span>
-            <span>{format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}</span>
-            <span className={`ml-2 font-medium ${remainingDays > 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
-            </span>
-          </div>
-        );
-      case "status":
-        return (
-          <Badge className={`${getStatusBadge(contract.status)} border whitespace-nowrap`}>
-            {contract.status}
-          </Badge>
-        );
-      case "tagihan":
-        return <span className="text-warning font-medium">{formatRupiah(contract.tagihan_belum_bayar)}</span>;
-      case "lunas":
-        return <span className="text-foreground font-medium">{formatRupiah(contract.jumlah_lunas)}</span>;
-      case "aksi":
-        return (
-          <div className="flex items-center justify-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleEditContract(contract)}
-              className="h-8 w-8 text-primary hover:bg-primary/10"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDeleteContract(contract.id)}
-              className="h-8 w-8 text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        );
-      default:
-        return null;
-    }
+  const getContractCount = (groupId: string) => {
+    // You could fetch this separately if needed, or remove this helper
+    return 0;
   };
 
   if (loading) {
@@ -855,396 +274,118 @@ const ClientGroups = () => {
 
   return (
     <div className="min-h-screen p-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-2">
             Kelompok Client
           </h1>
-          <p className="text-muted-foreground">Kelola client dan kontrak sewa peralatan</p>
+          <p className="text-muted-foreground">Kelola data kelompok client</p>
         </div>
-        <div className="flex gap-2">
-          <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
-            setIsGroupDialogOpen(open);
-            if (!open) resetGroupForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Kelompok
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{editingGroupId ? "Edit Kelompok Client" : "Tambah Kelompok Client"}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Nama Kelompok</Label>
+        <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
+          setIsGroupDialogOpen(open);
+          if (!open) resetGroupForm();
+        }}>
+          <DialogTrigger asChild>
+            <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah Kelompok
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingGroupId ? "Edit Kelompok Client" : "Tambah Kelompok Client"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Nama Kelompok</Label>
+                <Input
+                  value={groupForm.nama}
+                  onChange={(e) => setGroupForm({ ...groupForm, nama: e.target.value })}
+                  placeholder="Nama kelompok"
+                />
+              </div>
+              <div>
+                <Label>Nomor Telepon</Label>
+                <div className="relative">
                   <Input
-                    value={groupForm.nama}
-                    onChange={(e) => setGroupForm({ ...groupForm, nama: e.target.value })}
-                    placeholder="Nama kelompok"
-                  />
-                </div>
-                <div>
-                  <Label>Nomor Telepon</Label>
-                  <div className="relative">
-                    <Input
-                      value={groupForm.nomor_telepon}
-                      onChange={(e) => {
-                        setGroupForm({ ...groupForm, nomor_telepon: e.target.value });
-                        setPhoneError("");
-                      }}
-                      placeholder="+62812345678 atau 08123456789"
-                      className={cn(
-                        phoneError && "border-destructive",
-                        validatingWhatsApp && "pr-10"
-                      )}
-                    />
-                    {validatingWhatsApp && (
-                      <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3 text-muted-foreground" />
+                    value={groupForm.nomor_telepon}
+                    onChange={(e) => {
+                      setGroupForm({ ...groupForm, nomor_telepon: e.target.value });
+                      setPhoneError("");
+                    }}
+                    placeholder="+62812345678 atau 08123456789"
+                    className={cn(
+                      "pr-10",
+                      phoneError && "border-destructive",
+                      whatsappStatus?.has_whatsapp !== null && !phoneError && "border-green-500"
                     )}
-                  </div>
-                  {phoneError && (
-                    <p className="text-sm text-destructive mt-1">{phoneError}</p>
+                  />
+                  {validatingWhatsApp && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
                   )}
-                  {whatsappStatus && !phoneError && (
-                    <div className={cn(
-                      "flex items-center gap-2 text-sm mt-2 p-2 rounded-md",
-                      whatsappStatus.has_whatsapp 
-                        ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300"
-                        : "bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300"
-                    )}>
+                  {whatsappStatus && !validatingWhatsApp && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       {whatsappStatus.has_whatsapp ? (
-                        <CheckCircle className="h-4 w-4" />
+                        <CheckCircle className="h-4 w-4 text-green-600" />
                       ) : (
-                        <XCircle className="h-4 w-4" />
+                        <XCircle className="h-4 w-4 text-red-600" />
                       )}
-                      <span className="flex-1">{whatsappStatus.reason}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {whatsappStatus.confidence}
-                      </Badge>
                     </div>
                   )}
+                </div>
+                {phoneError && (
+                  <p className="text-xs text-destructive mt-1">{phoneError}</p>
+                )}
+                {whatsappStatus && !phoneError && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Format: +62xxx atau 08xx (minimal 10 digit)
+                    {whatsappStatus.reason}
                   </p>
-                </div>
-                <div>
-                  <Label>Upload KTP (Multiple)</Label>
-                  <Input
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf"
-                    onChange={(e) => setKtpFiles(Array.from(e.target.files || []))}
-                  />
-                  {ktpFiles.length > 0 && (
-                    <p className="text-sm text-muted-foreground mt-1">{ktpFiles.length} file dipilih</p>
-                  )}
-                </div>
-                <Button onClick={handleSaveGroup} className="w-full">
-                  {editingGroupId ? "Update Kelompok" : "Simpan Kelompok"}
-                </Button>
+                )}
               </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isContractDialogOpen} onOpenChange={(open) => {
-            setIsContractDialogOpen(open);
-            if (!open) {
-              resetContractForm();
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-primary/20 text-primary hover:bg-primary/10">
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Kontrak
+              <div>
+                <Label>Upload KTP (Multiple)</Label>
+                <Input
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf"
+                  onChange={(e) => setKtpFiles(Array.from(e.target.files || []))}
+                />
+                {ktpFiles.length > 0 && (
+                  <p className="text-sm text-muted-foreground mt-1">{ktpFiles.length} file dipilih</p>
+                )}
+              </div>
+              <Button onClick={handleSaveGroup} className="w-full" disabled={validatingWhatsApp}>
+                {validatingWhatsApp ? "Memvalidasi..." : editingGroupId ? "Update Kelompok" : "Simpan Kelompok"}
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editingContractId ? "Edit Kontrak Sewa" : "Tambah Kontrak Sewa"}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Pilih Kelompok Client *</Label>
-                  <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={clientSearchOpen}
-                        className="w-full justify-between"
-                      >
-                        {contractForm.client_group_id
-                          ? clientGroups.find((group) => group.id === contractForm.client_group_id)?.nama
-                          : "Cari kelompok client..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command shouldFilter={false}>
-                        <div className="flex items-center border-b px-3 py-2 gap-2">
-                          <Button
-                            variant={clientSearchMode === 'phone' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                              setClientSearchMode('phone');
-                              setClientSearchQuery("");
-                            }}
-                            className="flex-1"
-                          >
-                            Nomor HP
-                          </Button>
-                          <Button
-                            variant={clientSearchMode === 'name' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                              setClientSearchMode('name');
-                              setClientSearchQuery("");
-                            }}
-                            className="flex-1"
-                          >
-                            Nama
-                          </Button>
-                        </div>
-                        <CommandInput 
-                          placeholder={clientSearchMode === 'phone' ? "Ketik nomor HP (contoh: 085)..." : "Ketik nama kelompok..."} 
-                          value={clientSearchQuery}
-                          onValueChange={setClientSearchQuery}
-                        />
-                        <CommandList>
-                          <CommandEmpty>Tidak ada kelompok client ditemukan.</CommandEmpty>
-                          <CommandGroup>
-                            {clientGroups
-                              .filter((group) => {
-                                if (clientSearchMode === 'phone') {
-                                  return group.nomor_telepon.toLowerCase().includes(clientSearchQuery.toLowerCase());
-                                } else {
-                                  return group.nama.toLowerCase().includes(clientSearchQuery.toLowerCase());
-                                }
-                              })
-                              .map((group) => (
-                                <CommandItem
-                                  key={group.id}
-                                  value={group.id}
-                                  onSelect={() => {
-                                    setContractForm({ ...contractForm, client_group_id: group.id });
-                                    setClientSearchOpen(false);
-                                    setClientSearchQuery("");
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      contractForm.client_group_id === group.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{group.nama}</span>
-                                    <span className="text-xs text-muted-foreground">{group.nomor_telepon}</span>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div>
-                  <Label>Keterangan</Label>
-                  <Input
-                    value={contractForm.keterangan}
-                    onChange={(e) => setContractForm({ ...contractForm, keterangan: e.target.value })}
-                    placeholder="Keterangan nama client"
-                  />
-                </div>
-
-                <div>
-                  <Label>Invoice</Label>
-                  <Input
-                    type="text"
-                    value={contractForm.invoice}
-                    onChange={(e) => setContractForm({ ...contractForm, invoice: e.target.value })}
-                    placeholder="Contoh: 000178"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Tanggal Mulai *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !contractForm.start_date && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {contractForm.start_date ? format(contractForm.start_date, "PPP", { locale: localeId }) : "Pilih tanggal"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={contractForm.start_date}
-                          onSelect={(date) => setContractForm({ ...contractForm, start_date: date })}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div>
-                    <Label>Tanggal Berakhir *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !contractForm.end_date && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {contractForm.end_date ? format(contractForm.end_date, "PPP", { locale: localeId }) : "Pilih tanggal"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={contractForm.end_date}
-                          onSelect={(date) => setContractForm({ ...contractForm, end_date: date })}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Status</Label>
-                  <Select
-                    value={contractForm.status}
-                    onValueChange={(value) => setContractForm({ ...contractForm, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="perpanjangan">Perpanjangan</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="masa sewa">Masa Sewa</SelectItem>
-                      <SelectItem value="berulang">Berulang</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Tagihan (Belum Bayar)</Label>
-                    <Input
-                      type="number"
-                      value={contractForm.tagihan_belum_bayar}
-                      onChange={(e) => setContractForm({ ...contractForm, tagihan_belum_bayar: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <Label>Jumlah Lunas</Label>
-                    <Input
-                      type="number"
-                      value={contractForm.jumlah_lunas}
-                      onChange={(e) => setContractForm({ ...contractForm, jumlah_lunas: e.target.value })}
-                      placeholder="0"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Otomatis masuk ke pendapatan</p>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Akun Penerima</Label>
-                  <Select
-                    value={contractForm.bank_account_id}
-                    onValueChange={(value) => setContractForm({ ...contractForm, bank_account_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih rekening" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {bankAccounts.map((bank) => (
-                        <SelectItem key={bank.id} value={bank.id}>
-                          {bank.bank_name} - {bank.account_number}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Upload Bukti Pembayaran (Multiple)</Label>
-                  <Input
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf"
-                    onChange={(e) => setPaymentProofFiles(Array.from(e.target.files || []))}
-                  />
-                  {paymentProofFiles.length > 0 && (
-                    <p className="text-sm text-muted-foreground mt-1">{paymentProofFiles.length} file dipilih</p>
-                  )}
-                </div>
-
-                <div>
-                  <Label>Link Google Maps</Label>
-                  <Input
-                    value={contractForm.google_maps_link}
-                    onChange={(e) => setContractForm({ ...contractForm, google_maps_link: e.target.value })}
-                    placeholder="https://maps.google.com/..."
-                  />
-                </div>
-
-                <div>
-                  <Label>Catatan</Label>
-                  <Textarea
-                    value={contractForm.notes}
-                    onChange={(e) => setContractForm({ ...contractForm, notes: e.target.value })}
-                    placeholder="Catatan tambahan"
-                    rows={3}
-                  />
-                </div>
-
-                <Button onClick={handleSaveContract} className="w-full">
-                  {editingContractId ? "Update Kontrak" : "Simpan Kontrak"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Client Groups List */}
-      <div className="grid gap-6 md:grid-cols-3 mb-8">
-        {clientGroups.map((group) => {
-          const contracts = getContractsForGroup(group.id);
-
-          return (
-            <Card key={group.id} className="p-4 gradient-card border-0 shadow-md card-hover">
-              <div className="flex items-center justify-between">
+      {/* Client Groups Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {clientGroups.length === 0 ? (
+          <Card className="col-span-full p-12 text-center">
+            <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">Belum Ada Kelompok Client</h3>
+            <p className="text-muted-foreground mb-4">Mulai dengan menambahkan kelompok client pertama Anda</p>
+            <Button onClick={() => setIsGroupDialogOpen(true)} className="gradient-primary text-white">
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah Kelompok
+            </Button>
+          </Card>
+        ) : (
+          clientGroups.map((group) => (
+            <Card key={group.id} className="p-6 gradient-card border-0 shadow-md card-hover">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center text-white shadow-lg">
                     <Users className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-foreground">{group.nama}</h3>
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs text-muted-foreground">{group.nomor_telepon}</p>
+                    <h3 className="font-bold text-foreground text-lg">{group.nama}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-muted-foreground">{group.nomor_telepon}</p>
                       {group.has_whatsapp !== null && (
                         <TooltipProvider>
                           <Tooltip>
@@ -1278,9 +419,6 @@ const ClientGroups = () => {
                         </TooltipProvider>
                       )}
                     </div>
-                    <Badge className="bg-primary/10 text-primary border-primary/20 border text-xs mt-1">
-                      {contracts.length} kontrak
-                    </Badge>
                   </div>
                 </div>
                 <div className="flex gap-1">
@@ -1302,184 +440,31 @@ const ClientGroups = () => {
                   </Button>
                 </div>
               </div>
-            </Card>
-          );
-        })}
-      </div>
 
-      {/* Contracts Table */}
-      {rentalContracts.length > 0 && (
-        <Card className="p-6 gradient-card border-0 shadow-md">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-foreground">Daftar Kontrak Sewa</h2>
-            <div className="flex gap-2">
-              <Select value={sortBy} onValueChange={handleSortColumnChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort by..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Tanpa Sort</SelectItem>
-                  <SelectItem value="number">No</SelectItem>
-                  <SelectItem value="invoice">Invoice</SelectItem>
-                  <SelectItem value="group">Kelompok Client</SelectItem>
-                  <SelectItem value="keterangan">Keterangan</SelectItem>
-                  <SelectItem value="periode">Periode</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="tagihan">Tagihan</SelectItem>
-                  <SelectItem value="lunas">Lunas</SelectItem>
-                </SelectContent>
-              </Select>
-              {sortBy !== 'none' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleSortOrder}
-                  className="w-[60px]"
-                >
-                  {sortOrder === 'asc' ? '↑' : '↓'}
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsTableLocked(!isTableLocked)}
-                className={cn(
-                  "gap-2",
-                  !isTableLocked && "border-primary text-primary"
-                )}
-              >
-                {isTableLocked ? (
-                  <>
-                    <Lock className="h-4 w-4" />
-                    Terkunci
-                  </>
-                ) : (
-                  <>
-                    <Unlock className="h-4 w-4" />
-                    Bisa Diatur
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-          
-          {!isTableLocked && (
-            <p className="text-sm text-muted-foreground mb-3">
-              Drag kolom untuk mengubah urutan, drag tepi kanan kolom untuk mengatur lebar
-            </p>
-          )}
-
-          <div className="rounded-lg border border-border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  {columnOrder.map((columnKey) => (
-                    <TableHead
-                      key={columnKey}
-                      className={cn(
-                        "relative select-none",
-                        getColumnAlignment(columnKey),
-                        !isTableLocked && "cursor-move border-r border-black"
-                      )}
-                      style={{ width: columnWidths[columnKey] }}
-                      draggable={!isTableLocked}
-                      onDragStart={() => handleDragStart(columnKey)}
-                      onDragOver={(e) => handleDragOver(e, columnKey)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span>{getColumnLabel(columnKey)}</span>
-                        {!isTableLocked && (
-                          <div
-                            className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize bg-black/30 hover:bg-primary transition-colors"
-                            onMouseDown={(e) => handleResizeStart(columnKey, e)}
-                          />
-                        )}
-                      </div>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedContracts.map((contract, index) => (
-                  <TableRow key={contract.id}>
-                    {columnOrder.map((columnKey) => (
-                      <TableCell
-                        key={columnKey}
-                        className={cn(
-                          getColumnAlignment(columnKey),
-                          !isTableLocked && "border-r border-black"
-                        )}
-                        style={{ width: columnWidths[columnKey] }}
+              {group.ktp_files && group.ktp_files.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    Dokumen KTP ({group.ktp_files.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.ktp_files.map((file, idx) => (
+                      <a
+                        key={idx}
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs bg-secondary/50 hover:bg-secondary px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
                       >
-                        {renderCellContent(contract, columnKey, index)}
-                      </TableCell>
+                        <span className="truncate max-w-[120px]">{file.name}</span>
+                      </a>
                     ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Data per halaman:</span>
-                <div className="flex gap-1">
-                  {[10, 20, 30, 40, 50].map((size) => (
-                    <Button
-                      key={size}
-                      variant={itemsPerPage === size ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setItemsPerPage(size);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {size}
-                    </Button>
-                  ))}
+                  </div>
                 </div>
-              </div>
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(page)}
-                        isActive={currentPage === page}
-                        className="cursor-pointer"
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
-        </Card>
-      )}
-
-      {clientGroups.length === 0 && (
-        <div className="text-center py-12">
-          <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">Belum ada kelompok client</h3>
-          <p className="text-muted-foreground mb-4">Mulai dengan menambahkan kelompok client pertama</p>
-        </div>
-      )}
+              )}
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
 };
