@@ -420,49 +420,43 @@ const ClientGroups = () => {
 
       {/* Controls */}
       <Card className="p-4 mb-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Cari berdasarkan nama atau nomor telepon..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="max-w-md"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label>Sort By:</Label>
-                <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Tidak Ada</SelectItem>
-                    <SelectItem value="number">Nomor</SelectItem>
-                    <SelectItem value="nama">Nama</SelectItem>
-                    <SelectItem value="telepon">Telepon</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    <SelectItem value="created">Tanggal Dibuat</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                >
-                  {sortOrder === 'asc' ? '↑' : '↓'}
-                </Button>
-              </div>
-            </div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 space-y-2">
+            <Input
+              placeholder="Cari berdasarkan nama atau nomor telepon..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="max-w-md"
+            />
             <div className="text-sm text-muted-foreground">
               {searchQuery ? `${sortedGroups.length} dari ${clientGroups.length}` : `Total: ${clientGroups.length}`} client
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm">Sort By:</Label>
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Tidak Ada</SelectItem>
+                <SelectItem value="number">Nomor</SelectItem>
+                <SelectItem value="nama">Nama</SelectItem>
+                <SelectItem value="telepon">Telepon</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="created">Tanggal Dibuat</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </Button>
           </div>
         </div>
       </Card>
