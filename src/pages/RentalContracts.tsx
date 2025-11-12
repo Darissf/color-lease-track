@@ -66,6 +66,7 @@ const RentalContracts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [isCompactMode, setIsCompactMode] = useState(false);
+  const [isProcessingRecurring, setIsProcessingRecurring] = useState(false);
 
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
@@ -126,6 +127,23 @@ const RentalContracts = () => {
       toast.error("Gagal memuat data: " + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProcessRecurringRentals = async () => {
+    try {
+      setIsProcessingRecurring(true);
+      
+      const { data, error } = await supabase.functions.invoke('process-recurring-rentals');
+      
+      if (error) throw error;
+      
+      toast.success(data.message || "Berhasil memproses kontrak recurring");
+      fetchData();
+    } catch (error: any) {
+      toast.error("Gagal memproses kontrak recurring: " + error.message);
+    } finally {
+      setIsProcessingRecurring(false);
     }
   };
 
@@ -738,6 +756,14 @@ const RentalContracts = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={handleProcessRecurringRentals}
+              disabled={isProcessingRecurring}
+              className="whitespace-nowrap"
+            >
+              {isProcessingRecurring ? "Memproses..." : "Proses Kontrak Bulanan"}
+            </Button>
             <Button
               variant={isCompactMode ? "default" : "outline"}
               onClick={() => setIsCompactMode(!isCompactMode)}
