@@ -713,6 +713,7 @@ const RentalContracts = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-center w-20">No</TableHead>
+                <TableHead className="text-center w-24">Kalender</TableHead>
                 <TableHead>Invoice</TableHead>
                 <TableHead>Kelompok</TableHead>
                 <TableHead>Keterangan</TableHead>
@@ -726,7 +727,7 @@ const RentalContracts = () => {
             <TableBody>
               {paginatedContracts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p>Belum ada kontrak sewa</p>
                   </TableCell>
@@ -739,6 +740,14 @@ const RentalContracts = () => {
                   return (
                     <TableRow key={contract.id}>
                       <TableCell className="text-center font-medium">{startIndex + index + 1}</TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <CalendarIcon className="h-5 w-5 text-primary" />
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(contract.start_date), "dd/MM/yy")}
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">{contract.invoice || "-"}</TableCell>
                       <TableCell>
                         <span className="truncate block max-w-[200px]" title={group?.nama || "-"}>
