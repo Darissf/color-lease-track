@@ -94,7 +94,7 @@ const ClientGroups = () => {
   const [resizeStartWidth, setResizeStartWidth] = useState(0);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Form states for Client Group
   const [groupForm, setGroupForm] = useState({
@@ -1214,7 +1214,25 @@ const ClientGroups = () => {
           </div>
 
           {totalPages > 1 && (
-            <div className="mt-4">
+            <div className="mt-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Data per halaman:</span>
+                <div className="flex gap-1">
+                  {[10, 20, 30, 40, 50].map((size) => (
+                    <Button
+                      key={size}
+                      variant={itemsPerPage === size ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setItemsPerPage(size);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              </div>
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
