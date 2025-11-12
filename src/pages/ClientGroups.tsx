@@ -213,14 +213,14 @@ const ClientGroups = () => {
           .eq("id", editingGroupId);
 
         if (error) throw error;
-        toast.success("Kelompok client berhasil diupdate");
+        toast.success("Client berhasil diupdate");
       } else {
         const { error } = await supabase
           .from("client_groups")
           .insert(groupData);
 
         if (error) throw error;
-        toast.success("Kelompok client berhasil ditambahkan");
+        toast.success("Client berhasil ditambahkan");
       }
 
       setIsGroupDialogOpen(false);
@@ -241,7 +241,7 @@ const ClientGroups = () => {
   };
 
   const handleDeleteGroup = async (id: string) => {
-    if (!confirm("Yakin ingin menghapus kelompok client ini? Semua kontrak terkait juga akan terhapus.")) return;
+    if (!confirm("Yakin ingin menghapus client ini? Semua kontrak terkait juga akan terhapus.")) return;
 
     try {
       // Delete related contracts first
@@ -256,7 +256,7 @@ const ClientGroups = () => {
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Kelompok client berhasil dihapus");
+      toast.success("Client berhasil dihapus");
       fetchData();
     } catch (error: any) {
       toast.error("Gagal menghapus: " + error.message);
@@ -333,9 +333,9 @@ const ClientGroups = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent mb-2">
-            Kelompok Client
+            List Client
           </h1>
-          <p className="text-muted-foreground">Kelola data kelompok client</p>
+          <p className="text-muted-foreground">Kelola data client</p>
         </div>
         <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
           setIsGroupDialogOpen(open);
@@ -344,20 +344,20 @@ const ClientGroups = () => {
           <DialogTrigger asChild>
             <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
               <Plus className="mr-2 h-4 w-4" />
-              Tambah Kelompok
+              Tambah Client
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{editingGroupId ? "Edit Kelompok Client" : "Tambah Kelompok Client"}</DialogTitle>
+              <DialogTitle>{editingGroupId ? "Edit Client" : "Tambah Client"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Nama Kelompok</Label>
+                <Label>Nama Client</Label>
                 <Input
                   value={groupForm.nama}
                   onChange={(e) => setGroupForm({ ...groupForm, nama: e.target.value })}
-                  placeholder="Nama kelompok"
+                  placeholder="Nama client"
                 />
               </div>
               <div>
@@ -411,7 +411,7 @@ const ClientGroups = () => {
                 )}
               </div>
               <Button onClick={handleSaveGroup} className="w-full" disabled={validatingWhatsApp}>
-                {validatingWhatsApp ? "Memvalidasi..." : editingGroupId ? "Update Kelompok" : "Simpan Kelompok"}
+                {validatingWhatsApp ? "Memvalidasi..." : editingGroupId ? "Update Client" : "Simpan Client"}
               </Button>
             </div>
           </DialogContent>
@@ -461,7 +461,7 @@ const ClientGroups = () => {
               </div>
             </div>
             <div className="text-sm text-muted-foreground">
-              {searchQuery ? `${sortedGroups.length} dari ${clientGroups.length}` : `Total: ${clientGroups.length}`} kelompok
+              {searchQuery ? `${sortedGroups.length} dari ${clientGroups.length}` : `Total: ${clientGroups.length}`} client
             </div>
           </div>
         </div>
@@ -474,7 +474,7 @@ const ClientGroups = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-center w-20">No</TableHead>
-                <TableHead>Nama Kelompok</TableHead>
+                <TableHead>Nama Client</TableHead>
                 <TableHead>Nomor Telepon</TableHead>
                 <TableHead className="text-center">WhatsApp</TableHead>
                 <TableHead className="text-center">Dokumen KTP</TableHead>
@@ -487,7 +487,7 @@ const ClientGroups = () => {
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Belum ada kelompok client</p>
+                    <p>Belum ada client</p>
                   </TableCell>
                 </TableRow>
               ) : (
