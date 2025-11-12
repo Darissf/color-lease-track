@@ -114,8 +114,9 @@ const RentalContracts = () => {
       if (contractsError) throw contractsError;
       setRentalContracts((contracts || []).map(c => ({
         ...c,
-        bukti_pembayaran_files: (c.bukti_pembayaran_files as any) || []
-      })));
+        bukti_pembayaran_files: (c.bukti_pembayaran_files as any) || [],
+        tanggal_lunas: (c as any).tanggal_lunas || null
+      })) as any);
 
       const { data: banks, error: banksError } = await supabase
         .from("bank_accounts")
@@ -829,7 +830,7 @@ const RentalContracts = () => {
                 <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Status</TableHead>
                 <TableHead className={cn("text-right", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
                 <TableHead className={cn("text-right", isCompactMode && "py-1 text-xs")}>Lunas</TableHead>
-                <TableHead className={cn("text-center w-32", isCompactMode && "py-1 text-xs")}>Tombol Lunas</TableHead>
+                <TableHead className={cn("text-center w-32", isCompactMode && "py-1 text-xs")}>Tanggal Lunas</TableHead>
                 <TableHead className={cn("text-center w-24", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -948,7 +949,7 @@ const RentalContracts = () => {
                                   try {
                                     const { error } = await supabase
                                       .from("rental_contracts")
-                                      .update({ tanggal_lunas: format(date, "yyyy-MM-dd") })
+                                      .update({ tanggal_lunas: format(date, "yyyy-MM-dd") } as any)
                                       .eq("id", contract.id);
                                     
                                     if (error) throw error;
