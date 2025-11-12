@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phoneNumber } = await req.json();
+    const { phoneNumber, test, test_api_key, test_provider } = await req.json();
     
     if (!phoneNumber) {
       return new Response(
@@ -45,21 +45,33 @@ serve(async (req) => {
       );
     }
 
-    // Get user's AI settings
-    const { data: aiSettings, error: settingsError } = await supabase
-      .from("user_ai_settings")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
+    let aiSettings;
+    
+    // If this is a test call, use provided credentials
+    if (test && test_api_key && test_provider) {
+      aiSettings = {
+        ai_provider: test_provider,
+        api_key: test_api_key,
+      };
+    } else {
+      // Get user's AI settings from database
+      const { data, error: settingsError } = await supabase
+        .from("user_ai_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
 
-    if (settingsError || !aiSettings) {
-      return new Response(
-        JSON.stringify({ 
-          error: "AI settings not configured. Please configure your AI API key in settings." 
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (settingsError || !data) {
+        return new Response(
+          JSON.stringify({ 
+            error: "AI settings not configured. Please configure your AI API key in settings." 
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      aiSettings = data;
     }
 
     // Prepare prompt for AI

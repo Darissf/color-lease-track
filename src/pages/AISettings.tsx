@@ -97,9 +97,14 @@ const AISettings = () => {
     try {
       setTestingConnection(true);
       
-      // Call edge function with test phone number
+      // Call edge function with test phone number and credentials
       const { data, error } = await supabase.functions.invoke("validate-whatsapp", {
-        body: { phoneNumber: "+628123456789" }
+        body: { 
+          phoneNumber: "+628123456789",
+          test: true,
+          test_api_key: apiKey,
+          test_provider: provider
+        }
       });
 
       if (error) throw error;
