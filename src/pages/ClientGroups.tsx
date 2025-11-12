@@ -6,12 +6,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 
 interface ClientGroup {
   id: string;
@@ -20,6 +25,7 @@ interface ClientGroup {
   ktp_files: Array<{ name: string; url: string }>;
   has_whatsapp: boolean | null;
   whatsapp_checked_at: string | null;
+  created_at: string;
 }
 
 // Validation schema for Indonesian phone numbers
@@ -44,6 +50,10 @@ const ClientGroups = () => {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [validatingWhatsApp, setValidatingWhatsApp] = useState(false);
   const [whatsappStatus, setWhatsappStatus] = useState<{has_whatsapp: boolean | null; confidence: string; reason: string} | null>(null);
+  const [sortBy, setSortBy] = useState<'number' | 'nama' | 'telepon' | 'whatsapp' | 'created' | 'none'>('none');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const [groupForm, setGroupForm] = useState({
     nama: "",
@@ -263,10 +273,45 @@ const ClientGroups = () => {
     setWhatsappStatus(null);
   };
 
-  const getContractCount = (groupId: string) => {
-    // You could fetch this separately if needed, or remove this helper
-    return 0;
-  };
+  const sortedGroups = React.useMemo(() => {
+    if (!clientGroups) return [];
+    
+    let sorted = [...clientGroups];
+    
+    if (sortBy !== 'none') {
+      sorted.sort((a, b) => {
+        let comparison = 0;
+        
+        switch(sortBy) {
+          case 'number':
+            comparison = clientGroups.indexOf(a) - clientGroups.indexOf(b);
+            break;
+          case 'nama':
+            comparison = a.nama.localeCompare(b.nama);
+            break;
+          case 'telepon':
+            comparison = a.nomor_telepon.localeCompare(b.nomor_telepon);
+            break;
+          case 'whatsapp':
+            const aVal = a.has_whatsapp === null ? -1 : a.has_whatsapp ? 1 : 0;
+            const bVal = b.has_whatsapp === null ? -1 : b.has_whatsapp ? 1 : 0;
+            comparison = aVal - bVal;
+            break;
+          case 'created':
+            comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            break;
+        }
+        
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+    }
+    
+    return sorted;
+  }, [clientGroups, sortBy, sortOrder]);
+
+  const totalPages = Math.ceil(sortedGroups.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedGroups = sortedGroups.slice(startIndex, startIndex + itemsPerPage);
 
   if (loading) {
     return <div className="min-h-screen p-8 flex items-center justify-center">Loading...</div>;
@@ -362,38 +407,82 @@ const ClientGroups = () => {
         </Dialog>
       </div>
 
-      {/* Client Groups Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {clientGroups.length === 0 ? (
-          <Card className="col-span-full p-12 text-center">
-            <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">Belum Ada Kelompok Client</h3>
-            <p className="text-muted-foreground mb-4">Mulai dengan menambahkan kelompok client pertama Anda</p>
-            <Button onClick={() => setIsGroupDialogOpen(true)} className="gradient-primary text-white">
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Kelompok
-            </Button>
-          </Card>
-        ) : (
-          clientGroups.map((group) => (
-            <Card key={group.id} className="p-6 gradient-card border-0 shadow-md card-hover">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center text-white shadow-lg">
-                    <Users className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground text-lg">{group.nama}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-sm text-muted-foreground">{group.nomor_telepon}</p>
-                      {group.has_whatsapp !== null && (
+      {/* Controls */}
+      <Card className="p-4 mb-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label>Sort By:</Label>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Tidak Ada</SelectItem>
+                  <SelectItem value="number">Nomor</SelectItem>
+                  <SelectItem value="nama">Nama</SelectItem>
+                  <SelectItem value="telepon">Telepon</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="created">Tanggal Dibuat</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </Button>
+            </div>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Total: {clientGroups.length} kelompok
+          </div>
+        </div>
+      </Card>
+
+      {/* Client Groups Table */}
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center w-20">No</TableHead>
+                <TableHead>Nama Kelompok</TableHead>
+                <TableHead>Nomor Telepon</TableHead>
+                <TableHead className="text-center">WhatsApp</TableHead>
+                <TableHead className="text-center">Dokumen KTP</TableHead>
+                <TableHead>Tanggal Dibuat</TableHead>
+                <TableHead className="text-center w-24">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedGroups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Belum ada kelompok client</p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedGroups.map((group, index) => (
+                  <TableRow key={group.id}>
+                    <TableCell className="text-center font-medium">{startIndex + index + 1}</TableCell>
+                    <TableCell>
+                      <span className="font-medium">{group.nama}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-sm">{group.nomor_telepon}</span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {group.has_whatsapp !== null ? (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
                               {group.has_whatsapp ? (
-                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <CheckCircle className="h-5 w-5 mx-auto text-green-600 dark:text-green-400" />
                               ) : (
-                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                <XCircle className="h-5 w-5 mx-auto text-red-600 dark:text-red-400" />
                               )}
                             </TooltipTrigger>
                             <TooltipContent>
@@ -405,12 +494,11 @@ const ClientGroups = () => {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                      )}
-                      {group.has_whatsapp === null && (
+                      ) : (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
-                              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                              <AlertCircle className="h-5 w-5 mx-auto text-muted-foreground" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="text-xs">Status WhatsApp belum dicek</p>
@@ -418,53 +506,108 @@ const ClientGroups = () => {
                           </Tooltip>
                         </TooltipProvider>
                       )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEditGroup(group)}
-                    className="text-primary hover:bg-primary/10"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteGroup(group.id)}
-                    className="text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {group.ktp_files && group.ktp_files.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">
-                    Dokumen KTP ({group.ktp_files.length})
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {group.ktp_files.map((file, idx) => (
-                      <a
-                        key={idx}
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs bg-secondary/50 hover:bg-secondary px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
-                      >
-                        <span className="truncate max-w-[120px]">{file.name}</span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {group.ktp_files && group.ktp_files.length > 0 ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {group.ktp_files.length} file
+                          </Badge>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                <FileText className="h-3 w-3" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Dokumen KTP - {group.nama}</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-2">
+                                {group.ktp_files.map((file, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 p-3 rounded-lg border hover:bg-accent transition-colors"
+                                  >
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    <span className="flex-1 text-sm truncate">{file.name}</span>
+                                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                                  </a>
+                                ))}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{format(new Date(group.created_at), "dd MMM yyyy", { locale: localeId })}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditGroup(group)}
+                          className="h-8 w-8 text-primary hover:bg-primary/10"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteGroup(group.id)}
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
-            </Card>
-          ))
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 };
