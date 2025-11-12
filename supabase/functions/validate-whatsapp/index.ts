@@ -75,21 +75,21 @@ serve(async (req) => {
     }
 
     // Prepare prompt for AI
-    const prompt = `Analyze this Indonesian phone number and predict if it's likely to have WhatsApp installed.
+    const prompt = `Analisis nomor telepon Indonesia ini dan prediksi apakah kemungkinan memiliki WhatsApp terinstal.
 
-Phone number: ${phoneNumber}
+Nomor telepon: ${phoneNumber}
 
-Consider these factors:
-1. Indonesian mobile operators (Telkomsel, Indosat, XL, Tri, Smartfren, etc.)
-2. Number format and validity
-3. Mobile vs landline patterns
-4. Common WhatsApp usage patterns in Indonesia
+Pertimbangkan faktor-faktor berikut:
+1. Operator seluler Indonesia (Telkomsel, Indosat, XL, Tri, Smartfren, dll)
+2. Format dan validitas nomor
+3. Pola nomor seluler vs telepon rumah
+4. Pola penggunaan WhatsApp yang umum di Indonesia
 
-Respond with JSON only:
+Berikan response dalam format JSON dengan penjelasan dalam BAHASA INDONESIA:
 {
   "has_whatsapp": true/false,
   "confidence": "high"/"medium"/"low",
-  "reason": "brief explanation"
+  "reason": "penjelasan singkat dalam bahasa Indonesia"
 }`;
 
     let aiResponse;
@@ -140,7 +140,7 @@ Respond with JSON only:
         body: JSON.stringify({
           model: "gpt-4o-mini",
           messages: [
-            { role: "system", content: "You are a phone number analyst. Respond only with valid JSON." },
+            { role: "system", content: "Kamu adalah analis nomor telepon. Berikan response hanya dalam format JSON yang valid." },
             { role: "user", content: prompt }
           ],
           temperature: 0.3,
