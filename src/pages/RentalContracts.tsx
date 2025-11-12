@@ -32,6 +32,7 @@ interface RentalContract {
   client_group_id: string;
   start_date: string;
   end_date: string;
+  tanggal: string | null;
   status: string;
   tagihan_belum_bayar: number;
   jumlah_lunas: number;
@@ -69,6 +70,7 @@ const RentalContracts = () => {
     client_group_id: "",
     start_date: undefined as Date | undefined,
     end_date: undefined as Date | undefined,
+    tanggal: undefined as Date | undefined,
     status: "masa sewa",
     tagihan_belum_bayar: "",
     jumlah_lunas: "",
@@ -179,6 +181,7 @@ const RentalContracts = () => {
         client_group_id: contractForm.client_group_id,
         start_date: format(contractForm.start_date, "yyyy-MM-dd"),
         end_date: format(contractForm.end_date, "yyyy-MM-dd"),
+        tanggal: contractForm.tanggal ? format(contractForm.tanggal, "yyyy-MM-dd") : null,
         status: contractForm.status,
         tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
         jumlah_lunas: jumlahLunas,
@@ -284,6 +287,7 @@ const RentalContracts = () => {
       client_group_id: contract.client_group_id,
       start_date: new Date(contract.start_date),
       end_date: new Date(contract.end_date),
+      tanggal: contract.tanggal ? new Date(contract.tanggal) : undefined,
       status: contract.status,
       tagihan_belum_bayar: contract.tagihan_belum_bayar.toString(),
       jumlah_lunas: contract.jumlah_lunas.toString(),
@@ -324,6 +328,7 @@ const RentalContracts = () => {
       client_group_id: "",
       start_date: undefined,
       end_date: undefined,
+      tanggal: undefined,
       status: "masa sewa",
       tagihan_belum_bayar: "",
       jumlah_lunas: "",
@@ -512,6 +517,33 @@ const RentalContracts = () => {
                 />
               </div>
 
+              <div>
+                <Label>Tanggal</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !contractForm.tanggal && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {contractForm.tanggal ? format(contractForm.tanggal, "PPP", { locale: localeId }) : "Pilih tanggal"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={contractForm.tanggal}
+                      onSelect={(date) => setContractForm({ ...contractForm, tanggal: date })}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Tanggal Mulai *</Label>
@@ -534,6 +566,7 @@ const RentalContracts = () => {
                         selected={contractForm.start_date}
                         onSelect={(date) => setContractForm({ ...contractForm, start_date: date })}
                         initialFocus
+                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -560,6 +593,7 @@ const RentalContracts = () => {
                         selected={contractForm.end_date}
                         onSelect={(date) => setContractForm({ ...contractForm, end_date: date })}
                         initialFocus
+                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -748,23 +782,23 @@ const RentalContracts = () => {
                               disabled={isTableLocked}
                               className={cn(
                                 "w-full justify-start text-left font-normal h-9",
-                                !contract.start_date && "text-muted-foreground"
+                                !contract.tanggal && "text-muted-foreground"
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {contract.start_date ? format(new Date(contract.start_date), "dd/MM/yyyy") : "Pilih"}
+                              {contract.tanggal ? format(new Date(contract.tanggal), "dd/MM/yyyy") : "Pilih"}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={new Date(contract.start_date)}
+                              selected={contract.tanggal ? new Date(contract.tanggal) : undefined}
                               onSelect={async (date) => {
                                 if (date) {
                                   try {
                                     const { error } = await supabase
                                       .from("rental_contracts")
-                                      .update({ start_date: format(date, "yyyy-MM-dd") })
+                                      .update({ tanggal: format(date, "yyyy-MM-dd") })
                                       .eq("id", contract.id);
                                     
                                     if (error) throw error;

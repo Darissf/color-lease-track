@@ -552,6 +552,7 @@ export type Database = {
           start_date: string
           status: string
           tagihan_belum_bayar: number | null
+          tanggal: string | null
           updated_at: string
           user_id: string
         }
@@ -570,6 +571,7 @@ export type Database = {
           start_date: string
           status?: string
           tagihan_belum_bayar?: number | null
+          tanggal?: string | null
           updated_at?: string
           user_id: string
         }
@@ -588,6 +590,7 @@ export type Database = {
           start_date?: string
           status?: string
           tagihan_belum_bayar?: number | null
+          tanggal?: string | null
           updated_at?: string
           user_id?: string
         }
