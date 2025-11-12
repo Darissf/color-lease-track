@@ -68,6 +68,8 @@ const RentalContracts = () => {
   const [itemsPerPage] = useState(10);
   const [isCompactMode, setIsCompactMode] = useState(false);
   const [isProcessingRecurring, setIsProcessingRecurring] = useState(false);
+  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
+  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
 
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
@@ -383,7 +385,19 @@ const RentalContracts = () => {
   const sortedContracts = React.useMemo(() => {
     if (!rentalContracts) return [];
     
-    let sorted = [...rentalContracts];
+    // Filter by date range first
+    let filtered = rentalContracts.filter(contract => {
+      if (!contract.tanggal) return true; // Include contracts without tanggal
+      
+      const contractDate = new Date(contract.tanggal);
+      
+      if (startDateFilter && contractDate < startDateFilter) return false;
+      if (endDateFilter && contractDate > endDateFilter) return false;
+      
+      return true;
+    });
+    
+    let sorted = [...filtered];
     
     if (sortBy !== 'none') {
       sorted.sort((a, b) => {
@@ -432,7 +446,7 @@ const RentalContracts = () => {
     }
     
     return sorted;
-  }, [rentalContracts, sortBy, sortOrder, clientGroups]);
+  }, [rentalContracts, sortBy, sortOrder, clientGroups, startDateFilter, endDateFilter]);
 
   const totalPages = Math.ceil(sortedContracts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -758,37 +772,97 @@ const RentalContracts = () => {
 
       {/* Controls */}
       <Card className="p-4 mb-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label>Sort By:</Label>
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Tidak Ada</SelectItem>
-                  <SelectItem value="number">Nomor</SelectItem>
-                  <SelectItem value="tanggal">Tanggal</SelectItem>
-                  <SelectItem value="invoice">Invoice</SelectItem>
-                  <SelectItem value="group">Kelompok</SelectItem>
-                  <SelectItem value="keterangan">Keterangan</SelectItem>
-                  <SelectItem value="periode">Periode</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="tagihan">Tagihan</SelectItem>
-                  <SelectItem value="lunas">Lunas</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Button>
+        <div className="flex flex-col gap-4">
+          {/* First row: Sort and Date Range Filter */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Label>Sort By:</Label>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Tidak Ada</SelectItem>
+                    <SelectItem value="number">Nomor</SelectItem>
+                    <SelectItem value="tanggal">Tanggal</SelectItem>
+                    <SelectItem value="invoice">Invoice</SelectItem>
+                    <SelectItem value="group">Kelompok</SelectItem>
+                    <SelectItem value="keterangan">Keterangan</SelectItem>
+                    <SelectItem value="periode">Periode</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                    <SelectItem value="tagihan">Tagihan</SelectItem>
+                    <SelectItem value="lunas">Lunas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                >
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </Button>
+              </div>
+              
+              {/* Date Range Filter */}
+              <div className="flex items-center gap-2">
+                <Label>Filter Tanggal:</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !startDateFilter && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDateFilter ? format(startDateFilter, "dd/MM/yyyy") : "Dari"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDateFilter}
+                      onSelect={setStartDateFilter}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                <span>-</span>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !endDateFilter && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDateFilter ? format(endDateFilter, "dd/MM/yyyy") : "Sampai"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDateFilter}
+                      onSelect={setEndDateFilter}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                {(startDateFilter || endDateFilter) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setStartDateFilter(undefined);
+                      setEndDateFilter(undefined);
+                    }}
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          
+          {/* Second row: Action buttons */}
+          <div className="flex items-center justify-end gap-2">
             <Button
               variant="secondary"
               onClick={handleProcessRecurringRentals}
