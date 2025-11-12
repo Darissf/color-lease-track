@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/currency";
 import { cn } from "@/lib/utils";
+import { z } from "zod";
 
 interface ClientGroup {
   id: string;
@@ -50,6 +51,20 @@ interface BankAccount {
   bank_name: string;
   account_number: string;
 }
+
+// Validation schema for Indonesian phone numbers
+const phoneSchema = z.string()
+  .trim()
+  .refine(
+    (val) => {
+      // Accept formats: +62xxx or 08xx
+      const indonesianPhoneRegex = /^(\+62|08)\d{8,12}$/;
+      return indonesianPhoneRegex.test(val);
+    },
+    {
+      message: "Nomor telepon harus format +62xxx atau 08xx (minimal 10 digit)"
+    }
+  );
 
 const ClientGroups = () => {
   const { user } = useAuth();
@@ -102,6 +117,7 @@ const ClientGroups = () => {
     nama: "",
     nomor_telepon: "",
   });
+  const [phoneError, setPhoneError] = useState<string>("");
   const [ktpFiles, setKtpFiles] = useState<File[]>([]);
 
   // Form states for Rental Contract
@@ -223,6 +239,15 @@ const ClientGroups = () => {
         toast.error("Mohon lengkapi semua field");
         return;
       }
+
+      // Validate phone number
+      const phoneValidation = phoneSchema.safeParse(groupForm.nomor_telepon);
+      if (!phoneValidation.success) {
+        setPhoneError(phoneValidation.error.errors[0].message);
+        toast.error(phoneValidation.error.errors[0].message);
+        return;
+      }
+      setPhoneError("");
 
       let ktpFileUrls: Array<{ name: string; url: string }> = [];
       
@@ -506,6 +531,7 @@ const ClientGroups = () => {
 
   const resetGroupForm = () => {
     setGroupForm({ nama: "", nomor_telepon: "" });
+    setPhoneError("");
     setKtpFiles([]);
     setEditingGroupId(null);
   };
@@ -806,9 +832,19 @@ const ClientGroups = () => {
                   <Label>Nomor Telepon</Label>
                   <Input
                     value={groupForm.nomor_telepon}
-                    onChange={(e) => setGroupForm({ ...groupForm, nomor_telepon: e.target.value })}
-                    placeholder="08xxxxxxxxxx"
+                    onChange={(e) => {
+                      setGroupForm({ ...groupForm, nomor_telepon: e.target.value });
+                      setPhoneError("");
+                    }}
+                    placeholder="+62812345678 atau 08123456789"
+                    className={phoneError ? "border-destructive" : ""}
                   />
+                  {phoneError && (
+                    <p className="text-sm text-destructive mt-1">{phoneError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Format: +62xxx atau 08xx (minimal 10 digit)
+                  </p>
                 </div>
                 <div>
                   <Label>Upload KTP (Multiple)</Label>
