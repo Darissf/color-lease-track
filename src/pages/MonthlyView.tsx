@@ -462,28 +462,25 @@ export default function MonthlyView() {
         </CardHeader>
         <CardContent>
           {rentalContracts.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {rentalContracts.map((contract) => (
-                <div key={contract.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{contract.client_groups?.nama || '-'}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(contract.tanggal).toLocaleDateString('id-ID')} • {contract.status}
-                    </p>
-                    {contract.invoice && (
-                      <p className="text-xs text-muted-foreground mt-1">Invoice: {contract.invoice}</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-green-600 text-sm">
-                      {formatCurrency(contract.jumlah_lunas || 0)}
-                    </p>
-                    {contract.tagihan_belum_bayar > 0 && (
-                      <p className="text-xs text-red-600">
-                        Belum: {formatCurrency(contract.tagihan_belum_bayar)}
-                      </p>
-                    )}
-                  </div>
+                <div key={contract.id} className="flex items-center justify-between py-2 px-3 border border-border rounded-md text-xs">
+                  <span className="font-medium truncate">{contract.client_groups?.nama || '-'}</span>
+                  <span className="text-muted-foreground whitespace-nowrap mx-2">
+                    {new Date(contract.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                  </span>
+                  <span className="text-muted-foreground">{contract.status}</span>
+                  {contract.invoice && (
+                    <span className="text-muted-foreground mx-2 truncate max-w-[100px]">{contract.invoice}</span>
+                  )}
+                  <span className="font-semibold text-green-600 whitespace-nowrap ml-auto">
+                    {formatCurrency(contract.jumlah_lunas || 0)}
+                  </span>
+                  {contract.tagihan_belum_bayar > 0 && (
+                    <span className="text-red-600 whitespace-nowrap ml-2">
+                      ({formatCurrency(contract.tagihan_belum_bayar)})
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
