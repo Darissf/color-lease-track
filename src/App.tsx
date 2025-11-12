@@ -25,6 +25,7 @@ import SavingsSettings from "./pages/SavingsSettings";
 import AuditLogs from "./pages/AuditLogs";
 import ContentManagement from "./pages/ContentManagement";
 import ClientGroups from "./pages/ClientGroups";
+import RentalContracts from "./pages/RentalContracts";
 import AISettings from "./pages/AISettings";
 import NotFound from "./pages/NotFound";
 
@@ -63,6 +64,7 @@ const App = () => (
                       <Route path="/audit-logs" element={<AuditLogs />} />
                       <Route path="/content-management" element={<ContentManagement />} />
                       <Route path="/client-groups" element={<ClientGroups />} />
+                      <Route path="/rental-contracts" element={<RentalContracts />} />
                       <Route path="/settings/ai" element={<AISettings />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>

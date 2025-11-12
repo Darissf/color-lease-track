@@ -1,4 +1,4 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -15,6 +15,7 @@ const pagesItems = [
   { title: "Nabila", url: "/nabila", icon: FileText },
   { title: "Dashboard", url: "/dashboard", icon: Home },
   { title: "Kelompok Client", url: "/client-groups", icon: Users },
+  { title: "List Kontrak Sewa", url: "/rental-contracts", icon: ClipboardList },
   { title: "Pemasukan", url: "/income", icon: DollarSign },
   { title: "Pengeluaran", url: "/expenses", icon: TrendingDown },
   { title: "Savings Plans", url: "/savings", icon: PiggyBank },
