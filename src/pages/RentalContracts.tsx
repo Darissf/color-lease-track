@@ -13,6 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format, differenceInDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,6 +71,7 @@ const RentalContracts = () => {
   const [isProcessingRecurring, setIsProcessingRecurring] = useState(false);
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
+  const [paymentStatus, setPaymentStatus] = useState<"belum_lunas" | "sudah_lunas">("belum_lunas");
 
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
@@ -206,7 +208,7 @@ const RentalContracts = () => {
         start_date: format(contractForm.start_date, "yyyy-MM-dd"),
         end_date: format(contractForm.end_date, "yyyy-MM-dd"),
         tanggal: contractForm.tanggal ? format(contractForm.tanggal, "yyyy-MM-dd") : null,
-        tanggal_lunas: contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "yyyy-MM-dd") : null,
+        tanggal_lunas: paymentStatus === "sudah_lunas" && contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "yyyy-MM-dd") : null,
         status: contractForm.status,
         tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
         jumlah_lunas: jumlahLunas,
@@ -226,8 +228,8 @@ const RentalContracts = () => {
 
         if (contractError) throw contractError;
         
-        // Only create/update income if tanggal_lunas is filled and jumlah_lunas > 0
-        if (contractForm.tanggal_lunas && jumlahLunas > 0) {
+        // Only create/update income if payment status is "sudah_lunas" and tanggal_lunas is filled and jumlah_lunas > 0
+        if (paymentStatus === "sudah_lunas" && contractForm.tanggal_lunas && jumlahLunas > 0) {
           const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
           const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
           const sourceName = contractForm.invoice 
@@ -259,8 +261,8 @@ const RentalContracts = () => {
               .from("income_sources")
               .insert(incomeData);
           }
-        } else if (!contractForm.tanggal_lunas) {
-          // Delete income if tanggal_lunas is removed
+        } else if (paymentStatus === "belum_lunas") {
+          // Delete income if payment status is "belum_lunas"
           await supabase
             .from("income_sources")
             .delete()
@@ -284,8 +286,8 @@ const RentalContracts = () => {
           .limit(1)
           .single();
 
-        // Only create income if tanggal_lunas is filled and jumlah_lunas > 0
-        if (contractForm.tanggal_lunas && jumlahLunas > 0 && newContract) {
+        // Only create income if payment status is "sudah_lunas" and tanggal_lunas is filled and jumlah_lunas > 0
+        if (paymentStatus === "sudah_lunas" && contractForm.tanggal_lunas && jumlahLunas > 0 && newContract) {
           const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
           const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
           const sourceName = contractForm.invoice 
@@ -317,6 +319,7 @@ const RentalContracts = () => {
 
   const handleEditContract = (contract: RentalContract) => {
     setEditingContractId(contract.id);
+    setPaymentStatus(contract.tanggal_lunas ? "sudah_lunas" : "belum_lunas");
     setContractForm({
       client_group_id: contract.client_group_id,
       start_date: new Date(contract.start_date),
@@ -359,6 +362,7 @@ const RentalContracts = () => {
 
   const resetContractForm = () => {
     setEditingContractId(null);
+    setPaymentStatus("belum_lunas");
     setContractForm({
       client_group_id: "",
       start_date: undefined,
@@ -700,31 +704,55 @@ const RentalContracts = () => {
                 </div>
               </div>
 
-              <div>
-                <Label>Tanggal Lunas</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !contractForm.tanggal_lunas && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "PPP", { locale: localeId }) : "Pilih tanggal lunas"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={contractForm.tanggal_lunas}
-                      onSelect={(date) => setContractForm({ ...contractForm, tanggal_lunas: date })}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+              <div className="space-y-3">
+                <Label>Status Pembayaran</Label>
+                <RadioGroup 
+                  value={paymentStatus} 
+                  onValueChange={(value: "belum_lunas" | "sudah_lunas") => {
+                    setPaymentStatus(value);
+                    if (value === "belum_lunas") {
+                      setContractForm({ ...contractForm, tanggal_lunas: undefined });
+                    }
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="belum_lunas" id="belum_lunas" />
+                    <Label htmlFor="belum_lunas" className="font-normal cursor-pointer">Belum Lunas</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="sudah_lunas" id="sudah_lunas" />
+                    <Label htmlFor="sudah_lunas" className="font-normal cursor-pointer">Input Tanggal Lunas</Label>
+                  </div>
+                </RadioGroup>
+
+                {paymentStatus === "sudah_lunas" && (
+                  <div className="mt-2">
+                    <Label>Tanggal Lunas</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !contractForm.tanggal_lunas && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "PPP", { locale: localeId }) : "Pilih tanggal lunas"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={contractForm.tanggal_lunas}
+                          onSelect={(date) => setContractForm({ ...contractForm, tanggal_lunas: date })}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
               </div>
 
               <div>
