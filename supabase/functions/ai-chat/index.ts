@@ -6,6 +6,85 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Function to execute database queries based on AI function calls
+async function executeDatabaseFunction(functionName: string, args: any, supabaseClient: any, userId: string) {
+  console.log("Executing function:", functionName, "with args:", args);
+  
+  const limit = args.limit || 50;
+  
+  switch (functionName) {
+    case "query_expenses": {
+      let query = supabaseClient
+        .from("expenses")
+        .select("*")
+        .eq("user_id", userId)
+        .order("date", { ascending: false })
+        .limit(limit);
+      
+      if (args.start_date) query = query.gte("date", args.start_date);
+      if (args.end_date) query = query.lte("date", args.end_date);
+      if (args.category) query = query.eq("category", args.category);
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    }
+    
+    case "query_income": {
+      let query = supabaseClient
+        .from("income_sources")
+        .select("*")
+        .eq("user_id", userId)
+        .order("received_at", { ascending: false })
+        .limit(limit);
+      
+      if (args.start_date) query = query.gte("received_at", args.start_date);
+      if (args.end_date) query = query.lte("received_at", args.end_date);
+      if (args.source) query = query.ilike("source", `%${args.source}%`);
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    }
+    
+    case "query_rental_contracts": {
+      let query = supabaseClient
+        .from("rental_contracts")
+        .select("*")
+        .eq("user_id", userId)
+        .order("start_date", { ascending: false })
+        .limit(limit);
+      
+      if (args.status) query = query.eq("status", args.status);
+      if (args.property_name) query = query.ilike("property_name", `%${args.property_name}%`);
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    }
+    
+    case "query_payments": {
+      let query = supabaseClient
+        .from("payments_tracking")
+        .select("*")
+        .eq("user_id", userId)
+        .order("payment_date", { ascending: false })
+        .limit(limit);
+      
+      if (args.start_date) query = query.gte("payment_date", args.start_date);
+      if (args.end_date) query = query.lte("payment_date", args.end_date);
+      if (args.status) query = query.eq("status", args.status);
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    }
+    
+    default:
+      throw new Error(`Unknown function: ${functionName}`);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -47,8 +126,85 @@ serve(async (req) => {
 
     const systemMessage = {
       role: "system",
-      content: "Anda adalah asisten AI yang membantu mengelola keuangan dan properti sewa. Anda bisa menjawab pertanyaan tentang pengeluaran, pemasukan, kontrak sewa, dan memberikan saran finansial. Jawab dalam bahasa Indonesia dengan ramah dan profesional."
+      content: `Anda adalah asisten AI yang membantu mengelola keuangan dan properti sewa. 
+      
+Anda memiliki akses ke database finansial user melalui function calling. Anda bisa:
+- Mencari data pengeluaran (expenses)
+- Mencari data pemasukan (income_sources, recurring_income)
+- Mencari data kontrak sewa (rental_contracts)
+- Mencari data pembayaran (payments_tracking)
+
+Ketika user bertanya tentang data finansial (invoice, pengeluaran, pemasukan, dll), gunakan fungsi yang tersedia untuk mengquery database.
+
+Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesifik dari data yang Anda temukan.`
     };
+
+    // Define available functions for the AI
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "query_expenses",
+          description: "Query data pengeluaran dari database. Bisa filter berdasarkan tanggal, kategori, atau jumlah.",
+          parameters: {
+            type: "object",
+            properties: {
+              start_date: { type: "string", description: "Tanggal mulai (YYYY-MM-DD)" },
+              end_date: { type: "string", description: "Tanggal akhir (YYYY-MM-DD)" },
+              category: { type: "string", description: "Kategori pengeluaran (optional)" },
+              limit: { type: "number", description: "Jumlah maksimal hasil (default 50)" }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "query_income",
+          description: "Query data pemasukan dari database. Bisa filter berdasarkan tanggal, sumber, atau jumlah.",
+          parameters: {
+            type: "object",
+            properties: {
+              start_date: { type: "string", description: "Tanggal mulai (YYYY-MM-DD)" },
+              end_date: { type: "string", description: "Tanggal akhir (YYYY-MM-DD)" },
+              source: { type: "string", description: "Sumber pemasukan (optional)" },
+              limit: { type: "number", description: "Jumlah maksimal hasil (default 50)" }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "query_rental_contracts",
+          description: "Query data kontrak sewa properti. Bisa filter berdasarkan status atau tanggal.",
+          parameters: {
+            type: "object",
+            properties: {
+              status: { type: "string", description: "Status kontrak: active, expired, pending (optional)" },
+              property_name: { type: "string", description: "Nama properti (optional)" },
+              limit: { type: "number", description: "Jumlah maksimal hasil (default 50)" }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "query_payments",
+          description: "Query data pembayaran/invoice. Bisa filter berdasarkan tanggal, status, atau jumlah.",
+          parameters: {
+            type: "object",
+            properties: {
+              start_date: { type: "string", description: "Tanggal mulai (YYYY-MM-DD)" },
+              end_date: { type: "string", description: "Tanggal akhir (YYYY-MM-DD)" },
+              status: { type: "string", description: "Status pembayaran: paid, pending, overdue (optional)" },
+              limit: { type: "number", description: "Jumlah maksimal hasil (default 50)" }
+            }
+          }
+        }
+      }
+    ];
 
     // For Claude, we need to convert the stream format
     if (provider === "claude") {
@@ -141,8 +297,143 @@ serve(async (req) => {
 
     // For other providers (OpenAI format compatible)
     let response;
-
-    switch (provider) {
+    
+    // First, check if we need to use tools (function calling)
+    // We'll do a non-streaming call first to see if AI wants to call functions
+    const needsTools = provider === "lovable" || provider === "openai" || provider === "gemini";
+    
+    if (needsTools) {
+      let apiUrl, headers, body;
+      
+      switch (provider) {
+        case "lovable": {
+          const key = Deno.env.get("LOVABLE_API_KEY");
+          if (!key) throw new Error("LOVABLE_API_KEY not configured");
+          
+          apiUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+          headers = {
+            "Authorization": `Bearer ${key}`,
+            "Content-Type": "application/json",
+          };
+          body = {
+            model: selectedModel,
+            messages: [systemMessage, ...messages],
+            tools: tools,
+            tool_choice: "auto",
+            stream: false // First call without streaming
+          };
+          break;
+        }
+        
+        case "openai": {
+          if (!apiKey) throw new Error("OpenAI API key not configured");
+          
+          apiUrl = "https://api.openai.com/v1/chat/completions";
+          headers = {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          };
+          body = {
+            model: selectedModel,
+            messages: [systemMessage, ...messages],
+            tools: tools,
+            tool_choice: "auto",
+            stream: false
+          };
+          break;
+        }
+        
+        case "gemini": {
+          if (!apiKey) throw new Error("Gemini API key not configured");
+          
+          apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + selectedModel + ":generateContent";
+          headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          };
+          // Gemini has different format, we'll handle it differently
+          body = null;
+          break;
+        }
+      }
+      
+      // Make initial call to check for function calls
+      if (body && provider !== "gemini") {
+        const initialResponse = await fetch(apiUrl, {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify(body),
+        });
+        
+        if (!initialResponse.ok) {
+          const errorText = await initialResponse.text();
+          console.error("AI API error:", initialResponse.status, errorText);
+          throw new Error(`AI API error: ${initialResponse.status}`);
+        }
+        
+        const initialData = await initialResponse.json();
+        const firstChoice = initialData.choices?.[0];
+        
+        // Check if AI wants to call a function
+        if (firstChoice?.message?.tool_calls && firstChoice.message.tool_calls.length > 0) {
+          console.log("AI requested function calls:", firstChoice.message.tool_calls);
+          
+          // Execute all requested functions
+          const functionResults: any[] = [];
+          for (const toolCall of firstChoice.message.tool_calls) {
+            const functionName = toolCall.function.name;
+            const functionArgs = JSON.parse(toolCall.function.arguments);
+            
+            try {
+              const result = await executeDatabaseFunction(functionName, functionArgs, supabaseClient, user.id);
+              functionResults.push({
+                tool_call_id: toolCall.id,
+                role: "tool",
+                name: functionName,
+                content: JSON.stringify(result)
+              });
+            } catch (error) {
+              console.error("Function execution error:", error);
+              functionResults.push({
+                tool_call_id: toolCall.id,
+                role: "tool",
+                name: functionName,
+                content: JSON.stringify({ error: error.message })
+              });
+            }
+          }
+          
+          // Now make a second call with the function results, this time with streaming
+          const messagesWithResults = [
+            systemMessage,
+            ...messages,
+            firstChoice.message,
+            ...functionResults
+          ];
+          
+          body.messages = messagesWithResults;
+          body.stream = true;
+          body.tools = undefined; // Don't need tools in second call
+          body.tool_choice = undefined;
+          
+          response = await fetch(apiUrl, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(body),
+          });
+        } else {
+          // No function calls needed, just stream the response
+          body.stream = true;
+          response = await fetch(apiUrl, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(body),
+          });
+        }
+      } else {
+        // Fallback for gemini or if something went wrong
+        // Use original streaming logic
+        switch (provider) {
       case "lovable": {
         const key = Deno.env.get("LOVABLE_API_KEY");
         if (!key) throw new Error("LOVABLE_API_KEY not configured");
