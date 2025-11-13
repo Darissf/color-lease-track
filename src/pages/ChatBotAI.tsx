@@ -522,7 +522,14 @@ export default function ChatBotAI() {
                   <Bot className="w-5 h-5 text-primary" />
                 </div>
                 <div className="bg-muted rounded-lg p-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">AI sedang mengetik...</span>
+                  </div>
                 </div>
               </div>
             )}
