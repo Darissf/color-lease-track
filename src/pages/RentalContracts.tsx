@@ -208,7 +208,7 @@ const RentalContracts = () => {
         start_date: format(contractForm.start_date, "yyyy-MM-dd"),
         end_date: format(contractForm.end_date, "yyyy-MM-dd"),
         tanggal: contractForm.tanggal ? format(contractForm.tanggal, "yyyy-MM-dd") : null,
-        tanggal_lunas: paymentStatus === "sudah_lunas" && contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "yyyy-MM-dd") : null,
+        tanggal_lunas: contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "yyyy-MM-dd") : null,
         status: contractForm.status,
         tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
         jumlah_lunas: jumlahLunas,
@@ -228,8 +228,8 @@ const RentalContracts = () => {
 
         if (contractError) throw contractError;
         
-        // Only create/update income if payment status is "sudah_lunas" and tanggal_lunas is filled and jumlah_lunas > 0
-        if (paymentStatus === "sudah_lunas" && contractForm.tanggal_lunas && jumlahLunas > 0) {
+        // Sinkronisasikan pemasukan berdasarkan tanggal_lunas terisi
+        if (contractForm.tanggal_lunas && jumlahLunas > 0) {
           const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
           const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
           const sourceName = contractForm.invoice 
@@ -248,8 +248,8 @@ const RentalContracts = () => {
           await supabase
             .from("income_sources")
             .upsert([incomeData], { onConflict: "contract_id" });
-        } else if (paymentStatus === "belum_lunas") {
-          // Delete income if payment status is "belum_lunas"
+        } else if (!contractForm.tanggal_lunas) {
+          // Hapus pemasukan jika tanggal_lunas dikosongkan
           await supabase
             .from("income_sources")
             .delete()
@@ -273,8 +273,8 @@ const RentalContracts = () => {
           .limit(1)
           .single();
 
-        // Only create income if payment status is "sudah_lunas" and tanggal_lunas is filled and jumlah_lunas > 0
-        if (paymentStatus === "sudah_lunas" && contractForm.tanggal_lunas && jumlahLunas > 0 && newContract) {
+        // Buat pemasukan jika tanggal_lunas terisi dan jumlah_lunas > 0
+        if (contractForm.tanggal_lunas && jumlahLunas > 0 && newContract) {
           const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
           const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
           const sourceName = contractForm.invoice 
