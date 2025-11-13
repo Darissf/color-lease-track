@@ -528,10 +528,10 @@ export default function ChatBotAI() {
             </SelectContent>
           </Select>
         </div>
-        {activeProvider !== "lovable" && (
+        {!["lovable", "openai", "claude", "deepseek"].includes(activeProvider) && (
           <Alert className="mt-3">
             <AlertDescription>
-              Untuk pertanyaan yang membutuhkan data database (invoice, pemasukan, pengeluaran, kontrak sewa), aktifkan provider Lovable agar AI bisa melakukan function call ke database Anda.
+              Provider {activeProvider} tidak mendukung akses database. Untuk pertanyaan yang membutuhkan data (invoice, pemasukan, pengeluaran, kontrak sewa), gunakan Lovable, OpenAI, Claude, atau DeepSeek.
               <Button size="sm" className="ml-3" onClick={activateLovable}>Aktifkan Lovable</Button>
             </AlertDescription>
           </Alert>
