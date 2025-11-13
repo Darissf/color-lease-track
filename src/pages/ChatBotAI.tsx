@@ -238,17 +238,32 @@ export default function ChatBotAI() {
         content: userMessage,
       });
 
-      const { data, error } = await supabase.functions.invoke("ai-chat", {
-        body: { 
+      // Use fetch for streaming instead of supabase.functions.invoke
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
           messages: newMessages,
           conversationId,
           model: selectedModel,
-        }
+        }),
       });
 
-      if (error) throw error;
+      if (!resp.ok || !resp.body) {
+        let desc = "Gagal memulai stream";
+        try {
+          const j = await resp.json();
+          desc = j?.error || desc;
+        } catch {}
+        throw new Error(desc);
+      }
 
-      const reader = data.getReader();
+      const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let assistantMessage = "";
       let buffer = "";
