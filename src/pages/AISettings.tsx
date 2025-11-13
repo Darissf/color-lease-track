@@ -152,24 +152,30 @@ const AISettings = () => {
     try {
       setLoading(true);
 
-      // Upsert per user (DB has unique(user_id))
-      // If any setting exists for this user, update that single row with the new provider/api key
-      const existingAny = allSettings[0];
+      // Deactivate all existing settings first
+      await supabase
+        .from("user_ai_settings")
+        .update({ is_active: false })
+        .eq("user_id", user?.id);
 
-      if (existingAny) {
+      // Check if this specific provider already exists for this user
+      const existing = allSettings.find(s => s.ai_provider === provider);
+      
+      if (existing) {
+        // Update existing provider
         const { error } = await supabase
           .from("user_ai_settings")
           .update({
-            ai_provider: provider,
             api_key: AI_PROVIDERS[provider].needsApiKey ? apiKey : "",
             is_active: true,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", existingAny.id);
+          .eq("id", existing.id);
 
         if (error) throw error;
-        toast.success(`✅ ${AI_PROVIDERS[provider].name} diaktifkan`);
+        toast.success(`✅ ${AI_PROVIDERS[provider].name} berhasil diupdate`);
       } else {
+        // Insert new provider
         const { error } = await supabase
           .from("user_ai_settings")
           .insert({
