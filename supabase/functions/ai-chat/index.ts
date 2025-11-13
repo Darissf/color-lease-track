@@ -12,99 +12,63 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, conversationId, model } = await req.json();
     const authHeader = req.headers.get("Authorization");
     
     if (!authHeader) {
       throw new Error("Authorization header required");
     }
 
-    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Get user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
       throw new Error("Unauthorized");
     }
 
-    console.log("Received chat request from user:", user.id, "with", messages.length, "messages");
+    console.log("Chat request - user:", user.id, "model:", model, "conversationId:", conversationId);
 
-    // Get active AI provider settings
-    const { data: aiSettings, error: settingsError } = await supabaseClient
+    const { data: aiSettings } = await supabaseClient
       .from("user_ai_settings")
       .select("*")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
 
-    if (settingsError) {
-      console.error("Error fetching AI settings:", settingsError);
-    }
-
-    // Default to Lovable AI if no settings or provider is lovable
     const provider = aiSettings?.ai_provider || "lovable";
     const apiKey = aiSettings?.api_key;
+    const selectedModel = model || "google/gemini-2.5-flash";
 
-    console.log("Using AI provider:", provider);
+    console.log("Using provider:", provider, "model:", selectedModel);
 
-    // Route to appropriate provider
-    let response;
     const systemMessage = {
       role: "system",
       content: "Anda adalah asisten AI yang membantu mengelola keuangan dan properti sewa. Anda bisa menjawab pertanyaan tentang pengeluaran, pemasukan, kontrak sewa, dan memberikan saran finansial. Jawab dalam bahasa Indonesia dengan ramah dan profesional."
     };
 
+    let response;
+
     switch (provider) {
-      case "lovable":
-      case "gemini": {
-        const endpoint = provider === "lovable" 
-          ? "https://ai.gateway.lovable.dev/v1/chat/completions"
-          : "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent";
+      case "lovable": {
+        const key = Deno.env.get("LOVABLE_API_KEY");
+        if (!key) throw new Error("LOVABLE_API_KEY not configured");
         
-        const key = provider === "lovable" 
-          ? Deno.env.get("LOVABLE_API_KEY")
-          : apiKey;
-
-        if (!key) {
-          throw new Error(`${provider === "lovable" ? "LOVABLE_API_KEY" : "Gemini API key"} is not configured`);
-        }
-
-        if (provider === "lovable") {
-          response = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${key}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [systemMessage, ...messages],
-              stream: true,
-            }),
-          });
-        } else {
-          // Gemini native API
-          const geminiMessages = messages.map((m: any) => ({
-            role: m.role === "assistant" ? "model" : "user",
-            parts: [{ text: m.content }]
-          }));
-          
-          response = await fetch(`${endpoint}?key=${key}&alt=sse`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                { role: "user", parts: [{ text: systemMessage.content }] },
-                ...geminiMessages
-              ],
-            }),
-          });
-        }
+        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: selectedModel,
+            messages: [systemMessage, ...messages],
+            stream: true,
+          }),
+        });
         break;
       }
 
@@ -118,7 +82,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: selectedModel,
             messages: [systemMessage, ...messages],
             stream: true,
           }),
@@ -137,7 +101,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "claude-3-5-haiku-20241022",
+            model: selectedModel,
             max_tokens: 4096,
             system: systemMessage.content,
             messages: messages,
@@ -157,7 +121,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "deepseek-chat",
+            model: selectedModel,
             messages: [systemMessage, ...messages],
             stream: true,
           }),
@@ -175,11 +139,35 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
+            model: selectedModel,
             messages: [systemMessage, ...messages],
             stream: true,
           }),
         });
+        break;
+      }
+
+      case "gemini": {
+        if (!apiKey) throw new Error("Gemini API key not configured");
+        
+        const geminiMessages = messages.map((m: any) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }]
+        }));
+        
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?key=${apiKey}&alt=sse`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                { role: "user", parts: [{ text: systemMessage.content }] },
+                ...geminiMessages
+              ],
+            }),
+          }
+        );
         break;
       }
 
@@ -188,51 +176,37 @@ serve(async (req) => {
     }
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI API error:", response.status, errorText);
+      
       if (response.status === 429) {
-        console.error("Rate limit exceeded");
         return new Response(
-          JSON.stringify({ error: "Terlalu banyak request, coba lagi nanti." }), 
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "Rate limit exceeded" }), 
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
-        console.error("Payment required - credits depleted");
         return new Response(
-          JSON.stringify({ error: "Kredit AI habis, silakan isi ulang." }), 
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "Payment required" }), 
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
+      
       return new Response(
-        JSON.stringify({ error: "Terjadi kesalahan pada AI API" }), 
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "AI API error" }), 
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Streaming response from AI provider:", provider);
+    console.log("Streaming response from:", provider);
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (error: any) {
     console.error("Chat error:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || "Unknown error" 
-      }), 
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: error.message || "Unknown error" }), 
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
