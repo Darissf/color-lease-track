@@ -132,7 +132,7 @@ Anda memiliki akses ke database finansial user melalui function calling. Anda bi
 - Mencari data pengeluaran (expenses)
 - Mencari data pemasukan (income_sources, recurring_income)
 - Mencari data kontrak sewa (rental_contracts)
-- Mencari data pembayaran (payments_tracking)
+- Mencari data pembayaran/invoice (payments_tracking)
 
 Ketika user bertanya tentang data finansial (invoice, pengeluaran, pemasukan, dll), gunakan fungsi yang tersedia untuk mengquery database.
 
@@ -206,260 +206,155 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesi
       }
     ];
 
-    // For Claude, we need to convert the stream format
-    if (provider === "claude") {
-      if (!apiKey) throw new Error("Claude API key not configured");
-      
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+    // Only lovable provider supports function calling with streaming
+    if (provider === "lovable") {
+      const key = Deno.env.get("LOVABLE_API_KEY");
+      if (!key) throw new Error("LOVABLE_API_KEY not configured");
+
+      // First, make a non-streaming call to check for function calls
+      const initialResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
+          "Authorization": `Bearer ${key}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: selectedModel,
-          max_tokens: 4096,
-          system: systemMessage.content,
-          messages: messages,
-          stream: true,
+          messages: [systemMessage, ...messages],
+          tools: tools,
+          tool_choice: "auto",
+          stream: false
         }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Claude API error:", response.status, errorText);
-        throw new Error(`Claude API error: ${response.status}`);
-      }
-
-      // Create a transform stream to convert Claude SSE to OpenAI format
-      const { readable, writable } = new TransformStream();
-      const writer = writable.getWriter();
-      const encoder = new TextEncoder();
-
-      (async () => {
-        try {
-          const reader = response.body!.getReader();
-          const decoder = new TextDecoder();
-          let buffer = "";
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              if (line.startsWith("data:")) {
-                const data = line.slice(5).trim();
-                if (data === "[DONE]") continue;
-
-                try {
-                  const parsed = JSON.parse(data);
-                  
-                  if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-                    // Convert Claude format to OpenAI format
-                    const openAIFormat = {
-                      choices: [{
-                        delta: {
-                          content: parsed.delta.text
-                        }
-                      }]
-                    };
-                    await writer.write(encoder.encode(`data: ${JSON.stringify(openAIFormat)}\n\n`));
-                  }
-                } catch (e) {
-                  console.error("Error parsing Claude SSE:", e);
-                }
-              }
-            }
-          }
-
-          await writer.write(encoder.encode("data: [DONE]\n\n"));
-          await writer.close();
-        } catch (error) {
-          console.error("Stream processing error:", error);
-          await writer.abort(error);
-        }
-      })();
-
-      return new Response(readable, {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
-        },
-      });
-    }
-
-    // For other providers (OpenAI format compatible)
-    let response;
-    
-    // First, check if we need to use tools (function calling)
-    // We'll do a non-streaming call first to see if AI wants to call functions
-    const needsTools = provider === "lovable" || provider === "openai" || provider === "gemini";
-    
-    if (needsTools) {
-      let apiUrl, headers, body;
-      
-      switch (provider) {
-        case "lovable": {
-          const key = Deno.env.get("LOVABLE_API_KEY");
-          if (!key) throw new Error("LOVABLE_API_KEY not configured");
-          
-          apiUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
-          headers = {
-            "Authorization": `Bearer ${key}`,
-            "Content-Type": "application/json",
-          };
-          body = {
-            model: selectedModel,
-            messages: [systemMessage, ...messages],
-            tools: tools,
-            tool_choice: "auto",
-            stream: false // First call without streaming
-          };
-          break;
-        }
+      if (!initialResponse.ok) {
+        const errorText = await initialResponse.text();
+        console.error("Lovable AI error:", initialResponse.status, errorText);
         
-        case "openai": {
-          if (!apiKey) throw new Error("OpenAI API key not configured");
-          
-          apiUrl = "https://api.openai.com/v1/chat/completions";
-          headers = {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          };
-          body = {
-            model: selectedModel,
-            messages: [systemMessage, ...messages],
-            tools: tools,
-            tool_choice: "auto",
-            stream: false
-          };
-          break;
-        }
-        
-        case "gemini": {
-          if (!apiKey) throw new Error("Gemini API key not configured");
-          
-          apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + selectedModel + ":generateContent";
-          headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": apiKey,
-          };
-          // Gemini has different format, we'll handle it differently
-          body = null;
-          break;
-        }
-      }
-      
-      // Make initial call to check for function calls
-      if (body && provider !== "gemini") {
-        const initialResponse = await fetch(apiUrl, {
-          method: "POST",
-          headers: headers,
-          body: JSON.stringify(body),
-        });
-        
-        if (!initialResponse.ok) {
-          const errorText = await initialResponse.text();
-          console.error("AI API error:", initialResponse.status, errorText);
-          throw new Error(`AI API error: ${initialResponse.status}`);
-        }
-        
-        const initialData = await initialResponse.json();
-        const firstChoice = initialData.choices?.[0];
-        
-        // Check if AI wants to call a function
-        if (firstChoice?.message?.tool_calls && firstChoice.message.tool_calls.length > 0) {
-          console.log("AI requested function calls:", firstChoice.message.tool_calls);
-          
-          // Execute all requested functions
-          const functionResults: any[] = [];
-          for (const toolCall of firstChoice.message.tool_calls) {
-            const functionName = toolCall.function.name;
-            const functionArgs = JSON.parse(toolCall.function.arguments);
-            
-            try {
-              const result = await executeDatabaseFunction(functionName, functionArgs, supabaseClient, user.id);
-              functionResults.push({
-                tool_call_id: toolCall.id,
-                role: "tool",
-                name: functionName,
-                content: JSON.stringify(result)
-              });
-            } catch (error) {
-              console.error("Function execution error:", error);
-              functionResults.push({
-                tool_call_id: toolCall.id,
-                role: "tool",
-                name: functionName,
-                content: JSON.stringify({ error: error.message })
-              });
-            }
-          }
-          
-          // Now make a second call with the function results, this time with streaming
-          const messagesWithResults = [
-            systemMessage,
-            ...messages,
-            firstChoice.message,
-            ...functionResults
-          ];
-          
-          body.messages = messagesWithResults;
-          body.stream = true;
-          body.tools = undefined; // Don't need tools in second call
-          body.tool_choice = undefined;
-          
-          response = await fetch(apiUrl, {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify(body),
-          });
-        } else {
-          // No function calls needed, just stream the response
-          body.stream = true;
-          response = await fetch(apiUrl, {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify(body),
+        if (initialResponse.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-      } else {
-        // Fallback for gemini or if something went wrong
-        // Use original streaming logic
-        switch (provider) {
-      case "lovable": {
-        const key = Deno.env.get("LOVABLE_API_KEY");
-        if (!key) throw new Error("LOVABLE_API_KEY not configured");
+        if (initialResponse.status === 402) {
+          return new Response(JSON.stringify({ error: "Payment required" }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         
-        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        throw new Error(`AI API error: ${initialResponse.status}`);
+      }
+
+      const initialData = await initialResponse.json();
+      const firstChoice = initialData.choices?.[0];
+      
+      // Check if AI wants to call functions
+      if (firstChoice?.message?.tool_calls && firstChoice.message.tool_calls.length > 0) {
+        console.log("AI requested function calls:", firstChoice.message.tool_calls);
+        
+        // Execute all requested functions
+        const functionResults: any[] = [];
+        for (const toolCall of firstChoice.message.tool_calls) {
+          const functionName = toolCall.function.name;
+          const functionArgs = JSON.parse(toolCall.function.arguments);
+          
+          try {
+            const result = await executeDatabaseFunction(functionName, functionArgs, supabaseClient, user.id);
+            functionResults.push({
+              tool_call_id: toolCall.id,
+              role: "tool",
+              name: functionName,
+              content: JSON.stringify(result)
+            });
+          } catch (error: any) {
+            console.error("Function execution error:", error);
+            functionResults.push({
+              tool_call_id: toolCall.id,
+              role: "tool",
+              name: functionName,
+              content: JSON.stringify({ error: error.message })
+            });
+          }
+        }
+        
+        // Now make a second streaming call with the function results
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${key}`,
+            "Authorization": `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: selectedModel,
+            messages: [
+              systemMessage,
+              ...messages,
+              firstChoice.message,
+              ...functionResults
+            ],
+            stream: true
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Lovable AI streaming error:", response.status, errorText);
+          throw new Error(`AI API error: ${response.status}`);
+        }
+
+        return new Response(response.body, {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+          },
+        });
+      } else {
+        // No function calls needed, stream directly
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${key}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             model: selectedModel,
             messages: [systemMessage, ...messages],
-            stream: true,
+            stream: true
           }),
         });
-        break;
-      }
 
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Lovable AI streaming error:", response.status, errorText);
+          throw new Error(`AI API error: ${response.status}`);
+        }
+
+        return new Response(response.body, {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+          },
+        });
+      }
+    }
+
+    // For other providers, fall back to basic streaming without function calling
+    let response;
+
+    switch (provider) {
       case "openai": {
         if (!apiKey) throw new Error("OpenAI API key not configured");
         
         response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -490,13 +385,34 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesi
         break;
       }
 
+      case "claude": {
+        if (!apiKey) throw new Error("Claude API key not configured");
+        
+        response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: selectedModel,
+            max_tokens: 4096,
+            system: systemMessage.content,
+            messages: messages,
+            stream: true,
+          }),
+        });
+        break;
+      }
+
       case "deepseek": {
         if (!apiKey) throw new Error("DeepSeek API key not configured");
         
         response = await fetch("https://api.deepseek.com/v1/chat/completions", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -514,7 +430,7 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesi
         response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -530,16 +446,18 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesi
         throw new Error(`Unknown provider: ${provider}`);
     }
 
-    if (!response!.ok) {
-      const errorText = await response!.text();
-      console.error("AI API error:", response!.status, errorText);
-      throw new Error(`AI API error: ${response!.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI API error:", response.status, errorText);
+      throw new Error(`AI API error: ${response.status}`);
     }
 
-    return new Response(response!.body, {
+    return new Response(response.body, {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
       },
     });
 
