@@ -43,7 +43,7 @@ export default function AIAnalytics() {
       setLoading(true);
 
       // Fetch overall summary
-      const { data: analytics, error } = await supabase
+      const { data: analytics, error } = await (supabase as any)
         .from("ai_usage_analytics")
         .select("*")
         .order("created_at", { ascending: false });
@@ -54,11 +54,11 @@ export default function AIAnalytics() {
 
       // Calculate summary
       const totalRequests = data.length;
-      const successfulRequests = data.filter(a => a.status === "success").length;
-      const totalTokens = data.reduce((sum, a) => sum + (a.tokens_used || 0), 0);
-      const totalCost = data.reduce((sum, a) => sum + (parseFloat(a.cost_estimate as any) || 0), 0);
+      const successfulRequests = data.filter((a: any) => a.status === "success").length;
+      const totalTokens = data.reduce((sum: number, a: any) => sum + (a.tokens_used || 0), 0);
+      const totalCost = data.reduce((sum: number, a: any) => sum + (parseFloat(a.cost_estimate as any) || 0), 0);
       const avgResponseTime = data.length > 0
-        ? data.reduce((sum, a) => sum + (a.response_time_ms || 0), 0) / data.length
+        ? data.reduce((sum: number, a: any) => sum + (a.response_time_ms || 0), 0) / data.length
         : 0;
       const successRate = totalRequests > 0 ? (successfulRequests / totalRequests) * 100 : 0;
 
@@ -73,7 +73,7 @@ export default function AIAnalytics() {
       // Calculate per-provider stats
       const providerMap = new Map<string, any>();
       
-      data.forEach(item => {
+      data.forEach((item: any) => {
         const provider = item.ai_provider;
         if (!providerMap.has(provider)) {
           providerMap.set(provider, {
