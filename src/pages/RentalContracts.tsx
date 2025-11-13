@@ -245,21 +245,9 @@ const RentalContracts = () => {
             contract_id: editingContractId,
           };
 
-          const { data: existingIncome } = await supabase
+          await supabase
             .from("income_sources")
-            .select("id")
-            .eq("contract_id", editingContractId)
-            .maybeSingle();
-
-          if (existingIncome) {
-            await supabase
-              .from("income_sources")
-              .update(incomeData)
-              .eq("id", existingIncome.id);
-          } else {
-            await supabase
-              .from("income_sources")
-              .insert(incomeData);
+            .upsert([incomeData], { onConflict: "contract_id" });
           }
         } else if (paymentStatus === "belum_lunas") {
           // Delete income if payment status is "belum_lunas"
@@ -296,14 +284,14 @@ const RentalContracts = () => {
           
           await supabase
             .from("income_sources")
-            .insert({
+            .upsert({
               user_id: user?.id,
               source_name: sourceName,
               bank_name: bankAccount?.bank_name || null,
               amount: jumlahLunas,
               date: format(contractForm.tanggal_lunas, "yyyy-MM-dd"),
               contract_id: newContract.id,
-            });
+            }, { onConflict: "contract_id" });
         }
 
         toast.success("Kontrak berhasil ditambahkan");
@@ -1090,21 +1078,9 @@ const RentalContracts = () => {
                                         : null,
                                     };
 
-                                    const { data: existingIncome } = await supabase
+                                    await supabase
                                       .from("income_sources")
-                                      .select("id")
-                                      .eq("contract_id", contract.id)
-                                      .maybeSingle();
-
-                                    if (existingIncome) {
-                                      await supabase
-                                        .from("income_sources")
-                                        .update(incomeData)
-                                        .eq("id", existingIncome.id);
-                                    } else {
-                                      await supabase
-                                        .from("income_sources")
-                                        .insert(incomeData);
+                                      .upsert(incomeData, { onConflict: "contract_id" });
                                     }
 
                                     toast.success("Tanggal lunas diupdate dan pemasukan berhasil disinkronkan");
