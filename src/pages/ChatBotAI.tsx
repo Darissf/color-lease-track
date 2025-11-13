@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Send, Bot, User, Loader2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 interface Message {
   role: "user" | "assistant";
@@ -20,8 +22,38 @@ export default function ChatBotAI() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeProvider, setActiveProvider] = useState<string>("Lovable AI");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchActiveProvider();
+  }, []);
+
+  const fetchActiveProvider = async () => {
+    try {
+      const { data } = await supabase
+        .from("user_ai_settings")
+        .select("ai_provider")
+        .eq("is_active", true)
+        .maybeSingle();
+      
+      if (data) {
+        const providerNames: Record<string, string> = {
+          lovable: "Lovable AI (Gemini 2.5 Flash)",
+          gemini: "Google Gemini",
+          openai: "OpenAI",
+          claude: "Anthropic Claude",
+          deepseek: "DeepSeek",
+          groq: "Groq",
+        };
+        setActiveProvider(providerNames[data.ai_provider] || data.ai_provider);
+      }
+    } catch (error) {
+      console.error("Error fetching provider:", error);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -142,13 +174,27 @@ export default function ChatBotAI() {
   return (
     <div className="container mx-auto p-4 h-[calc(100vh-4rem)] flex flex-col">
       <div className="mb-4">
-        <h1 className="text-3xl font-bold">ChatBot AI</h1>
-        <p className="text-muted-foreground mt-2">
-          Asisten AI untuk membantu mengelola keuangan dan properti sewa Anda
-        </p>
-        <div className="mt-2 flex gap-2 text-xs text-muted-foreground">
-          <span className="px-2 py-1 bg-primary/10 rounded">✨ Powered by Gemini 2.5 Flash</span>
-          <span className="px-2 py-1 bg-green-500/10 rounded">🔒 Lovable AI</span>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">ChatBot AI</h1>
+            <p className="text-muted-foreground mt-2">
+              Asisten AI untuk membantu mengelola keuangan dan properti sewa Anda
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/settings/ai")}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            AI Settings
+          </Button>
+        </div>
+        <div className="mt-2 flex gap-2 text-xs">
+          <Badge variant="default" className="gap-1">
+            ✨ {activeProvider}
+          </Badge>
+          <Badge variant="secondary">🔒 Secure</Badge>
         </div>
       </div>
 
