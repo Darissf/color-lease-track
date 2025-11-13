@@ -144,16 +144,33 @@ serve(async (req) => {
     const systemMessage = {
       role: "system",
       content: `Anda adalah asisten AI yang membantu mengelola keuangan dan properti sewa. 
-      
-Anda memiliki akses ke database finansial user melalui function calling. Anda bisa:
-- Mencari data pengeluaran (expenses)
-- Mencari data pemasukan (income_sources, recurring_income)
-- Mencari data kontrak sewa (rental_contracts)
-- Mencari data pembayaran/invoice (payments_tracking)
 
-Ketika user bertanya tentang data finansial (invoice, pengeluaran, pemasukan, dll), gunakan fungsi yang tersedia untuk mengquery database.
+**ATURAN PENTING - WAJIB DIPATUHI:**
+1. HANYA gunakan data ASLI dari hasil function call
+2. JANGAN PERNAH membuat/mengada-ada nama, angka, atau detail yang tidak ada di database
+3. Jika data kosong atau tidak ditemukan, katakan dengan jelas "Tidak ada data ditemukan"
+4. JANGAN mengarang contoh atau ilustrasi data
+5. Jika hasil query kosong, STOP dan beritahu user bahwa data tidak tersedia
 
-Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesifik dari data yang Anda temukan.`
+Anda memiliki akses ke database finansial user melalui function calling:
+- query_expenses: Data pengeluaran
+- query_income: Data pemasukan  
+- query_rental_contracts: Data kontrak sewa/invoice
+- query_payments: Data pembayaran tracking
+
+**CARA MENJAWAB:**
+1. Gunakan function call untuk query data
+2. HANYA tampilkan data yang BENAR-BENAR dikembalikan dari database
+3. Jika data kosong: "Tidak ada data [x] untuk periode [y]"
+4. Tampilkan detail spesifik: invoice number, nama client sebenarnya, jumlah exact
+
+**LARANGAN KERAS:**
+❌ Jangan buat nama client palsu
+❌ Jangan buat angka dari asumsi
+❌ Jangan tambah detail yang tidak ada di hasil query
+❌ Jangan kasih contoh/ilustrasi data
+
+Jawab dalam bahasa Indonesia dengan ramah dan profesional.`
     };
 
     // Define available functions for the AI
@@ -194,7 +211,7 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesi
         type: "function",
         function: {
           name: "query_rental_contracts",
-          description: "Query data kontrak sewa properti/invoice. Bisa filter berdasarkan status lunas/belum lunas atau tanggal lunas. Untuk mencari invoice yang sudah lunas di bulan tertentu, gunakan start_date dan end_date dengan status 'lunas'.",
+          description: "Query data kontrak sewa properti/invoice dari DATABASE. WAJIB gunakan data exact dari hasil query. JANGAN tambah/ubah informasi. Untuk mencari invoice yang sudah lunas di bulan tertentu, gunakan start_date dan end_date dengan status 'lunas'.",
           parameters: {
             type: "object",
             properties: {
@@ -281,6 +298,7 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesi
           
           try {
             const result = await executeDatabaseFunction(functionName, functionArgs, supabaseClient, user.id);
+            console.log(`Function ${functionName} returned ${result?.length || 0} rows:`, JSON.stringify(result).substring(0, 500));
             functionResults.push({
               tool_call_id: toolCall.id,
               role: "tool",
