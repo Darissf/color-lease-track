@@ -248,7 +248,6 @@ const RentalContracts = () => {
           await supabase
             .from("income_sources")
             .upsert([incomeData], { onConflict: "contract_id" });
-          }
         } else if (paymentStatus === "belum_lunas") {
           // Delete income if payment status is "belum_lunas"
           await supabase
@@ -284,14 +283,14 @@ const RentalContracts = () => {
           
           await supabase
             .from("income_sources")
-            .upsert({
+            .upsert([{
               user_id: user?.id,
               source_name: sourceName,
               bank_name: bankAccount?.bank_name || null,
               amount: jumlahLunas,
               date: format(contractForm.tanggal_lunas, "yyyy-MM-dd"),
               contract_id: newContract.id,
-            }, { onConflict: "contract_id" });
+            }], { onConflict: "contract_id" });
         }
 
         toast.success("Kontrak berhasil ditambahkan");
@@ -1080,8 +1079,7 @@ const RentalContracts = () => {
 
                                     await supabase
                                       .from("income_sources")
-                                      .upsert(incomeData, { onConflict: "contract_id" });
-                                    }
+                                      .upsert([incomeData], { onConflict: "contract_id" });
 
                                     toast.success("Tanggal lunas diupdate dan pemasukan berhasil disinkronkan");
                                   } else {
