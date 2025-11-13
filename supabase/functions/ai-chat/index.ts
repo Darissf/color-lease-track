@@ -96,6 +96,22 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
       return data;
     }
     
+    case "query_client_groups": {
+      let query = supabaseClient
+        .from("client_groups")
+        .select("id, nama, nomor_telepon, has_whatsapp, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      
+      if (args.name) query = query.ilike("nama", `%${args.name}%`);
+      if (args.phone) query = query.ilike("nomor_telepon", `%${args.phone}%`);
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    }
+    
     default:
       throw new Error(`Unknown function: ${functionName}`);
   }
@@ -152,10 +168,11 @@ serve(async (req) => {
 5. Jika hasil query kosong, STOP dan beritahu user bahwa data tidak tersedia
 
 Anda memiliki akses ke database finansial user melalui function calling:
-- query_expenses: Data pengeluaran
-- query_income: Data pemasukan  
-- query_rental_contracts: Data kontrak sewa/invoice
-- query_payments: Data pembayaran tracking
+      - query_expenses: Data pengeluaran
+      - query_income: Data pemasukan  
+      - query_rental_contracts: Data kontrak sewa/invoice
+      - query_payments: Data pembayaran tracking
+      - query_client_groups: Data client (nama dan nomor telepon)
 
 **CARA MENJAWAB:**
 1. Gunakan function call untuk query data
@@ -234,6 +251,21 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional.`
               start_date: { type: "string", description: "Tanggal dibayar mulai (YYYY-MM-DD)" },
               end_date: { type: "string", description: "Tanggal dibayar akhir (YYYY-MM-DD)" },
               status: { type: "string", description: "Status pembayaran: paid, pending, overdue (optional)" },
+              limit: { type: "number", description: "Jumlah maksimal hasil (default 50)" }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "query_client_groups",
+          description: "Query data client (grup) berdasarkan nama atau nomor telepon.",
+          parameters: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Nama client (bisa partial)" },
+              phone: { type: "string", description: "Nomor telepon (opsional, bisa partial)" },
               limit: { type: "number", description: "Jumlah maksimal hasil (default 50)" }
             }
           }
