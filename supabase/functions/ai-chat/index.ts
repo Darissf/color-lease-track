@@ -47,22 +47,6 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
       return data;
     }
     
-    case "query_rental_contracts": {
-      let query = supabaseClient
-        .from("rental_contracts")
-        .select("*")
-        .eq("user_id", userId)
-        .order("start_date", { ascending: false })
-        .limit(limit);
-      
-      if (args.status) query = query.eq("status", args.status);
-      if (args.property_name) query = query.ilike("property_name", `%${args.property_name}%`);
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    }
-    
     case "query_payments": {
       let query = supabaseClient
         .from("payments_tracking")
@@ -76,7 +60,7 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
       if (args.end_date) query = query.lte("paid_date", args.end_date);
       if (args.status) query = query.eq("status", args.status);
       
-      const { data, error } = await query;
+      const { data, error} = await query;
       if (error) throw error;
       return data;
     }
