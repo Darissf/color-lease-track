@@ -449,43 +449,50 @@ export default function ChatBotAI() {
                 </SheetHeader>
                 <div className="mt-4">
                   <Button
-                    onClick={startNewConversation}
                     className="w-full mb-4"
-                    variant="outline"
+                    onClick={() => {
+                      startNewConversation();
+                      // Close sheet programmatically not needed, user will see the new conversation
+                    }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    New Chat
+                    New Conversation
                   </Button>
-                  <ScrollArea className="h-[calc(100vh-16rem)]">
+                  <ScrollArea className="h-[calc(100vh-12rem)]">
                     <div className="space-y-2">
                       {conversations.map((conv) => (
                         <div
                           key={conv.id}
-                          className={`p-3 border rounded-lg hover:bg-accent cursor-pointer ${
-                            currentConversation === conv.id ? "bg-accent" : ""
+                          className={`p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors ${
+                            currentConversation === conv.id ? 'bg-accent' : ''
                           }`}
                           onClick={() => loadConversation(conv.id)}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate text-sm">
-                                {conv.title}
-                              </p>
+                              <p className="font-medium truncate">{conv.title}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="secondary" className="text-xs">
-                                  {conv.model_name}
+                                  {conv.ai_provider}
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">
-                                  {conv.message_count} msg
+                                  {conv.message_count} messages
                                 </span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
-                                {new Date(conv.updated_at).toLocaleDateString()}
+                                {new Date(conv.updated_at).toLocaleDateString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
                               </p>
                             </div>
                             <Button
-                              size="icon"
                               variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteConversation(conv.id);
@@ -501,6 +508,15 @@ export default function ChatBotAI() {
                 </div>
               </SheetContent>
             </Sheet>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startNewConversation}
+              title="Start a new conversation"
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              New Chat
+            </Button>
             <Button
               variant="outline"
               size="sm"
