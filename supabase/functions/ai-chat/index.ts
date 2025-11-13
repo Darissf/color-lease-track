@@ -97,21 +97,124 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
     }
     
     case "query_client_groups": {
+      // Improve search: treat "client" as "kelompok" and ignore honorifics like bu/ibu/pak/ny/mas/mba
+      const sanitize = (s: string) =>
+        (s || "")
+          .toLowerCase()
+          .replaceAll(".", " ")
+          .replace(/^(bu|ibu|pak|bapak|bp|bpk|ny|nyonya|mba|mbak|mas|tuan)\s+/i, "")
+          .trim();
+
+      const nameTerm: string | undefined = args.name;
+      const phoneTerm: string | undefined = args.phone;
+
       let query = supabaseClient
         .from("client_groups")
         .select("id, nama, nomor_telepon, has_whatsapp, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(limit);
-      
-      if (args.name) query = query.ilike("nama", `%${args.name}%`);
-      if (args.phone) query = query.ilike("nomor_telepon", `%${args.phone}%`);
-      
+
+      if (nameTerm || phoneTerm) {
+        const filters: string[] = [];
+        if (nameTerm) {
+          const raw = nameTerm;
+          const clean = sanitize(nameTerm);
+          filters.push(`nama.ilike.%${raw}%`);
+          if (clean && clean !== raw.toLowerCase()) {
+            filters.push(`nama.ilike.%${clean}%`);
+          }
+        }
+        if (phoneTerm) {
+          filters.push(`nomor_telepon.ilike.%${phoneTerm}%`);
+        }
+        if (filters.length > 0) {
+          // Combine OR filters for broader matching
+          query = query.or(filters.join(","));
+        }
+      }
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
     }
     
+    case "count_client_group_orders": {
+      const sanitize = (s: string) =>
+        (s || "")
+          .toLowerCase()
+          .replaceAll(".", " ")
+          .replace(/^(bu|ibu|pak|bapak|bp|bpk|ny|nyonya|mba|mbak|mas|tuan)\s+/i, "")
+          .trim();
+
+      const nameTerm: string = args.name || "";
+      const clean = sanitize(nameTerm);
+
+      // 1) find matching client groups
+      let cgQuery = supabaseClient
+        .from("client_groups")
+        .select("id, nama, nomor_telepon")
+        .eq("user_id", userId)
+        .limit(100);
+
+      const cgFilters: string[] = [];
+      if (nameTerm) {
+        cgFilters.push(`nama.ilike.%${nameTerm}%`);
+        if (clean && clean !== nameTerm.toLowerCase()) {
+          cgFilters.push(`nama.ilike.%${clean}%`);
+        }
+      }
+      if (cgFilters.length > 0) cgQuery = cgQuery.or(cgFilters.join(","));
+
+      const { data: groups, error: groupsError } = await cgQuery;
+      if (groupsError) throw groupsError;
+      if (!groups || groups.length === 0) {
+        return { matches: [], total_orders: 0 };
+      }
+
+      const ids = groups.map((g: any) => g.id);
+
+      // 2) fetch rental contracts for these groups
+      let rcQuery = supabaseClient
+        .from("rental_contracts")
+        .select("id, client_group_id, status, tanggal_lunas")
+        .eq("user_id", userId)
+        .in("client_group_id", ids);
+
+      if (args.status) {
+        if (args.status === "lunas") {
+          rcQuery = rcQuery.not("tanggal_lunas", "is", null);
+        } else if (args.status === "belum_lunas") {
+          rcQuery = rcQuery.is("tanggal_lunas", null);
+        } else {
+          rcQuery = rcQuery.eq("status", args.status);
+        }
+      }
+
+      const { data: contracts, error: rcError } = await rcQuery;
+      if (rcError) throw rcError;
+
+      const byGroup: Record<string, { orders_total: number; orders_lunas: number; orders_belum_lunas: number; }> = {};
+      for (const g of groups) {
+        byGroup[g.id] = { orders_total: 0, orders_lunas: 0, orders_belum_lunas: 0 };
+      }
+      for (const rc of contracts ?? []) {
+        const entry = byGroup[rc.client_group_id];
+        if (!entry) continue;
+        entry.orders_total += 1;
+        if (rc.tanggal_lunas) entry.orders_lunas += 1;
+        else entry.orders_belum_lunas += 1;
+      }
+
+      const matches = groups.map((g: any) => ({
+        group_id: g.id,
+        nama: g.nama,
+        nomor_telepon: g.nomor_telepon,
+        ...byGroup[g.id],
+      }));
+      const total_orders = matches.reduce((acc, m) => acc + m.orders_total, 0);
+      return { matches, total_orders };
+    }
     default:
       throw new Error(`Unknown function: ${functionName}`);
   }
