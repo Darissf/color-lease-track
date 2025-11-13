@@ -374,6 +374,44 @@ export default function ChatBotAI() {
     }
   };
 
+  const activateLovable = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Nonaktifkan semua dulu
+      await (supabase as any)
+        .from("user_ai_settings")
+        .update({ is_active: false })
+        .eq("user_id", user.id);
+
+      // Cek apakah baris lovable sudah ada
+      const { data: existing } = await (supabase as any)
+        .from("user_ai_settings")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("ai_provider", "lovable")
+        .maybeSingle();
+
+      if (existing) {
+        await (supabase as any)
+          .from("user_ai_settings")
+          .update({ is_active: true })
+          .eq("id", existing.id);
+      } else {
+        await (supabase as any)
+          .from("user_ai_settings")
+          .insert({ user_id: user.id, ai_provider: "lovable", api_key: "", is_active: true });
+      }
+
+      setActiveProvider("lovable");
+      setSelectedModel(MODEL_OPTIONS.lovable[0].value);
+      toast({ title: "Lovable diaktifkan", description: "Sekarang pertanyaan database akan menggunakan data asli." });
+    } catch (e: any) {
+      toast({ title: "Gagal mengaktifkan Lovable", description: e.message, variant: "destructive" });
+    }
+  };
+
   const currentModels = MODEL_OPTIONS[activeProvider as keyof typeof MODEL_OPTIONS] || [];
 
   return (
@@ -490,6 +528,14 @@ export default function ChatBotAI() {
             </SelectContent>
           </Select>
         </div>
+        {activeProvider !== "lovable" && (
+          <Alert className="mt-3">
+            <AlertDescription>
+              Untuk pertanyaan yang membutuhkan data database (invoice, pemasukan, pengeluaran, kontrak sewa), aktifkan provider Lovable agar AI bisa melakukan function call ke database Anda.
+              <Button size="sm" className="ml-3" onClick={activateLovable}>Aktifkan Lovable</Button>
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <Card className="flex-1 flex flex-col overflow-hidden">
