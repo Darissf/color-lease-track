@@ -68,12 +68,45 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
         .from("payments_tracking")
         .select("*")
         .eq("user_id", userId)
-        .order("payment_date", { ascending: false })
+        .order("due_date", { ascending: false })
         .limit(limit);
       
-      if (args.start_date) query = query.gte("payment_date", args.start_date);
-      if (args.end_date) query = query.lte("payment_date", args.end_date);
+      // Filter berdasarkan paid_date (tanggal dibayar/lunas)
+      if (args.start_date) query = query.gte("paid_date", args.start_date);
+      if (args.end_date) query = query.lte("paid_date", args.end_date);
       if (args.status) query = query.eq("status", args.status);
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    }
+    
+    case "query_rental_contracts": {
+      let query = supabaseClient
+        .from("rental_contracts")
+        .select(`
+          *,
+          client_group_id (
+            nama,
+            nomor_telepon
+          )
+        `)
+        .eq("user_id", userId)
+        .order("start_date", { ascending: false })
+        .limit(limit);
+      
+      if (args.start_date) query = query.gte("tanggal_lunas", args.start_date);
+      if (args.end_date) query = query.lte("tanggal_lunas", args.end_date);
+      if (args.status) {
+        if (args.status === "lunas") {
+          query = query.not("tanggal_lunas", "is", null);
+        } else if (args.status === "belum_lunas") {
+          query = query.is("tanggal_lunas", null);
+        } else {
+          query = query.eq("status", args.status);
+        }
+      }
+      if (args.property_name) query = query.ilike("invoice", `%${args.property_name}%`);
       
       const { data, error } = await query;
       if (error) throw error;
@@ -177,12 +210,14 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesi
         type: "function",
         function: {
           name: "query_rental_contracts",
-          description: "Query data kontrak sewa properti. Bisa filter berdasarkan status atau tanggal.",
+          description: "Query data kontrak sewa properti/invoice. Bisa filter berdasarkan status lunas/belum lunas atau tanggal lunas. Untuk mencari invoice yang sudah lunas di bulan tertentu, gunakan start_date dan end_date dengan status 'lunas'.",
           parameters: {
             type: "object",
             properties: {
-              status: { type: "string", description: "Status kontrak: active, expired, pending (optional)" },
-              property_name: { type: "string", description: "Nama properti (optional)" },
+              status: { type: "string", description: "Status: lunas, belum_lunas, atau masa sewa (optional)" },
+              property_name: { type: "string", description: "Nama invoice/properti (optional)" },
+              start_date: { type: "string", description: "Tanggal lunas mulai untuk filter (YYYY-MM-DD)" },
+              end_date: { type: "string", description: "Tanggal lunas akhir untuk filter (YYYY-MM-DD)" },
               limit: { type: "number", description: "Jumlah maksimal hasil (default 50)" }
             }
           }
@@ -192,12 +227,12 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional. Sertakan detail spesi
         type: "function",
         function: {
           name: "query_payments",
-          description: "Query data pembayaran/invoice. Bisa filter berdasarkan tanggal, status, atau jumlah.",
+          description: "Query data pembayaran tracking. Bisa filter berdasarkan tanggal paid_date (tanggal dibayar) atau status pembayaran.",
           parameters: {
             type: "object",
             properties: {
-              start_date: { type: "string", description: "Tanggal mulai (YYYY-MM-DD)" },
-              end_date: { type: "string", description: "Tanggal akhir (YYYY-MM-DD)" },
+              start_date: { type: "string", description: "Tanggal dibayar mulai (YYYY-MM-DD)" },
+              end_date: { type: "string", description: "Tanggal dibayar akhir (YYYY-MM-DD)" },
               status: { type: "string", description: "Status pembayaran: paid, pending, overdue (optional)" },
               limit: { type: "number", description: "Jumlah maksimal hasil (default 50)" }
             }
