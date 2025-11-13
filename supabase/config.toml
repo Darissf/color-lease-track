@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.validate-whatsapp]
 verify_jwt = true
+
+[functions.ai-chat]
+verify_jwt = true
