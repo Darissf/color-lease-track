@@ -35,12 +35,12 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
         .from("income_sources")
         .select("*")
         .eq("user_id", userId)
-        .order("received_at", { ascending: false })
+        .order("date", { ascending: false })
         .limit(limit);
       
-      if (args.start_date) query = query.gte("received_at", args.start_date);
-      if (args.end_date) query = query.lte("received_at", args.end_date);
-      if (args.source) query = query.ilike("source", `%${args.source}%`);
+      if (args.start_date) query = query.gte("date", args.start_date);
+      if (args.end_date) query = query.lte("date", args.end_date);
+      if (args.source) query = query.ilike("source_name", `%${args.source}%`);
       
       const { data, error } = await query;
       if (error) throw error;
