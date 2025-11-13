@@ -50,6 +50,96 @@ serve(async (req) => {
       content: "Anda adalah asisten AI yang membantu mengelola keuangan dan properti sewa. Anda bisa menjawab pertanyaan tentang pengeluaran, pemasukan, kontrak sewa, dan memberikan saran finansial. Jawab dalam bahasa Indonesia dengan ramah dan profesional."
     };
 
+    // For Claude, we need to convert the stream format
+    if (provider === "claude") {
+      if (!apiKey) throw new Error("Claude API key not configured");
+      
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          max_tokens: 4096,
+          system: systemMessage.content,
+          messages: messages,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Claude API error:", response.status, errorText);
+        throw new Error(`Claude API error: ${response.status}`);
+      }
+
+      // Create a transform stream to convert Claude SSE to OpenAI format
+      const { readable, writable } = new TransformStream();
+      const writer = writable.getWriter();
+      const encoder = new TextEncoder();
+
+      (async () => {
+        try {
+          const reader = response.body!.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (line.startsWith("data:")) {
+                const data = line.slice(5).trim();
+                if (data === "[DONE]") continue;
+
+                try {
+                  const parsed = JSON.parse(data);
+                  
+                  if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+                    // Convert Claude format to OpenAI format
+                    const openAIFormat = {
+                      choices: [{
+                        delta: {
+                          content: parsed.delta.text
+                        }
+                      }]
+                    };
+                    await writer.write(encoder.encode(`data: ${JSON.stringify(openAIFormat)}\n\n`));
+                  }
+                } catch (e) {
+                  console.error("Error parsing Claude SSE:", e);
+                }
+              }
+            }
+          }
+
+          await writer.write(encoder.encode("data: [DONE]\n\n"));
+          await writer.close();
+        } catch (error) {
+          console.error("Stream processing error:", error);
+          await writer.abort(error);
+        }
+      })();
+
+      return new Response(readable, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        },
+      });
+    }
+
+    // For other providers (OpenAI format compatible)
     let response;
 
     switch (provider) {
@@ -90,22 +180,20 @@ serve(async (req) => {
         break;
       }
 
-      case "claude": {
-        if (!apiKey) throw new Error("Claude API key not configured");
+      case "gemini": {
+        if (!apiKey) throw new Error("Gemini API key not configured");
         
-        response = await fetch("https://api.anthropic.com/v1/messages", {
+        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?key=${apiKey}`, {
           method: "POST",
           headers: {
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: selectedModel,
-            max_tokens: 4096,
-            system: systemMessage.content,
-            messages: messages,
-            stream: true,
+            contents: [{
+              parts: [{
+                text: systemMessage.content + "\n\n" + messages.map((m: any) => `${m.role}: ${m.content}`).join("\n")
+              }]
+            }]
           }),
         });
         break;
@@ -147,66 +235,31 @@ serve(async (req) => {
         break;
       }
 
-      case "gemini": {
-        if (!apiKey) throw new Error("Gemini API key not configured");
-        
-        const geminiMessages = messages.map((m: any) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }]
-        }));
-        
-        response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?key=${apiKey}&alt=sse`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                { role: "user", parts: [{ text: systemMessage.content }] },
-                ...geminiMessages
-              ],
-            }),
-          }
-        );
-        break;
-      }
-
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded" }), 
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Payment required" }), 
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      return new Response(
-        JSON.stringify({ error: "AI API error" }), 
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!response!.ok) {
+      const errorText = await response!.text();
+      console.error("AI API error:", response!.status, errorText);
+      throw new Error(`AI API error: ${response!.status}`);
     }
 
-    console.log("Streaming response from:", provider);
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    return new Response(response!.body, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+      },
     });
+
   } catch (error: any) {
-    console.error("Chat error:", error);
+    console.error("AI chat error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error" }), 
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });
