@@ -27,6 +27,9 @@ interface Conversation {
   message_count: number;
 }
 
+// Temporary type workaround for Supabase types regeneration
+type SupabaseClient = typeof supabase;
+
 const MODEL_OPTIONS = {
   lovable: [
     { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (Default)" },
@@ -107,7 +110,7 @@ export default function ChatBotAI() {
 
   const fetchConversations = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("chat_conversations")
         .select("*")
         .eq("is_active", true)
@@ -115,7 +118,7 @@ export default function ChatBotAI() {
         .limit(20);
 
       if (error) throw error;
-      setConversations(data || []);
+      setConversations((data || []) as Conversation[]);
     } catch (error: any) {
       console.error("Error fetching conversations:", error);
     }
@@ -123,7 +126,7 @@ export default function ChatBotAI() {
 
   const loadConversation = async (conversationId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("chat_messages")
         .select("*")
         .eq("conversation_id", conversationId)
@@ -131,7 +134,7 @@ export default function ChatBotAI() {
 
       if (error) throw error;
 
-      const loadedMessages = data.map(msg => ({
+      const loadedMessages = data.map((msg: any) => ({
         role: msg.role as "user" | "assistant",
         content: msg.content
       }));
@@ -167,7 +170,7 @@ export default function ChatBotAI() {
     if (!confirm("Hapus percakapan ini?")) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("chat_conversations")
         .delete()
         .eq("id", conversationId);
@@ -200,7 +203,7 @@ export default function ChatBotAI() {
       
       if (!conversationId) {
         const title = userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : "");
-        const { data: newConv, error: convError } = await supabase
+        const { data: newConv, error: convError } = await (supabase as any)
           .from("chat_conversations")
           .insert({
             title,
@@ -217,7 +220,7 @@ export default function ChatBotAI() {
         await fetchConversations();
       }
 
-      await supabase.from("chat_messages").insert({
+      await (supabase as any).from("chat_messages").insert({
         conversation_id: conversationId,
         role: "user",
         content: userMessage,
@@ -271,14 +274,14 @@ export default function ChatBotAI() {
       }
 
       if (assistantMessage && conversationId) {
-        await supabase.from("chat_messages").insert({
+        await (supabase as any).from("chat_messages").insert({
           conversation_id: conversationId,
           role: "assistant",
           content: assistantMessage,
         });
 
         const responseTime = Date.now() - startTime;
-        await supabase.from("ai_usage_analytics").insert({
+        await (supabase as any).from("ai_usage_analytics").insert({
           conversation_id: conversationId,
           ai_provider: activeProvider,
           model_name: selectedModel,
@@ -300,7 +303,7 @@ export default function ChatBotAI() {
       }
 
       if (currentConversation) {
-        await supabase.from("ai_usage_analytics").insert({
+        await (supabase as any).from("ai_usage_analytics").insert({
           conversation_id: currentConversation,
           ai_provider: activeProvider,
           model_name: selectedModel,
