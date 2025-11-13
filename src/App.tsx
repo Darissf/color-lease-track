@@ -27,6 +27,7 @@ import ContentManagement from "./pages/ContentManagement";
 import ClientGroups from "./pages/ClientGroups";
 import RentalContracts from "./pages/RentalContracts";
 import AISettings from "./pages/AISettings";
+import ChatBotAI from "./pages/ChatBotAI";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
                       <Route path="/client-groups" element={<ClientGroups />} />
                       <Route path="/rental-contracts" element={<RentalContracts />} />
                       <Route path="/settings/ai" element={<AISettings />} />
+                      <Route path="/chatbot" element={<ChatBotAI />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Layout>
