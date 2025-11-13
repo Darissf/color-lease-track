@@ -199,6 +199,17 @@ export default function ChatBotAI() {
     const startTime = Date.now();
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "Anda harus login terlebih dahulu",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       let conversationId = currentConversation;
       
       if (!conversationId) {
@@ -206,6 +217,7 @@ export default function ChatBotAI() {
         const { data: newConv, error: convError } = await (supabase as any)
           .from("chat_conversations")
           .insert({
+            user_id: user.id,
             title,
             ai_provider: activeProvider,
             model_name: selectedModel,
@@ -274,20 +286,25 @@ export default function ChatBotAI() {
       }
 
       if (assistantMessage && conversationId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        
         await (supabase as any).from("chat_messages").insert({
           conversation_id: conversationId,
           role: "assistant",
           content: assistantMessage,
         });
 
-        const responseTime = Date.now() - startTime;
-        await (supabase as any).from("ai_usage_analytics").insert({
-          conversation_id: conversationId,
-          ai_provider: activeProvider,
-          model_name: selectedModel,
-          response_time_ms: responseTime,
-          status: "success",
-        });
+        if (user) {
+          const responseTime = Date.now() - startTime;
+          await (supabase as any).from("ai_usage_analytics").insert({
+            user_id: user.id,
+            conversation_id: conversationId,
+            ai_provider: activeProvider,
+            model_name: selectedModel,
+            response_time_ms: responseTime,
+            status: "success",
+          });
+        }
       }
 
       await fetchConversations();
@@ -303,14 +320,18 @@ export default function ChatBotAI() {
       }
 
       if (currentConversation) {
-        await (supabase as any).from("ai_usage_analytics").insert({
-          conversation_id: currentConversation,
-          ai_provider: activeProvider,
-          model_name: selectedModel,
-          response_time_ms: Date.now() - startTime,
-          status: "error",
-          error_message: error?.message,
-        });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await (supabase as any).from("ai_usage_analytics").insert({
+            user_id: user.id,
+            conversation_id: currentConversation,
+            ai_provider: activeProvider,
+            model_name: selectedModel,
+            response_time_ms: Date.now() - startTime,
+            status: "error",
+            error_message: error?.message,
+          });
+        }
       }
 
       toast({
