@@ -290,8 +290,25 @@ export default function ChatBotAI() {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
-              assistantMessage += content;
-              setMessages([...newMessages, { role: "assistant", content: assistantMessage }]);
+              // Sanitasi: hapus token tool_calls dan kontennya
+              let sanitized = content;
+              
+              // Hapus pattern tool__calls__begin...tool__calls__end
+              sanitized = sanitized.replace(/tool__calls__begin[\s\S]*?tool__calls__end/gi, '');
+              
+              // Hapus tool__sep
+              sanitized = sanitized.replace(/tool__sep/gi, '');
+              
+              // Hapus pattern <tool_call>...</tool_call>
+              sanitized = sanitized.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '');
+              
+              // Hapus pattern yang mungkin muncul dari DeepSeek
+              sanitized = sanitized.replace(/\[TOOL_CALLS\][\s\S]*?\[\/TOOL_CALLS\]/gi, '');
+              
+              if (sanitized) {
+                assistantMessage += sanitized;
+                setMessages([...newMessages, { role: "assistant", content: assistantMessage }]);
+              }
             }
           } catch (e) {
             buffer = line + "\n" + buffer;
