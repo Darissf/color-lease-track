@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { TrendingUp, Clock, DollarSign, Zap, AlertCircle } from "lucide-react";
+import { TrendingUp, Clock, DollarSign, Zap, AlertCircle, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface AnalyticsSummary {
   totalRequests: number;
@@ -35,6 +37,13 @@ interface ErrorStats {
   lastOccurred: string;
 }
 
+interface TrendData {
+  date: string;
+  tokens: number;
+  cost: number;
+  requests: number;
+}
+
 export default function AIAnalytics() {
   const [summary, setSummary] = useState<AnalyticsSummary>({
     totalRequests: 0,
@@ -48,11 +57,17 @@ export default function AIAnalytics() {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [frequentQuestions, setFrequentQuestions] = useState<FrequentQuestion[]>([]);
   const [errorStats, setErrorStats] = useState<ErrorStats[]>([]);
+  const [trendData, setTrendData] = useState<TrendData[]>([]);
+  const [trendPeriod, setTrendPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchAnalytics();
   }, []);
+
+  useEffect(() => {
+    fetchTrendData();
+  }, [trendPeriod]);
 
   const fetchAnalytics = async () => {
     try {
@@ -208,6 +223,59 @@ export default function AIAnalytics() {
     }
   };
 
+  const fetchTrendData = async () => {
+    try {
+      const { data: analytics, error } = await (supabase as any)
+        .from("ai_usage_analytics")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      const data = analytics || [];
+      
+      // Agregasi data berdasarkan periode
+      const trendMap = new Map<string, { tokens: number; cost: number; requests: number }>();
+      
+      data.forEach((item: any) => {
+        const date = new Date(item.created_at);
+        let dateKey: string;
+        
+        if (trendPeriod === "daily") {
+          dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+        } else if (trendPeriod === "weekly") {
+          const startOfWeek = new Date(date);
+          startOfWeek.setDate(date.getDate() - date.getDay());
+          dateKey = startOfWeek.toISOString().split('T')[0];
+        } else { // monthly
+          dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        }
+        
+        if (!trendMap.has(dateKey)) {
+          trendMap.set(dateKey, { tokens: 0, cost: 0, requests: 0 });
+        }
+        
+        const trend = trendMap.get(dateKey)!;
+        trend.tokens += item.tokens_used || 0;
+        trend.cost += parseFloat(item.cost_estimate as any) || 0;
+        trend.requests += 1;
+      });
+      
+      const trends: TrendData[] = Array.from(trendMap.entries())
+        .map(([date, stats]) => ({
+          date,
+          tokens: stats.tokens,
+          cost: parseFloat(stats.cost.toFixed(6)),
+          requests: stats.requests,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+      
+      setTrendData(trends);
+    } catch (error) {
+      console.error("Error fetching trend data:", error);
+    }
+  };
+
   const getProviderColor = (provider: string) => {
     const colors: Record<string, string> = {
       lovable: "bg-blue-500/10 text-blue-500",
@@ -313,8 +381,9 @@ export default function AIAnalytics() {
       </div>
 
       <Tabs defaultValue="providers" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="providers">Providers</TabsTrigger>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
           <TabsTrigger value="questions">Top Questions</TabsTrigger>
           <TabsTrigger value="errors">Errors</TabsTrigger>
           <TabsTrigger value="recent">Activity</TabsTrigger>
@@ -361,6 +430,181 @@ export default function AIAnalytics() {
                   </Alert>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="trends" className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Usage Trends</h3>
+              <p className="text-sm text-muted-foreground">Visualisasi tokens dan cost dari waktu ke waktu</p>
+            </div>
+            <Select value={trendPeriod} onValueChange={(value: any) => setTrendPeriod(value)}>
+              <SelectTrigger className="w-[180px]">
+                <Calendar className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Harian</SelectItem>
+                <SelectItem value="weekly">Mingguan</SelectItem>
+                <SelectItem value="monthly">Bulanan</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Token Usage Over Time</CardTitle>
+              <CardDescription>Total tokens digunakan per periode</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {trendData.length === 0 ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Belum ada data untuk periode ini. Gunakan ChatBot AI untuk mulai tracking.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={trendData}>
+                    <defs>
+                      <linearGradient id="colorTokens" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="date" 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="tokens" 
+                      stroke="hsl(var(--primary))" 
+                      fillOpacity={1}
+                      fill="url(#colorTokens)"
+                      name="Tokens"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Cost Over Time</CardTitle>
+              <CardDescription>Estimasi biaya penggunaan AI per periode</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {trendData.length === 0 ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Belum ada data untuk periode ini.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="date" 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                      tickFormatter={(value) => `$${value.toFixed(4)}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: any) => [`$${value.toFixed(6)}`, 'Cost']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="cost" 
+                      stroke="hsl(var(--chart-2))" 
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--chart-2))', r: 4 }}
+                      name="Cost (USD)"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Request Volume</CardTitle>
+              <CardDescription>Jumlah request AI per periode</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {trendData.length === 0 ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Belum ada data untuk periode ini.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={trendData}>
+                    <defs>
+                      <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="date" 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="requests" 
+                      stroke="hsl(var(--chart-3))" 
+                      fillOpacity={1}
+                      fill="url(#colorRequests)"
+                      name="Requests"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
