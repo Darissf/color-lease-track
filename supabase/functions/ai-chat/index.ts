@@ -215,6 +215,66 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
       const total_orders = matches.reduce((acc: number, m: any) => acc + m.orders_total, 0);
       return { matches, total_orders };
     }
+    
+    case "top_client_income": {
+      // Hitung total pemasukan dari client_groups berdasarkan jumlah_lunas di rental_contracts
+      // Optional: filter by date range (tanggal_lunas)
+      
+      // 1) Fetch all rental contracts with jumlah_lunas > 0
+      let rcQuery = supabaseClient
+        .from("rental_contracts")
+        .select("client_group_id, jumlah_lunas, tanggal_lunas, client_group_id(nama, nomor_telepon)")
+        .eq("user_id", userId)
+        .not("jumlah_lunas", "is", null)
+        .gt("jumlah_lunas", 0);
+      
+      // Filter by date if provided
+      if (args.start_date) rcQuery = rcQuery.gte("tanggal_lunas", args.start_date);
+      if (args.end_date) rcQuery = rcQuery.lte("tanggal_lunas", args.end_date);
+      
+      const { data: contracts, error: rcError } = await rcQuery;
+      if (rcError) throw rcError;
+      
+      if (!contracts || contracts.length === 0) {
+        return { ranking: [], top_client: null, total_income: 0 };
+      }
+      
+      // 2) Aggregate by client_group_id
+      const incomeByClient: Record<string, { 
+        client_group_id: string; 
+        nama: string; 
+        nomor_telepon: string; 
+        total_income: number; 
+        order_count: number;
+      }> = {};
+      
+      for (const rc of contracts) {
+        const clientId = rc.client_group_id;
+        const clientData = rc.client_group_id as any;
+        const income = Number(rc.jumlah_lunas) || 0;
+        
+        if (!incomeByClient[clientId]) {
+          incomeByClient[clientId] = {
+            client_group_id: clientId,
+            nama: clientData?.nama || "Unknown",
+            nomor_telepon: clientData?.nomor_telepon || "",
+            total_income: 0,
+            order_count: 0,
+          };
+        }
+        
+        incomeByClient[clientId].total_income += income;
+        incomeByClient[clientId].order_count += 1;
+      }
+      
+      // 3) Sort by total_income descending
+      const ranking = Object.values(incomeByClient).sort((a, b) => b.total_income - a.total_income);
+      const top_client = ranking.length > 0 ? ranking[0] : null;
+      const total_income = ranking.reduce((sum, c) => sum + c.total_income, 0);
+      
+      return { ranking, top_client, total_income };
+    }
+    
     default:
       throw new Error(`Unknown function: ${functionName}`);
   }
@@ -269,12 +329,14 @@ serve(async (req) => {
 3. Jika data kosong atau tidak ditemukan, katakan dengan jelas "Tidak ada data ditemukan"
 4. JANGAN mengarang contoh atau ilustrasi data
 5. Jika hasil query kosong, STOP dan beritahu user bahwa data tidak tersedia
+6. **DILARANG KERAS menampilkan tool_calls, tool__sep, atau markup function calling ke user**
 
 **TERMINOLOGI PENTING:**
 - "client" / "klien" / "pelanggan" / "kelompok" = client_groups (tabel kelompok client)
 - "orderan" / "pesanan" / "kontrak sewa" = rental_contracts (tabel kontrak)
 - Ketika user tanya "berapa orderan [nama]", gunakan count_client_group_orders
 - Ketika user tanya "siapa aja client" atau "cari client", gunakan query_client_groups
+- Ketika user tanya "client paling banyak pemasukan" atau "client terbesar", gunakan top_client_income
 
 Anda memiliki akses ke database finansial user melalui function calling:
       - query_expenses: Data pengeluaran
@@ -283,18 +345,21 @@ Anda memiliki akses ke database finansial user melalui function calling:
       - query_payments: Data pembayaran tracking
       - query_client_groups: Data client/kelompok (nama dan nomor telepon)
       - count_client_group_orders: Hitung total orderan untuk sebuah kelompok client
+      - top_client_income: Ranking client berdasarkan total pemasukan (jumlah_lunas)
 
 **CARA MENJAWAB:**
 1. Gunakan function call untuk query data
 2. HANYA tampilkan data yang BENAR-BENAR dikembalikan dari database
 3. Jika data kosong: "Tidak ada data [x] untuk periode [y]"
 4. Tampilkan detail spesifik: invoice number, nama client sebenarnya, jumlah exact
+5. JANGAN tampilkan markup function calling (tool__calls__begin, tool__sep, dll)
 
 **LARANGAN KERAS:**
 ❌ Jangan buat nama client palsu
 ❌ Jangan buat angka dari asumsi
 ❌ Jangan tambah detail yang tidak ada di hasil query
 ❌ Jangan kasih contoh/ilustrasi data
+❌ Jangan tampilkan tool_calls atau markup function calling
 
 Jawab dalam bahasa Indonesia dengan ramah dan profesional.`
     };
@@ -399,6 +464,26 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional.`
               }
             },
             required: ["name"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "top_client_income",
+          description: "Dapatkan ranking client berdasarkan total pemasukan (jumlah_lunas dari rental_contracts). Gunakan ketika user tanya 'client paling banyak pemasukan', 'client terbesar', 'siapa client tertinggi', dll. Bisa filter berdasarkan periode tanggal.",
+          parameters: {
+            type: "object",
+            properties: {
+              start_date: { 
+                type: "string", 
+                description: "Tanggal mulai filter (YYYY-MM-DD), opsional. Filter berdasarkan tanggal_lunas" 
+              },
+              end_date: { 
+                type: "string", 
+                description: "Tanggal akhir filter (YYYY-MM-DD), opsional. Filter berdasarkan tanggal_lunas" 
+              }
+            }
           }
         }
       }
