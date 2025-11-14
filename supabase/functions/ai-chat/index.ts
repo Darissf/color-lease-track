@@ -212,7 +212,7 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
         nomor_telepon: g.nomor_telepon,
         ...byGroup[g.id],
       }));
-      const total_orders = matches.reduce((acc, m) => acc + m.orders_total, 0);
+      const total_orders = matches.reduce((acc: number, m: any) => acc + m.orders_total, 0);
       return { matches, total_orders };
     }
     default:
@@ -270,12 +270,19 @@ serve(async (req) => {
 4. JANGAN mengarang contoh atau ilustrasi data
 5. Jika hasil query kosong, STOP dan beritahu user bahwa data tidak tersedia
 
+**TERMINOLOGI PENTING:**
+- "client" / "klien" / "pelanggan" / "kelompok" = client_groups (tabel kelompok client)
+- "orderan" / "pesanan" / "kontrak sewa" = rental_contracts (tabel kontrak)
+- Ketika user tanya "berapa orderan [nama]", gunakan count_client_group_orders
+- Ketika user tanya "siapa aja client" atau "cari client", gunakan query_client_groups
+
 Anda memiliki akses ke database finansial user melalui function calling:
       - query_expenses: Data pengeluaran
       - query_income: Data pemasukan  
       - query_rental_contracts: Data kontrak sewa/invoice
       - query_payments: Data pembayaran tracking
-      - query_client_groups: Data client (nama dan nomor telepon)
+      - query_client_groups: Data client/kelompok (nama dan nomor telepon)
+      - count_client_group_orders: Hitung total orderan untuk sebuah kelompok client
 
 **CARA MENJAWAB:**
 1. Gunakan function call untuk query data
@@ -363,14 +370,35 @@ Jawab dalam bahasa Indonesia dengan ramah dan profesional.`
         type: "function",
         function: {
           name: "query_client_groups",
-          description: "Query data client (grup) berdasarkan nama atau nomor telepon.",
+          description: "Query data client (grup/kelompok) berdasarkan nama atau nomor telepon. Mengabaikan gelar seperti bu/ibu/pak/mas/mba secara otomatis.",
           parameters: {
             type: "object",
             properties: {
-              name: { type: "string", description: "Nama client (bisa partial)" },
+              name: { type: "string", description: "Nama client (bisa partial, ignores honorifics)" },
               phone: { type: "string", description: "Nomor telepon (opsional, bisa partial)" },
               limit: { type: "number", description: "Jumlah maksimal hasil (default 50)" }
             }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "count_client_group_orders",
+          description: "Hitung total orderan (rental contracts) untuk sebuah kelompok client berdasarkan nama. Gunakan ini ketika user menanyakan 'berapa orderan', 'jumlah pesanan', atau 'count orders' untuk client/kelompok tertentu.",
+          parameters: {
+            type: "object",
+            properties: {
+              name: { 
+                type: "string", 
+                description: "Nama kelompok client yang dicari (e.g., 'bu nabila', 'nabila'). Gelar seperti bu/pak akan diabaikan otomatis." 
+              },
+              status: { 
+                type: "string", 
+                description: "Opsional: filter berdasarkan status - 'lunas' (sudah dibayar), 'belum_lunas' (belum dibayar), 'aktif', 'selesai', 'dibatalkan'" 
+              }
+            },
+            required: ["name"]
           }
         }
       }
