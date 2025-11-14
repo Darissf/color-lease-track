@@ -328,6 +328,55 @@ export default function ChatBotAI() {
 
         if (user) {
           const responseTime = Date.now() - startTime;
+          
+          // Estimasi tokens: 1 token ≈ 4 characters
+          const estimateTokens = (text: string) => Math.ceil(text.length / 4);
+          const requestTokens = estimateTokens(userMessage);
+          const responseTokens = estimateTokens(assistantMessage);
+          const totalTokens = requestTokens + responseTokens;
+          
+          // Estimasi cost berdasarkan provider dan model (dalam USD)
+          const calculateCost = (provider: string, model: string, inTokens: number, outTokens: number) => {
+            const pricing: Record<string, Record<string, { input: number; output: number }>> = {
+              lovable: {
+                "google/gemini-2.5-flash": { input: 0.000000075, output: 0.0000003 }, // $0.075 / 1M input, $0.30 / 1M output
+                "google/gemini-2.5-pro": { input: 0.00000125, output: 0.000005 }, // $1.25 / 1M input, $5.00 / 1M output
+                "openai/gpt-5-mini": { input: 0.0000015, output: 0.000006 }, // $1.50 / 1M input, $6.00 / 1M output
+              },
+              gemini: {
+                "gemini-2.0-flash-exp": { input: 0, output: 0 }, // Free tier
+                "gemini-1.5-pro": { input: 0.00000125, output: 0.000005 },
+                "gemini-1.5-flash": { input: 0.000000075, output: 0.0000003 },
+              },
+              openai: {
+                "gpt-5": { input: 0.00001, output: 0.00003 }, // $10 / 1M input, $30 / 1M output
+                "gpt-5-mini": { input: 0.0000015, output: 0.000006 },
+                "gpt-4o": { input: 0.0000025, output: 0.00001 },
+                "gpt-4o-mini": { input: 0.00000015, output: 0.0000006 },
+              },
+              claude: {
+                "claude-sonnet-4-5": { input: 0.000003, output: 0.000015 }, // $3 / 1M input, $15 / 1M output
+                "claude-opus-4-1": { input: 0.000015, output: 0.000075 }, // $15 / 1M input, $75 / 1M output
+                "claude-3-5-haiku": { input: 0.0000008, output: 0.000004 }, // $0.80 / 1M input, $4 / 1M output
+              },
+              deepseek: {
+                "deepseek-chat": { input: 0.00000014, output: 0.00000028 }, // $0.14 / 1M input, $0.28 / 1M output
+                "deepseek-coder": { input: 0.00000014, output: 0.00000028 },
+              },
+              groq: {
+                "llama-3.3-70b-versatile": { input: 0.00000059, output: 0.00000079 }, // $0.59 / 1M input, $0.79 / 1M output
+                "mixtral-8x7b-32768": { input: 0.00000024, output: 0.00000024 },
+              },
+            };
+            
+            const providerPricing = pricing[provider]?.[model];
+            if (!providerPricing) return 0;
+            
+            return (inTokens * providerPricing.input) + (outTokens * providerPricing.output);
+          };
+          
+          const costEstimate = calculateCost(activeProvider, selectedModel, requestTokens, responseTokens);
+          
           await (supabase as any).from("ai_usage_analytics").insert({
             user_id: user.id,
             conversation_id: conversationId,
@@ -335,6 +384,10 @@ export default function ChatBotAI() {
             model_name: selectedModel,
             response_time_ms: responseTime,
             status: "success",
+            tokens_used: totalTokens,
+            request_tokens: requestTokens,
+            response_tokens: responseTokens,
+            cost_estimate: costEstimate,
           });
         }
       }
