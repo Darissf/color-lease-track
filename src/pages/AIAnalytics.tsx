@@ -12,6 +12,7 @@ interface AnalyticsSummary {
   totalCost: number;
   avgResponseTime: number;
   successRate: number;
+  errorRate: number;
 }
 
 interface ProviderStats {
@@ -22,6 +23,18 @@ interface ProviderStats {
   cost: number;
 }
 
+interface FrequentQuestion {
+  question: string;
+  count: number;
+  lastAsked: string;
+}
+
+interface ErrorStats {
+  errorType: string;
+  count: number;
+  lastOccurred: string;
+}
+
 export default function AIAnalytics() {
   const [summary, setSummary] = useState<AnalyticsSummary>({
     totalRequests: 0,
@@ -29,9 +42,12 @@ export default function AIAnalytics() {
     totalCost: 0,
     avgResponseTime: 0,
     successRate: 0,
+    errorRate: 0,
   });
   const [providerStats, setProviderStats] = useState<ProviderStats[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [frequentQuestions, setFrequentQuestions] = useState<FrequentQuestion[]>([]);
+  const [errorStats, setErrorStats] = useState<ErrorStats[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,12 +78,15 @@ export default function AIAnalytics() {
         : 0;
       const successRate = totalRequests > 0 ? (successfulRequests / totalRequests) * 100 : 0;
 
+      const errorRate = totalRequests > 0 ? ((totalRequests - successfulRequests) / totalRequests) * 100 : 0;
+
       setSummary({
         totalRequests,
         totalTokens,
         totalCost,
         avgResponseTime: Math.round(avgResponseTime),
         successRate: Math.round(successRate),
+        errorRate: Math.round(errorRate),
       });
 
       // Calculate per-provider stats
@@ -102,6 +121,85 @@ export default function AIAnalytics() {
 
       setProviderStats(providers);
       setRecentActivity(data.slice(0, 10));
+
+      // Fetch frequent questions from chat messages
+      const { data: messages, error: messagesError } = await (supabase as any)
+        .from("chat_messages")
+        .select("content, created_at")
+        .eq("role", "user")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (!messagesError && messages) {
+        // Group similar questions (simple word matching)
+        const questionMap = new Map<string, { count: number; lastAsked: string }>();
+        
+        messages.forEach((msg: any) => {
+          const content = msg.content.toLowerCase().trim();
+          // Skip very short questions
+          if (content.length < 10) return;
+          
+          // Find similar question
+          let found = false;
+          for (const [key, value] of questionMap.entries()) {
+            // Simple similarity check - if 60% of words match
+            const words1 = content.split(/\s+/);
+            const words2 = key.split(/\s+/);
+            const commonWords = words1.filter(w => words2.includes(w)).length;
+            const similarity = commonWords / Math.max(words1.length, words2.length);
+            
+            if (similarity > 0.6) {
+              value.count++;
+              value.lastAsked = msg.created_at;
+              found = true;
+              break;
+            }
+          }
+          
+          if (!found) {
+            questionMap.set(content, { count: 1, lastAsked: msg.created_at });
+          }
+        });
+
+        const questions: FrequentQuestion[] = Array.from(questionMap.entries())
+          .map(([question, data]) => ({
+            question,
+            count: data.count,
+            lastAsked: data.lastAsked,
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+
+        setFrequentQuestions(questions);
+      }
+
+      // Fetch error statistics
+      const errorData = data.filter((a: any) => a.status === "error");
+      const errorMap = new Map<string, { count: number; lastOccurred: string }>();
+      
+      errorData.forEach((item: any) => {
+        const errorType = item.error_message || "Unknown Error";
+        const existing = errorMap.get(errorType);
+        if (existing) {
+          existing.count++;
+          if (item.created_at > existing.lastOccurred) {
+            existing.lastOccurred = item.created_at;
+          }
+        } else {
+          errorMap.set(errorType, { count: 1, lastOccurred: item.created_at });
+        }
+      });
+
+      const errors: ErrorStats[] = Array.from(errorMap.entries())
+        .map(([errorType, data]) => ({
+          errorType,
+          count: data.count,
+          lastOccurred: data.lastOccurred,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      setErrorStats(errors);
 
     } catch (error) {
       console.error("Error fetching analytics:", error);
@@ -199,12 +297,27 @@ export default function AIAnalytics() {
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary.errorRate}%</div>
+            <p className="text-xs text-muted-foreground">
+              {summary.totalRequests - Math.round((summary.successRate / 100) * summary.totalRequests)} failed requests
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="providers" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="providers">Per Provider</TabsTrigger>
-          <TabsTrigger value="recent">Recent Activity</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="providers">Providers</TabsTrigger>
+          <TabsTrigger value="questions">Top Questions</TabsTrigger>
+          <TabsTrigger value="errors">Errors</TabsTrigger>
+          <TabsTrigger value="recent">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="providers" className="space-y-4">
@@ -248,6 +361,111 @@ export default function AIAnalytics() {
                   </Alert>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="questions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pertanyaan Paling Sering</CardTitle>
+              <CardDescription>
+                10 pertanyaan yang paling sering ditanyakan ke AI chat
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {frequentQuestions.length === 0 ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Belum ada pertanyaan yang tercatat. Mulai gunakan ChatBot AI.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="space-y-4">
+                  {frequentQuestions.map((q, index) => (
+                    <div key={index} className="flex items-start gap-3 p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium mb-1 line-clamp-2">
+                          {q.question}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3" />
+                            {q.count}x ditanya
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(q.lastAsked).toLocaleString('id-ID', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="errors" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                Error Statistics
+              </CardTitle>
+              <CardDescription>
+                Analisis error yang terjadi pada AI chat
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {errorStats.length === 0 ? (
+                <Alert>
+                  <Zap className="h-4 w-4" />
+                  <AlertDescription>
+                    Tidak ada error yang tercatat. Sistem berjalan dengan baik! 🎉
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="space-y-4">
+                  {errorStats.map((error, index) => (
+                    <div key={index} className="p-4 rounded-lg border border-destructive/20 bg-destructive/5">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-destructive mb-1 line-clamp-2">
+                            {error.errorType}
+                          </p>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              {error.count} occurrences
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(error.lastOccurred).toLocaleString('id-ID', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge variant="destructive">{error.count}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
