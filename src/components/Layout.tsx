@@ -1,4 +1,4 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -26,7 +26,7 @@ const pagesItems = [
 const adminNavItems = [
   { title: "Pengaturan", url: "/settings", icon: Settings },
   { title: "AI Settings", url: "/settings/ai", icon: Brain },
-  { title: "Admin Settings", url: "/settings/admin", icon: Shield, superAdminOnly: true },
+  { title: "Admin Settings", url: "/settings/admin", icon: User2, superAdminOnly: true },
   { title: "Content Management", url: "/content-management", icon: Edit3, superAdminOnly: true },
   { title: "Audit Logs", url: "/audit-logs", icon: Shield, superAdminOnly: true },
 ];
