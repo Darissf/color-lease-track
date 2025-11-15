@@ -1,9 +1,10 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2 } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { EditModeToggle } from "@/components/EditModeToggle";
+import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState } from "react";
 
 const navItems = [
@@ -12,17 +13,7 @@ const navItems = [
   { title: "Inbox", url: "/inbox", icon: FileText },
 ];
 
-const pagesItems = [
-  { title: "Nabila", url: "/nabila", icon: FileText },
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "ChatBot AI", url: "/chatbot", icon: Bot, badge: "AI", badgeVariant: "ai" as const },
-  { title: "List Client", url: "/client-groups", icon: Users },
-  { title: "List Kontrak Sewa", url: "/rental-contracts", icon: ClipboardList },
-  { title: "Pemasukan", url: "/income", icon: DollarSign },
-  { title: "Pengeluaran", url: "/expenses", icon: TrendingDown },
-  { title: "Savings Plans", url: "/savings", icon: PiggyBank },
-  { title: "Monthly Budget", url: "/monthly-budget", icon: Calendar },
-];
+// Moved pagesItems inside component to access user roles
 
 const adminNavItems = [
   { title: "Pengaturan", url: "/settings", icon: Settings },
@@ -33,12 +24,30 @@ const adminNavItems = [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { user, signOut, isSuperAdmin } = useAuth();
+  const { user, signOut, isSuperAdmin, isAdmin, isUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const notifications = useAdminNotifications(isAdmin || isSuperAdmin);
 
   const handleSignOut = async () => {
     await signOut();
   };
+
+  // Different menu for regular users vs admins
+  const pagesItems = (isUser && !isAdmin && !isSuperAdmin) ? [
+    { title: "Home", url: "/", icon: Home },
+    { title: "Dashboard Saya", url: "/client-dashboard", icon: LayoutDashboard },
+    { title: "Kontrak Saya", url: "/rental-contracts", icon: ClipboardList },
+  ] : [
+    { title: "Nabila", url: "/nabila", icon: FileText },
+    { title: "Dashboard", url: "/dashboard", icon: Home },
+    { title: "ChatBot AI", url: "/chatbot", icon: Bot, badge: "AI", badgeVariant: "ai" as const },
+    { title: "List Client", url: "/client-groups", icon: Users },
+    { title: "List Kontrak Sewa", url: "/rental-contracts", icon: ClipboardList, badge: notifications.total > 0 ? `${notifications.total}` : undefined, badgeVariant: notifications.total > 0 ? "destructive" as const : undefined },
+    { title: "Pemasukan", url: "/income", icon: DollarSign },
+    { title: "Pengeluaran", url: "/expenses", icon: TrendingDown },
+    { title: "Savings Plans", url: "/savings", icon: PiggyBank },
+    { title: "Monthly Budget", url: "/monthly-budget", icon: Calendar },
+  ];
 
   return (
     <div className="flex h-screen bg-background">
