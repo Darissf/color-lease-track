@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, UserPlus, Trash2, ArrowLeft } from "lucide-react";
+import { Shield, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Table,
   TableBody,
@@ -22,44 +21,61 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
-interface UserRole {
+interface UserWithRole {
   id: string;
-  user_id: string;
-  role: string;
+  full_name: string | null;
+  role: string | null;
+  role_id: string | null;
   created_at: string;
 }
 
 const AdminSettings = () => {
-  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState("user");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isSuperAdmin } = useAuth();
 
   useEffect(() => {
-    fetchUserRoles();
-  }, []);
+    if (!isSuperAdmin) {
+      navigate("/");
+      return;
+    }
+    fetchUsers();
+  }, [isSuperAdmin]);
 
-  const fetchUserRoles = async () => {
+  const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from("user_roles")
-        .select("*")
+        .from("profiles")
+        .select(`
+          id,
+          full_name,
+          created_at
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setUserRoles(data || []);
+
+      // Fetch roles for each user
+      const usersWithRoles = await Promise.all(
+        (data || []).map(async (user) => {
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("id, role")
+            .eq("user_id", user.id)
+            .single();
+
+          return {
+            ...user,
+            role: roleData?.role || null,
+            role_id: roleData?.id || null,
+          };
+        })
+      );
+
+      setUsers(usersWithRoles);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -71,37 +87,35 @@ const AdminSettings = () => {
     }
   };
 
-  const handleAddRole = async () => {
-    if (!newUserEmail || !newUserRole) {
-      toast({
-        title: "Error",
-        description: "User ID dan role harus diisi",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleRoleChange = async (userId: string, newRole: string, roleId: string | null) => {
     try {
       const { data: currentUser } = await supabase.auth.getUser();
 
-      // Use the newUserEmail field as user_id input
-      const { error } = await supabase.from("user_roles").insert({
-        user_id: newUserEmail,
-        role: newUserRole,
-        created_by: currentUser?.user?.id,
-      });
+      if (roleId) {
+        // Update existing role
+        const { error } = await supabase
+          .from("user_roles")
+          .update({ role: newRole })
+          .eq("id", roleId);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Create new role
+        const { error } = await supabase.from("user_roles").insert({
+          user_id: userId,
+          role: newRole,
+          created_by: currentUser?.user?.id,
+        });
+
+        if (error) throw error;
+      }
 
       toast({
         title: "Berhasil",
-        description: "Role berhasil ditambahkan",
+        description: "Role berhasil diperbarui",
       });
 
-      setNewUserEmail("");
-      setNewUserRole("user");
-      setIsOpen(false);
-      fetchUserRoles();
+      fetchUsers();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -111,11 +125,11 @@ const AdminSettings = () => {
     }
   };
 
-  const handleDeleteRole = async (id: string) => {
+  const handleDeleteRole = async (roleId: string) => {
     if (!confirm("Yakin ingin menghapus role ini?")) return;
 
     try {
-      const { error } = await supabase.from("user_roles").delete().eq("id", id);
+      const { error } = await supabase.from("user_roles").delete().eq("id", roleId);
 
       if (error) throw error;
 
@@ -124,7 +138,7 @@ const AdminSettings = () => {
         description: "Role berhasil dihapus",
       });
 
-      fetchUserRoles();
+      fetchUsers();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -133,6 +147,10 @@ const AdminSettings = () => {
       });
     }
   };
+
+  if (!isSuperAdmin) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen p-8">
@@ -149,76 +167,23 @@ const AdminSettings = () => {
       </div>
 
       <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
-              <Shield className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">Daftar User Role</h2>
-              <p className="text-sm text-muted-foreground">Kelola hak akses pengguna</p>
-            </div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+            <Shield className="h-6 w-6 text-white" />
           </div>
-
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              <Button className="gradient-primary">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Tambah Role
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Tambah User Role</DialogTitle>
-                <DialogDescription>
-                  Berikan hak akses kepada pengguna
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">User ID</Label>
-                  <Input
-                    id="email"
-                    type="text"
-                    placeholder="UUID pengguna"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Masukkan UUID dari tabel user_roles atau auth.users
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select value={newUserRole} onValueChange={setNewUserRole}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="super_admin">Super Admin</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button onClick={handleAddRole} className="w-full">
-                  Tambah Role
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <div>
+            <h2 className="text-xl font-bold">Manajemen User & Role</h2>
+            <p className="text-sm text-muted-foreground">Kelola hak akses pengguna</p>
+          </div>
         </div>
 
         {loading ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">Memuat data...</p>
           </div>
-        ) : userRoles.length === 0 ? (
+        ) : users.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">Belum ada role yang ditambahkan</p>
+            <p className="text-muted-foreground">Belum ada pengguna terdaftar</p>
           </div>
         ) : (
           <Table>
@@ -232,30 +197,43 @@ const AdminSettings = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {userRoles.map((userRole) => (
-                <TableRow key={userRole.id}>
+              {users.map((user) => (
+                <TableRow key={user.id}>
                   <TableCell className="font-medium">
-                    User
+                    {user.full_name || "Nama tidak tersedia"}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
-                    {userRole.user_id.slice(0, 8)}...
+                    {user.id.slice(0, 8)}...
                   </TableCell>
                   <TableCell>
-                    <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
-                      {userRole.role}
-                    </span>
+                    <Select
+                      value={user.role || "none"}
+                      onValueChange={(value) => handleRoleChange(user.id, value, user.role_id)}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Tidak ada role</SelectItem>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="super_admin">Super Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
-                    {new Date(userRole.created_at).toLocaleDateString("id-ID")}
+                    {new Date(user.created_at).toLocaleDateString("id-ID")}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteRole(userRole.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {user.role_id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteRole(user.role_id!)}
+                      >
+                        Hapus Role
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
