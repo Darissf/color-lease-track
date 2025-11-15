@@ -101,8 +101,40 @@ Return dalam format JSON.`;
           }
         }),
       });
+    } else if (provider === "claude") {
+      aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5",
+          max_tokens: 1024,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: image.startsWith('data:image/png') ? 'image/png' : 'image/jpeg',
+                    data: image.split(',')[1]
+                  }
+                },
+                {
+                  type: "text",
+                  text: systemPrompt
+                }
+              ]
+            }
+          ]
+        }),
+      });
     } else {
-      throw new Error(`Provider ${provider} belum support vision/OCR. Gunakan OpenAI atau Gemini untuk Document Intelligence.`);
+      throw new Error(`Provider ${provider} belum support vision/OCR. Gunakan OpenAI, Gemini, atau Claude untuk Document Intelligence.`);
     }
 
     if (!aiResponse.ok) {
@@ -116,6 +148,8 @@ Return dalam format JSON.`;
 
     if (provider === "gemini") {
       extractedData = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    } else if (provider === "claude") {
+      extractedData = aiData.content?.[0]?.text || "{}";
     } else {
       extractedData = aiData.choices[0].message.content;
     }
