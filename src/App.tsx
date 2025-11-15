@@ -32,6 +32,11 @@ import AIAnalytics from "./pages/AIAnalytics";
 import ClientDashboard from "./pages/ClientDashboard";
 import ContractDetail from "./pages/ContractDetail";
 import NotFound from "./pages/NotFound";
+import AIHub from "./pages/AIHub";
+import AIAutomation from "./pages/AIAutomation";
+import AIAdvisor from "./pages/AIAdvisor";
+import AIInsights from "./pages/AIInsights";
+import AIAutoPilot from "./pages/AIAutoPilot";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +77,11 @@ const App = () => (
                       <Route path="/settings/ai" element={<AISettings />} />
                       <Route path="/chatbot" element={<ChatBotAI />} />
                       <Route path="/ai-analytics" element={<AIAnalytics />} />
+                      <Route path="/ai-hub" element={<AIHub />} />
+                      <Route path="/ai-automation" element={<AIAutomation />} />
+                      <Route path="/ai-advisor" element={<AIAdvisor />} />
+                      <Route path="/ai-insights" element={<AIInsights />} />
+                      <Route path="/ai-autopilot" element={<AIAutoPilot />} />
                       <Route path="/client-dashboard" element={<ClientDashboard />} />
                       <Route path="/contract/:id" element={<ContractDetail />} />
                       <Route path="*" element={<NotFound />} />
