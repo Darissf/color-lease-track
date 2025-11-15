@@ -88,8 +88,40 @@ serve(async (req) => {
           }]
         }),
       });
+    } else if (provider === "claude") {
+      aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5",
+          max_tokens: 1024,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: image.startsWith('data:image/png') ? 'image/png' : 'image/jpeg',
+                    data: image.split(',')[1]
+                  }
+                },
+                {
+                  type: "text",
+                  text: prompt || "What's in this image?"
+                }
+              ]
+            }
+          ]
+        }),
+      });
     } else {
-      throw new Error(`Provider ${provider} belum support vision. Gunakan OpenAI atau Gemini.`);
+      throw new Error(`Provider ${provider} belum support vision. Gunakan OpenAI, Gemini, atau Claude.`);
     }
 
     if (!aiResponse.ok) {
@@ -103,6 +135,8 @@ serve(async (req) => {
 
     if (provider === "gemini") {
       analysis = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+    } else if (provider === "claude") {
+      analysis = aiData.content?.[0]?.text || "No response";
     } else {
       analysis = aiData.choices[0].message.content;
     }
