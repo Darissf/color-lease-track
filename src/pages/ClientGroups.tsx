@@ -242,7 +242,7 @@ const ClientGroups = () => {
       // Upload icon image if selected
       let iconUrl = groupForm.icon;
       if (iconImageFile) {
-        const iconFiles = await uploadFiles([iconImageFile], "ktp-documents");
+        const iconFiles = await uploadFiles([iconImageFile], "client-icons");
         iconUrl = iconFiles[0].url;
       }
 
