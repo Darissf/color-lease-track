@@ -1048,6 +1048,7 @@ export type Database = {
       }
       savings_plans: {
         Row: {
+          category: string | null
           created_at: string
           current_amount: number | null
           deadline: string | null
@@ -1059,6 +1060,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           current_amount?: number | null
           deadline?: string | null
@@ -1070,6 +1072,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           current_amount?: number | null
           deadline?: string | null
