@@ -14,3 +14,30 @@ verify_jwt = true
 
 [functions.ai-budget-advisor]
 verify_jwt = true
+
+[functions.ai-analytics]
+verify_jwt = true
+
+[functions.ai-smart-categorization]
+verify_jwt = true
+
+[functions.ai-document-intelligence]
+verify_jwt = true
+
+[functions.ai-investment-advisor]
+verify_jwt = true
+
+[functions.ai-financial-dna]
+verify_jwt = true
+
+[functions.ai-behavioral-insights]
+verify_jwt = true
+
+[functions.ai-emotional-finance]
+verify_jwt = true
+
+[functions.ai-multi-agent]
+verify_jwt = true
+
+[functions.ai-autopilot]
+verify_jwt = true
