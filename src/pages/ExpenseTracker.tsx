@@ -5,38 +5,61 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, Filter, Download, TrendingDown } from "lucide-react";
+import { Plus, Trash2, Edit, Filter, Download } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { formatCurrency } from "@/lib/currency";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// KATEGORI PENGELUARAN KAKEIBO
+// KATEGORI PENGELUARAN
 const EXPENSE_CATEGORIES = [
-  "Kebutuhan (Needs)",
-  "Keinginan (Wants)",
-  "Budaya (Culture)",
-  "Tak Terduga (Unexpected)",
-  "Pengeluaran Tetap",
-  "Transport",
   "Makanan & Minuman",
+  "Transportasi",
+  "Komisi",
+  "Sedekah",
   "Belanja",
   "Kesehatan",
   "Pendidikan",
   "Hiburan",
+  "Listrik & Air",
+  "Internet & Pulsa",
+  "Rumah Tangga",
+  "Kendaraan",
+  "Asuransi",
+  "Pajak",
+  "Investasi",
+  "Cicilan",
+  "Pengeluaran Tetap",
+  "Tak Terduga",
   "Lainnya",
 ];
 
+interface BankAccount {
+  id: string;
+  bank_name: string;
+  account_number: string;
+  account_holder_name: string | null;
+}
+
 interface Expense {
   id: string;
+  transaction_name: string | null;
   category: string;
-  sub_category: string | null;
   amount: number;
+  bank_account_id: string | null;
   description: string | null;
   date: string;
-  is_fixed: boolean;
+  checked: boolean;
+  bank_accounts?: BankAccount;
 }
 
 export default function ExpenseTracker() {
@@ -44,27 +67,51 @@ export default function ExpenseTracker() {
   const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [checkConfirmId, setCheckConfirmId] = useState<string | null>(null);
+  const [checkConfirmValue, setCheckConfirmValue] = useState<boolean>(false);
   const [formData, setFormData] = useState({
+    transaction_name: "",
     category: "",
-    sub_category: "",
     amount: "",
+    bank_account_id: "",
     description: "",
-    date: new Date().toISOString().split('T')[0],
-    is_fixed: false,
+    date: new Date(),
+    checked: false,
   });
 
   useEffect(() => {
-    fetchExpenses();
+    if (user) {
+      fetchExpenses();
+      fetchBankAccounts();
+    }
   }, [user]);
 
   useEffect(() => {
     filterExpenses();
   }, [expenses, filterCategory, filterMonth]);
+
+  const fetchBankAccounts = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("bank_accounts")
+      .select("id, bank_name, account_number, account_holder_name")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("bank_name");
+
+    if (error) {
+      console.error("Error fetching bank accounts:", error);
+    } else {
+      setBankAccounts(data || []);
+    }
+  };
 
   const fetchExpenses = async () => {
     if (!user) return;
@@ -72,12 +119,20 @@ export default function ExpenseTracker() {
     setLoading(true);
     const { data, error } = await supabase
       .from("expenses")
-      .select("*")
+      .select(`
+        *,
+        bank_accounts (
+          id,
+          bank_name,
+          account_number,
+          account_holder_name
+        )
+      `)
       .eq("user_id", user.id)
       .order("date", { ascending: false });
 
     if (error) {
-      toast({ title: "Error", description: "Failed to fetch expenses", variant: "destructive" });
+      toast({ title: "Error", description: "Gagal memuat data pengeluaran", variant: "destructive" });
     } else {
       setExpenses(data || []);
     }
@@ -104,12 +159,15 @@ export default function ExpenseTracker() {
 
     const payload = {
       user_id: user.id,
+      transaction_name: formData.transaction_name || null,
       category: formData.category,
-      sub_category: formData.sub_category || null,
       amount: parseFloat(formData.amount),
+      bank_account_id: formData.bank_account_id || null,
       description: formData.description || null,
-      date: formData.date,
-      is_fixed: formData.is_fixed,
+      date: format(formData.date, "yyyy-MM-dd"),
+      checked: formData.checked,
+      sub_category: null,
+      is_fixed: false,
     };
 
     if (editingId) {
@@ -119,23 +177,23 @@ export default function ExpenseTracker() {
         .eq("id", editingId);
 
       if (error) {
-        toast({ title: "Error", description: "Failed to update", variant: "destructive" });
+        toast({ title: "Error", description: "Gagal mengupdate pengeluaran", variant: "destructive" });
       } else {
-        toast({ title: "Success", description: "Expense updated" });
-        resetForm();
+        toast({ title: "Sukses", description: "Pengeluaran berhasil diupdate" });
         fetchExpenses();
+        resetForm();
       }
     } else {
       const { error } = await supabase
         .from("expenses")
-        .insert(payload);
+        .insert([payload]);
 
       if (error) {
-        toast({ title: "Error", description: "Failed to add", variant: "destructive" });
+        toast({ title: "Error", description: "Gagal menambah pengeluaran", variant: "destructive" });
       } else {
-        toast({ title: "Success", description: "Expense added" });
-        resetForm();
+        toast({ title: "Sukses", description: "Pengeluaran berhasil ditambahkan" });
         fetchExpenses();
+        resetForm();
       }
     }
   };
@@ -143,12 +201,13 @@ export default function ExpenseTracker() {
   const handleEdit = (expense: Expense) => {
     setEditingId(expense.id);
     setFormData({
+      transaction_name: expense.transaction_name || "",
       category: expense.category,
-      sub_category: expense.sub_category || "",
       amount: expense.amount.toString(),
+      bank_account_id: expense.bank_account_id || "",
       description: expense.description || "",
-      date: expense.date,
-      is_fixed: expense.is_fixed,
+      date: new Date(expense.date),
+      checked: expense.checked,
     });
     setIsDialogOpen(true);
   };
@@ -162,35 +221,60 @@ export default function ExpenseTracker() {
       .eq("id", id);
 
     if (error) {
-      toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
+      toast({ title: "Error", description: "Gagal menghapus pengeluaran", variant: "destructive" });
     } else {
-      toast({ title: "Success", description: "Expense deleted" });
+      toast({ title: "Sukses", description: "Pengeluaran berhasil dihapus" });
       fetchExpenses();
     }
   };
 
   const resetForm = () => {
     setFormData({
+      transaction_name: "",
       category: "",
-      sub_category: "",
       amount: "",
+      bank_account_id: "",
       description: "",
-      date: new Date().toISOString().split('T')[0],
-      is_fixed: false,
+      date: new Date(),
+      checked: false,
     });
     setEditingId(null);
     setIsDialogOpen(false);
   };
 
+  const handleCheckToggle = (expenseId: string, currentValue: boolean) => {
+    setCheckConfirmId(expenseId);
+    setCheckConfirmValue(!currentValue);
+  };
+
+  const confirmCheckToggle = async () => {
+    if (!checkConfirmId) return;
+
+    const { error } = await supabase
+      .from("expenses")
+      .update({ checked: checkConfirmValue })
+      .eq("id", checkConfirmId);
+
+    if (error) {
+      toast({ title: "Error", description: "Gagal mengubah status checklist", variant: "destructive" });
+    } else {
+      toast({ title: "Sukses", description: "Status checklist berhasil diubah" });
+      fetchExpenses();
+    }
+    
+    setCheckConfirmId(null);
+  };
+
   const exportToCSV = () => {
-    const headers = ["Tanggal", "Kategori", "Sub Kategori", "Deskripsi", "Jumlah", "Tetap"];
+    const headers = ["Tanggal", "Transaksi", "Kategori", "Jumlah", "Rekening", "Checklist", "Catatan"];
     const rows = filteredExpenses.map(exp => [
       exp.date,
+      exp.transaction_name || "-",
       exp.category,
-      exp.sub_category || "-",
-      exp.description || "-",
       exp.amount.toString(),
-      exp.is_fixed ? "Ya" : "Tidak",
+      exp.bank_accounts?.bank_name || "-",
+      exp.checked ? "✓" : "-",
+      exp.description || "-",
     ]);
 
     const csvContent = [
@@ -201,29 +285,21 @@ export default function ExpenseTracker() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `expenses_${filterMonth}.csv`;
+    link.download = `pengeluaran_${filterMonth}.csv`;
     link.click();
 
-    toast({ title: "Success", description: "Data exported to CSV" });
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+    toast({ title: "Sukses", description: "Data berhasil diekspor ke CSV" });
   };
 
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const fixedExpenses = filteredExpenses.filter(exp => exp.is_fixed).reduce((sum, exp) => sum + exp.amount, 0);
+  const avgDaily = filteredExpenses.length > 0 ? totalExpenses / new Date(filterMonth + "-01").getDate() : 0;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Tracking Pengeluaran</h1>
-          <p className="text-sm text-muted-foreground">Pembukuan - Metode Kakeibo</p>
+          <p className="text-sm text-muted-foreground">Kelola pengeluaran Anda</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -238,6 +314,42 @@ export default function ExpenseTracker() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
+                <Label htmlFor="date">Tanggal *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.date ? format(formData.date, "PPP") : <span>Pilih tanggal</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.date}
+                      onSelect={(date) => date && setFormData({ ...formData, date })}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <Label htmlFor="transaction_name">Transaksi</Label>
+                <Input
+                  id="transaction_name"
+                  value={formData.transaction_name}
+                  onChange={(e) => setFormData({ ...formData, transaction_name: e.target.value })}
+                  placeholder="Nama transaksi"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="category">Kategori *</Label>
                 <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })} required>
                   <SelectTrigger>
@@ -250,15 +362,7 @@ export default function ExpenseTracker() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label htmlFor="sub_category">Sub Kategori</Label>
-                <Input
-                  id="sub_category"
-                  value={formData.sub_category}
-                  onChange={(e) => setFormData({ ...formData, sub_category: e.target.value })}
-                  placeholder="Contoh: Grocery, Bensin, dll"
-                />
-              </div>
+
               <div>
                 <Label htmlFor="amount">Jumlah (Rp) *</Label>
                 <Input
@@ -270,36 +374,46 @@ export default function ExpenseTracker() {
                   required
                 />
               </div>
+
               <div>
-                <Label htmlFor="description">Deskripsi</Label>
+                <Label htmlFor="bank_account_id">Rekening</Label>
+                <Select value={formData.bank_account_id} onValueChange={(val) => setFormData({ ...formData, bank_account_id: val })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih rekening" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Tidak ada</SelectItem>
+                    {bankAccounts.map(bank => (
+                      <SelectItem key={bank.id} value={bank.id}>
+                        {bank.bank_name} - {bank.account_number}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="checked"
+                  checked={formData.checked}
+                  onCheckedChange={(checked) => setFormData({ ...formData, checked: checked as boolean })}
+                />
+                <Label htmlFor="checked" className="text-sm font-normal cursor-pointer">
+                  Sudah selesai / terkonfirmasi
+                </Label>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Catatan</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Detail pengeluaran..."
+                  placeholder="Catatan tambahan..."
                   rows={3}
                 />
               </div>
-              <div>
-                <Label htmlFor="date">Tanggal *</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="is_fixed"
-                  checked={formData.is_fixed}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_fixed: checked as boolean })}
-                />
-                <Label htmlFor="is_fixed" className="text-sm font-normal cursor-pointer">
-                  Pengeluaran Tetap (bulanan)
-                </Label>
-              </div>
+
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Batal
@@ -313,8 +427,24 @@ export default function ExpenseTracker() {
         </Dialog>
       </div>
 
+      {/* Alert Dialog untuk konfirmasi checklist */}
+      <AlertDialog open={checkConfirmId !== null} onOpenChange={() => setCheckConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Perubahan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin mengubah status checklist pengeluaran ini?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCheckToggle}>Ya, Ubah</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Pengeluaran</CardTitle>
@@ -326,20 +456,11 @@ export default function ExpenseTracker() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pengeluaran Tetap</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Rata-rata Harian</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(fixedExpenses)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Per bulan</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Rata-rata/Hari</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalExpenses / 30)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Estimasi</p>
+            <div className="text-2xl font-bold">{formatCurrency(avgDaily)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Periode {filterMonth}</p>
           </CardContent>
         </Card>
       </div>
@@ -347,18 +468,24 @@ export default function ExpenseTracker() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Filter className="h-4 w-4" />
-            Filter & Export
-          </CardTitle>
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filter
+            </CardTitle>
+            <Button onClick={exportToCSV} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="filter-category">Kategori</Label>
+              <Label>Kategori</Label>
               <Select value={filterCategory} onValueChange={setFilterCategory}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Semua kategori" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Kategori</SelectItem>
@@ -369,19 +496,12 @@ export default function ExpenseTracker() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="filter-month">Bulan</Label>
+              <Label>Bulan</Label>
               <Input
-                id="filter-month"
                 type="month"
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(e.target.value)}
               />
-            </div>
-            <div className="flex items-end">
-              <Button onClick={exportToCSV} variant="outline" className="w-full">
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
             </div>
           </div>
         </CardContent>
@@ -394,49 +514,59 @@ export default function ExpenseTracker() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading...</div>
-          ) : filteredExpenses.length > 0 ? (
+            <p>Loading...</p>
+          ) : filteredExpenses.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">Belum ada data pengeluaran</p>
+          ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Tanggal</TableHead>
+                    <TableHead>Transaksi</TableHead>
                     <TableHead>Kategori</TableHead>
-                    <TableHead>Deskripsi</TableHead>
-                    <TableHead className="text-right">Jumlah</TableHead>
-                    <TableHead className="text-center">Tetap</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>Jumlah</TableHead>
+                    <TableHead>Rekening</TableHead>
+                    <TableHead>Checklist</TableHead>
+                    <TableHead>Catatan</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredExpenses.map((expense) => (
                     <TableRow key={expense.id}>
-                      <TableCell>{new Date(expense.date).toLocaleDateString('id-ID')}</TableCell>
+                      <TableCell>{format(new Date(expense.date), "dd MMM yyyy")}</TableCell>
+                      <TableCell>{expense.transaction_name || "-"}</TableCell>
+                      <TableCell>{expense.category}</TableCell>
+                      <TableCell className="font-medium text-red-600">{formatCurrency(expense.amount)}</TableCell>
                       <TableCell>
-                        <div>
-                          <div className="font-medium text-sm">{expense.category}</div>
-                          {expense.sub_category && (
-                            <div className="text-xs text-muted-foreground">{expense.sub_category}</div>
-                          )}
-                        </div>
+                        {expense.bank_accounts ? (
+                          <div className="text-sm">
+                            <div className="font-medium">{expense.bank_accounts.bank_name}</div>
+                            <div className="text-muted-foreground">{expense.bank_accounts.account_number}</div>
+                          </div>
+                        ) : "-"}
                       </TableCell>
-                      <TableCell className="max-w-xs truncate">{expense.description || "-"}</TableCell>
-                      <TableCell className="text-right font-semibold text-red-600">
-                        {formatCurrency(expense.amount)}
+                      <TableCell>
+                        <Checkbox
+                          checked={expense.checked}
+                          onCheckedChange={() => handleCheckToggle(expense.id, expense.checked)}
+                        />
                       </TableCell>
-                      <TableCell className="text-center">
-                        {expense.is_fixed && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Tetap</span>}
-                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">{expense.description || "-"}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => handleEdit(expense)}>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(expense)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
-                            variant="ghost"
+                            variant="destructive"
                             onClick={() => handleDelete(expense.id)}
-                            className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -446,10 +576,6 @@ export default function ExpenseTracker() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              Belum ada pengeluaran. Klik "Tambah Pengeluaran" untuk memulai.
             </div>
           )}
         </CardContent>
