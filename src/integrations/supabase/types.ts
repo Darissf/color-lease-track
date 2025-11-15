@@ -470,6 +470,7 @@ export type Database = {
         Row: {
           created_at: string
           has_whatsapp: boolean | null
+          icon: string | null
           id: string
           ktp_files: Json | null
           nama: string
@@ -481,6 +482,7 @@ export type Database = {
         Insert: {
           created_at?: string
           has_whatsapp?: boolean | null
+          icon?: string | null
           id?: string
           ktp_files?: Json | null
           nama: string
@@ -492,6 +494,7 @@ export type Database = {
         Update: {
           created_at?: string
           has_whatsapp?: boolean | null
+          icon?: string | null
           id?: string
           ktp_files?: Json | null
           nama?: string

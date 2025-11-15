@@ -22,6 +22,7 @@ interface ClientGroup {
   id: string;
   nama: string;
   nomor_telepon: string;
+  icon: string;
   ktp_files: Array<{ name: string; url: string }>;
   has_whatsapp: boolean | null;
   whatsapp_checked_at: string | null;
@@ -56,9 +57,18 @@ const ClientGroups = () => {
   const [itemsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Icon options for clients
+  const iconOptions = [
+    "👤", "👨", "👩", "👨‍💼", "👩‍💼", "👨‍🎓", "👩‍🎓",
+    "🧑", "👶", "👴", "👵", "👨‍👩‍👦", "👨‍👩‍👧",
+    "💼", "🏢", "🏠", "🏪", "🏬", "🏭", "🏗️",
+    "⭐", "🌟", "💎", "👑", "🎯", "🔥", "⚡"
+  ];
+
   const [groupForm, setGroupForm] = useState({
     nama: "",
     nomor_telepon: "",
+    icon: "👤",
   });
   const [phoneError, setPhoneError] = useState<string>("");
   const [ktpFiles, setKtpFiles] = useState<File[]>([]);
@@ -201,6 +211,7 @@ const ClientGroups = () => {
         user_id: user?.id,
         nama: groupForm.nama,
         nomor_telepon: groupForm.nomor_telepon,
+        icon: groupForm.icon,
         ktp_files: ktpFileUrls,
         has_whatsapp: whatsappStatus?.has_whatsapp || null,
         whatsapp_checked_at: whatsappStatus ? new Date().toISOString() : null,
@@ -236,6 +247,7 @@ const ClientGroups = () => {
     setGroupForm({
       nama: group.nama,
       nomor_telepon: group.nomor_telepon,
+      icon: group.icon || "👤",
     });
     setIsGroupDialogOpen(true);
   };
@@ -268,6 +280,7 @@ const ClientGroups = () => {
     setGroupForm({
       nama: "",
       nomor_telepon: "",
+      icon: "👤",
     });
     setKtpFiles([]);
     setPhoneError("");
@@ -359,6 +372,24 @@ const ClientGroups = () => {
                   onChange={(e) => setGroupForm({ ...groupForm, nama: e.target.value })}
                   placeholder="Nama client"
                 />
+              </div>
+              <div>
+                <Label>Icon/Emoticon</Label>
+                <div className="grid grid-cols-7 gap-2 p-3 border rounded-md bg-muted/20">
+                  {iconOptions.map((icon) => (
+                    <button
+                      key={icon}
+                      type="button"
+                      onClick={() => setGroupForm({ ...groupForm, icon })}
+                      className={cn(
+                        "h-10 text-2xl hover:bg-accent rounded transition-colors",
+                        groupForm.icon === icon && "bg-primary text-primary-foreground ring-2 ring-primary"
+                      )}
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <Label>Nomor Telepon</Label>
@@ -489,7 +520,10 @@ const ClientGroups = () => {
                   <TableRow key={group.id}>
                     <TableCell className="text-center font-medium">{startIndex + index + 1}</TableCell>
                     <TableCell>
-                      <span className="font-medium">{group.nama}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{group.icon || "👤"}</span>
+                        <span className="font-medium">{group.nama}</span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm">{group.nomor_telepon}</span>
