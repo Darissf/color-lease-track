@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
   const [expensesByCategory, setExpensesByCategory] = useState<any[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
+  const [incomeByClient, setIncomeByClient] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -102,6 +103,33 @@ export default function Dashboard() {
       pengeluaran: r.pengeluaran || 0,
     })) || [];
 
+    // Fetch income by client
+    const { data: incomeData } = await supabase
+      .from("rental_contracts")
+      .select(`
+        jumlah_lunas,
+        client_groups (
+          nama
+        )
+      `)
+      .eq("user_id", user.id)
+      .not("tanggal_lunas", "is", null);
+
+    const clientIncomeMap = new Map();
+    incomeData?.forEach(contract => {
+      const clientName = contract.client_groups?.nama || 'Unknown';
+      const current = clientIncomeMap.get(clientName) || 0;
+      clientIncomeMap.set(clientName, current + (contract.jumlah_lunas || 0));
+    });
+
+    const clientIncomeData = Array.from(clientIncomeMap.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Top 10 clients
+
+    // Budget calculations
+    // Formula: Remaining Budget = Monthly Budget - Total Expenses
+    // Savings Rate = ((Income - Expenses) / Income) × 100%
     const income = reportData?.pemasukan || 0;
     const expenses = reportData?.pengeluaran || 0;
     const budget = reportData?.target_belanja || 0;
@@ -120,6 +148,7 @@ export default function Dashboard() {
     setRecentExpenses(expensesData || []);
     setExpensesByCategory(categoryData);
     setMonthlyTrend(trendData);
+    setIncomeByClient(clientIncomeData);
     setLoading(false);
   };
 
@@ -219,12 +248,13 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Charts Row */}
+      {/* Charts Row 1: Monthly Trend & Income by Client */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Trend */}
+        {/* Monthly Trend - Income vs Expenses */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base font-semibold">Trend 6 Bulan Terakhir</CardTitle>
+            <p className="text-xs text-muted-foreground">Perbandingan Pemasukan vs Pengeluaran</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -247,6 +277,47 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Income by Client */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold">Pemasukan per Client</CardTitle>
+            <p className="text-xs text-muted-foreground">Top 10 client dengan pemasukan tertinggi</p>
+          </CardHeader>
+          <CardContent>
+            {incomeByClient.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={incomeByClient} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" style={{ fontSize: '12px' }} />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    stroke="hsl(var(--muted-foreground))" 
+                    style={{ fontSize: '11px' }}
+                    width={100}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                    formatter={(value: number) => formatCurrency(value)}
+                  />
+                  <Bar dataKey="value" fill="#a855f7" name="Pemasukan" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+                Belum ada data pemasukan dari client
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row 2: Expenses Category & Budget Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expenses by Category */}
         <Card>
           <CardHeader>
@@ -280,17 +351,17 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Budget Overview & Recent Expenses */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Budget Overview */}
+        {/* Budget Overview with Formula */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               Budget Overview
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Rumus: Sisa Budget = Target Belanja - Total Pengeluaran
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center text-sm">
@@ -307,26 +378,36 @@ export default function Dashboard() {
                 {formatCurrency(stats.remainingBudget)}
               </span>
             </div>
-            
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="w-full bg-muted rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all ${
-                    stats.totalExpenses > stats.monthlyBudget ? 'bg-red-600' : 'bg-primary'
-                  }`}
-                  style={{
-                    width: `${Math.min((stats.totalExpenses / (stats.monthlyBudget || 1)) * 100, 100)}%`,
-                  }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                {((stats.totalExpenses / (stats.monthlyBudget || 1)) * 100).toFixed(1)}% digunakan
-              </p>
+            <div className="w-full bg-muted rounded-full h-2.5 mt-2">
+              <div
+                className={`h-2.5 rounded-full ${
+                  (stats.totalExpenses / stats.monthlyBudget) * 100 > 100
+                    ? 'bg-red-600'
+                    : (stats.totalExpenses / stats.monthlyBudget) * 100 > 80
+                    ? 'bg-yellow-600'
+                    : 'bg-green-600'
+                }`}
+                style={{
+                  width: `${Math.min((stats.totalExpenses / stats.monthlyBudget) * 100, 100)}%`,
+                }}
+              />
+            </div>
+            <div className="text-xs text-muted-foreground text-center">
+              {stats.monthlyBudget > 0 
+                ? `${((stats.totalExpenses / stats.monthlyBudget) * 100).toFixed(1)}% terpakai`
+                : 'Belum ada target budget'}
+            </div>
+            <div className="text-xs text-muted-foreground bg-muted p-2 rounded-md mt-2">
+              <strong>Savings Rate:</strong> {stats.savingsRate.toFixed(1)}%
+              <br />
+              <span className="text-[10px]">Formula: ((Pemasukan - Pengeluaran) / Pemasukan) × 100%</span>
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Recent Expenses & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Expenses */}
         <Card>
           <CardHeader>
@@ -359,34 +440,41 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col items-center justify-center gap-2"
-          onClick={() => navigate("/nabila")}
-        >
-          <TrendingUp className="h-5 w-5" />
-          <span className="text-sm font-medium">Tambah Pemasukan</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col items-center justify-center gap-2"
-          onClick={() => navigate("/nabila")}
-        >
-          <TrendingDown className="h-5 w-5" />
-          <span className="text-sm font-medium">Catat Pengeluaran</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col items-center justify-center gap-2"
-          onClick={() => navigate("/nabila")}
-        >
-          <PiggyBank className="h-5 w-5" />
-          <span className="text-sm font-medium">Update Tabungan</span>
-        </Button>
+        {/* Quick Actions Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3">
+              <Button
+                variant="outline"
+                className="h-16 justify-start gap-3"
+                onClick={() => navigate("/nabila")}
+              >
+                <TrendingUp className="h-5 w-5 text-green-600" />
+                <span className="text-sm font-medium">Tambah Pemasukan</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-16 justify-start gap-3"
+                onClick={() => navigate("/nabila")}
+              >
+                <TrendingDown className="h-5 w-5 text-red-600" />
+                <span className="text-sm font-medium">Catat Pengeluaran</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-16 justify-start gap-3"
+                onClick={() => navigate("/nabila")}
+              >
+                <PiggyBank className="h-5 w-5 text-blue-600" />
+                <span className="text-sm font-medium">Update Tabungan</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
