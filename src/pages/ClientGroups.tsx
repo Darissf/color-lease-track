@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -102,6 +103,7 @@ const ClientGroups = () => {
   const [ktpFiles, setKtpFiles] = useState<File[]>([]);
   const [iconImageFile, setIconImageFile] = useState<File | null>(null);
   const [iconImagePreview, setIconImagePreview] = useState<string | null>(null);
+  const [deletingFile, setDeletingFile] = useState<{ groupId: string; fileIndex: number; fileName: string } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -313,6 +315,32 @@ const ClientGroups = () => {
       fetchData();
     } catch (error: any) {
       toast.error("Gagal menghapus: " + error.message);
+    }
+  };
+
+  const handleDeleteKtpFile = async () => {
+    if (!deletingFile) return;
+
+    try {
+      const group = clientGroups.find(g => g.id === deletingFile.groupId);
+      if (!group) return;
+
+      // Remove file from array
+      const updatedFiles = group.ktp_files.filter((_, idx) => idx !== deletingFile.fileIndex);
+
+      // Update database
+      const { error } = await supabase
+        .from("client_groups")
+        .update({ ktp_files: updatedFiles })
+        .eq("id", deletingFile.groupId);
+
+      if (error) throw error;
+
+      toast.success("File KTP berhasil dihapus");
+      fetchData();
+      setDeletingFile(null);
+    } catch (error: any) {
+      toast.error("Gagal menghapus file: " + error.message);
     }
   };
 
@@ -718,17 +746,35 @@ const ClientGroups = () => {
                               </DialogHeader>
                               <div className="space-y-2">
                                 {group.ktp_files.map((file, idx) => (
-                                  <a
+                                  <div
                                     key={idx}
-                                    href={file.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
                                     className="flex items-center gap-2 p-3 rounded-lg border hover:bg-accent transition-colors"
                                   >
                                     <FileText className="h-4 w-4 text-muted-foreground" />
-                                    <span className="flex-1 text-sm truncate">{file.name}</span>
-                                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                                  </a>
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex-1 text-sm truncate hover:underline"
+                                    >
+                                      {file.name}
+                                    </a>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => setDeletingFile({ groupId: group.id, fileIndex: idx, fileName: file.name })}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                                    </a>
+                                  </div>
                                 ))}
                               </div>
                             </DialogContent>
@@ -801,6 +847,25 @@ const ClientGroups = () => {
           </div>
         )}
       </Card>
+
+      {/* Alert Dialog for Delete KTP File Confirmation */}
+      <AlertDialog open={!!deletingFile} onOpenChange={(open) => !open && setDeletingFile(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus file <strong>{deletingFile?.fileName}</strong>? 
+              Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteKtpFile} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
