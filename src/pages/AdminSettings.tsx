@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowLeft } from "lucide-react";
+import { Shield, ArrowLeft, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserRegistrationForm } from "@/components/UserRegistrationForm";
+import { UserEditForm } from "@/components/UserEditForm";
 import {
   Table,
   TableBody,
@@ -26,6 +27,9 @@ import {
 interface UserWithRole {
   id: string;
   full_name: string | null;
+  username: string | null;
+  email: string;
+  nomor_telepon: string | null;
   role: string | null;
   role_id: string | null;
   created_at: string;
@@ -34,6 +38,8 @@ interface UserWithRole {
 const AdminSettings = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
@@ -53,13 +59,15 @@ const AdminSettings = () => {
         .select(`
           id,
           full_name,
+          username,
+          nomor_telepon,
           created_at
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Fetch roles for each user
+      // Fetch roles and emails for each user
       const usersWithRoles = await Promise.all(
         (data || []).map(async (user) => {
           const { data: roleData } = await supabase
@@ -68,8 +76,12 @@ const AdminSettings = () => {
             .eq("user_id", user.id)
             .single();
 
+          // Get email from auth
+          const { data: authData } = await supabase.auth.admin.getUserById(user.id);
+
           return {
             ...user,
+            email: authData.user?.email || "",
             role: roleData?.role || null,
             role_id: roleData?.id || null,
           };
@@ -149,6 +161,11 @@ const AdminSettings = () => {
     }
   };
 
+  const handleEditUser = (user: UserWithRole) => {
+    setEditingUser(user);
+    setEditDialogOpen(true);
+  };
+
   if (!isSuperAdmin) {
     return null;
   }
@@ -194,7 +211,8 @@ const AdminSettings = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Nama</TableHead>
-                <TableHead>User ID</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Username</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Tanggal Dibuat</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
@@ -206,8 +224,11 @@ const AdminSettings = () => {
                   <TableCell className="font-medium">
                     {user.full_name || "Nama tidak tersedia"}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {user.id.slice(0, 8)}...
+                  <TableCell className="text-sm text-muted-foreground">
+                    {user.email}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {user.username || "-"}
                   </TableCell>
                   <TableCell>
                     <Select
@@ -229,15 +250,25 @@ const AdminSettings = () => {
                     {new Date(user.created_at).toLocaleDateString("id-ID")}
                   </TableCell>
                   <TableCell className="text-right">
-                    {user.role_id && (
+                    <div className="flex gap-2 justify-end">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteRole(user.role_id!)}
+                        onClick={() => handleEditUser(user)}
                       >
-                        Hapus Role
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Edit
                       </Button>
-                    )}
+                      {user.role_id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteRole(user.role_id!)}
+                        >
+                          Hapus Role
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -245,6 +276,22 @@ const AdminSettings = () => {
           </Table>
         )}
       </Card>
+
+      {editingUser && (
+        <UserEditForm
+          userId={editingUser.id}
+          currentData={{
+            full_name: editingUser.full_name,
+            username: editingUser.username,
+            email: editingUser.email,
+            nomor_telepon: editingUser.nomor_telepon,
+            role: editingUser.role,
+          }}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSuccess={fetchUsers}
+        />
+      )}
     </div>
   );
 };

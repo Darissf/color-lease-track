@@ -1,0 +1,211 @@
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useAuditLog } from "@/hooks/useAuditLog";
+
+interface UserEditData {
+  full_name: string;
+  username?: string;
+  email: string;
+  nomor_telepon?: string;
+  role: string;
+}
+
+interface UserEditFormProps {
+  userId: string;
+  currentData: {
+    full_name: string | null;
+    username?: string | null;
+    email: string;
+    nomor_telepon?: string | null;
+    role: string | null;
+  };
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSuccess }: UserEditFormProps) => {
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  const { logAction } = useAuditLog();
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<UserEditData>({
+    defaultValues: {
+      full_name: currentData.full_name || "",
+      username: currentData.username || "",
+      email: currentData.email,
+      nomor_telepon: currentData.nomor_telepon || "",
+      role: currentData.role || "user",
+    }
+  });
+
+  const selectedRole = watch("role");
+
+  // Update form when currentData changes
+  useEffect(() => {
+    setValue("full_name", currentData.full_name || "");
+    setValue("username", currentData.username || "");
+    setValue("email", currentData.email);
+    setValue("nomor_telepon", currentData.nomor_telepon || "");
+    setValue("role", currentData.role || "user");
+  }, [currentData, setValue]);
+
+  const onSubmit = async (data: UserEditData) => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("No active session");
+      }
+
+      const response = await supabase.functions.invoke("update-user", {
+        body: {
+          user_id: userId,
+          ...data
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) throw response.error;
+
+      await logAction(
+        "update",
+        "user",
+        userId,
+        currentData,
+        data
+      );
+
+      toast({
+        title: "Berhasil",
+        description: "Data user berhasil diperbarui",
+      });
+
+      onOpenChange(false);
+      onSuccess();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Gagal memperbarui user",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+          <DialogDescription>
+            Perbarui informasi user di bawah ini
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit_full_name">Nama Lengkap *</Label>
+            <Input
+              id="edit_full_name"
+              {...register("full_name", { required: "Nama lengkap wajib diisi" })}
+              placeholder="John Doe"
+            />
+            {errors.full_name && (
+              <p className="text-sm text-destructive">{errors.full_name.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit_username">Username</Label>
+            <Input
+              id="edit_username"
+              {...register("username")}
+              placeholder="johndoe"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit_email">Email *</Label>
+            <Input
+              id="edit_email"
+              type="email"
+              {...register("email", { 
+                required: "Email wajib diisi",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Email tidak valid"
+                }
+              })}
+              placeholder="john@example.com"
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit_nomor_telepon">Nomor Telepon</Label>
+            <Input
+              id="edit_nomor_telepon"
+              {...register("nomor_telepon")}
+              placeholder="08123456789"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit_role">Role *</Label>
+            <Select
+              value={selectedRole}
+              onValueChange={(value) => setValue("role", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
