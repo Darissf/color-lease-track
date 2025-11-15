@@ -72,6 +72,7 @@ const RentalContracts = () => {
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
   const [paymentStatus, setPaymentStatus] = useState<"belum_lunas" | "sudah_lunas">("belum_lunas");
+  const [invoiceSearch, setInvoiceSearch] = useState("");
 
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
@@ -401,8 +402,13 @@ const RentalContracts = () => {
   const sortedContracts = React.useMemo(() => {
     if (!rentalContracts) return [];
     
-    // Filter by date range first
+    // Filter by date range and invoice search
     let filtered = rentalContracts.filter(contract => {
+      // Filter by invoice search
+      if (invoiceSearch && !contract.invoice?.toLowerCase().includes(invoiceSearch.toLowerCase())) {
+        return false;
+      }
+      
       // If date filters are active, exclude contracts without tanggal
       if ((startDateFilter || endDateFilter) && !contract.tanggal) return false;
       
@@ -469,7 +475,7 @@ const RentalContracts = () => {
     }
     
     return sorted;
-  }, [rentalContracts, sortBy, sortOrder, clientGroups, startDateFilter, endDateFilter]);
+  }, [rentalContracts, sortBy, sortOrder, clientGroups, startDateFilter, endDateFilter, invoiceSearch]);
 
   const totalPages = Math.ceil(sortedContracts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -849,6 +855,27 @@ const RentalContracts = () => {
                 >
                   {sortOrder === 'asc' ? '↑' : '↓'}
                 </Button>
+              </div>
+              
+              {/* Invoice Search */}
+              <div className="flex items-center gap-2">
+                <Label>Cari Invoice:</Label>
+                <Input
+                  type="text"
+                  placeholder="Masukkan nomor invoice..."
+                  value={invoiceSearch}
+                  onChange={(e) => setInvoiceSearch(e.target.value)}
+                  className="w-[200px]"
+                />
+                {invoiceSearch && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setInvoiceSearch("")}
+                  >
+                    Reset
+                  </Button>
+                )}
               </div>
               
               {/* Date Range Filter */}
