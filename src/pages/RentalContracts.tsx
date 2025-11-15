@@ -245,9 +245,25 @@ const RentalContracts = () => {
             contract_id: editingContractId,
           };
 
-          await supabase
+          // Check if income entry already exists for this contract
+          const { data: existingIncome } = await supabase
             .from("income_sources")
-            .upsert([incomeData], { onConflict: "contract_id" });
+            .select("id")
+            .eq("contract_id", editingContractId)
+            .maybeSingle();
+
+          if (existingIncome) {
+            // Update existing income entry
+            await supabase
+              .from("income_sources")
+              .update(incomeData)
+              .eq("id", existingIncome.id);
+          } else {
+            // Insert new income entry
+            await supabase
+              .from("income_sources")
+              .insert([incomeData]);
+          }
         } else if (!contractForm.tanggal_lunas) {
           // Hapus pemasukan jika tanggal_lunas dikosongkan
           await supabase
@@ -283,14 +299,14 @@ const RentalContracts = () => {
           
           await supabase
             .from("income_sources")
-            .upsert([{
+            .insert([{
               user_id: user?.id,
               source_name: sourceName,
               bank_name: bankAccount?.bank_name || null,
               amount: jumlahLunas,
               date: format(contractForm.tanggal_lunas, "yyyy-MM-dd"),
               contract_id: newContract.id,
-            }], { onConflict: "contract_id" });
+            }]);
         }
 
         toast.success("Kontrak berhasil ditambahkan");
