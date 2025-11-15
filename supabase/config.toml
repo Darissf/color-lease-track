@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.test-ai-connection]
 verify_jwt = true
+
+[functions.ai-budget-advisor]
+verify_jwt = true

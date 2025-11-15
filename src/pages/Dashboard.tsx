@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, eachDayOfInterval, eachMonthOfInterval, subDays, subMonths } from "date-fns";
+import { AIBudgetAdvisor } from "@/components/AIBudgetAdvisor";
 
 interface DashboardStats {
   totalIncome: number;
@@ -571,6 +572,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Budget Advisor */}
+      <AIBudgetAdvisor />
     </div>
   );
 }
