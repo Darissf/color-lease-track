@@ -6,6 +6,8 @@ import { TrendingUp, TrendingDown, DollarSign, PiggyBank, CreditCard, Calendar, 
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, eachDayOfInterval, eachMonthOfInterval, subDays, subMonths } from "date-fns";
 
 interface DashboardStats {
   totalIncome: number;
@@ -21,6 +23,7 @@ const COLORS = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [period, setPeriod] = useState<"week" | "month" | "year">("month");
   const [stats, setStats] = useState<DashboardStats>({
     totalIncome: 0,
     totalExpenses: 0,
@@ -37,23 +40,54 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user]);
+  }, [user, period]);
 
   const fetchDashboardData = async () => {
     if (!user) return;
 
     setLoading(true);
-    const currentMonth = new Date().toLocaleString('id-ID', { month: 'long' }).toLowerCase();
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    
+    // Calculate date range based on period
+    let startDate: Date;
+    let endDate: Date;
+    
+    if (period === "week") {
+      startDate = startOfWeek(now, { weekStartsOn: 1 });
+      endDate = endOfWeek(now, { weekStartsOn: 1 });
+    } else if (period === "month") {
+      startDate = startOfMonth(now);
+      endDate = endOfMonth(now);
+    } else {
+      startDate = startOfYear(now);
+      endDate = endOfYear(now);
+    }
 
-    // Fetch monthly report
-    const { data: reportData } = await supabase
-      .from("monthly_reports")
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
+    const endDateStr = format(endDate, 'yyyy-MM-dd');
+
+    // Fetch income for the period from rental_contracts
+    const { data: incomeData } = await supabase
+      .from("rental_contracts")
+      .select("jumlah_lunas, tanggal_lunas")
+      .eq("user_id", user.id)
+      .not("tanggal_lunas", "is", null)
+      .gte("tanggal_lunas", startDateStr)
+      .lte("tanggal_lunas", endDateStr);
+
+    const totalIncome = incomeData?.reduce((sum, contract) => sum + (contract.jumlah_lunas || 0), 0) || 0;
+
+    // Fetch expenses for the period
+    const { data: expensesData } = await supabase
+      .from("expenses")
       .select("*")
       .eq("user_id", user.id)
-      .eq("month", currentMonth)
-      .eq("year", currentYear)
-      .maybeSingle();
+      .gte("date", startDateStr)
+      .lte("date", endDateStr)
+      .order("date", { ascending: false });
+
+    const totalExpenses = expensesData?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+    const recentExpensesData = expensesData?.slice(0, 5) || [];
 
     // Fetch total savings
     const { data: savingsData } = await supabase
@@ -63,22 +97,9 @@ export default function Dashboard() {
 
     const totalSavings = savingsData?.reduce((sum, plan) => sum + (plan.current_amount || 0), 0) || 0;
 
-    // Fetch recent expenses
-    const { data: expensesData } = await supabase
-      .from("expenses")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("date", { ascending: false })
-      .limit(5);
-
     // Group expenses by category
-    const { data: allExpenses } = await supabase
-      .from("expenses")
-      .select("*")
-      .eq("user_id", user.id);
-
     const categoryMap = new Map();
-    allExpenses?.forEach(exp => {
+    expensesData?.forEach(exp => {
       const current = categoryMap.get(exp.category) || 0;
       categoryMap.set(exp.category, current + exp.amount);
     });
@@ -88,35 +109,85 @@ export default function Dashboard() {
       value,
     }));
 
-    // Fetch last 6 months reports
-    const { data: reportsData } = await supabase
-      .from("monthly_reports")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("year", currentYear)
-      .order("month", { ascending: true })
-      .limit(6);
+    // Generate trend data based on period
+    let trendData: any[] = [];
+    
+    if (period === "week") {
+      // Daily trend for the week
+      const days = eachDayOfInterval({ start: startDate, end: endDate });
+      trendData = days.map(day => {
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const dayIncome = incomeData?.filter(i => i.tanggal_lunas === dayStr)
+          .reduce((sum, i) => sum + (i.jumlah_lunas || 0), 0) || 0;
+        const dayExpenses = expensesData?.filter(e => e.date === dayStr)
+          .reduce((sum, e) => sum + e.amount, 0) || 0;
+        
+        return {
+          month: format(day, 'EEE'),
+          pemasukan: dayIncome,
+          pengeluaran: dayExpenses,
+        };
+      });
+    } else if (period === "month") {
+      // Weekly trend for the month
+      const weeks = Math.ceil((endDate.getDate() - startDate.getDate() + 1) / 7);
+      for (let i = 0; i < weeks; i++) {
+        const weekStart = new Date(startDate);
+        weekStart.setDate(startDate.getDate() + (i * 7));
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        
+        const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+        const weekEndStr = format(weekEnd > endDate ? endDate : weekEnd, 'yyyy-MM-dd');
+        
+        const weekIncome = incomeData?.filter(i => i.tanggal_lunas && i.tanggal_lunas >= weekStartStr && i.tanggal_lunas <= weekEndStr)
+          .reduce((sum, i) => sum + (i.jumlah_lunas || 0), 0) || 0;
+        const weekExpenses = expensesData?.filter(e => e.date >= weekStartStr && e.date <= weekEndStr)
+          .reduce((sum, e) => sum + e.amount, 0) || 0;
+        
+        trendData.push({
+          month: `W${i + 1}`,
+          pemasukan: weekIncome,
+          pengeluaran: weekExpenses,
+        });
+      }
+    } else {
+      // Monthly trend for the year
+      const months = eachMonthOfInterval({ start: startDate, end: endDate });
+      trendData = months.map(month => {
+        const monthStart = format(startOfMonth(month), 'yyyy-MM-dd');
+        const monthEnd = format(endOfMonth(month), 'yyyy-MM-dd');
+        
+        const monthIncome = incomeData?.filter(i => i.tanggal_lunas && i.tanggal_lunas >= monthStart && i.tanggal_lunas <= monthEnd)
+          .reduce((sum, i) => sum + (i.jumlah_lunas || 0), 0) || 0;
+        const monthExpenses = expensesData?.filter(e => e.date >= monthStart && e.date <= monthEnd)
+          .reduce((sum, e) => sum + e.amount, 0) || 0;
+        
+        return {
+          month: format(month, 'MMM').toUpperCase(),
+          pemasukan: monthIncome,
+          pengeluaran: monthExpenses,
+        };
+      });
+    }
 
-    const trendData = reportsData?.map(r => ({
-      month: r.month.substring(0, 3).toUpperCase(),
-      pemasukan: r.pemasukan || 0,
-      pengeluaran: r.pengeluaran || 0,
-    })) || [];
-
-    // Fetch income by client
-    const { data: incomeData } = await supabase
+    // Fetch income by client for the period
+    const { data: clientIncomeRaw } = await supabase
       .from("rental_contracts")
       .select(`
         jumlah_lunas,
+        tanggal_lunas,
         client_groups (
           nama
         )
       `)
       .eq("user_id", user.id)
-      .not("tanggal_lunas", "is", null);
+      .not("tanggal_lunas", "is", null)
+      .gte("tanggal_lunas", startDateStr)
+      .lte("tanggal_lunas", endDateStr);
 
     const clientIncomeMap = new Map();
-    incomeData?.forEach(contract => {
+    clientIncomeRaw?.forEach(contract => {
       const clientName = contract.client_groups?.nama || 'Unknown';
       const current = clientIncomeMap.get(clientName) || 0;
       clientIncomeMap.set(clientName, current + (contract.jumlah_lunas || 0));
@@ -127,25 +198,29 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value)
       .slice(0, 10); // Top 10 clients
 
-    // Budget calculations
-    // Formula: Remaining Budget = Monthly Budget - Total Expenses
-    // Savings Rate = ((Income - Expenses) / Income) × 100%
-    const income = reportData?.pemasukan || 0;
-    const expenses = reportData?.pengeluaran || 0;
-    const budget = reportData?.target_belanja || 0;
-    const remaining = budget - expenses;
-    const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
+    // Fetch budget for the period
+    const { data: budgetData } = await supabase
+      .from("monthly_budgets")
+      .select("target_belanja")
+      .eq("user_id", user.id)
+      .eq("month", format(startDate, 'MMMM').toLowerCase())
+      .eq("year", startDate.getFullYear())
+      .maybeSingle();
+
+    const budget = budgetData?.target_belanja || 0;
+    const remaining = budget - totalExpenses;
+    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     setStats({
-      totalIncome: income,
-      totalExpenses: expenses,
+      totalIncome,
+      totalExpenses,
       totalSavings,
       monthlyBudget: budget,
       remainingBudget: remaining,
       savingsRate,
     });
 
-    setRecentExpenses(expensesData || []);
+    setRecentExpenses(recentExpensesData);
     setExpensesByCategory(categoryData);
     setMonthlyTrend(trendData);
     setIncomeByClient(clientIncomeData);
@@ -171,14 +246,28 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Financial Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Ringkasan keuangan Anda bulan ini</p>
+          <p className="text-sm text-muted-foreground">
+            Ringkasan keuangan Anda {period === "week" ? "minggu ini" : period === "month" ? "bulan ini" : "tahun ini"}
+          </p>
         </div>
-        <Button onClick={() => navigate("/nabila")} size="sm">
-          Lihat Detail →
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={period} onValueChange={(value: "week" | "month" | "year") => setPeriod(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih Periode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Minggu Ini</SelectItem>
+              <SelectItem value="month">Bulan Ini</SelectItem>
+              <SelectItem value="year">Tahun Ini</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => navigate("/nabila")} size="sm">
+            Lihat Detail →
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -195,7 +284,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.totalIncome)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Bulan ini</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {period === "week" ? "Minggu ini" : period === "month" ? "Bulan ini" : "Tahun ini"}
+            </p>
           </CardContent>
         </Card>
 
@@ -211,7 +302,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.totalExpenses)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Bulan ini</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {period === "week" ? "Minggu ini" : period === "month" ? "Bulan ini" : "Tahun ini"}
+            </p>
           </CardContent>
         </Card>
 
@@ -250,10 +343,12 @@ export default function Dashboard() {
 
       {/* Charts Row 1: Monthly Trend & Income by Client */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Trend - Income vs Expenses */}
+        {/* Trend - Income vs Expenses */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Trend 6 Bulan Terakhir</CardTitle>
+            <CardTitle className="text-base font-semibold">
+              Trend {period === "week" ? "Harian" : period === "month" ? "Mingguan" : "Bulanan"}
+            </CardTitle>
             <p className="text-xs text-muted-foreground">Perbandingan Pemasukan vs Pengeluaran</p>
           </CardHeader>
           <CardContent>
