@@ -26,6 +26,7 @@ interface SavingsPlan {
   current_amount: number;
   deadline: string | null;
   notes: string | null;
+  category: string;
   created_at: string;
 }
 
@@ -63,12 +64,27 @@ export default function SavingsPlans() {
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SavingsPlan | null>(null);
   const [editingPlan, setEditingPlan] = useState<SavingsPlan | null>(null);
+
+  const getCategoryInfo = (category: string) => {
+    const categories = {
+      darurat: { emoji: "🚨", label: "Dana Darurat", color: "bg-red-100 text-red-700" },
+      liburan: { emoji: "✈️", label: "Liburan", color: "bg-blue-100 text-blue-700" },
+      investasi: { emoji: "📈", label: "Investasi", color: "bg-green-100 text-green-700" },
+      pendidikan: { emoji: "🎓", label: "Pendidikan", color: "bg-purple-100 text-purple-700" },
+      kendaraan: { emoji: "🚗", label: "Kendaraan", color: "bg-yellow-100 text-yellow-700" },
+      properti: { emoji: "🏠", label: "Properti", color: "bg-indigo-100 text-indigo-700" },
+      pernikahan: { emoji: "💒", label: "Pernikahan", color: "bg-pink-100 text-pink-700" },
+      lainnya: { emoji: "📦", label: "Lainnya", color: "bg-gray-100 text-gray-700" },
+    };
+    return categories[category as keyof typeof categories] || categories.lainnya;
+  };
   const [formData, setFormData] = useState({
     plan_name: "",
     target_amount: "",
     current_amount: "",
     deadline: "",
     notes: "",
+    category: "lainnya",
   });
   const [transactionFormData, setTransactionFormData] = useState({
     transaction_type: "deposit" as "deposit" | "withdrawal",
@@ -153,6 +169,7 @@ export default function SavingsPlans() {
         current_amount: parseFloat(formData.current_amount) || 0,
         deadline: formData.deadline || null,
         notes: formData.notes || null,
+        category: formData.category,
         user_id: user?.id,
       };
 
@@ -358,6 +375,7 @@ export default function SavingsPlans() {
       current_amount: "",
       deadline: "",
       notes: "",
+      category: "lainnya",
     });
     setEditingPlan(null);
   };
@@ -401,6 +419,7 @@ export default function SavingsPlans() {
       current_amount: plan.current_amount.toString(),
       deadline: plan.deadline || "",
       notes: plan.notes || "",
+      category: plan.category || "lainnya",
     });
     setDialogOpen(true);
   };
@@ -494,6 +513,27 @@ export default function SavingsPlans() {
                   placeholder="e.g., Liburan Bali, Dana Darurat"
                   required
                 />
+              </div>
+              <div>
+                <Label htmlFor="category">Kategori</Label>
+                <Select 
+                  value={formData.category} 
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="darurat">🚨 Dana Darurat</SelectItem>
+                    <SelectItem value="liburan">✈️ Liburan</SelectItem>
+                    <SelectItem value="investasi">📈 Investasi</SelectItem>
+                    <SelectItem value="pendidikan">🎓 Pendidikan</SelectItem>
+                    <SelectItem value="kendaraan">🚗 Kendaraan</SelectItem>
+                    <SelectItem value="properti">🏠 Properti</SelectItem>
+                    <SelectItem value="pernikahan">💒 Pernikahan</SelectItem>
+                    <SelectItem value="lainnya">📦 Lainnya</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="target_amount">Target Amount</Label>
@@ -683,7 +723,12 @@ export default function SavingsPlans() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg">{plan.plan_name}</CardTitle>
+                          <div className="flex items-center gap-2 mb-1">
+                            <CardTitle className="text-lg">{plan.plan_name}</CardTitle>
+                            <Badge className={getCategoryInfo(plan.category).color}>
+                              {getCategoryInfo(plan.category).emoji} {getCategoryInfo(plan.category).label}
+                            </Badge>
+                          </div>
                           {plan.notes && (
                             <CardDescription className="mt-1">{plan.notes}</CardDescription>
                           )}
