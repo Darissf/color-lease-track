@@ -43,7 +43,7 @@ const AdminSettings = () => {
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState("admin");
+  const [newUserRole, setNewUserRole] = useState("user");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -99,7 +99,7 @@ const AdminSettings = () => {
       });
 
       setNewUserEmail("");
-      setNewUserRole("admin");
+      setNewUserRole("user");
       setIsOpen(false);
       fetchUserRoles();
     } catch (error: any) {
@@ -199,7 +199,7 @@ const AdminSettings = () => {
                     <SelectContent>
                       <SelectItem value="super_admin">Super Admin</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
