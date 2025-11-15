@@ -8,18 +8,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const MONTHS = [
-  { name: "Januari", quarter: 1, path: "/month/januari" },
-  { name: "Februari", quarter: 1, path: "/month/februari" },
-  { name: "Maret", quarter: 1, path: "/month/maret" },
-  { name: "April", quarter: 2, path: "/month/april" },
-  { name: "Mei", quarter: 2, path: "/month/mei" },
-  { name: "Juni", quarter: 2, path: "/month/juni" },
-  { name: "Juli", quarter: 3, path: "/month/juli" },
-  { name: "Agustus", quarter: 3, path: "/month/agustus" },
-  { name: "September", quarter: 3, path: "/month/september" },
-  { name: "Oktober", quarter: 4, path: "/month/oktober" },
-  { name: "November", quarter: 4, path: "/month/november" },
-  { name: "Desember", quarter: 4, path: "/month/desember" },
+  { name: "Januari", quarter: 1, monthKey: "januari" },
+  { name: "Februari", quarter: 1, monthKey: "februari" },
+  { name: "Maret", quarter: 1, monthKey: "maret" },
+  { name: "April", quarter: 2, monthKey: "april" },
+  { name: "Mei", quarter: 2, monthKey: "mei" },
+  { name: "Juni", quarter: 2, monthKey: "juni" },
+  { name: "Juli", quarter: 3, monthKey: "juli" },
+  { name: "Agustus", quarter: 3, monthKey: "agustus" },
+  { name: "September", quarter: 3, monthKey: "september" },
+  { name: "Oktober", quarter: 4, monthKey: "oktober" },
+  { name: "November", quarter: 4, monthKey: "november" },
+  { name: "Desember", quarter: 4, monthKey: "desember" },
 ];
 
 export default function Nabila() {
@@ -184,7 +184,7 @@ export default function Nabila() {
                     key={month.name}
                     variant="outline"
                     className="w-full justify-start text-sm"
-                    onClick={() => navigate(month.path)}
+                    onClick={() => navigate(`/month/${selectedYear}/${month.monthKey}`)}
                   >
                     <Calendar className="h-3 w-3 mr-2" />
                     {month.name} {selectedYear}

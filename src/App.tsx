@@ -61,7 +61,7 @@ const App = () => (
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/nabila" element={<Nabila />} />
-                      <Route path="/month/:month" element={<MonthlyView />} />
+                      <Route path="/month/:year/:month" element={<MonthlyView />} />
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/income" element={<IncomeManagement />} />
                       <Route path="/expenses" element={<ExpenseTracker />} />
