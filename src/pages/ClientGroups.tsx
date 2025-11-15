@@ -100,6 +100,8 @@ const ClientGroups = () => {
   });
   const [phoneError, setPhoneError] = useState<string>("");
   const [ktpFiles, setKtpFiles] = useState<File[]>([]);
+  const [iconImageFile, setIconImageFile] = useState<File | null>(null);
+  const [iconImagePreview, setIconImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -235,11 +237,18 @@ const ClientGroups = () => {
         }
       }
 
+      // Upload icon image if selected
+      let iconUrl = groupForm.icon;
+      if (iconImageFile) {
+        const iconFiles = await uploadFiles([iconImageFile], "ktp-documents");
+        iconUrl = iconFiles[0].url;
+      }
+
       const groupData = {
         user_id: user?.id,
         nama: groupForm.nama,
         nomor_telepon: groupForm.nomor_telepon,
-        icon: groupForm.icon,
+        icon: iconUrl,
         ktp_files: ktpFileUrls,
         has_whatsapp: whatsappStatus?.has_whatsapp || null,
         whatsapp_checked_at: whatsappStatus ? new Date().toISOString() : null,
@@ -277,6 +286,10 @@ const ClientGroups = () => {
       nomor_telepon: group.nomor_telepon,
       icon: group.icon || "👤",
     });
+    // Set preview if icon is an image URL
+    if (group.icon?.startsWith('http')) {
+      setIconImagePreview(group.icon);
+    }
     setIsGroupDialogOpen(true);
   };
 
@@ -311,6 +324,8 @@ const ClientGroups = () => {
       icon: "👤",
     });
     setKtpFiles([]);
+    setIconImageFile(null);
+    setIconImagePreview(null);
     setPhoneError("");
     setWhatsappStatus(null);
   };
@@ -406,29 +421,99 @@ const ClientGroups = () => {
                 <div className="space-y-3">
                   <div className="flex gap-2">
                     <Input
-                      value={groupForm.icon}
-                      onChange={(e) => setGroupForm({ ...groupForm, icon: e.target.value })}
-                      placeholder="Atau ketik emoticon sendiri..."
+                      value={groupForm.icon.startsWith('http') ? '' : groupForm.icon}
+                      onChange={(e) => {
+                        setGroupForm({ ...groupForm, icon: e.target.value });
+                        setIconImageFile(null);
+                        setIconImagePreview(null);
+                      }}
+                      placeholder="Ketik emoticon..."
                       className="text-2xl text-center"
                       maxLength={4}
+                      disabled={!!iconImageFile}
                     />
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setGroupForm({ ...groupForm, icon: "👤" })}
+                      onClick={() => {
+                        setGroupForm({ ...groupForm, icon: "👤" });
+                        setIconImageFile(null);
+                        setIconImagePreview(null);
+                      }}
                     >
                       Reset
                     </Button>
                   </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="icon-upload" className="text-sm text-muted-foreground">
+                      Atau Upload Gambar Icon (JPG/PNG)
+                    </Label>
+                    <Input
+                      id="icon-upload"
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setIconImageFile(file);
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setIconImagePreview(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                          setGroupForm({ ...groupForm, icon: "" });
+                        }
+                      }}
+                      className="cursor-pointer"
+                    />
+                    {iconImagePreview && (
+                      <div className="flex items-center gap-2">
+                        <img 
+                          src={iconImagePreview} 
+                          alt="Icon preview" 
+                          className="w-16 h-16 rounded-full object-cover border-2 border-primary"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setIconImageFile(null);
+                            setIconImagePreview(null);
+                            setGroupForm({ ...groupForm, icon: "👤" });
+                          }}
+                        >
+                          Hapus
+                        </Button>
+                      </div>
+                    )}
+                    {groupForm.icon.startsWith('http') && !iconImagePreview && (
+                      <div className="flex items-center gap-2">
+                        <img 
+                          src={groupForm.icon} 
+                          alt="Current icon" 
+                          className="w-16 h-16 rounded-full object-cover border-2 border-muted"
+                        />
+                        <span className="text-sm text-muted-foreground">Icon saat ini</span>
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="grid grid-cols-10 gap-1 p-3 border rounded-md bg-muted/20 max-h-[240px] overflow-y-auto">
                     {iconOptions.map((icon, idx) => (
                       <button
                         key={`${icon}-${idx}`}
                         type="button"
-                        onClick={() => setGroupForm({ ...groupForm, icon })}
+                        onClick={() => {
+                          setGroupForm({ ...groupForm, icon });
+                          setIconImageFile(null);
+                          setIconImagePreview(null);
+                        }}
+                        disabled={!!iconImageFile}
                         className={cn(
-                          "h-9 text-xl hover:bg-accent rounded transition-colors",
-                          groupForm.icon === icon && "bg-primary text-primary-foreground ring-2 ring-primary"
+                          "h-9 text-xl hover:bg-accent rounded transition-colors disabled:opacity-50",
+                          groupForm.icon === icon && !iconImageFile && "bg-primary text-primary-foreground ring-2 ring-primary"
                         )}
                       >
                         {icon}
@@ -567,7 +652,15 @@ const ClientGroups = () => {
                     <TableCell className="text-center font-medium">{startIndex + index + 1}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl">{group.icon || "👤"}</span>
+                        {group.icon?.startsWith('http') ? (
+                          <img 
+                            src={group.icon} 
+                            alt={group.nama}
+                            className="w-8 h-8 rounded-full object-cover border border-border"
+                          />
+                        ) : (
+                          <span className="text-2xl">{group.icon || "👤"}</span>
+                        )}
                         <span className="font-medium">{group.nama}</span>
                       </div>
                     </TableCell>
