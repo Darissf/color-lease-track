@@ -215,7 +215,32 @@ Berikan response dalam format JSON dengan penjelasan dalam BAHASA INDONESIA:
       const text = data.content?.[0]?.text || "{}";
       console.log("Claude raw response:", text);
       try {
-        const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
+        // Remove markdown code blocks and extract JSON
+        let cleanText = text.trim();
+        
+        // Remove markdown code block markers
+        cleanText = cleanText.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+        
+        // Find the JSON object by looking for the first { and matching }
+        const firstBrace = cleanText.indexOf("{");
+        if (firstBrace !== -1) {
+          let braceCount = 0;
+          let lastBrace = firstBrace;
+          
+          for (let i = firstBrace; i < cleanText.length; i++) {
+            if (cleanText[i] === "{") braceCount++;
+            if (cleanText[i] === "}") {
+              braceCount--;
+              if (braceCount === 0) {
+                lastBrace = i;
+                break;
+              }
+            }
+          }
+          
+          cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+        }
+        
         aiResponse = JSON.parse(cleanText);
       } catch (parseError) {
         console.error("Failed to parse Claude response:", parseError, "Text:", text);
