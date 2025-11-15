@@ -30,6 +30,7 @@ import AISettings from "./pages/AISettings";
 import ChatBotAI from "./pages/ChatBotAI";
 import AIAnalytics from "./pages/AIAnalytics";
 import ClientDashboard from "./pages/ClientDashboard";
+import ContractDetail from "./pages/ContractDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ const App = () => (
                       <Route path="/chatbot" element={<ChatBotAI />} />
                       <Route path="/ai-analytics" element={<AIAnalytics />} />
                       <Route path="/client-dashboard" element={<ClientDashboard />} />
+                      <Route path="/contract/:id" element={<ContractDetail />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Layout>
