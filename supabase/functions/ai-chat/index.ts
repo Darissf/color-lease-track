@@ -6,6 +6,55 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function: Calculate Levenshtein distance for fuzzy matching
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = [];
+  const aLower = a.toLowerCase();
+  const bLower = b.toLowerCase();
+
+  for (let i = 0; i <= bLower.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= aLower.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= bLower.length; i++) {
+    for (let j = 1; j <= aLower.length; j++) {
+      if (bLower.charAt(i - 1) === aLower.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[bLower.length][aLower.length];
+}
+
+// Helper function: Find best match from a list of strings
+function findBestMatch(input: string, candidates: string[], threshold: number = 3): string | null {
+  if (!input || candidates.length === 0) return null;
+  
+  let bestMatch: string | null = null;
+  let bestDistance = Infinity;
+
+  for (const candidate of candidates) {
+    const distance = levenshteinDistance(input, candidate);
+    if (distance < bestDistance && distance <= threshold) {
+      bestDistance = distance;
+      bestMatch = candidate;
+    }
+  }
+
+  return bestMatch;
+}
+
 // Function to execute database queries based on AI function calls
 async function executeDatabaseFunction(functionName: string, args: any, supabaseClient: any, userId: string) {
   console.log("Executing function:", functionName, "with args:", args);
@@ -23,7 +72,25 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
       
       if (args.start_date) query = query.gte("date", args.start_date);
       if (args.end_date) query = query.lte("date", args.end_date);
-      if (args.category) query = query.eq("category", args.category);
+      
+      // Fuzzy matching untuk kategori
+      if (args.category) {
+        // First try exact match
+        const exactQuery = supabaseClient
+          .from("expenses")
+          .select("category")
+          .eq("user_id", userId);
+        
+        const { data: allCategories } = await exactQuery;
+        const uniqueCategories = [...new Set(allCategories?.map((e: any) => e.category).filter(Boolean) || [])] as string[];
+        
+        // Find best match using fuzzy matching
+        const bestMatch = findBestMatch(args.category, uniqueCategories, 3);
+        const categoryToUse = bestMatch || args.category;
+        
+        console.log(`Category fuzzy match: "${args.category}" -> "${categoryToUse}"`);
+        query = query.eq("category", categoryToUse);
+      }
       
       const { data, error } = await query;
       if (error) throw error;
@@ -40,7 +107,25 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
       
       if (args.start_date) query = query.gte("date", args.start_date);
       if (args.end_date) query = query.lte("date", args.end_date);
-      if (args.source) query = query.ilike("source_name", `%${args.source}%`);
+      
+      // Fuzzy matching untuk source name
+      if (args.source) {
+        const { data: allSources } = await supabaseClient
+          .from("income_sources")
+          .select("source_name")
+          .eq("user_id", userId);
+        
+        const uniqueSources = [...new Set(allSources?.map((s: any) => s.source_name).filter(Boolean) || [])] as string[];
+        const bestMatch = findBestMatch(args.source, uniqueSources, 3);
+        
+        if (bestMatch) {
+          console.log(`Source fuzzy match: "${args.source}" -> "${bestMatch}"`);
+          query = query.eq("source_name", bestMatch);
+        } else {
+          // Fallback to partial match if no fuzzy match found
+          query = query.ilike("source_name", `%${args.source}%`);
+        }
+      }
       
       const { data, error } = await query;
       if (error) throw error;
@@ -117,17 +202,35 @@ async function executeDatabaseFunction(functionName: string, args: any, supabase
 
       if (nameTerm || phoneTerm) {
         const filters: string[] = [];
+        
         if (nameTerm) {
-          const raw = nameTerm;
-          const clean = sanitize(nameTerm);
-          filters.push(`nama.ilike.%${raw}%`);
-          if (clean && clean !== raw.toLowerCase()) {
-            filters.push(`nama.ilike.%${clean}%`);
+          // Try fuzzy matching first
+          const { data: allClients } = await supabaseClient
+            .from("client_groups")
+            .select("nama")
+            .eq("user_id", userId);
+          
+          const uniqueNames = [...new Set(allClients?.map((c: any) => c.nama).filter(Boolean) || [])] as string[];
+          const bestMatch = findBestMatch(nameTerm, uniqueNames, 4);
+          
+          if (bestMatch) {
+            console.log(`Client name fuzzy match: "${nameTerm}" -> "${bestMatch}"`);
+            filters.push(`nama.eq.${bestMatch}`);
+          } else {
+            // Fallback to original flexible matching
+            const raw = nameTerm;
+            const clean = sanitize(nameTerm);
+            filters.push(`nama.ilike.%${raw}%`);
+            if (clean && clean !== raw.toLowerCase()) {
+              filters.push(`nama.ilike.%${clean}%`);
+            }
           }
         }
+        
         if (phoneTerm) {
           filters.push(`nomor_telepon.ilike.%${phoneTerm}%`);
         }
+        
         if (filters.length > 0) {
           // Combine OR filters for broader matching
           query = query.or(filters.join(","));
@@ -331,6 +434,13 @@ serve(async (req) => {
 5. Jika hasil query kosong, STOP dan beritahu user bahwa data tidak tersedia
 6. **DILARANG KERAS menampilkan tool_calls, tool__sep, atau markup function calling ke user**
 
+**KEMAMPUAN FUZZY MATCHING:**
+Sistem ini dapat mendeteksi dan memperbaiki typo/kesalahan ketik secara otomatis:
+- "Lawang Bhuana" akan dikenali sebagai "Lawang Buana"
+- "Perawtan" akan dikenali sebagai "Perawatan"
+- "Transfortasi" akan dikenali sebagai "Transportasi"
+Jika user salah ketik, sistem akan otomatis mencari kategori/nama yang paling mirip.
+
 **TERMINOLOGI PENTING:**
 - "client" / "klien" / "pelanggan" / "kelompok" = client_groups (tabel kelompok client)
 - "orderan" / "pesanan" / "kontrak sewa" = rental_contracts (tabel kontrak)
@@ -339,11 +449,11 @@ serve(async (req) => {
 - Ketika user tanya "client paling banyak pemasukan" atau "client terbesar", gunakan top_client_income
 
 Anda memiliki akses ke database finansial user melalui function calling:
-      - query_expenses: Data pengeluaran
-      - query_income: Data pemasukan  
+      - query_expenses: Data pengeluaran (dengan fuzzy matching untuk kategori)
+      - query_income: Data pemasukan (dengan fuzzy matching untuk source_name)
       - query_rental_contracts: Data kontrak sewa/invoice
       - query_payments: Data pembayaran tracking
-      - query_client_groups: Data client/kelompok (nama dan nomor telepon)
+      - query_client_groups: Data client/kelompok (nama dan nomor telepon, dengan fuzzy matching)
       - count_client_group_orders: Hitung total orderan untuk sebuah kelompok client
       - top_client_income: Ranking client berdasarkan total pemasukan (jumlah_lunas)
 
@@ -353,6 +463,7 @@ Anda memiliki akses ke database finansial user melalui function calling:
 3. Jika data kosong: "Tidak ada data [x] untuk periode [y]"
 4. Tampilkan detail spesifik: invoice number, nama client sebenarnya, jumlah exact
 5. JANGAN tampilkan markup function calling (tool__calls__begin, tool__sep, dll)
+6. Jika sistem mengoreksi typo, sebutkan dengan natural (contoh: "Saya menemukan data untuk kategori 'Lawang Buana'...")
 
 **LARANGAN KERAS:**
 ❌ Jangan buat nama client palsu
