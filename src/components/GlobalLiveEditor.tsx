@@ -9,30 +9,46 @@ export function GlobalLiveEditor() {
   const location = useLocation();
   const observerRef = useRef<MutationObserver | null>(null);
 
-  // Build a stable-ish DOM path for an element to serve as a unique key per page
+  // Generate a readable, stable key for an element
   const getElementPath = (el: Element): string => {
-    const parts: string[] = [];
-    let current: Element | null = el;
-    while (current && current.nodeType === Node.ELEMENT_NODE && current !== document.body) {
-      const tag = current.tagName.toLowerCase();
-      // Prefer IDs when available for stability
-      const id = (current as HTMLElement).id ? `#${(current as HTMLElement).id}` : "";
-      // Index among siblings of same tag for disambiguation
-      let index = 0;
-      if (!id) {
-        let i = 0;
-        let sibling = current.previousElementSibling;
-        while (sibling) {
-          if (sibling.tagName.toLowerCase() === tag) i++;
-          sibling = sibling.previousElementSibling as Element | null;
-        }
-        index = i;
-      }
-      const part = id ? `${tag}${id}` : `${tag}[${index}]`;
-      parts.unshift(part);
-      current = current.parentElement;
+    const htmlEl = el as HTMLElement;
+    
+    // 1. Check if element has a manual content-key attribute
+    if (htmlEl.dataset.contentKey) {
+      return htmlEl.dataset.contentKey;
     }
-    return parts.join(">");
+    
+    // 2. Use ID if available
+    if (htmlEl.id) {
+      return htmlEl.id;
+    }
+    
+    // 3. Generate readable key from element context
+    const tag = htmlEl.tagName.toLowerCase();
+    const text = htmlEl.textContent?.trim().slice(0, 30).replace(/[^a-zA-Z0-9]/g, '-') || tag;
+    
+    // Find closest parent with ID to provide context
+    let parent = htmlEl.parentElement;
+    let contextId = '';
+    while (parent && parent !== document.body) {
+      if (parent.id) {
+        contextId = parent.id + '-';
+        break;
+      }
+      parent = parent.parentElement;
+    }
+    
+    // Generate key: contextId-tag-text or contextId-tag-index
+    let index = 0;
+    let sibling = htmlEl.previousElementSibling;
+    while (sibling) {
+      if (sibling.tagName === htmlEl.tagName && !sibling.id && !(sibling as HTMLElement).dataset.contentKey) {
+        index++;
+      }
+      sibling = sibling.previousElementSibling;
+    }
+    
+    return `${contextId}${tag}-${text}${index > 0 ? `-${index}` : ''}`.toLowerCase();
   };
 
   const hasDirectTextContent = (el: Element): boolean => {
