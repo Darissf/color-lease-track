@@ -43,7 +43,32 @@ serve(async (req) => {
 
     let aiResponse;
 
-    if (provider === "openai") {
+    if (provider === "lovable") {
+      const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+      if (!lovableApiKey) {
+        throw new Error("LOVABLE_API_KEY not configured");
+      }
+
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt || "What's in this image?" },
+                { type: "image_url", image_url: { url: image } }
+              ]
+            }
+          ],
+        }),
+      });
+    } else if (provider === "openai") {
       aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -64,10 +89,8 @@ serve(async (req) => {
           max_tokens: 1000,
         }),
       });
-    } else if (provider === "deepseek") {
-      throw new Error("DeepSeek belum support vision");
     } else {
-      throw new Error("Unsupported provider");
+      throw new Error(`Provider ${provider} belum support vision. Gunakan Lovable atau OpenAI.`);
     }
 
     if (!aiResponse.ok) {

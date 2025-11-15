@@ -58,7 +58,31 @@ Return dalam format JSON.`;
     let headers;
     let body: any;
 
-    if (provider === "openai") {
+    if (provider === "lovable") {
+      // Use Lovable AI Gateway (supports vision via Gemini)
+      const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+      if (!lovableApiKey) {
+        throw new Error("LOVABLE_API_KEY not configured");
+      }
+
+      endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
+      headers = {
+        Authorization: `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
+      };
+      body = {
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: systemPrompt },
+              { type: "image_url", image_url: { url: image } }
+            ]
+          }
+        ],
+      };
+    } else if (provider === "openai") {
       endpoint = "https://api.openai.com/v1/chat/completions";
       headers = {
         Authorization: `Bearer ${apiKey}`,
@@ -78,11 +102,8 @@ Return dalam format JSON.`;
         temperature: 0.1,
         max_tokens: 1000,
       };
-    } else if (provider === "deepseek") {
-      // DeepSeek doesn't support vision yet, return error
-      throw new Error("DeepSeek belum support vision/OCR. Gunakan OpenAI untuk fitur Document Intelligence.");
     } else {
-      throw new Error("Unsupported provider");
+      throw new Error(`Provider ${provider} belum support vision/OCR. Gunakan Lovable atau OpenAI untuk Document Intelligence.`);
     }
 
     aiResponse = await fetch(endpoint, {
