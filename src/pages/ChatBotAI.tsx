@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Loader2, Settings, History, Plus, Trash2, MessageSquare, TrendingUp } from "lucide-react";
+import { Send, Bot, User, Loader2, Settings, History, Plus, Trash2, MessageSquare, TrendingUp, Search as SearchIcon, Download, Command as CommandIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -11,10 +11,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ReactMarkdown from "react-markdown";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { ImageUploader } from "@/components/ImageUploader";
+import { PersonaSelector } from "@/components/PersonaSelector";
+import { MessageActions } from "@/components/MessageActions";
+import { CommandPalette } from "@/components/CommandPalette";
+import { ExportDialog } from "@/components/ExportDialog";
+import { ConversationSearch } from "@/components/ConversationSearch";
 
 interface Message {
+  id?: string;
   role: "user" | "assistant";
   content: string;
+  image_url?: string;
+  created_at?: string;
 }
 
 interface Conversation {
@@ -25,6 +36,9 @@ interface Conversation {
   created_at: string;
   updated_at: string;
   message_count: number;
+  tags?: string[];
+  folder?: string;
+  persona_id?: string;
 }
 
 // Temporary type workaround for Supabase types regeneration
@@ -71,6 +85,14 @@ export default function ChatBotAI() {
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationTitle, setConversationTitle] = useState("New Chat");
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
+  const [memories, setMemories] = useState<any[]>([]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
