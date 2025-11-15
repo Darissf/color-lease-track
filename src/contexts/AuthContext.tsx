@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 interface UserRole {
-  role: 'super_admin' | 'admin';
+  role: 'super_admin' | 'admin' | 'user';
 }
 
 interface AuthContextType {
@@ -16,6 +16,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isSuperAdmin: boolean;
   isAdmin: boolean;
+  isUser: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,10 +95,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         full_name: fullName,
       });
 
-      // Assign admin role by default
+      // Assign user role by default
       await supabase.from('user_roles').insert({
         user_id: data.user.id,
-        role: 'admin',
+        role: 'user',
       });
     }
     navigate('/login');
@@ -118,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     isSuperAdmin: userRole?.role === 'super_admin',
     isAdmin: userRole?.role === 'admin' || userRole?.role === 'super_admin',
+    isUser: userRole?.role === 'user',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage_analytics: {
+        Row: {
+          ai_provider: string
+          conversation_id: string | null
+          cost_estimate: number | null
+          created_at: string
+          error_message: string | null
+          id: string
+          model_name: string
+          request_tokens: number | null
+          response_time_ms: number | null
+          response_tokens: number | null
+          status: string
+          tokens_used: number | null
+          user_id: string
+        }
+        Insert: {
+          ai_provider: string
+          conversation_id?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          model_name: string
+          request_tokens?: number | null
+          response_time_ms?: number | null
+          response_tokens?: number | null
+          status?: string
+          tokens_used?: number | null
+          user_id: string
+        }
+        Update: {
+          ai_provider?: string
+          conversation_id?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          model_name?: string
+          request_tokens?: number | null
+          response_time_ms?: number | null
+          response_tokens?: number | null
+          status?: string
+          tokens_used?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_analytics_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -94,6 +150,74 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      chat_conversations: {
+        Row: {
+          ai_provider: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          message_count: number | null
+          model_name: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_provider: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          message_count?: number | null
+          model_name: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_provider?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          message_count?: number | null
+          model_name?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_groups: {
         Row: {
@@ -553,6 +677,7 @@ export type Database = {
           status: string
           tagihan_belum_bayar: number | null
           tanggal: string | null
+          tanggal_lunas: string | null
           updated_at: string
           user_id: string
         }
@@ -572,6 +697,7 @@ export type Database = {
           status?: string
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
+          tanggal_lunas?: string | null
           updated_at?: string
           user_id: string
         }
@@ -591,6 +717,7 @@ export type Database = {
           status?: string
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
+          tanggal_lunas?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -790,6 +917,9 @@ export type Database = {
         Args: { role_name: string; user_id: string }
         Returns: boolean
       }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { user_id: string }; Returns: boolean }
+      is_user: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
