@@ -377,12 +377,12 @@ export default function ExpenseTracker() {
 
               <div>
                 <Label htmlFor="bank_account_id">Rekening</Label>
-                <Select value={formData.bank_account_id} onValueChange={(val) => setFormData({ ...formData, bank_account_id: val })}>
+                <Select value={formData.bank_account_id || "none"} onValueChange={(val) => setFormData({ ...formData, bank_account_id: val === "none" ? "" : val })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih rekening" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tidak ada</SelectItem>
+                    <SelectItem value="none">Tidak ada</SelectItem>
                     {bankAccounts.map(bank => (
                       <SelectItem key={bank.id} value={bank.id}>
                         {bank.bank_name} - {bank.account_number}
