@@ -33,13 +33,6 @@ const Settings = () => {
       color: "text-blue-500"
     },
     {
-      title: "Pengaturan Pemasukan",
-      description: "Atur sumber dan frekuensi pemasukan",
-      icon: DollarSign,
-      path: "/settings/income",
-      color: "text-green-500"
-    },
-    {
       title: "Pengaturan Tabungan",
       description: "Konfigurasi target dan alokasi tabungan",
       icon: PiggyBank,
@@ -61,7 +54,7 @@ const Settings = () => {
       {/* Settings Menu */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground mb-4">Pengaturan Akun</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           {settingsMenu.map((item) => (
             <Card 
               key={item.path}
