@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatRupiah } from "@/lib/currency";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { FileText, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle, Clock, Eye } from "lucide-react";
 
 interface RentalContract {
   id: string;
@@ -27,6 +29,7 @@ interface RentalContract {
 
 export default function ClientDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [contracts, setContracts] = useState<RentalContract[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -193,6 +196,7 @@ export default function ClientDashboard() {
                     <TableHead className="text-right">Tagihan</TableHead>
                     <TableHead className="text-right">Dibayar</TableHead>
                     <TableHead>Tanggal Lunas</TableHead>
+                    <TableHead className="text-center">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -221,6 +225,16 @@ export default function ClientDashboard() {
                         {contract.tanggal_lunas
                           ? format(new Date(contract.tanggal_lunas), "dd MMM yyyy", { locale: localeId })
                           : "-"}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/contract/${contract.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Detail
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
