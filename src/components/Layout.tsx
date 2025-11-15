@@ -26,6 +26,7 @@ const pagesItems = [
 const adminNavItems = [
   { title: "Pengaturan", url: "/settings", icon: Settings },
   { title: "AI Settings", url: "/settings/ai", icon: Brain },
+  { title: "Admin Settings", url: "/settings/admin", icon: Shield, superAdminOnly: true },
   { title: "Content Management", url: "/content-management", icon: Edit3, superAdminOnly: true },
   { title: "Audit Logs", url: "/audit-logs", icon: Shield, superAdminOnly: true },
 ];
