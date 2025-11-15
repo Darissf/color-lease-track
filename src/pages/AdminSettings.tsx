@@ -54,41 +54,21 @@ const AdminSettings = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          full_name,
-          username,
-          nomor_telepon,
-          created_at
-        `)
-        .order("created_at", { ascending: false });
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("No active session");
+      }
 
-      if (error) throw error;
+      const response = await supabase.functions.invoke("get-users", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
 
-      // Fetch roles and emails for each user
-      const usersWithRoles = await Promise.all(
-        (data || []).map(async (user) => {
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select("id, role")
-            .eq("user_id", user.id)
-            .single();
+      if (response.error) throw response.error;
 
-          // Get email from auth
-          const { data: authData } = await supabase.auth.admin.getUserById(user.id);
-
-          return {
-            ...user,
-            email: authData.user?.email || "",
-            role: roleData?.role || null,
-            role_id: roleData?.id || null,
-          };
-        })
-      );
-
-      setUsers(usersWithRoles);
+      setUsers(response.data.users);
     } catch (error: any) {
       toast({
         title: "Error",
