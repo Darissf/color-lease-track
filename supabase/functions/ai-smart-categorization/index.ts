@@ -109,13 +109,18 @@ Instruksi:
       throw new Error("Unsupported provider");
     }
 
+    console.log("Calling AI provider:", provider, "with endpoint:", endpoint);
     aiResponse = await fetch(endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
     });
 
-    if (!aiResponse.ok) throw new Error(`AI API error: ${aiResponse.status}`);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("AI API error:", aiResponse.status, errorText);
+      throw new Error(`AI API error: ${aiResponse.status} - ${errorText}`);
+    }
 
     const aiData = await aiResponse.json();
     const category = aiData.choices[0].message.content.trim();
