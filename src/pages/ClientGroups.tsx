@@ -57,12 +57,40 @@ const ClientGroups = () => {
   const [itemsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Icon options for clients
+  // Icon options for clients - expanded list
   const iconOptions = [
-    "👤", "👨", "👩", "👨‍💼", "👩‍💼", "👨‍🎓", "👩‍🎓",
-    "🧑", "👶", "👴", "👵", "👨‍👩‍👦", "👨‍👩‍👧",
-    "💼", "🏢", "🏠", "🏪", "🏬", "🏭", "🏗️",
-    "⭐", "🌟", "💎", "👑", "🎯", "🔥", "⚡"
+    // People
+    "👤", "👨", "👩", "👨‍💼", "👩‍💼", "👨‍🎓", "👩‍🎓", "👨‍🏫", "👩‍🏫",
+    "🧑", "👶", "👴", "👵", "👨‍👩‍👦", "👨‍👩‍👧", "👨‍👩‍👧‍👦", "👨‍👨‍👦", "👩‍👩‍👧",
+    "🧔", "👱", "👱‍♀️", "👱‍♂️", "🧑‍🦰", "🧑‍🦱", "🧑‍🦳", "🧑‍🦲",
+    
+    // Business & Buildings
+    "💼", "🏢", "🏠", "🏪", "🏬", "🏭", "🏗️", "🏛️", "🏦", "🏨",
+    "🏩", "🏫", "🏪", "🏰", "🏯", "🗼", "🗽",
+    
+    // Special & Symbols
+    "⭐", "🌟", "💎", "👑", "🎯", "🔥", "⚡", "✨", "💫", "🌈",
+    "🎊", "🎉", "🎁", "🏆", "🥇", "🥈", "🥉", "🏅", "🎖️",
+    
+    // Hearts & Emotions
+    "❤️", "💚", "💙", "💛", "🧡", "💜", "🖤", "🤍", "💝", "💗",
+    "😊", "😎", "🤗", "🥰", "😇", "🤩", "😍", "🙂", "😃", "😄",
+    
+    // Nature
+    "🌸", "🌺", "🌻", "🌹", "🌷", "🌲", "🌳", "🌴", "🍀", "🌿",
+    "☀️", "🌙", "⭐", "🌟", "💫", "✨", "🌊", "🏔️", "🗻",
+    
+    // Objects & Tools
+    "📱", "💻", "🖥️", "⌚", "📞", "📧", "📨", "📩", "✉️", "📮",
+    "🔑", "🔐", "🔒", "🔓", "🛠️", "⚙️", "🔧", "🔨", "⚒️",
+    
+    // Transport
+    "🚗", "🚕", "🚙", "🚌", "🚎", "🏎️", "🚓", "🚑", "🚒", "🚐",
+    "✈️", "🚀", "🛸", "🚁", "⛵", "🚤", "⛴️", "🚢",
+    
+    // Food & Drink
+    "☕", "🍵", "🥤", "🍺", "🍻", "🍷", "🥂", "🍾", "🍴", "🍽️",
+    "🍕", "🍔", "🌮", "🌯", "🍱", "🍜", "🍝", "🍰", "🎂", "🍩"
   ];
 
   const [groupForm, setGroupForm] = useState({
@@ -375,20 +403,38 @@ const ClientGroups = () => {
               </div>
               <div>
                 <Label>Icon/Emoticon</Label>
-                <div className="grid grid-cols-7 gap-2 p-3 border rounded-md bg-muted/20">
-                  {iconOptions.map((icon) => (
-                    <button
-                      key={icon}
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      value={groupForm.icon}
+                      onChange={(e) => setGroupForm({ ...groupForm, icon: e.target.value })}
+                      placeholder="Atau ketik emoticon sendiri..."
+                      className="text-2xl text-center"
+                      maxLength={4}
+                    />
+                    <Button
                       type="button"
-                      onClick={() => setGroupForm({ ...groupForm, icon })}
-                      className={cn(
-                        "h-10 text-2xl hover:bg-accent rounded transition-colors",
-                        groupForm.icon === icon && "bg-primary text-primary-foreground ring-2 ring-primary"
-                      )}
+                      variant="outline"
+                      onClick={() => setGroupForm({ ...groupForm, icon: "👤" })}
                     >
-                      {icon}
-                    </button>
-                  ))}
+                      Reset
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-10 gap-1 p-3 border rounded-md bg-muted/20 max-h-[240px] overflow-y-auto">
+                    {iconOptions.map((icon, idx) => (
+                      <button
+                        key={`${icon}-${idx}`}
+                        type="button"
+                        onClick={() => setGroupForm({ ...groupForm, icon })}
+                        className={cn(
+                          "h-9 text-xl hover:bg-accent rounded transition-colors",
+                          groupForm.icon === icon && "bg-primary text-primary-foreground ring-2 ring-primary"
+                        )}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div>
