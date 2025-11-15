@@ -2,6 +2,7 @@ import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, File
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { EditModeToggle } from "@/components/EditModeToggle";
 import { useState } from "react";
 
@@ -14,7 +15,7 @@ const navItems = [
 const pagesItems = [
   { title: "Nabila", url: "/nabila", icon: FileText },
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "ChatBot AI", url: "/chatbot", icon: Bot },
+  { title: "ChatBot AI", url: "/chatbot", icon: Bot, badge: "AI", badgeVariant: "ai" as const },
   { title: "List Client", url: "/client-groups", icon: Users },
   { title: "List Kontrak Sewa", url: "/rental-contracts", icon: ClipboardList },
   { title: "Pemasukan", url: "/income", icon: DollarSign },
@@ -25,10 +26,10 @@ const pagesItems = [
 
 const adminNavItems = [
   { title: "Pengaturan", url: "/settings", icon: Settings },
-  { title: "AI Settings", url: "/settings/ai", icon: Brain },
-  { title: "Admin Settings", url: "/settings/admin", icon: User2, superAdminOnly: true },
-  { title: "Content Management", url: "/content-management", icon: Edit3, superAdminOnly: true },
-  { title: "Audit Logs", url: "/audit-logs", icon: Shield, superAdminOnly: true },
+  { title: "AI Settings", url: "/settings/ai", icon: Brain, badge: "AI", badgeVariant: "ai" as const },
+  { title: "Admin Settings", url: "/settings/admin", icon: User2, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const },
+  { title: "Content Management", url: "/content-management", icon: Edit3, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const },
+  { title: "Audit Logs", url: "/audit-logs", icon: Shield, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -86,11 +87,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <NavLink
                   key={item.url}
                   to={item.url}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : ""}`}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
                   activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                 >
-                  <item.icon className="h-4 w-4 flex-shrink-0" />
-                  {sidebarOpen && <span>{item.title}</span>}
+                  <div className="flex items-center gap-2">
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    {sidebarOpen && <span>{item.title}</span>}
+                  </div>
+                  {sidebarOpen && item.badge && (
+                    <Badge 
+                      variant={item.badgeVariant} 
+                      className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider"
+                    >
+                      {item.badge}
+                    </Badge>
+                  )}
                 </NavLink>
               ))}
             </>
@@ -111,11 +122,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <NavLink
                     key={item.url}
                     to={item.url}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : ""}`}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
                     activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                   >
-                    <item.icon className="h-4 w-4 flex-shrink-0" />
-                    {sidebarOpen && <span>{item.title}</span>}
+                    <div className="flex items-center gap-2">
+                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      {sidebarOpen && <span>{item.title}</span>}
+                    </div>
+                    {sidebarOpen && item.badge && (
+                      <Badge 
+                        variant={item.badgeVariant} 
+                        className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider"
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
                   </NavLink>
                 );
               })}
