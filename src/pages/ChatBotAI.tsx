@@ -452,11 +452,66 @@ export default function ChatBotAI() {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !currentImage) || isLoading) return;
 
     const userMessage = input.trim();
+    const imageToSend = currentImage;
     setInput("");
-    await streamChat(userMessage);
+    setCurrentImage(null);
+    
+    if (imageToSend) {
+      await handleImageAnalysis(userMessage, imageToSend);
+    } else {
+      await streamChat(userMessage);
+    }
+  };
+
+  const handleImageAnalysis = async (prompt: string, imageUrl: string) => {
+    setIsImageProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-vision', {
+        body: { image: imageUrl, prompt: prompt || "What's in this image?" }
+      });
+
+      if (error) throw error;
+
+      const userMsg: Message = {
+        role: "user",
+        content: prompt || "What's in this image?",
+        image_url: imageUrl,
+        created_at: new Date().toISOString()
+      };
+      
+      const aiMsg: Message = {
+        role: "assistant",
+        content: data.analysis,
+        created_at: new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, userMsg, aiMsg]);
+
+      // Save to database if conversation exists
+      if (currentConversation) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('chat_messages').insert([
+            { conversation_id: currentConversation, role: 'user', content: userMsg.content },
+            { conversation_id: currentConversation, role: 'assistant', content: aiMsg.content }
+          ]);
+        }
+      }
+
+      toast({ title: "Image analyzed successfully" });
+    } catch (error: any) {
+      console.error('Image analysis error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to analyze image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImageProcessing(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -504,10 +559,46 @@ export default function ChatBotAI() {
     }
   };
 
+  const handleRegenerate = async (messageIndex: number) => {
+    const userMessage = messages[messageIndex - 1];
+    if (!userMessage || userMessage.role !== "user") return;
+
+    setMessages((prev) => prev.slice(0, messageIndex));
+    setIsLoading(true);
+    try {
+      await streamChat(userMessage.content);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleQuickCommand = async (command: string) => {
+    setInput(command);
+    setTimeout(() => handleSend(), 100);
+  };
+
   const currentModels = MODEL_OPTIONS[activeProvider as keyof typeof MODEL_OPTIONS] || [];
 
   return (
-    <div className="container mx-auto p-4 h-[calc(100vh-4rem)] flex flex-col">
+    <>
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        onCommand={handleQuickCommand}
+      />
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        conversationId={currentConversation || ''}
+        messages={messages.map(m => ({ ...m, created_at: m.created_at || new Date().toISOString() }))}
+        conversationTitle={conversationTitle}
+      />
+      <ConversationSearch
+        open={searchDialogOpen}
+        onOpenChange={setSearchDialogOpen}
+        onSelectConversation={loadConversation}
+      />
+      <div className="container mx-auto p-4 h-[calc(100vh-4rem)] flex flex-col">
       <div className="mb-4">
         <div className="flex items-center justify-between">
           <div className="flex-1">
@@ -517,6 +608,34 @@ export default function ChatBotAI() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCommandPaletteOpen(true)}
+              title="Quick commands (Ctrl+K)"
+            >
+              <CommandIcon className="w-4 h-4 mr-2" />
+              Commands
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExportDialogOpen(true)}
+              disabled={!currentConversation}
+              title="Export conversation"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchDialogOpen(true)}
+              title="Search conversations"
+            >
+              <SearchIcon className="w-4 h-4 mr-2" />
+              Search
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -669,14 +788,30 @@ export default function ChatBotAI() {
                     <Bot className="w-5 h-5 text-primary" />
                   </div>
                 )}
-                <div
-                  className={`max-w-[70%] rounded-lg p-3 ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <div className="flex-1 flex flex-col gap-2">
+                  <div
+                    className={`max-w-[70%] rounded-lg p-3 ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground ml-auto"
+                        : "bg-muted"
+                    }`}
+                  >
+                    {message.image_url && (
+                      <img src={message.image_url} alt="Uploaded" className="max-w-full rounded mb-2" />
+                    )}
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                  {message.id && (
+                    <MessageActions
+                      messageId={message.id}
+                      content={message.content}
+                      onRegenerate={message.role === "assistant" ? () => handleRegenerate(index) : undefined}
+                    />
+                  )}
                 </div>
                 {message.role === "user" && (
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
@@ -707,7 +842,32 @@ export default function ChatBotAI() {
         </ScrollArea>
 
         <div className="p-4 border-t">
-          <div className="flex gap-2">
+          {currentImage && (
+            <div className="mb-2 relative inline-block">
+              <img src={currentImage} alt="Upload preview" className="max-h-32 rounded" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-0 right-0"
+                onClick={() => setCurrentImage(null)}
+              >
+                ×
+              </Button>
+            </div>
+          )}
+          <div className="flex gap-2 items-end">
+            <PersonaSelector
+              selectedPersonaId={selectedPersonaId}
+              onPersonaChange={setSelectedPersonaId}
+            />
+            <VoiceRecorder
+              onTranscript={(text) => setInput(text)}
+              disabled={isLoading}
+            />
+            <ImageUploader
+              onImageSelect={setCurrentImage}
+              disabled={isLoading || isImageProcessing}
+            />
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -718,7 +878,7 @@ export default function ChatBotAI() {
             />
             <Button
               onClick={handleSend}
-              disabled={!input.trim() || isLoading}
+              disabled={(!input.trim() && !currentImage) || isLoading}
               size="icon"
             >
               {isLoading ? (
@@ -729,7 +889,8 @@ export default function ChatBotAI() {
             </Button>
           </div>
         </div>
-      </Card>
-    </div>
+       </Card>
+     </div>
+    </>
   );
 }
