@@ -26,6 +26,21 @@ serve(async (req) => {
 
     console.log("Analyzing Financial DNA for user:", user.id);
 
+    // Fetch user AI settings
+    const { data: aiSettings } = await supabaseClient
+      .from("user_ai_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!aiSettings || !aiSettings.api_key) {
+      throw new Error("AI Settings belum dikonfigurasi. Silakan setup di Settings > AI Settings");
+    }
+
+    const provider = aiSettings.ai_provider;
+    const apiKey = aiSettings.api_key;
+
     // Comprehensive financial data
     const [expenses, income, savings, budget] = await Promise.all([
       supabaseClient.from("expenses").select("*").eq("user_id", user.id).order("date", { ascending: false }),
@@ -33,9 +48,6 @@ serve(async (req) => {
       supabaseClient.from("savings_plans").select("*").eq("user_id", user.id),
       supabaseClient.from("monthly_budgets").select("*").eq("user_id", user.id)
     ]);
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const prompt = `Analisis FINANCIAL DNA user berdasarkan data historis:
 
@@ -62,27 +74,49 @@ Return sebagai JSON dengan structure:
   "insights": "detailed markdown insights"
 }`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+    let aiResponse;
+    let endpoint;
+    let headers;
+    let body: any;
+
+    if (provider === "openai") {
+      endpoint = "https://api.openai.com/v1/chat/completions";
+      headers = {
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+      };
+      body = {
+        model: "gpt-4o-mini",
         messages: [
-          {
-            role: "system",
-            content: "Anda adalah expert behavioral economist yang analyze financial DNA dengan deep psychological insights."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
+          { role: "system", content: "Anda adalah expert behavioral economist yang analyze financial DNA dengan deep psychological insights." },
+          { role: "user", content: prompt }
         ],
         temperature: 0.7,
         max_tokens: 2000,
-      }),
+      };
+    } else if (provider === "deepseek") {
+      endpoint = "https://api.deepseek.com/v1/chat/completions";
+      headers = {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      };
+      body = {
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: "Anda adalah expert behavioral economist yang analyze financial DNA dengan deep psychological insights." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      };
+    } else {
+      throw new Error("Unsupported provider");
+    }
+
+    aiResponse = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
     });
 
     if (!aiResponse.ok) throw new Error(`AI API error: ${aiResponse.status}`);
@@ -93,7 +127,6 @@ Return sebagai JSON dengan structure:
     try {
       profile = JSON.parse(aiData.choices[0].message.content);
     } catch {
-      // Fallback jika tidak bisa parse JSON
       profile = {
         personality: "Balanced",
         riskProfile: "Moderate",

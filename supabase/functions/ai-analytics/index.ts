@@ -27,6 +27,23 @@ serve(async (req) => {
     const { query, conversation } = await req.json();
     console.log("Natural language query:", query);
 
+    // Fetch user AI settings
+    const { data: aiSettings } = await supabaseClient
+      .from("user_ai_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!aiSettings || !aiSettings.api_key) {
+      throw new Error("AI Settings belum dikonfigurasi. Silakan setup di Settings > AI Settings");
+    }
+
+    const provider = aiSettings.ai_provider;
+    const apiKey = aiSettings.api_key;
+
+    console.log("Using provider:", provider);
+
     // Fetch relevant financial data
     const [expensesResult, incomeResult, savingsResult] = await Promise.all([
       supabaseClient.from("expenses").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(100),
@@ -34,15 +51,11 @@ serve(async (req) => {
       supabaseClient.from("savings_plans").select("*").eq("user_id", user.id)
     ]);
 
-    // Prepare context for AI
     const context = {
       expenses: expensesResult.data || [],
       income: incomeResult.data || [],
       savings: savingsResult.data || []
     };
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const systemPrompt = `Anda adalah AI financial analyst yang bisa menjawab pertanyaan tentang data keuangan dalam bahasa Indonesia.
 
@@ -67,18 +80,44 @@ ${JSON.stringify(context, null, 2)}`;
       { role: "user", content: query }
     ];
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+    let aiResponse;
+    let endpoint;
+    let headers;
+    let body: any;
+
+    // Route based on provider
+    if (provider === "openai") {
+      endpoint = "https://api.openai.com/v1/chat/completions";
+      headers = {
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+      };
+      body = {
+        model: "gpt-4o-mini",
         messages,
         temperature: 0.7,
         max_tokens: 2000,
-      }),
+      };
+    } else if (provider === "deepseek") {
+      endpoint = "https://api.deepseek.com/v1/chat/completions";
+      headers = {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      };
+      body = {
+        model: "deepseek-chat",
+        messages,
+        temperature: 0.7,
+        max_tokens: 2000,
+      };
+    } else {
+      throw new Error("Unsupported provider. Please use OpenAI or DeepSeek.");
+    }
+
+    aiResponse = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
     });
 
     if (!aiResponse.ok) {
