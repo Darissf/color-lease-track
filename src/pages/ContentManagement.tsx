@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -119,9 +118,8 @@ export default function ContentManagement() {
   );
 
   return (
-    <Layout>
-      <div className="container mx-auto py-8 px-4">
-        <Card>
+    <div className="container mx-auto py-8 px-4">
+      <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
               <FileText className="h-8 w-8 text-primary" />
@@ -367,6 +365,5 @@ export default function ContentManagement() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }
