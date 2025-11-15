@@ -1,7 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, DollarSign, TrendingUp, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const MONTHS = [
   { name: "Januari", quarter: 1, path: "/month/januari" },
@@ -20,6 +22,11 @@ const MONTHS = [
 
 export default function Nabila() {
   const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+
+  // Generate year options (current year ± 5 years)
+  const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
 
   const quarters = [
     { number: 1, months: MONTHS.filter(m => m.quarter === 1) },
@@ -54,10 +61,27 @@ export default function Nabila() {
 
       {/* Laporan Bulanan Finansial - Quarters */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-6 text-foreground flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          Laporan Bulanan Finansial
-        </h3>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Laporan Bulanan Finansial
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Tahun:</span>
+            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {quarters.map((quarter) => (
             <div key={quarter.number} className="space-y-3">
@@ -71,7 +95,7 @@ export default function Nabila() {
                     onClick={() => navigate(month.path)}
                   >
                     <Calendar className="h-3 w-3 mr-2" />
-                    {month.name}
+                    {month.name} {selectedYear}
                   </Button>
                 ))}
               </div>
