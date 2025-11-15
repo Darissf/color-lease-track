@@ -22,10 +22,11 @@ interface MonthStats {
 }
 
 export default function MonthlyView() {
-  const { month } = useParams<{ month: string }>();
+  const { month, year } = useParams<{ month: string; year: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const selectedYear = year ? parseInt(year) : new Date().getFullYear();
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<MonthStats>({
@@ -55,7 +56,7 @@ export default function MonthlyView() {
       .select("*")
       .eq("user_id", user.id)
       .eq("month", month)
-      .eq("year", new Date().getFullYear())
+      .eq("year", selectedYear)
       .single();
 
     if (error && error.code !== "PGRST116") {
@@ -69,7 +70,7 @@ export default function MonthlyView() {
         .insert({
           user_id: user.id,
           month: month,
-          year: new Date().getFullYear(),
+          year: selectedYear,
           pemasukan: 0,
           pengeluaran: 0,
           pengeluaran_tetap: 0,
@@ -90,8 +91,6 @@ export default function MonthlyView() {
   const fetchDashboardData = async () => {
     if (!user || !month) return;
 
-    const currentYear = new Date().getFullYear();
-
     // Fetch total savings
     const { data: savingsData } = await supabase
       .from("savings_plans")
@@ -105,8 +104,8 @@ export default function MonthlyView() {
     const monthIndex = monthNames.indexOf(month?.toLowerCase() || '');
     
     if (monthIndex !== -1) {
-      const startDate = new Date(currentYear, monthIndex, 1);
-      const endDate = new Date(currentYear, monthIndex + 1, 0);
+      const startDate = new Date(selectedYear, monthIndex, 1);
+      const endDate = new Date(selectedYear, monthIndex + 1, 0);
 
       // Fetch expenses for this specific month
       const { data: expensesData } = await supabase
