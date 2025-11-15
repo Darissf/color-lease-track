@@ -27,6 +27,7 @@ import ContentManagement from "./pages/ContentManagement";
 import ClientGroups from "./pages/ClientGroups";
 import RentalContracts from "./pages/RentalContracts";
 import AISettings from "./pages/AISettings";
+import AIUsageAnalytics from "./pages/AIUsageAnalytics";
 import ChatBotAI from "./pages/ChatBotAI";
 import AIAnalytics from "./pages/AIAnalytics";
 import ClientDashboard from "./pages/ClientDashboard";
@@ -82,6 +83,7 @@ const App = () => (
                       <Route path="/ai-advisor" element={<AIAdvisor />} />
                       <Route path="/ai-insights" element={<AIInsights />} />
                       <Route path="/ai-autopilot" element={<AIAutoPilot />} />
+                      <Route path="/ai-usage" element={<AIUsageAnalytics />} />
                       <Route path="/client-dashboard" element={<ClientDashboard />} />
                       <Route path="/contract/:id" element={<ContractDetail />} />
                       <Route path="*" element={<NotFound />} />

@@ -105,6 +105,7 @@ Return JSON:
       throw new Error("Unsupported provider");
     }
 
+    const startTime = Date.now();
     console.log("Calling AI provider:", provider, "with endpoint:", endpoint);
     aiResponse = await fetch(endpoint, {
       method: "POST",
@@ -112,9 +113,21 @@ Return JSON:
       body: JSON.stringify(body),
     });
 
+    const responseTime = Date.now() - startTime;
+
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("AI API error:", aiResponse.status, errorText);
+      
+      await supabaseClient.from("ai_usage_analytics").insert({
+        user_id: user.id,
+        ai_provider: provider,
+        model_name: provider === "openai" ? "gpt-4o-mini" : "deepseek-chat",
+        status: "error",
+        error_message: `${aiResponse.status} - ${errorText}`,
+        response_time_ms: responseTime
+      });
+      
       throw new Error(`AI API error: ${aiResponse.status} - ${errorText}`);
     }
 
@@ -131,6 +144,19 @@ Return JSON:
         recommendations: aiData.choices[0].message.content
       };
     }
+
+    const tokensUsed = (aiData.usage?.prompt_tokens || 0) + (aiData.usage?.completion_tokens || 0);
+    await supabaseClient.from("ai_usage_analytics").insert({
+      user_id: user.id,
+      ai_provider: provider,
+      model_name: provider === "openai" ? "gpt-4o-mini" : "deepseek-chat",
+      request_tokens: aiData.usage?.prompt_tokens,
+      response_tokens: aiData.usage?.completion_tokens,
+      tokens_used: tokensUsed,
+      cost_estimate: tokensUsed * (provider === "openai" ? 0.00015 / 1000 : 0.00014 / 1000),
+      status: "success",
+      response_time_ms: Date.now() - startTime
+    });
 
     return new Response(
       JSON.stringify({ analysis }),
