@@ -278,7 +278,6 @@ export default function AIAnalytics() {
 
   const getProviderColor = (provider: string) => {
     const colors: Record<string, string> = {
-      lovable: "bg-blue-500/10 text-blue-500",
       gemini: "bg-purple-500/10 text-purple-500",
       openai: "bg-green-500/10 text-green-500",
       claude: "bg-orange-500/10 text-orange-500",

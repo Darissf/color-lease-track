@@ -13,16 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 
 const AI_PROVIDERS = {
-  lovable: {
-    name: "Lovable AI (Gemini 2.5 Flash)",
-    description: "Sudah terintegrasi, tidak perlu API key",
-    link: null,
-    needsApiKey: false,
-    models: ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-5"],
-  },
   gemini: {
     name: "Google Gemini",
-    description: "Model AI dari Google dengan reasoning yang kuat",
+    description: "Model AI dari Google dengan reasoning yang kuat (Support Vision)",
     link: "https://aistudio.google.com/app/apikey",
     needsApiKey: true,
     models: ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"],
@@ -30,7 +23,7 @@ const AI_PROVIDERS = {
   },
   openai: {
     name: "OpenAI",
-    description: "GPT models dari OpenAI",
+    description: "GPT models dari OpenAI (Support Vision)",
     link: "https://platform.openai.com/api-keys",
     needsApiKey: true,
     models: ["gpt-5", "gpt-5-mini", "gpt-4o", "gpt-4o-mini"],
@@ -38,7 +31,7 @@ const AI_PROVIDERS = {
   },
   claude: {
     name: "Anthropic Claude",
-    description: "Claude models dengan context window besar",
+    description: "Claude models dengan context window besar (Support Vision)",
     link: "https://console.anthropic.com/settings/keys",
     needsApiKey: true,
     models: ["claude-sonnet-4-5", "claude-opus-4-1", "claude-3-5-haiku"],
@@ -46,7 +39,7 @@ const AI_PROVIDERS = {
   },
   deepseek: {
     name: "DeepSeek",
-    description: "Model open source dengan performa tinggi",
+    description: "Model open source dengan performa tinggi (Text Only)",
     link: "https://platform.deepseek.com/api_keys",
     needsApiKey: true,
     models: ["deepseek-chat", "deepseek-coder"],
@@ -54,7 +47,7 @@ const AI_PROVIDERS = {
   },
   groq: {
     name: "Groq",
-    description: "Inference super cepat untuk berbagai model",
+    description: "Inference super cepat untuk berbagai model (Text Only)",
     link: "https://console.groq.com/keys",
     needsApiKey: true,
     models: ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"],
@@ -76,7 +69,7 @@ const apiKeySchema = z.object({
 const AISettings = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [provider, setProvider] = useState<AIProvider>("lovable");
+  const [provider, setProvider] = useState<AIProvider>("gemini");
   const [apiKey, setApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [hasSettings, setHasSettings] = useState(false);
@@ -468,7 +461,7 @@ const AISettings = () => {
         <AlertCircle className="h-4 w-4" />
         <AlertDescription className="text-sm">
           <strong>Keamanan:</strong> API keys Anda disimpan dengan aman di database dan hanya dapat diakses oleh akun Anda. 
-          Jangan share API key dengan orang lain. Lovable AI (default) tidak memerlukan API key dan lebih direkomendasikan.
+          Jangan share API key dengan orang lain.
         </AlertDescription>
       </Alert>
     </div>

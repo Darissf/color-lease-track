@@ -54,63 +54,56 @@ Extract informasi berikut:
 Return dalam format JSON.`;
 
     let aiResponse;
-    let endpoint;
-    let headers;
-    let body: any;
 
-    if (provider === "lovable") {
-      // Use Lovable AI Gateway (supports vision via Gemini)
-      const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-      if (!lovableApiKey) {
-        throw new Error("LOVABLE_API_KEY not configured");
-      }
-
-      endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
-      headers = {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      };
-      body = {
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: systemPrompt },
-              { type: "image_url", image_url: { url: image } }
+    if (provider === "openai") {
+      aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: systemPrompt },
+                { type: "image_url", image_url: { url: image } }
+              ]
+            }
+          ],
+          temperature: 0.1,
+          max_tokens: 1000,
+        }),
+      });
+    } else if (provider === "gemini") {
+      aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: systemPrompt },
+              { 
+                inline_data: {
+                  mime_type: image.startsWith('data:image/png') ? 'image/png' : 'image/jpeg',
+                  data: image.split(',')[1]
+                }
+              }
             ]
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 1000,
           }
-        ],
-      };
-    } else if (provider === "openai") {
-      endpoint = "https://api.openai.com/v1/chat/completions";
-      headers = {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      };
-      body = {
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: systemPrompt },
-              { type: "image_url", image_url: { url: image } }
-            ]
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 1000,
-      };
+        }),
+      });
     } else {
-      throw new Error(`Provider ${provider} belum support vision/OCR. Gunakan Lovable atau OpenAI untuk Document Intelligence.`);
+      throw new Error(`Provider ${provider} belum support vision/OCR. Gunakan OpenAI atau Gemini untuk Document Intelligence.`);
     }
-
-    aiResponse = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
@@ -119,7 +112,13 @@ Return dalam format JSON.`;
     }
 
     const aiData = await aiResponse.json();
-    const extractedData = aiData.choices[0].message.content;
+    let extractedData;
+
+    if (provider === "gemini") {
+      extractedData = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    } else {
+      extractedData = aiData.choices[0].message.content;
+    }
 
     let result;
     try {

@@ -41,34 +41,13 @@ serve(async (req) => {
     const provider = aiSettings.ai_provider;
     const apiKey = aiSettings.api_key;
 
+    if (!apiKey) {
+      throw new Error("API key tidak ditemukan. Silakan setup di Settings > AI Settings");
+    }
+
     let aiResponse;
 
-    if (provider === "lovable") {
-      const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-      if (!lovableApiKey) {
-        throw new Error("LOVABLE_API_KEY not configured");
-      }
-
-      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: prompt || "What's in this image?" },
-                { type: "image_url", image_url: { url: image } }
-              ]
-            }
-          ],
-        }),
-      });
-    } else if (provider === "openai") {
+    if (provider === "openai") {
       aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -89,8 +68,28 @@ serve(async (req) => {
           max_tokens: 1000,
         }),
       });
+    } else if (provider === "gemini") {
+      aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt || "What's in this image?" },
+              { 
+                inline_data: {
+                  mime_type: image.startsWith('data:image/png') ? 'image/png' : 'image/jpeg',
+                  data: image.split(',')[1]
+                }
+              }
+            ]
+          }]
+        }),
+      });
     } else {
-      throw new Error(`Provider ${provider} belum support vision. Gunakan Lovable atau OpenAI.`);
+      throw new Error(`Provider ${provider} belum support vision. Gunakan OpenAI atau Gemini.`);
     }
 
     if (!aiResponse.ok) {
@@ -100,7 +99,13 @@ serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const analysis = aiData.choices[0].message.content;
+    let analysis;
+
+    if (provider === "gemini") {
+      analysis = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+    } else {
+      analysis = aiData.choices[0].message.content;
+    }
 
     return new Response(
       JSON.stringify({ analysis }),

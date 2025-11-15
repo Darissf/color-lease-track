@@ -45,13 +45,8 @@ interface Conversation {
 type SupabaseClient = typeof supabase;
 
 const MODEL_OPTIONS = {
-  lovable: [
-    { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (Default)" },
-    { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-    { value: "openai/gpt-5-mini", label: "GPT-5 Mini" },
-  ],
   gemini: [
-    { value: "gemini-2.0-flash-exp", label: "Gemini 2.0 Flash" },
+    { value: "gemini-2.0-flash-exp", label: "Gemini 2.0 Flash (Recommended)" },
     { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
     { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
   ],
@@ -80,8 +75,8 @@ export default function ChatBotAI() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [activeProvider, setActiveProvider] = useState<string>("lovable");
-  const [selectedModel, setSelectedModel] = useState<string>("google/gemini-2.5-flash");
+  const [activeProvider, setActiveProvider] = useState<string>("gemini");
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-2.0-flash-exp");
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationTitle, setConversationTitle] = useState("New Chat");
@@ -360,11 +355,6 @@ export default function ChatBotAI() {
           // Estimasi cost berdasarkan provider dan model (dalam USD)
           const calculateCost = (provider: string, model: string, inTokens: number, outTokens: number) => {
             const pricing: Record<string, Record<string, { input: number; output: number }>> = {
-              lovable: {
-                "google/gemini-2.5-flash": { input: 0.000000075, output: 0.0000003 }, // $0.075 / 1M input, $0.30 / 1M output
-                "google/gemini-2.5-pro": { input: 0.00000125, output: 0.000005 }, // $1.25 / 1M input, $5.00 / 1M output
-                "openai/gpt-5-mini": { input: 0.0000015, output: 0.000006 }, // $1.50 / 1M input, $6.00 / 1M output
-              },
               gemini: {
                 "gemini-2.0-flash-exp": { input: 0, output: 0 }, // Free tier
                 "gemini-1.5-pro": { input: 0.00000125, output: 0.000005 },
@@ -518,44 +508,6 @@ export default function ChatBotAI() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
-    }
-  };
-
-  const activateLovable = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Nonaktifkan semua dulu
-      await (supabase as any)
-        .from("user_ai_settings")
-        .update({ is_active: false })
-        .eq("user_id", user.id);
-
-      // Cek apakah baris lovable sudah ada
-      const { data: existing } = await (supabase as any)
-        .from("user_ai_settings")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("ai_provider", "lovable")
-        .maybeSingle();
-
-      if (existing) {
-        await (supabase as any)
-          .from("user_ai_settings")
-          .update({ is_active: true })
-          .eq("id", existing.id);
-      } else {
-        await (supabase as any)
-          .from("user_ai_settings")
-          .insert({ user_id: user.id, ai_provider: "lovable", api_key: "", is_active: true });
-      }
-
-      setActiveProvider("lovable");
-      setSelectedModel(MODEL_OPTIONS.lovable[0].value);
-      toast({ title: "Lovable diaktifkan", description: "Sekarang pertanyaan database akan menggunakan data asli." });
-    } catch (e: any) {
-      toast({ title: "Gagal mengaktifkan Lovable", description: e.message, variant: "destructive" });
     }
   };
 
@@ -755,11 +707,10 @@ export default function ChatBotAI() {
             </SelectContent>
           </Select>
         </div>
-        {!["lovable", "openai", "claude", "deepseek"].includes(activeProvider) && (
+        {!["openai", "claude", "deepseek", "gemini"].includes(activeProvider) && (
           <Alert className="mt-3">
             <AlertDescription>
-              Provider {activeProvider} tidak mendukung akses database. Untuk pertanyaan yang membutuhkan data (invoice, pemasukan, pengeluaran, kontrak sewa), gunakan Lovable, OpenAI, Claude, atau DeepSeek.
-              <Button size="sm" className="ml-3" onClick={activateLovable}>Aktifkan Lovable</Button>
+              Provider {activeProvider} tidak mendukung akses database. Untuk pertanyaan yang membutuhkan data (invoice, pemasukan, pengeluaran, kontrak sewa), gunakan OpenAI, Claude, Gemini, atau DeepSeek.
             </AlertDescription>
           </Alert>
         )}
