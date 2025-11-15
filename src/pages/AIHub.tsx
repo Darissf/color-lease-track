@@ -12,7 +12,9 @@ import {
   Dna,
   Users,
   Plane,
-  Sparkles
+  Sparkles,
+  Settings,
+  BarChart3
 } from "lucide-react";
 
 const AIHub = () => {
@@ -63,6 +65,24 @@ const AIHub = () => {
       color: "bg-red-500",
       path: "/ai-autopilot",
       features: ["Multi-Agent System", "Auto-Pilot Mode", "Smart Execution"]
+    },
+    {
+      id: "settings",
+      title: "AI Settings",
+      description: "Configure providers, API keys & test connections",
+      icon: Settings,
+      color: "bg-gray-500",
+      path: "/settings/ai",
+      features: ["Provider Setup", "API Key Management", "Connection Testing"]
+    },
+    {
+      id: "usage",
+      title: "Usage Analytics",
+      description: "Monitor API calls, tokens, costs & performance",
+      icon: BarChart3,
+      color: "bg-cyan-500",
+      path: "/ai-usage",
+      features: ["API Call Tracking", "Cost Monitoring", "Performance Metrics"]
     }
   ];
 
