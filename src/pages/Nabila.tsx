@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, DollarSign, TrendingUp, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MONTHS = [
   { name: "Januari", quarter: 1, path: "/month/januari" },
@@ -22,11 +24,97 @@ const MONTHS = [
 
 export default function Nabila() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [availableYears, setAvailableYears] = useState<number[]>([currentYear]);
+  const [loading, setLoading] = useState(true);
 
-  // Generate year options (current year ± 5 years)
-  const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
+  // Fetch available years from database based on actual financial data
+  useEffect(() => {
+    const fetchAvailableYears = async () => {
+      if (!user) return;
+      
+      setLoading(true);
+      try {
+        const yearsSet = new Set<number>();
+
+        // Get years from income_sources
+        const { data: incomeData } = await supabase
+          .from('income_sources')
+          .select('date')
+          .eq('user_id', user.id)
+          .not('date', 'is', null);
+        
+        if (incomeData) {
+          incomeData.forEach((item) => {
+            if (item.date) {
+              const year = new Date(item.date).getFullYear();
+              yearsSet.add(year);
+            }
+          });
+        }
+
+        // Get years from expenses
+        const { data: expenseData } = await supabase
+          .from('expenses')
+          .select('date')
+          .eq('user_id', user.id);
+        
+        if (expenseData) {
+          expenseData.forEach((item) => {
+            const year = new Date(item.date).getFullYear();
+            yearsSet.add(year);
+          });
+        }
+
+        // Get years from monthly_reports
+        const { data: reportData } = await supabase
+          .from('monthly_reports')
+          .select('year')
+          .eq('user_id', user.id);
+        
+        if (reportData) {
+          reportData.forEach((item) => {
+            yearsSet.add(item.year);
+          });
+        }
+
+        // Get years from monthly_budgets
+        const { data: budgetData } = await supabase
+          .from('monthly_budgets')
+          .select('year')
+          .eq('user_id', user.id);
+        
+        if (budgetData) {
+          budgetData.forEach((item) => {
+            yearsSet.add(item.year);
+          });
+        }
+
+        // Convert to sorted array (descending order - newest first)
+        const years = Array.from(yearsSet).sort((a, b) => b - a);
+        
+        // If no data exists, use current year
+        if (years.length === 0) {
+          setAvailableYears([currentYear]);
+          setSelectedYear(currentYear);
+        } else {
+          setAvailableYears(years);
+          // Set to most recent year with data
+          setSelectedYear(years[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching available years:', error);
+        setAvailableYears([currentYear]);
+        setSelectedYear(currentYear);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAvailableYears();
+  }, [user, currentYear]);
 
   const quarters = [
     { number: 1, months: MONTHS.filter(m => m.quarter === 1) },
@@ -68,12 +156,16 @@ export default function Nabila() {
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Tahun:</span>
-            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+            <Select 
+              value={selectedYear.toString()} 
+              onValueChange={(value) => setSelectedYear(parseInt(value))}
+              disabled={loading}
+            >
               <SelectTrigger className="w-[120px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {yearOptions.map((year) => (
+                {availableYears.map((year) => (
                   <SelectItem key={year} value={year.toString()}>
                     {year}
                   </SelectItem>
