@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { UserRegistrationForm } from "@/components/UserRegistrationForm";
 import {
   Table,
   TableBody,
@@ -167,14 +168,17 @@ const AdminSettings = () => {
       </div>
 
       <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
             <Shield className="h-6 w-6 text-white" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold">Manajemen User & Role</h2>
-            <p className="text-sm text-muted-foreground">Kelola hak akses pengguna</p>
+            <div>
+              <h2 className="text-xl font-bold">Manajemen User & Role</h2>
+              <p className="text-sm text-muted-foreground">Kelola hak akses pengguna</p>
+            </div>
           </div>
+          <UserRegistrationForm onSuccess={fetchUsers} />
         </div>
 
         {loading ? (
