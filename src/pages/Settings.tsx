@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Book, Settings as SettingsIcon } from "lucide-react";
+import { Book, Settings as SettingsIcon, Wallet, DollarSign, PiggyBank, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const learningResources = [
@@ -24,6 +24,30 @@ const learningResources = [
 const Settings = () => {
   const navigate = useNavigate();
 
+  const settingsMenu = [
+    {
+      title: "Akun Rekening",
+      description: "Kelola rekening bank dan metode pembayaran",
+      icon: Wallet,
+      path: "/settings/accounts",
+      color: "text-blue-500"
+    },
+    {
+      title: "Pengaturan Pemasukan",
+      description: "Atur sumber dan frekuensi pemasukan",
+      icon: DollarSign,
+      path: "/settings/income",
+      color: "text-green-500"
+    },
+    {
+      title: "Pengaturan Tabungan",
+      description: "Konfigurasi target dan alokasi tabungan",
+      icon: PiggyBank,
+      path: "/settings/savings",
+      color: "text-purple-500"
+    }
+  ];
+
   return (
     <div className="min-h-screen p-8">
       {/* Header */}
@@ -32,6 +56,33 @@ const Settings = () => {
           Mulai di sini! Pengaturan
         </h1>
         <p className="text-muted-foreground">Konfigurasikan akun dan preferensi keuangan Anda</p>
+      </div>
+
+      {/* Settings Menu */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-foreground mb-4">Pengaturan Akun</h2>
+        <div className="grid gap-4 md:grid-cols-3">
+          {settingsMenu.map((item) => (
+            <Card 
+              key={item.path}
+              className="p-6 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
+              onClick={() => navigate(item.path)}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className={`h-12 w-12 rounded-lg bg-muted flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <item.icon className={`h-6 w-6 ${item.color}`} />
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <h3 className="font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                {item.title}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {item.description}
+              </p>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Learning Section */}
