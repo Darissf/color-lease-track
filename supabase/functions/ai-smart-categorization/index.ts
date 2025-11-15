@@ -27,15 +27,27 @@ serve(async (req) => {
     const { description } = await req.json();
     console.log("Categorizing:", description);
 
+    // Fetch user AI settings
+    const { data: aiSettings } = await supabaseClient
+      .from("user_ai_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!aiSettings || !aiSettings.api_key) {
+      throw new Error("AI Settings belum dikonfigurasi. Silakan setup di Settings > AI Settings");
+    }
+
+    const provider = aiSettings.ai_provider;
+    const apiKey = aiSettings.api_key;
+
     // Fetch user's historical expenses to learn patterns
     const { data: historicalExpenses } = await supabaseClient
       .from("expenses")
       .select("description, category")
       .eq("user_id", user.id)
       .limit(100);
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const systemPrompt = `Anda adalah AI yang ahli dalam mengkategorikan pengeluaran.
 
@@ -58,21 +70,49 @@ Instruksi:
 3. Learn from user's categorization patterns
 4. Return ONLY kategori name, nothing else`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+    let aiResponse;
+    let endpoint;
+    let headers;
+    let body: any;
+
+    if (provider === "openai") {
+      endpoint = "https://api.openai.com/v1/chat/completions";
+      headers = {
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+      };
+      body = {
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Kategorikan: "${description}"` }
         ],
         temperature: 0.3,
         max_tokens: 50,
-      }),
+      };
+    } else if (provider === "deepseek") {
+      endpoint = "https://api.deepseek.com/v1/chat/completions";
+      headers = {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      };
+      body = {
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Kategorikan: "${description}"` }
+        ],
+        temperature: 0.3,
+        max_tokens: 50,
+      };
+    } else {
+      throw new Error("Unsupported provider");
+    }
+
+    aiResponse = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
     });
 
     if (!aiResponse.ok) throw new Error(`AI API error: ${aiResponse.status}`);
