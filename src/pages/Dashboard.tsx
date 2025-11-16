@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, CreditCard, Calendar, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, CreditCard, Calendar, ArrowUpRight, ArrowDownRight, Users, PieChart as PieChartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from "recharts";
@@ -253,15 +253,22 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto space-y-6 p-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-4xl font-bold text-gradient-purple">Financial Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              Ringkasan keuangan Anda {period === "week" ? "minggu ini" : period === "month" ? "bulan ini" : "tahun ini"}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg ring-4 ring-blue-500/20">
+              <TrendingUp className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Financial Dashboard
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Ringkasan keuangan Anda {period === "week" ? "minggu ini" : period === "month" ? "bulan ini" : "tahun ini"}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Select value={period} onValueChange={(value: "week" | "month" | "year") => setPeriod(value)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] border-purple-500/20 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 bg-white/50 backdrop-blur-sm">
                 <SelectValue placeholder="Pilih Periode" />
               </SelectTrigger>
               <SelectContent>
@@ -270,7 +277,7 @@ export default function Dashboard() {
                 <SelectItem value="year">Tahun Ini</SelectItem>
               </SelectContent>
             </Select>
-            <GradientButton variant="primary" onClick={() => navigate("/nabila")}>
+            <GradientButton variant="income" onClick={() => navigate("/nabila")}>
               Lihat Detail →
             </GradientButton>
           </div>
@@ -311,9 +318,10 @@ export default function Dashboard() {
       {/* Charts Row 1: Monthly Trend & Income by Client */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Trend - Income vs Expenses */}
-        <Card className="card-hover-effect">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">
+        <Card className="card-hover-effect overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-b">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-purple-600" />
               Trend {period === "week" ? "Harian" : period === "month" ? "Mingguan" : "Bulanan"}
             </CardTitle>
             <p className="text-xs text-muted-foreground">Perbandingan Pemasukan vs Pengeluaran</p>
@@ -369,9 +377,12 @@ export default function Dashboard() {
         </Card>
 
         {/* Income by Client */}
-        <Card className="card-hover-effect">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Pemasukan per Client</CardTitle>
+        <Card className="card-hover-effect overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-rose-500/10 border-b">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Users className="w-4 h-4 text-pink-600" />
+              Pemasukan per Client
+            </CardTitle>
             <p className="text-xs text-muted-foreground">Top 10 client dengan pemasukan tertinggi</p>
           </CardHeader>
           <CardContent>
@@ -419,9 +430,12 @@ export default function Dashboard() {
       {/* Charts Row 2: Expenses Category & Budget Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expenses by Category */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Pengeluaran per Kategori</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-rose-500/10 via-red-500/10 to-orange-500/10 border-b">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <PieChart className="w-4 h-4 text-rose-600" />
+              Pengeluaran per Kategori
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {expensesByCategory.length > 0 ? (
@@ -453,10 +467,10 @@ export default function Dashboard() {
         </Card>
 
         {/* Budget Overview with Formula */}
-        <Card>
-          <CardHeader>
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-purple-500/10 via-fuchsia-500/10 to-pink-500/10 border-b">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
+              <CreditCard className="h-4 w-4 text-purple-600" />
               Budget Overview
             </CardTitle>
             <p className="text-xs text-muted-foreground">
@@ -470,37 +484,28 @@ export default function Dashboard() {
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Spent</span>
-              <span className="font-semibold text-red-600">{formatCurrency(stats.totalExpenses)}</span>
+              <span className="font-bold text-rose-600 bg-rose-500/10 px-2 py-1 rounded-md">{formatCurrency(stats.totalExpenses)}</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Remaining</span>
-              <span className={`font-semibold ${stats.remainingBudget >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`font-bold px-2 py-1 rounded-md ${stats.remainingBudget >= 0 ? 'text-emerald-600 bg-emerald-500/10' : 'text-rose-600 bg-rose-500/10'}`}>
                 {formatCurrency(stats.remainingBudget)}
               </span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2.5 mt-2">
-              <div
-                className={`h-2.5 rounded-full ${
-                  (stats.totalExpenses / stats.monthlyBudget) * 100 > 100
-                    ? 'bg-red-600'
-                    : (stats.totalExpenses / stats.monthlyBudget) * 100 > 80
-                    ? 'bg-yellow-600'
-                    : 'bg-green-600'
-                }`}
-                style={{
-                  width: `${Math.min((stats.totalExpenses / stats.monthlyBudget) * 100, 100)}%`,
-                }}
-              />
-            </div>
-            <div className="text-xs text-muted-foreground text-center">
-              {stats.monthlyBudget > 0 
-                ? `${((stats.totalExpenses / stats.monthlyBudget) * 100).toFixed(1)}% terpakai`
-                : 'Belum ada target budget'}
-            </div>
-            <div className="text-xs text-muted-foreground bg-muted p-2 rounded-md mt-2">
-              <strong>Savings Rate:</strong> {stats.savingsRate.toFixed(1)}%
-              <br />
-              <span className="text-[10px]">Formula: ((Pemasukan - Pengeluaran) / Pemasukan) × 100%</span>
+            <ColoredProgressBar
+              value={Math.min((stats.totalExpenses / stats.monthlyBudget) * 100, 100)}
+              showLabel={true}
+              height="h-3"
+              animated={true}
+            />
+            <div className="text-xs bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-3 rounded-lg mt-2 border border-purple-500/20">
+              <div className="flex items-center justify-between">
+                <strong className="text-purple-700 dark:text-purple-300">Savings Rate:</strong>
+                <span className="font-bold text-purple-600">{stats.savingsRate.toFixed(1)}%</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground block mt-1">
+                Formula: ((Pemasukan - Pengeluaran) / Pemasukan) × 100%
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -509,10 +514,10 @@ export default function Dashboard() {
       {/* Recent Expenses & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Expenses */}
-        <Card className="card-hover-effect">
-          <CardHeader>
+        <Card className="card-hover-effect overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-rose-500/10 via-orange-500/10 to-amber-500/10 border-b">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="h-4 w-4 text-rose-600" />
               Pengeluaran Terbaru
             </CardTitle>
           </CardHeader>
@@ -520,7 +525,7 @@ export default function Dashboard() {
             {recentExpenses.length > 0 ? (
               <div className="space-y-3">
                 {recentExpenses.map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between py-3 px-3 rounded-lg border border-border hover:border-primary/50 transition-all hover:shadow-sm">
+                  <div key={expense.id} className="flex items-center justify-between py-3 px-3 rounded-lg border border-border hover:bg-gradient-to-r hover:from-rose-500/5 hover:to-orange-500/5 hover:border-rose-500/50 transition-all hover:shadow-md">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <CategoryBadge category={expense.category} size="sm" />
@@ -534,7 +539,7 @@ export default function Dashboard() {
                         })}
                       </p>
                     </div>
-                    <span className="font-bold text-red-600 text-base ml-4">
+                    <span className="font-bold text-rose-600 bg-rose-500/10 px-3 py-1.5 rounded-md text-base ml-4">
                       -{formatCurrency(expense.amount)}
                     </span>
                   </div>
@@ -549,36 +554,39 @@ export default function Dashboard() {
         </Card>
 
         {/* Quick Actions Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Quick Actions</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-teal-500/10 border-b">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <ArrowUpRight className="w-4 h-4 text-blue-600" />
+              Quick Actions
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="grid grid-cols-1 gap-3">
-              <Button
-                variant="outline"
+              <GradientButton
+                variant="income"
                 className="h-16 justify-start gap-3"
                 onClick={() => navigate("/nabila")}
+                icon={TrendingUp}
               >
-                <TrendingUp className="h-5 w-5 text-green-600" />
                 <span className="text-sm font-medium">Tambah Pemasukan</span>
-              </Button>
-              <Button
-                variant="outline"
+              </GradientButton>
+              <GradientButton
+                variant="expense"
                 className="h-16 justify-start gap-3"
                 onClick={() => navigate("/nabila")}
+                icon={TrendingDown}
               >
-                <TrendingDown className="h-5 w-5 text-red-600" />
                 <span className="text-sm font-medium">Catat Pengeluaran</span>
-              </Button>
-              <Button
-                variant="outline"
+              </GradientButton>
+              <GradientButton
+                variant="savings"
                 className="h-16 justify-start gap-3"
                 onClick={() => navigate("/nabila")}
+                icon={PiggyBank}
               >
-                <PiggyBank className="h-5 w-5 text-blue-600" />
                 <span className="text-sm font-medium">Update Tabungan</span>
-              </Button>
+              </GradientButton>
             </div>
           </CardContent>
         </Card>
