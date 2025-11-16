@@ -75,6 +75,7 @@ const ClientGroups = () => {
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [clientContracts, setClientContracts] = useState<Record<string, Contract[]>>({});
   const [loadingContracts, setLoadingContracts] = useState<Set<string>>(new Set());
+  const [contractCounts, setContractCounts] = useState<Record<string, number>>({});
   
   const navigate = useNavigate();
 
@@ -257,6 +258,24 @@ const ClientGroups = () => {
         has_whatsapp: g.has_whatsapp,
         whatsapp_checked_at: g.whatsapp_checked_at
       })));
+      
+      // Fetch contract counts for all clients
+      if (groups && groups.length > 0) {
+        const clientIds = groups.map(g => g.id);
+        const { data: contracts, error: contractsError } = await supabase
+          .from("rental_contracts")
+          .select("client_group_id")
+          .in("client_group_id", clientIds);
+        
+        if (!contractsError && contracts) {
+          // Count contracts per client
+          const counts: Record<string, number> = {};
+          contracts.forEach(contract => {
+            counts[contract.client_group_id] = (counts[contract.client_group_id] || 0) + 1;
+          });
+          setContractCounts(counts);
+        }
+      }
     } catch (error: any) {
       toast.error("Gagal memuat data: " + error.message);
     } finally {
@@ -879,6 +898,11 @@ const ClientGroups = () => {
                               <span className="text-2xl">{group.icon || "👤"}</span>
                             )}
                             <span className="font-medium">{group.nama}</span>
+                            {contractCounts[group.id] > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {contractCounts[group.id]} kontrak
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
