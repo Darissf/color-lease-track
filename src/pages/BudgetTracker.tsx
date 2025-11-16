@@ -4,6 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, Target, PiggyBank, Wallet, Calendar } from "lucide-react";
 import { formatRupiah } from "@/lib/currency";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { GradientButton } from "@/components/GradientButton";
+import { ColoredProgressBar } from "@/components/ColoredProgressBar";
 
 const monthlyBudgets = [
   {
@@ -76,20 +79,20 @@ const savingsGoals = [
 
 const BudgetTracker = () => {
   return (
-    <div className="min-h-screen p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Pelacak Anggaran & Tabungan
-          </h1>
-          <p className="text-muted-foreground">Monitor anggaran bulanan dan progress tabungan Anda</p>
+    <AnimatedBackground theme="budget">
+      <div className="p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gradient-budget mb-2">
+              Pelacak Anggaran & Tabungan
+            </h1>
+            <p className="text-muted-foreground">Monitor anggaran bulanan dan progress tabungan Anda</p>
+          </div>
+          <GradientButton variant="budget" icon={Target}>
+            Atur Target Baru
+          </GradientButton>
         </div>
-        <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
-          <Target className="mr-2 h-4 w-4" />
-          Atur Target Baru
-        </Button>
-      </div>
 
       {/* Monthly Budgets */}
       <div className="mb-8">
@@ -138,7 +141,7 @@ const BudgetTracker = () => {
                   </div>
                 </div>
 
-                <Progress value={data.percentage} className="h-3" />
+                <ColoredProgressBar value={data.percentage} showLabel={false} />
 
                 <div className="pt-4 border-t border-border">
                   <p className="text-sm font-medium text-muted-foreground mb-3">Breakdown Kategori</p>
@@ -192,7 +195,7 @@ const BudgetTracker = () => {
                       {goal.percentage}%
                     </Badge>
                   </div>
-                  <Progress value={goal.percentage} className="h-3" />
+                  <ColoredProgressBar value={goal.percentage} showLabel={false} />
                 </div>
 
                 <div className="pt-4 border-t border-border">
@@ -256,6 +259,7 @@ const BudgetTracker = () => {
         </div>
       </Card>
     </div>
+  </AnimatedBackground>
   );
 };
 
