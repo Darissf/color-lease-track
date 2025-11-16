@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { ColoredStatCard } from "@/components/ColoredStatCard";
+import { GradientButton } from "@/components/GradientButton";
+import BankLogo from "@/components/BankLogo";
 import { format, differenceInDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -390,13 +394,19 @@ const RentalContracts = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusColors: Record<string, string> = {
-      "perpanjangan": "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-      "pending": "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-      "masa sewa": "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-      "berulang": "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-    };
-    return statusColors[status.toLowerCase()] || "bg-gray-100 text-gray-700";
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'masa sewa') {
+      return "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/50";
+    } else if (statusLower === 'selesai') {
+      return "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/50";
+    } else if (statusLower === 'pending') {
+      return "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg shadow-amber-500/50";
+    } else if (statusLower === 'perpanjangan') {
+      return "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50";
+    } else if (statusLower === 'berulang') {
+      return "bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg shadow-indigo-500/50";
+    }
+    return "bg-gradient-to-r from-slate-500 to-gray-500 text-white";
   };
 
   const sortedContracts = React.useMemo(() => {
@@ -486,32 +496,69 @@ const RentalContracts = () => {
     group.nomor_telepon.includes(clientSearchQuery)
   );
 
+  // Calculate stats
+  const totalTagihan = useMemo(() => 
+    rentalContracts.reduce((sum, c) => sum + (c.tagihan_belum_bayar || 0), 0), 
+    [rentalContracts]
+  );
+  
+  const totalLunas = useMemo(() => 
+    rentalContracts.reduce((sum, c) => sum + (c.jumlah_lunas || 0), 
+    0), [rentalContracts]
+  );
+  
+  const activeContracts = useMemo(() => 
+    rentalContracts.filter(c => c.status.toLowerCase() === 'masa sewa').length, 
+    [rentalContracts]
+  );
+
   if (loading) {
-    return <div className="min-h-screen p-8 flex items-center justify-center">Loading...</div>;
+    return (
+      <AnimatedBackground theme="expense">
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto bg-gradient-to-r from-rose-500 to-orange-600 bg-clip-text text-transparent" />
+            <p className="mt-4 text-lg bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent font-semibold">
+              Memuat data kontrak...
+            </p>
+          </div>
+        </div>
+      </AnimatedBackground>
+    );
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            List Kontrak Sewa
-          </h1>
-          <p className="text-muted-foreground">Kelola semua kontrak sewa peralatan</p>
-        </div>
+    <AnimatedBackground theme="expense">
+      <div className="min-h-screen p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 rounded-xl bg-gradient-to-r from-rose-500 to-orange-600 shadow-lg">
+                <FileText className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 bg-clip-text text-transparent">
+                List Kontrak Sewa
+              </h1>
+            </div>
+            <p className="text-muted-foreground">Kelola semua kontrak sewa peralatan dengan mudah</p>
+          </div>
         <Dialog open={isContractDialogOpen} onOpenChange={(open) => {
           setIsContractDialogOpen(open);
           if (!open) resetContractForm();
         }}>
           <DialogTrigger asChild>
-            <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
-              <Plus className="mr-2 h-4 w-4" />
+            <GradientButton variant="expense" icon={Plus}>
               Tambah Kontrak
-            </Button>
+            </GradientButton>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingContractId ? "Edit Kontrak Sewa" : "Tambah Kontrak Sewa"}</DialogTitle>
+            <DialogHeader className="bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 -mx-6 -mt-6 px-6 py-4 rounded-t-lg mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <DialogTitle className="text-white text-xl">{editingContractId ? "Edit Kontrak Sewa" : "Tambah Kontrak Sewa"}</DialogTitle>
+              </div>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -815,12 +862,57 @@ const RentalContracts = () => {
                 />
               </div>
 
-              <Button onClick={handleSaveContract} className="w-full">
-                {editingContractId ? "Update Kontrak" : "Simpan Kontrak"}
-              </Button>
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsContractDialogOpen(false);
+                    resetContractForm();
+                  }}
+                  className="flex-1 border-rose-500/20 hover:border-rose-500 hover:bg-rose-500/5"
+                >
+                  Batal
+                </Button>
+                <GradientButton 
+                  onClick={handleSaveContract} 
+                  variant="income"
+                  className="flex-1"
+                >
+                  {editingContractId ? "Update Kontrak" : "Simpan Kontrak"}
+                </GradientButton>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <ColoredStatCard 
+          title="Total Kontrak"
+          value={rentalContracts.length.toString()}
+          icon={FileText}
+          gradient="expense"
+        />
+        <ColoredStatCard 
+          title="Masa Sewa"
+          value={activeContracts.toString()}
+          icon={CalendarIcon}
+          gradient="savings"
+          subtitle="kontrak aktif"
+        />
+        <ColoredStatCard 
+          title="Total Tagihan"
+          value={formatRupiah(totalTagihan)}
+          icon={Wallet}
+          gradient="budget"
+        />
+        <ColoredStatCard 
+          title="Total Lunas"
+          value={formatRupiah(totalLunas)}
+          icon={CheckCircle}
+          gradient="income"
+        />
       </div>
 
       {/* Controls */}
@@ -937,28 +1029,27 @@ const RentalContracts = () => {
           
           {/* Second row: Action buttons */}
           <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="secondary"
+            <GradientButton
+              variant="savings"
+              icon={RefreshCw}
               onClick={handleProcessRecurringRentals}
               disabled={isProcessingRecurring}
-              className="whitespace-nowrap"
             >
               {isProcessingRecurring ? "Memproses..." : "Proses Kontrak Bulanan"}
-            </Button>
-            <Button
-              variant={isCompactMode ? "default" : "outline"}
+            </GradientButton>
+            <GradientButton
+              variant={isCompactMode ? "budget" : "primary"}
               onClick={() => setIsCompactMode(!isCompactMode)}
-              className="whitespace-nowrap"
             >
               Compact Mode
-            </Button>
-            <Button
-              variant="outline"
+            </GradientButton>
+            <GradientButton
+              variant="primary"
+              icon={isTableLocked ? Lock : Unlock}
               onClick={() => setIsTableLocked(!isTableLocked)}
             >
-              {isTableLocked ? <Lock className="h-4 w-4 mr-2" /> : <Unlock className="h-4 w-4 mr-2" />}
               {isTableLocked ? "Unlock Table" : "Lock Table"}
-            </Button>
+            </GradientButton>
           </div>
         </div>
       </Card>
@@ -967,19 +1058,19 @@ const RentalContracts = () => {
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-gradient-to-r from-rose-500/10 via-red-500/10 to-orange-500/10 border-b-2 border-rose-500/20">
               <TableRow className={cn(isCompactMode && "h-8")}>
-                <TableHead className={cn("text-center w-20", isCompactMode && "py-1 text-xs")}>No</TableHead>
-                <TableHead className={cn("text-center w-32", isCompactMode && "py-1 text-xs")}>Tanggal</TableHead>
-                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Invoice</TableHead>
-                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Kelompok</TableHead>
-                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Keterangan</TableHead>
-                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Periode</TableHead>
-                <TableHead className={cn(isCompactMode && "py-1 text-xs")}>Status</TableHead>
-                <TableHead className={cn("text-right", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
-                <TableHead className={cn("text-right", isCompactMode && "py-1 text-xs")}>Lunas</TableHead>
-                <TableHead className={cn("text-center w-32", isCompactMode && "py-1 text-xs")}>Tanggal Lunas</TableHead>
-                <TableHead className={cn("text-center w-24", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
+                <TableHead className={cn("text-center w-20 font-semibold", isCompactMode && "py-1 text-xs")}>No</TableHead>
+                <TableHead className={cn("text-center w-32 font-semibold", isCompactMode && "py-1 text-xs")}>Tanggal</TableHead>
+                <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Invoice</TableHead>
+                <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Kelompok</TableHead>
+                <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Keterangan</TableHead>
+                <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Periode</TableHead>
+                <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Status</TableHead>
+                <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
+                <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Lunas</TableHead>
+                <TableHead className={cn("text-center w-32 font-semibold", isCompactMode && "py-1 text-xs")}>Tanggal Lunas</TableHead>
+                <TableHead className={cn("text-center w-24 font-semibold", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -996,7 +1087,13 @@ const RentalContracts = () => {
                   const remainingDays = getRemainingDays(contract.end_date);
 
                   return (
-                    <TableRow key={contract.id} className={cn(isCompactMode && "h-10")}>
+                    <TableRow 
+                      key={contract.id} 
+                      className={cn(
+                        "transition-all duration-300 hover:bg-gradient-to-r hover:from-rose-500/5 hover:to-orange-500/5 hover:shadow-md",
+                        isCompactMode && "h-10"
+                      )}
+                    >
                       <TableCell className={cn("text-center font-medium", isCompactMode && "py-1 px-2 text-xs")}>{startIndex + index + 1}</TableCell>
                       <TableCell className={cn("text-center whitespace-nowrap", isCompactMode && "py-1 px-2")}>
                         <Popover>
@@ -1067,10 +1164,14 @@ const RentalContracts = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
-                        <span className="text-warning font-medium">{formatRupiah(contract.tagihan_belum_bayar)}</span>
+                        <span className="text-rose-600 font-bold bg-rose-500/10 px-2 py-1 rounded-md">
+                          {formatRupiah(contract.tagihan_belum_bayar)}
+                        </span>
                       </TableCell>
                       <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
-                        <span className="text-foreground font-medium">{formatRupiah(contract.jumlah_lunas)}</span>
+                        <span className="text-emerald-600 font-bold bg-emerald-500/10 px-2 py-1 rounded-md">
+                          {formatRupiah(contract.jumlah_lunas)}
+                        </span>
                       </TableCell>
                       <TableCell className={cn("text-center whitespace-nowrap", isCompactMode && "py-1 px-2")}>
                         <Popover>
@@ -1152,7 +1253,10 @@ const RentalContracts = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditContract(contract)}
-                            className={cn("text-primary hover:bg-primary/10", isCompactMode ? "h-6 w-6" : "h-8 w-8")}
+                            className={cn(
+                              "transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white hover:shadow-lg", 
+                              isCompactMode ? "h-6 w-6" : "h-8 w-8"
+                            )}
                           >
                             <Edit className={cn(isCompactMode ? "h-3 w-3" : "h-4 w-4")} />
                           </Button>
@@ -1160,7 +1264,10 @@ const RentalContracts = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteContract(contract.id)}
-                            className={cn("text-destructive hover:bg-destructive/10", isCompactMode ? "h-6 w-6" : "h-8 w-8")}
+                            className={cn(
+                              "transition-all duration-200 hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 hover:text-white hover:shadow-lg", 
+                              isCompactMode ? "h-6 w-6" : "h-8 w-8"
+                            )}
                           >
                             <Trash2 className={cn(isCompactMode ? "h-3 w-3" : "h-4 w-4")} />
                           </Button>
@@ -1182,7 +1289,12 @@ const RentalContracts = () => {
                 <PaginationItem>
                   <PaginationPrevious 
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={cn(
+                      "cursor-pointer transition-all duration-200",
+                      currentPage === 1 
+                        ? "pointer-events-none opacity-50" 
+                        : "hover:bg-gradient-to-r hover:from-rose-500 hover:to-orange-600 hover:text-white hover:shadow-lg"
+                    )}
                   />
                 </PaginationItem>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -1190,7 +1302,12 @@ const RentalContracts = () => {
                     <PaginationLink
                       onClick={() => setCurrentPage(page)}
                       isActive={currentPage === page}
-                      className="cursor-pointer"
+                      className={cn(
+                        "cursor-pointer transition-all duration-200",
+                        currentPage === page
+                          ? "bg-gradient-to-r from-rose-500 to-orange-600 text-white shadow-lg"
+                          : "hover:bg-gradient-to-r hover:from-rose-500/20 hover:to-orange-600/20 hover:border-rose-500"
+                      )}
                     >
                       {page}
                     </PaginationLink>
@@ -1199,7 +1316,12 @@ const RentalContracts = () => {
                 <PaginationItem>
                   <PaginationNext 
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={cn(
+                      "cursor-pointer transition-all duration-200",
+                      currentPage === totalPages 
+                        ? "pointer-events-none opacity-50" 
+                        : "hover:bg-gradient-to-r hover:from-rose-500 hover:to-orange-600 hover:text-white hover:shadow-lg"
+                    )}
                   />
                 </PaginationItem>
               </PaginationContent>
@@ -1207,7 +1329,8 @@ const RentalContracts = () => {
           </div>
         )}
       </Card>
-    </div>
+      </div>
+    </AnimatedBackground>
   );
 };
 
