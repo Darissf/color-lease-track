@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Book, Settings as SettingsIcon, Wallet, DollarSign, PiggyBank, ChevronRight } from "lucide-react";
+import { Book, Settings as SettingsIcon, Wallet, PiggyBank, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const learningResources = [

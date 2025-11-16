@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download, Filter, Calendar, PieChart as PieChartIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Download, Filter, Calendar, PieChart as PieChartIcon } from "lucide-react";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { formatRupiah } from "@/lib/currency";
 import { useState } from "react";
@@ -135,7 +135,7 @@ const Finances = () => {
               <p className="text-3xl font-bold text-foreground mt-2">{formatRupiah(netProfit)}</p>
             </div>
             <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-              <DollarSign className="h-6 w-6 text-white" />
+              <Wallet className="h-6 w-6 text-white" />
             </div>
           </div>
           <div className="flex items-center gap-1">
