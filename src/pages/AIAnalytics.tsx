@@ -357,10 +357,10 @@ export default function AIAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${summary.totalCost.toFixed(4)}
+              Rp {(summary.totalCost * 15000).toLocaleString('id-ID')}
             </div>
             <p className="text-xs text-muted-foreground">
-              Total spend
+              Total spend (estimasi)
             </p>
           </CardContent>
         </Card>
@@ -415,8 +415,8 @@ export default function AIAnalytics() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">${stat.cost.toFixed(4)}</p>
-                      <p className="text-xs text-muted-foreground">cost</p>
+                      <p className="font-medium">Rp {(stat.cost * 15000).toLocaleString('id-ID')}</p>
+                      <p className="text-xs text-muted-foreground">biaya</p>
                     </div>
                   </div>
                 ))}
@@ -530,7 +530,7 @@ export default function AIAnalytics() {
                     <YAxis 
                       className="text-xs"
                       tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      tickFormatter={(value) => `$${value.toFixed(4)}`}
+                      tickFormatter={(value) => `Rp ${(value * 15000).toFixed(0)}`}
                     />
                     <Tooltip 
                       contentStyle={{ 
@@ -538,7 +538,7 @@ export default function AIAnalytics() {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px'
                       }}
-                      formatter={(value: any) => [`$${value.toFixed(6)}`, 'Cost']}
+                      formatter={(value: any) => [`Rp ${(value * 15000).toLocaleString('id-ID')}`, 'Biaya']}
                     />
                     <Line 
                       type="monotone" 
