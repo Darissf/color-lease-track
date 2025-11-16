@@ -9,6 +9,9 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, eachDayOfInterval, eachMonthOfInterval, subDays, subMonths } from "date-fns";
 import { AIBudgetAdvisor } from "@/components/AIBudgetAdvisor";
+import { CategoryBadge } from "@/components/CategoryBadge";
+import { EnhancedTooltip } from "@/components/EnhancedTooltip";
+import { getCategoryStyle } from "@/lib/categoryColors";
 
 interface DashboardStats {
   totalIncome: number;
@@ -345,7 +348,7 @@ export default function Dashboard() {
       {/* Charts Row 1: Monthly Trend & Income by Client */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Trend - Income vs Expenses */}
-        <Card>
+        <Card className="card-hover-effect">
           <CardHeader>
             <CardTitle className="text-base font-semibold">
               Trend {period === "week" ? "Harian" : period === "month" ? "Mingguan" : "Bulanan"}
@@ -353,38 +356,77 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Perbandingan Pemasukan vs Pengeluaran</p>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" style={{ fontSize: '12px' }} />
-                <YAxis stroke="hsl(var(--muted-foreground))" style={{ fontSize: '12px' }} />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                  formatter={(value: number) => formatCurrency(value)}
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis 
+                  dataKey="month" 
+                  stroke="hsl(var(--muted-foreground))" 
+                  style={{ fontSize: '12px' }} 
                 />
-                <Line type="monotone" dataKey="pemasukan" stroke="#10b981" strokeWidth={2} name="Pemasukan" />
-                <Line type="monotone" dataKey="pengeluaran" stroke="#ef4444" strokeWidth={2} name="Pengeluaran" />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))" 
+                  style={{ fontSize: '12px' }} 
+                />
+                <Tooltip content={<EnhancedTooltip />} />
+                <Line 
+                  type="monotone" 
+                  dataKey="pemasukan" 
+                  stroke="#10b981" 
+                  strokeWidth={3} 
+                  name="Pemasukan"
+                  dot={{ fill: '#10b981', strokeWidth: 2, r: 5 }}
+                  activeDot={{ r: 7, strokeWidth: 2 }}
+                  animationDuration={1000}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="pengeluaran" 
+                  stroke="#ef4444" 
+                  strokeWidth={3} 
+                  name="Pengeluaran"
+                  dot={{ fill: '#ef4444', strokeWidth: 2, r: 5 }}
+                  activeDot={{ r: 7, strokeWidth: 2 }}
+                  animationDuration={1000}
+                  animationBegin={200}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Income by Client */}
-        <Card>
+        <Card className="card-hover-effect">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Pemasukan per Client</CardTitle>
             <p className="text-xs text-muted-foreground">Top 10 client dengan pemasukan tertinggi</p>
           </CardHeader>
           <CardContent>
             {incomeByClient.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={incomeByClient} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" style={{ fontSize: '12px' }} />
+                  <defs>
+                    <linearGradient id="colorBar" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#ec4899" stopOpacity={0.8}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis 
+                    type="number" 
+                    stroke="hsl(var(--muted-foreground))" 
+                    style={{ fontSize: '12px' }} 
+                  />
                   <YAxis 
                     dataKey="name" 
                     type="category" 
@@ -392,19 +434,18 @@ export default function Dashboard() {
                     style={{ fontSize: '11px' }}
                     width={100}
                   />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                    formatter={(value: number) => formatCurrency(value)}
+                  <Tooltip content={<EnhancedTooltip type="bar" />} />
+                  <Bar 
+                    dataKey="value" 
+                    fill="url(#colorBar)" 
+                    name="Pemasukan"
+                    radius={[0, 8, 8, 0]}
+                    animationDuration={1000}
                   />
-                  <Bar dataKey="value" fill="#a855f7" name="Pemasukan" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
                 Belum ada data pemasukan dari client
               </div>
             )}
@@ -505,7 +546,7 @@ export default function Dashboard() {
       {/* Recent Expenses & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Expenses */}
-        <Card>
+        <Card className="card-hover-effect">
           <CardHeader>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Calendar className="h-4 w-4" />
@@ -516,14 +557,21 @@ export default function Dashboard() {
             {recentExpenses.length > 0 ? (
               <div className="space-y-3">
                 {recentExpenses.map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <div>
+                  <div key={expense.id} className="flex items-center justify-between py-3 px-3 rounded-lg border border-border hover:border-primary/50 transition-all hover:shadow-sm">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CategoryBadge category={expense.category} size="sm" />
+                      </div>
                       <p className="font-medium text-sm">{expense.description || expense.category}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(expense.date).toLocaleDateString('id-ID')} • {expense.category}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(expense.date).toLocaleDateString('id-ID', { 
+                          day: 'numeric', 
+                          month: 'long', 
+                          year: 'numeric' 
+                        })}
                       </p>
                     </div>
-                    <span className="font-semibold text-red-600 text-sm">
+                    <span className="font-bold text-red-600 text-base ml-4">
                       -{formatCurrency(expense.amount)}
                     </span>
                   </div>
