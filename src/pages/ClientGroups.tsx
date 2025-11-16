@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatRupiah } from "@/lib/currency";
 import { z } from "zod";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -328,13 +329,17 @@ const ClientGroups = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    const capitalizeWords = (str: string) => {
+      return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+    };
+    
+    switch (status.toLowerCase()) {
       case "masa sewa":
         return <Badge className="bg-blue-500">Masa Sewa</Badge>;
       case "selesai":
         return <Badge className="bg-green-500">Selesai</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary">{capitalizeWords(status)}</Badge>;
     }
   };
 
@@ -898,9 +903,9 @@ const ClientGroups = () => {
                               <span className="text-2xl">{group.icon || "👤"}</span>
                             )}
                             <span className="font-medium">{group.nama}</span>
-                            {contractCounts[group.id] > 0 && (
+                                            {contractCounts[group.id] > 0 && (
                               <Badge variant="secondary" className="text-xs">
-                                {contractCounts[group.id]} kontrak
+                                {contractCounts[group.id]} Kontrak
                               </Badge>
                             )}
                           </div>
@@ -1047,6 +1052,60 @@ const ClientGroups = () => {
                                   <h4 className="text-sm font-semibold text-foreground mb-3">
                                     Kontrak Sewa ({contracts.length})
                                   </h4>
+                                  
+                                  {/* Summary Cards */}
+                                  <div className="grid gap-3 md:grid-cols-3 mb-4">
+                                    <Card className="border-primary/20">
+                                      <CardContent className="p-4">
+                                        <div className="flex items-center gap-2">
+                                          <div className="p-2 bg-primary/10 rounded-lg">
+                                            <FileText className="h-5 w-5 text-primary" />
+                                          </div>
+                                          <div className="flex-1">
+                                            <p className="text-xs text-muted-foreground">Total Kontrak</p>
+                                            <p className="text-xl font-bold">{contracts.length} Kontrak</p>
+                                          </div>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                    
+                                    <Card className="border-green-500/20">
+                                      <CardContent className="p-4">
+                                        <div className="flex items-center gap-2">
+                                          <div className="p-2 bg-green-500/10 rounded-lg">
+                                            <DollarSign className="h-5 w-5 text-green-600" />
+                                          </div>
+                                          <div className="flex-1">
+                                            <p className="text-xs text-muted-foreground">Total Lunas</p>
+                                            <p className="text-lg font-bold text-green-600">
+                                              {formatRupiah(
+                                                contracts.reduce((sum, c) => sum + (c.jumlah_lunas || 0), 0)
+                                              )}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                    
+                                    <Card className="border-orange-500/20">
+                                      <CardContent className="p-4">
+                                        <div className="flex items-center gap-2">
+                                          <div className="p-2 bg-orange-500/10 rounded-lg">
+                                            <DollarSign className="h-5 w-5 text-orange-600" />
+                                          </div>
+                                          <div className="flex-1">
+                                            <p className="text-xs text-muted-foreground">Total Belum Bayar</p>
+                                            <p className="text-lg font-bold text-orange-600">
+                                              {formatRupiah(
+                                                contracts.reduce((sum, c) => sum + (c.tagihan_belum_bayar || 0), 0)
+                                              )}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  </div>
+                                  
                                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                                     {contracts.map((contract) => (
                                       <div
