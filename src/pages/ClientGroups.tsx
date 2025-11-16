@@ -219,6 +219,7 @@ const ClientGroups = () => {
     nama: "",
     nomor_telepon: "",
     icon: "👤",
+    ktp_files: [] as Array<{ name: string; url: string }>
   });
   const [phoneError, setPhoneError] = useState<string>("");
   const [ktpFiles, setKtpFiles] = useState<File[]>([]);
@@ -499,6 +500,7 @@ const ClientGroups = () => {
       nama: group.nama,
       nomor_telepon: group.nomor_telepon,
       icon: group.icon || "👤",
+      ktp_files: group.ktp_files || []
     });
     // Set preview if icon is an image URL
     if (group.icon?.startsWith('http')) {
@@ -562,6 +564,7 @@ const ClientGroups = () => {
       nama: "",
       nomor_telepon: "",
       icon: "👤",
+      ktp_files: []
     });
     setKtpFiles([]);
     setIconImageFile(null);
@@ -620,32 +623,76 @@ const ClientGroups = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedGroups = sortedGroups.slice(startIndex, startIndex + itemsPerPage);
 
+  // Calculate stats
+  const totalClients = clientGroups.length;
+  const totalContracts = Object.values(contractCounts).reduce((sum, count) => sum + count, 0);
+  const whatsappVerified = clientGroups.filter(g => g.has_whatsapp === true).length;
+  const totalActiveContracts = Object.values(contractStatusBreakdown).reduce((sum, breakdown) => sum + (breakdown?.active || 0), 0);
+
   if (loading) {
-    return <div className="min-h-screen p-8 flex items-center justify-center">Loading...</div>;
+    return (
+      <AnimatedBackground theme="neutral">
+        <div className="flex flex-col items-center justify-center h-screen gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-600 rounded-full blur-xl opacity-50 animate-pulse"></div>
+            <Loader2 className="relative h-16 w-16 animate-spin text-blue-600" />
+          </div>
+          <p className="text-lg font-medium bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Memuat data client...
+          </p>
+        </div>
+      </AnimatedBackground>
+    );
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            List Client
-          </h1>
-          <p className="text-muted-foreground">Kelola data client</p>
-        </div>
-        <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
-          setIsGroupDialogOpen(open);
-          if (!open) resetGroupForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Client
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{editingGroupId ? "Edit Client" : "Tambah Client"}</DialogTitle>
+    <AnimatedBackground theme="neutral">
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header dengan Gradient */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl blur-lg opacity-50"></div>
+                <div className="relative bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-xl shadow-lg">
+                  <Users className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Daftar Client
+              </span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2">
+              Kelola semua client dan kontrak dalam satu tempat
+            </p>
+          </div>
+          
+          <Dialog open={isGroupDialogOpen} onOpenChange={(open) => {
+            setIsGroupDialogOpen(open);
+            if (!open) resetGroupForm();
+          }}>
+            <DialogTrigger asChild>
+              <GradientButton 
+                variant="income"
+                icon={Plus}
+                onClick={() => {
+                  setEditingGroupId(null);
+                  setGroupForm({ nama: "", nomor_telepon: "", icon: "👤", ktp_files: [] });
+                  setPhoneError("");
+                  setWhatsappStatus(null);
+                  setIconImageFile(null);
+                  setIconImagePreview(null);
+                }}
+              >
+                Tambah Client Baru
+              </GradientButton>
+            </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="bg-gradient-to-r from-blue-500 to-purple-600 -m-6 mb-6 p-6 rounded-t-lg">
+              <DialogTitle className="text-white text-xl flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                {editingGroupId ? "Edit Client" : "Tambah Client Baru"}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -1261,7 +1308,8 @@ const ClientGroups = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </AnimatedBackground>
   );
 };
 
