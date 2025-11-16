@@ -130,14 +130,25 @@ export default function ContractDetail() {
     setLoading(false);
   };
 
+  const capitalizeWords = (str: string) => {
+    return str.split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    const normalizedStatus = status.toLowerCase();
+    switch (normalizedStatus) {
       case "masa sewa":
-        return <Badge className="bg-green-500 text-white">Aktif</Badge>;
+        return <Badge className="bg-green-500 text-white">Masa Sewa</Badge>;
       case "habis sewa":
         return <Badge variant="secondary">Selesai</Badge>;
+      case "perpanjangan":
+        return <Badge variant="outline">Perpanjangan</Badge>;
+      case "selesai":
+        return <Badge variant="secondary">Selesai</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{capitalizeWords(status)}</Badge>;
     }
   };
 
