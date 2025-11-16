@@ -21,7 +21,9 @@ import {
   Download,
   ExternalLink,
   Clock,
-  Receipt
+  Receipt,
+  TrendingUp,
+  Wallet
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -186,6 +188,15 @@ export default function ContractDetail() {
     );
   }
 
+  // Calculate statistics
+  const totalPayment = paymentHistory.reduce((sum, payment) => sum + Number(payment.amount), 0);
+  
+  // Calculate months between start and end date
+  const startDate = new Date(contract.start_date);
+  const endDate = new Date(contract.end_date);
+  const monthsDifference = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+  const averagePaymentPerMonth = totalPayment / monthsDifference;
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -202,6 +213,57 @@ export default function ContractDetail() {
           </div>
         </div>
         {getStatusBadge(contract.status)}
+      </div>
+
+      {/* Summary Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Pembayaran</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {formatRupiah(totalPayment)}
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Wallet className="h-6 w-6 text-green-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Rata-Rata Per Bulan</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {formatRupiah(averagePaymentPerMonth)}
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-blue-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Sisa Tagihan</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {formatRupiah(contract.tagihan_belum_bayar)}
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertCircle className="h-6 w-6 text-red-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
