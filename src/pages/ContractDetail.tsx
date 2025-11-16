@@ -352,7 +352,7 @@ export default function ContractDetail() {
             </CardContent>
           </Card>
 
-          {/* Payment History */}
+          {/* Payment History Timeline */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -364,36 +364,61 @@ export default function ContractDetail() {
               {paymentHistory.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Receipt className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                  <p>Belum ada riwayat pembayaran</p>
+                  <p>Belum Ada Riwayat Pembayaran</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {paymentHistory.map((payment) => (
-                    <div
-                      key={payment.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
+                <div className="relative">
+                  {/* Timeline vertical line */}
+                  <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-border" />
+                  
+                  <div className="space-y-6">
+                    {paymentHistory.map((payment, index) => (
+                      <div key={payment.id} className="relative pl-16">
+                        {/* Timeline dot */}
+                        <div className="absolute left-3 top-1 h-6 w-6 rounded-full bg-background border-2 border-green-500 flex items-center justify-center">
+                          <div className="h-3 w-3 rounded-full bg-green-500" />
                         </div>
-                        <div>
-                          <p className="font-semibold">{payment.source_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {payment.date
-                              ? format(new Date(payment.date), "dd MMMM yyyy", { locale: localeId })
-                              : "-"}
-                            {payment.bank_name && ` • ${payment.bank_name}`}
-                          </p>
+                        
+                        <div className="bg-muted/30 rounded-lg p-4 hover:bg-muted/50 transition-colors border border-border">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span className="font-semibold text-foreground">
+                                  {payment.source_name}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-3 w-3" />
+                                <span>
+                                  {payment.date
+                                    ? format(new Date(payment.date), "dd MMMM yyyy", { locale: localeId })
+                                    : "-"}
+                                </span>
+                              </div>
+                              
+                              {payment.bank_name && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                  <DollarSign className="h-3 w-3" />
+                                  <span>{payment.bank_name}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="text-right">
+                              <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">
+                                Lunas
+                              </Badge>
+                              <p className="font-bold text-lg text-green-600 mt-1">
+                                {formatRupiah(payment.amount)}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-green-600">
-                          {formatRupiah(payment.amount)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
