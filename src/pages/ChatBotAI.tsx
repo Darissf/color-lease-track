@@ -19,6 +19,8 @@ import { MessageActions } from "@/components/MessageActions";
 import { CommandPalette } from "@/components/CommandPalette";
 import { ExportDialog } from "@/components/ExportDialog";
 import { ConversationSearch } from "@/components/ConversationSearch";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { GradientButton } from "@/components/GradientButton";
 
 interface Message {
   id?: string;
@@ -550,69 +552,73 @@ export default function ChatBotAI() {
         onOpenChange={setSearchDialogOpen}
         onSelectConversation={loadConversation}
       />
-      <div className="container mx-auto p-4 h-[calc(100vh-4rem)] flex flex-col">
+      <AnimatedBackground theme="budget">
+        <div className="container mx-auto p-4 h-[calc(100vh-4rem)] flex flex-col">
       <div className="mb-4">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold">ChatBot AI</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 bg-clip-text text-transparent">
+              ✨ ChatBot AI
+            </h1>
+            <p className="text-lg bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent mt-1">
               {conversationTitle}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
+            <GradientButton
+              variant="budget"
               size="sm"
               onClick={() => setCommandPaletteOpen(true)}
-              title="Quick commands (Ctrl+K)"
             >
               <CommandIcon className="w-4 h-4 mr-2" />
               Commands
-            </Button>
-            <Button
-              variant="outline"
+            </GradientButton>
+            <GradientButton
+              variant="primary"
               size="sm"
               onClick={() => setExportDialogOpen(true)}
               disabled={!currentConversation}
-              title="Export conversation"
             >
               <Download className="w-4 h-4 mr-2" />
               Export
-            </Button>
-            <Button
-              variant="outline"
+            </GradientButton>
+            <GradientButton
+              variant="income"
               size="sm"
               onClick={() => setSearchDialogOpen(true)}
-              title="Search conversations"
             >
               <SearchIcon className="w-4 h-4 mr-2" />
               Search
-            </Button>
-            <Button
-              variant="outline"
+            </GradientButton>
+            <GradientButton
+              variant="savings"
               size="sm"
               onClick={() => navigate("/ai-analytics")}
             >
               <TrendingUp className="w-4 h-4 mr-2" />
               Analytics
-            </Button>
+            </GradientButton>
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
+                <GradientButton variant="budget" size="sm">
                   <History className="w-4 h-4 mr-2" />
                   History ({conversations.length})
-                </Button>
+                </GradientButton>
               </SheetTrigger>
               <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Chat History</SheetTitle>
-                  <SheetDescription>
+                <SheetHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 -m-6 mb-4 rounded-t-lg">
+                  <SheetTitle className="text-white flex items-center gap-2">
+                    <History className="w-5 h-5" />
+                    Chat History
+                  </SheetTitle>
+                  <SheetDescription className="text-white/90">
                     Load atau hapus percakapan sebelumnya
                   </SheetDescription>
                 </SheetHeader>
                 <div className="mt-4">
-                  <Button
+                  <GradientButton
                     className="w-full mb-4"
+                    variant="income"
                     onClick={() => {
                       startNewConversation();
                       // Close sheet programmatically not needed, user will see the new conversation
@@ -620,22 +626,24 @@ export default function ChatBotAI() {
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     New Conversation
-                  </Button>
+                  </GradientButton>
                   <ScrollArea className="h-[calc(100vh-12rem)]">
                     <div className="space-y-2">
                       {conversations.map((conv) => (
                         <div
                           key={conv.id}
-                          className={`p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors ${
-                            currentConversation === conv.id ? 'bg-accent' : ''
+                          className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
+                            currentConversation === conv.id 
+                              ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500 shadow-lg shadow-purple-500/30' 
+                              : 'border-transparent hover:border-purple-500/50 hover:bg-gradient-to-br hover:from-purple-500/5 hover:to-pink-500/5 hover:scale-[1.02]'
                           }`}
                           onClick={() => loadConversation(conv.id)}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{conv.title}</p>
+                              <p className="font-medium truncate bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{conv.title}</p>
                               <div className="flex items-center gap-2 mt-1">
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge className="text-xs bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0">
                                   {conv.ai_provider}
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">
@@ -655,13 +663,13 @@ export default function ChatBotAI() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 shrink-0"
+                              className="h-8 w-8 shrink-0 hover:bg-red-500/20 hover:text-red-600"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteConversation(conv.id);
                               }}
                             >
-                              <Trash2 className="w-4 h-4 text-destructive" />
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
@@ -671,31 +679,31 @@ export default function ChatBotAI() {
                 </div>
               </SheetContent>
             </Sheet>
-            <Button
-              variant="outline"
+            <GradientButton
+              variant="budget"
               size="sm"
               onClick={startNewConversation}
-              title="Start a new conversation"
             >
               <MessageSquare className="w-4 h-4 mr-2" />
               New Chat
-            </Button>
-            <Button
-              variant="outline"
+            </GradientButton>
+            <GradientButton
+              variant="primary"
               size="sm"
               onClick={() => navigate("/settings/ai")}
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
-            </Button>
+            </GradientButton>
           </div>
         </div>
         <div className="mt-3 flex items-center gap-2">
-          <Badge variant="default" className="gap-1">
-            ✨ {activeProvider}
+          <Badge className="gap-1 bg-gradient-to-r from-purple-500 to-pink-600 text-white border-0 shadow-lg shadow-purple-500/50">
+            <Sparkles className="w-3 h-3" />
+            {activeProvider}
           </Badge>
           <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger className="w-[250px] h-8">
+            <SelectTrigger className="w-[250px] h-8 border-purple-500/50 hover:border-purple-500 focus:ring-2 focus:ring-purple-500/50 transition-all">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -708,8 +716,9 @@ export default function ChatBotAI() {
           </Select>
         </div>
         {!["openai", "claude", "deepseek", "gemini"].includes(activeProvider) && (
-          <Alert className="mt-3">
-            <AlertDescription>
+          <Alert className="mt-3 border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
+            <Sparkles className="h-4 w-4 text-purple-500" />
+            <AlertDescription className="text-foreground">
               Provider {activeProvider} tidak mendukung akses database. Untuk pertanyaan yang membutuhkan data (invoice, pemasukan, pengeluaran, kontrak sewa), gunakan OpenAI, Claude, Gemini, atau DeepSeek.
             </AlertDescription>
           </Alert>
@@ -719,12 +728,67 @@ export default function ChatBotAI() {
       <Card className="flex-1 flex flex-col overflow-hidden">
         <ScrollArea className="flex-1 p-4">
           {messages.length === 0 && (
-            <Alert className="mb-4">
-              <MessageSquare className="h-4 w-4" />
-              <AlertDescription>
-                Mulai percakapan baru atau load dari history. Model yang dipilih: <strong>{selectedModel}</strong>
-              </AlertDescription>
-            </Alert>
+            <>
+              <Alert className="mb-4 border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                <AlertDescription className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Mulai percakapan baru atau load dari history. Model yang dipilih: <strong>{selectedModel}</strong>
+                </AlertDescription>
+              </Alert>
+              
+              <div className="mb-6">
+                <h3 className="text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-500" />
+                  Suggested Prompts
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    {
+                      icon: "💰",
+                      title: "Analisa Keuangan",
+                      prompt: "Buatkan analisa lengkap keuangan saya bulan ini",
+                      gradient: "from-emerald-500 to-green-600"
+                    },
+                    {
+                      icon: "📊",
+                      title: "Budget Planning",
+                      prompt: "Bantu saya buat rencana budget untuk bulan depan",
+                      gradient: "from-blue-500 to-cyan-600"
+                    },
+                    {
+                      icon: "💡",
+                      title: "Savings Tips",
+                      prompt: "Berikan tips untuk meningkatkan tabungan saya",
+                      gradient: "from-purple-500 to-pink-600"
+                    },
+                    {
+                      icon: "📈",
+                      title: "Investment Advice",
+                      prompt: "Rekomendasi investasi yang cocok untuk pemula",
+                      gradient: "from-orange-500 to-red-600"
+                    }
+                  ].map((suggestion, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setInput(suggestion.prompt);
+                        setTimeout(() => handleSend(), 100);
+                      }}
+                      className={`p-4 rounded-xl bg-gradient-to-br ${suggestion.gradient} cursor-pointer
+                        hover:scale-105 hover:shadow-xl transition-all duration-300
+                        shadow-lg hover:shadow-2xl group relative overflow-hidden`}
+                    >
+                      <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors"></div>
+                      <div className="relative z-10">
+                        <div className="text-3xl mb-2">{suggestion.icon}</div>
+                        <h4 className="text-white font-bold text-sm mb-1">{suggestion.title}</h4>
+                        <p className="text-white/90 text-xs">{suggestion.prompt}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
           <div className="space-y-4">
             {messages.map((message, index) => (
@@ -735,22 +799,22 @@ export default function ChatBotAI() {
                 }`}
               >
                 {message.role === "assistant" && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-primary" />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center ring-4 ring-purple-500/20 shadow-lg shadow-purple-500/50 animate-pulse-glow">
+                    <Bot className="w-5 h-5 text-white" />
                   </div>
                 )}
                 <div className="flex-1 flex flex-col gap-2">
                   <div
-                    className={`max-w-[70%] rounded-lg p-3 ${
+                    className={`max-w-[70%] rounded-2xl p-4 ${
                       message.role === "user"
-                        ? "bg-primary text-primary-foreground ml-auto"
-                        : "bg-muted"
+                        ? "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-600 text-white ml-auto rounded-br-sm shadow-xl shadow-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/60 transition-all duration-300 animate-slide-in-right"
+                        : "bg-gradient-to-br from-purple-500 via-pink-500 to-rose-600 text-white rounded-bl-sm shadow-xl shadow-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/60 transition-all duration-300 animate-slide-in-left"
                     }`}
                   >
                     {message.image_url && (
                       <img src={message.image_url} alt="Uploaded" className="max-w-full rounded mb-2" />
                     )}
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div className="prose prose-sm prose-invert max-w-none">
                       <ReactMarkdown>
                         {message.content}
                       </ReactMarkdown>
@@ -765,25 +829,28 @@ export default function ChatBotAI() {
                   )}
                 </div>
                 {message.role === "user" && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary-foreground" />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ring-4 ring-blue-500/20 shadow-lg shadow-blue-500/50">
+                    <User className="w-5 h-5 text-white" />
                   </div>
                 )}
               </div>
             ))}
             {isLoading && (
               <div className="flex gap-3 justify-start">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-primary" />
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center ring-4 ring-purple-500/20 shadow-lg shadow-purple-500/50 animate-pulse-glow">
+                  <Bot className="w-5 h-5 text-white" />
                 </div>
-                <div className="bg-muted rounded-lg p-3">
-                  <div className="flex items-center gap-2">
+                <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-2 border-purple-500/30 rounded-2xl rounded-bl-sm p-4 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
                     <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                      <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                      <span className="w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full animate-bounce shadow-lg shadow-purple-500/50" style={{ animationDelay: "0ms" }}></span>
+                      <span className="w-3 h-3 bg-gradient-to-r from-pink-500 to-rose-600 rounded-full animate-bounce shadow-lg shadow-pink-500/50" style={{ animationDelay: "150ms" }}></span>
+                      <span className="w-3 h-3 bg-gradient-to-r from-rose-500 to-purple-600 rounded-full animate-bounce shadow-lg shadow-rose-500/50" style={{ animationDelay: "300ms" }}></span>
                     </div>
-                    <span className="text-sm text-muted-foreground">AI sedang mengetik...</span>
+                    <span className="text-sm bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-medium">
+                      AI sedang berpikir...
+                    </span>
+                    <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
                   </div>
                 </div>
               </div>
@@ -792,14 +859,16 @@ export default function ChatBotAI() {
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-blue-500/5">
           {currentImage && (
-            <div className="mb-2 relative inline-block">
-              <img src={currentImage} alt="Upload preview" className="max-h-32 rounded" />
+            <div className="mb-3 relative inline-block">
+              <div className="p-1 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg">
+                <img src={currentImage} alt="Upload preview" className="max-h-32 rounded" />
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute top-0 right-0"
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg"
                 onClick={() => setCurrentImage(null)}
               >
                 ×
@@ -825,23 +894,25 @@ export default function ChatBotAI() {
               onKeyPress={handleKeyPress}
               placeholder="Ketik pesan Anda..."
               disabled={isLoading}
-              className="flex-1"
+              className="flex-1 border-2 border-purple-500/30 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all rounded-xl bg-white/50 backdrop-blur-sm"
             />
             <Button
               onClick={handleSend}
               disabled={(!input.trim() && !currentImage) || isLoading}
               size="icon"
+              className="h-10 w-10 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/60 transition-all"
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
               ) : (
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5 text-white" />
               )}
             </Button>
           </div>
         </div>
        </Card>
      </div>
+      </AnimatedBackground>
     </>
   );
 }
