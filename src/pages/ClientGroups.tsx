@@ -10,7 +10,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText } from "lucide-react";
+import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText, ChevronDown, ChevronRight, Calendar, DollarSign } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -28,6 +30,17 @@ interface ClientGroup {
   has_whatsapp: boolean | null;
   whatsapp_checked_at: string | null;
   created_at: string;
+}
+
+interface Contract {
+  id: string;
+  invoice: string | null;
+  start_date: string;
+  end_date: string;
+  status: string;
+  jumlah_lunas: number | null;
+  tagihan_belum_bayar: number | null;
+  tanggal: string | null;
 }
 
 // Validation schema for Indonesian phone numbers
@@ -57,6 +70,13 @@ const ClientGroups = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Expandable client states
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+  const [clientContracts, setClientContracts] = useState<Record<string, Contract[]>>({});
+  const [loadingContracts, setLoadingContracts] = useState<Set<string>>(new Set());
+  
+  const navigate = useNavigate();
 
   // Icon options for clients - expanded comprehensive list
   const iconOptions = [
@@ -241,6 +261,61 @@ const ClientGroups = () => {
       toast.error("Gagal memuat data: " + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchContractsForClient = async (clientId: string) => {
+    // Don't fetch if already loading or already have data
+    if (loadingContracts.has(clientId) || clientContracts[clientId]) return;
+    
+    try {
+      setLoadingContracts(prev => new Set(prev).add(clientId));
+      
+      const { data: contracts, error } = await supabase
+        .from("rental_contracts")
+        .select("id, invoice, start_date, end_date, status, jumlah_lunas, tagihan_belum_bayar, tanggal")
+        .eq("client_group_id", clientId)
+        .order("start_date", { ascending: false });
+
+      if (error) throw error;
+      
+      setClientContracts(prev => ({
+        ...prev,
+        [clientId]: contracts || []
+      }));
+    } catch (error: any) {
+      toast.error("Gagal memuat kontrak: " + error.message);
+    } finally {
+      setLoadingContracts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(clientId);
+        return newSet;
+      });
+    }
+  };
+
+  const toggleClientExpansion = (clientId: string) => {
+    const newExpanded = new Set(expandedClients);
+    if (newExpanded.has(clientId)) {
+      newExpanded.delete(clientId);
+    } else {
+      newExpanded.add(clientId);
+      // Fetch contracts when expanding for the first time
+      if (!clientContracts[clientId]) {
+        fetchContractsForClient(clientId);
+      }
+    }
+    setExpandedClients(newExpanded);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "masa sewa":
+        return <Badge className="bg-blue-500">Masa Sewa</Badge>;
+      case "selesai":
+        return <Badge className="bg-green-500">Selesai</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
@@ -770,140 +845,246 @@ const ClientGroups = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedGroups.map((group, index) => (
-                  <TableRow key={group.id}>
-                    <TableCell className="text-center font-medium">{startIndex + index + 1}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {group.icon?.startsWith('http') ? (
-                          <img 
-                            src={group.icon} 
-                            alt={group.nama}
-                            className="w-8 h-8 rounded-full object-cover border border-border"
-                          />
-                        ) : (
-                          <span className="text-2xl">{group.icon || "👤"}</span>
-                        )}
-                        <span className="font-medium">{group.nama}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-sm">{group.nomor_telepon}</span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {group.has_whatsapp !== null ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              {group.has_whatsapp ? (
-                                <CheckCircle className="h-5 w-5 mx-auto text-green-600 dark:text-green-400" />
-                              ) : (
-                                <XCircle className="h-5 w-5 mx-auto text-red-600 dark:text-red-400" />
-                              )}
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-xs">
-                                {group.has_whatsapp 
-                                  ? "Kemungkinan ada WhatsApp" 
-                                  : "Kemungkinan tidak ada WhatsApp"}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <AlertCircle className="h-5 w-5 mx-auto text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-xs">Status WhatsApp belum dicek</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {group.ktp_files && group.ktp_files.length > 0 ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {group.ktp_files.length} file
-                          </Badge>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6">
-                                <FileText className="h-3 w-3" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Dokumen KTP - {group.nama}</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-2">
-                                {group.ktp_files.map((file, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center gap-2 p-3 rounded-lg border hover:bg-accent transition-colors"
+                paginatedGroups.map((group, index) => {
+                  const isExpanded = expandedClients.has(group.id);
+                  const contracts = clientContracts[group.id] || [];
+                  const isLoading = loadingContracts.has(group.id);
+                  
+                  return (
+                    <React.Fragment key={group.id}>
+                      {/* Main client row */}
+                      <TableRow 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleClientExpansion(group.id)}
+                      >
+                        <TableCell className="text-center font-medium">
+                          <div className="flex items-center justify-center gap-2">
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            {startIndex + index + 1}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {group.icon?.startsWith('http') ? (
+                              <img 
+                                src={group.icon} 
+                                alt={group.nama}
+                                className="w-8 h-8 rounded-full object-cover border border-border"
+                              />
+                            ) : (
+                              <span className="text-2xl">{group.icon || "👤"}</span>
+                            )}
+                            <span className="font-medium">{group.nama}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{group.nomor_telepon}</span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {group.has_whatsapp !== null ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  {group.has_whatsapp ? (
+                                    <CheckCircle className="h-5 w-5 mx-auto text-green-600 dark:text-green-400" />
+                                  ) : (
+                                    <XCircle className="h-5 w-5 mx-auto text-red-600 dark:text-red-400" />
+                                  )}
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">
+                                    {group.has_whatsapp 
+                                      ? "Kemungkinan ada WhatsApp" 
+                                      : "Kemungkinan tidak ada WhatsApp"}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <AlertCircle className="h-5 w-5 mx-auto text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Status WhatsApp belum dicek</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {group.ktp_files && group.ktp_files.length > 0 ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <Badge variant="secondary" className="text-xs">
+                                {group.ktp_files.length} file
+                              </Badge>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    <FileText className="h-4 w-4 text-muted-foreground" />
-                                    <a
-                                      href={file.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex-1 text-sm truncate hover:underline"
-                                    >
-                                      {file.name}
-                                    </a>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      onClick={() => setDeletingFile({ groupId: group.id, fileIndex: idx, fileName: file.name })}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                    <a
-                                      href={file.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    >
-                                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                                    </a>
+                                    <FileText className="h-3 w-3" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Dokumen KTP - {group.nama}</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-2">
+                                    {group.ktp_files.map((file, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="flex items-center gap-2 p-3 rounded-lg border hover:bg-accent transition-colors"
+                                      >
+                                        <FileText className="h-4 w-4 text-muted-foreground" />
+                                        <a
+                                          href={file.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex-1 text-sm truncate hover:underline"
+                                        >
+                                          {file.name}
+                                        </a>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                          onClick={() => setDeletingFile({ groupId: group.id, fileIndex: idx, fileName: file.name })}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                        <a
+                                          href={file.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                                        </a>
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{format(new Date(group.created_at), "dd MMM yyyy", { locale: localeId })}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditGroup(group)}
+                              className="h-8 w-8 text-primary hover:bg-primary/10"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteGroup(group.id)}
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      
+                      {/* Expanded contracts row */}
+                      {isExpanded && (
+                        <TableRow className="bg-muted/30">
+                          <TableCell colSpan={7} className="p-0">
+                            <div className="p-4">
+                              {isLoading ? (
+                                <div className="flex items-center justify-center py-8">
+                                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                  <span className="ml-2 text-sm text-muted-foreground">Memuat kontrak...</span>
+                                </div>
+                              ) : contracts.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                                  <p className="text-sm">Belum ada kontrak sewa</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-3">
+                                  <h4 className="text-sm font-semibold text-foreground mb-3">
+                                    Kontrak Sewa ({contracts.length})
+                                  </h4>
+                                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                                    {contracts.map((contract) => (
+                                      <div
+                                        key={contract.id}
+                                        className="border rounded-lg p-3 hover:bg-accent/50 transition-colors cursor-pointer"
+                                        onClick={() => navigate(`/contract/${contract.id}`)}
+                                      >
+                                        <div className="flex items-start justify-between mb-2">
+                                          <div className="flex-1">
+                                            <p className="text-sm font-medium">
+                                              {contract.invoice || "No Invoice"}
+                                            </p>
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                              <Calendar className="h-3 w-3" />
+                                              <span>
+                                                {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })}
+                                                {" - "}
+                                                {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          {getStatusBadge(contract.status)}
+                                        </div>
+                                        
+                                        <div className="space-y-1 text-xs">
+                                          <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Lunas:</span>
+                                            <span className="font-medium text-green-600">
+                                              Rp {(contract.jumlah_lunas || 0).toLocaleString('id-ID')}
+                                            </span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Belum Bayar:</span>
+                                            <span className="font-medium text-red-600">
+                                              Rp {(contract.tagihan_belum_bayar || 0).toLocaleString('id-ID')}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="w-full mt-2 h-7 text-xs"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/contract/${contract.id}`);
+                                          }}
+                                        >
+                                          Lihat Detail →
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{format(new Date(group.created_at), "dd MMM yyyy", { locale: localeId })}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditGroup(group)}
-                          className="h-8 w-8 text-primary hover:bg-primary/10"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteGroup(group.id)}
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                    </React.Fragment>
+                  );
+                })
               )}
             </TableBody>
           </Table>
