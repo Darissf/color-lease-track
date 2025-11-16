@@ -46,8 +46,8 @@ export const DailyPaceIndicator = ({
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Selisih:</span>
-            <span className={`font-medium ${isOverPace ? 'text-destructive' : 'text-green-600'}`}>
-              {difference > 0 ? '+' : ''}{formatRupiah(Math.abs(difference))}
+            <span className={`font-medium ${difference > 0 ? 'text-destructive' : 'text-green-600'}`}>
+              {difference > 0 ? '+' : difference < 0 ? '-' : ''}{formatRupiah(Math.abs(difference))}
             </span>
           </div>
         </div>
