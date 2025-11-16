@@ -272,4 +272,51 @@ All colors MUST be HSL.
   .card-hover-glow-budget:hover {
     box-shadow: var(--shadow-glow-budget);
   }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+  
+  .pulse {
+    @apply animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite];
+  }
+
+  /* Gradient Card Utilities */
+  .card-gradient-income {
+    @apply bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500;
+  }
+
+  .card-gradient-expense {
+    @apply bg-gradient-to-br from-rose-500 via-red-500 to-orange-500;
+  }
+
+  .card-gradient-savings {
+    @apply bg-gradient-to-br from-blue-500 via-cyan-500 to-purple-500;
+  }
+
+  .card-gradient-budget {
+    @apply bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500;
+  }
+
+  /* Glow Effects */
+  .glow-income {
+    @apply shadow-lg shadow-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/60;
+  }
+
+  .glow-expense {
+    @apply shadow-lg shadow-rose-500/50 hover:shadow-xl hover:shadow-rose-500/60;
+  }
+
+  .glow-savings {
+    @apply shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/60;
+  }
+
+  .glow-budget {
+    @apply shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/60;
+  }
+
+  /* Hover Lift */
+  .hover-lift {
+    @apply transition-all duration-300 hover:scale-105 hover:-translate-y-1;
+  }
 }
