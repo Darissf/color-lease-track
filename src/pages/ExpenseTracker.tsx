@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, Filter, Download } from "lucide-react";
+import { Plus, Trash2, Edit, Filter, Download, TrendingDown, Receipt, CreditCard } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency } from "@/lib/currency";
@@ -19,6 +19,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { ColoredStatCard } from "@/components/ColoredStatCard";
+import { CategoryBadge } from "@/components/CategoryBadge";
+import { GradientButton } from "@/components/GradientButton";
+import BankLogo from "@/components/BankLogo";
 
 // KATEGORI PENGELUARAN
 const EXPENSE_CATEGORIES = [

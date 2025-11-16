@@ -18,6 +18,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { ColoredProgressBar } from "@/components/ColoredProgressBar";
+import { GradientButton } from "@/components/GradientButton";
+import { cn } from "@/lib/utils";
 
 interface SavingsPlan {
   id: string;
@@ -67,14 +71,54 @@ export default function SavingsPlans() {
 
   const getCategoryInfo = (category: string) => {
     const categories = {
-      darurat: { emoji: "🚨", label: "Dana Darurat", color: "bg-red-100 text-red-700" },
-      liburan: { emoji: "✈️", label: "Liburan", color: "bg-blue-100 text-blue-700" },
-      investasi: { emoji: "📈", label: "Investasi", color: "bg-green-100 text-green-700" },
-      pendidikan: { emoji: "🎓", label: "Pendidikan", color: "bg-purple-100 text-purple-700" },
-      kendaraan: { emoji: "🚗", label: "Kendaraan", color: "bg-yellow-100 text-yellow-700" },
-      properti: { emoji: "🏠", label: "Properti", color: "bg-indigo-100 text-indigo-700" },
-      pernikahan: { emoji: "💒", label: "Pernikahan", color: "bg-pink-100 text-pink-700" },
-      lainnya: { emoji: "📦", label: "Lainnya", color: "bg-gray-100 text-gray-700" },
+      darurat: { 
+        emoji: "🚨", 
+        label: "Dana Darurat", 
+        gradient: "bg-gradient-to-br from-red-500 via-orange-500 to-red-600",
+        shadow: "shadow-xl shadow-red-500/50"
+      },
+      liburan: { 
+        emoji: "✈️", 
+        label: "Liburan", 
+        gradient: "bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600",
+        shadow: "shadow-xl shadow-blue-500/50"
+      },
+      investasi: { 
+        emoji: "📈", 
+        label: "Investasi", 
+        gradient: "bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600",
+        shadow: "shadow-xl shadow-emerald-500/50"
+      },
+      pendidikan: { 
+        emoji: "🎓", 
+        label: "Pendidikan", 
+        gradient: "bg-gradient-to-br from-purple-500 via-indigo-500 to-purple-600",
+        shadow: "shadow-xl shadow-purple-500/50"
+      },
+      kendaraan: { 
+        emoji: "🚗", 
+        label: "Kendaraan", 
+        gradient: "bg-gradient-to-br from-yellow-500 via-amber-500 to-orange-600",
+        shadow: "shadow-xl shadow-yellow-500/50"
+      },
+      properti: { 
+        emoji: "🏠", 
+        label: "Properti", 
+        gradient: "bg-gradient-to-br from-indigo-500 via-blue-500 to-indigo-600",
+        shadow: "shadow-xl shadow-indigo-500/50"
+      },
+      pernikahan: { 
+        emoji: "💒", 
+        label: "Pernikahan", 
+        gradient: "bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600",
+        shadow: "shadow-xl shadow-pink-500/50"
+      },
+      lainnya: { 
+        emoji: "📦", 
+        label: "Lainnya", 
+        gradient: "bg-gradient-to-br from-gray-500 via-slate-500 to-gray-600",
+        shadow: "shadow-xl shadow-gray-500/50"
+      },
     };
     return categories[category as keyof typeof categories] || categories.lainnya;
   };
@@ -725,7 +769,7 @@ export default function SavingsPlans() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <CardTitle className="text-lg">{plan.plan_name}</CardTitle>
-                            <Badge className={getCategoryInfo(plan.category).color}>
+                            <Badge className={cn(getCategoryInfo(plan.category).gradient, "text-white border-none")}>
                               {getCategoryInfo(plan.category).emoji} {getCategoryInfo(plan.category).label}
                             </Badge>
                           </div>
