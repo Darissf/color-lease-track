@@ -630,7 +630,7 @@ export default function ExpenseTracker() {
                       </TableCell>
                       <TableCell>
                         <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
-                          <span className="text-lg font-bold bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 bg-clip-text text-transparent">
+                          <span className="text-sm font-bold bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 bg-clip-text text-transparent">
                             {formatCurrency(expense.amount)}
                           </span>
                         </div>
