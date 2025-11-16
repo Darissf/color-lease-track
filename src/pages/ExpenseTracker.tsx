@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, Filter, Download, TrendingDown, Receipt, CreditCard } from "lucide-react";
+import { Plus, Trash2, Edit, Filter, Download, TrendingDown, Receipt, CreditCard, AlertCircle, CheckCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency } from "@/lib/currency";
@@ -299,23 +299,58 @@ export default function ExpenseTracker() {
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   const avgDaily = filteredExpenses.length > 0 ? totalExpenses / new Date(filterMonth + "-01").getDate() : 0;
 
+  // Helper functions for stats
+  const getMostExpensiveCategory = () => {
+    const categoryTotals = filteredExpenses.reduce((acc, exp) => {
+      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+      return acc;
+    }, {} as Record<string, number>);
+    return Object.entries(categoryTotals).sort(([,a], [,b]) => b - a)[0]?.[0] || "N/A";
+  };
+
+  const getMostExpensiveCategoryAmount = () => {
+    const categoryTotals = filteredExpenses.reduce((acc, exp) => {
+      acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+      return acc;
+    }, {} as Record<string, number>);
+    return Math.max(...Object.values(categoryTotals), 0);
+  };
+
+  const getCheckedCount = () => filteredExpenses.filter(exp => exp.checked).length;
+  const getCheckedPercentage = () => 
+    filteredExpenses.length > 0 ? ((getCheckedCount() / filteredExpenses.length) * 100).toFixed(0) : "0";
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6 p-6">
+    <AnimatedBackground theme="expense">
+      <div className="max-w-7xl mx-auto space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Tracking Pengeluaran</h1>
-          <p className="text-sm text-muted-foreground">Kelola pengeluaran Anda</p>
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 shadow-lg">
+            <TrendingDown className="h-8 w-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 bg-clip-text text-transparent">
+              Tracking Pengeluaran
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Monitor dan kelola semua pengeluaran Anda</p>
+          </div>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => resetForm()}>
-              <Plus className="h-4 w-4 mr-2" />
+            <GradientButton onClick={() => resetForm()} variant="expense" icon={Plus}>
               Tambah Pengeluaran
-            </Button>
+            </GradientButton>
           </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingId ? "Edit" : "Tambah"} Pengeluaran</DialogTitle>
+          <DialogContent className="max-h-[90vh] overflow-y-auto border-2 border-rose-500/20">
+            <DialogHeader className="bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 -m-6 mb-6 p-6 rounded-t-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+                  <TrendingDown className="h-6 w-6 text-white" />
+                </div>
+                <DialogTitle className="text-2xl font-bold text-white">
+                  {editingId ? "Edit" : "Tambah"} Pengeluaran
+                </DialogTitle>
+              </div>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -325,20 +360,21 @@ export default function ExpenseTracker() {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal border-2 border-rose-500/20 hover:border-rose-500 focus:ring-2 focus:ring-rose-500/50 transition-all",
                         !formData.date && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="mr-2 h-4 w-4 text-rose-600" />
                       {formData.date ? format(formData.date, "PPP") : <span>Pilih tanggal</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 border-2 border-rose-500/20 shadow-xl" align="start">
                     <Calendar
                       mode="single"
                       selected={formData.date}
                       onSelect={(date) => date && setFormData({ ...formData, date })}
                       initialFocus
+                      className="pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -351,13 +387,14 @@ export default function ExpenseTracker() {
                   value={formData.transaction_name}
                   onChange={(e) => setFormData({ ...formData, transaction_name: e.target.value })}
                   placeholder="Nama transaksi"
+                  className="border-2 border-rose-500/20 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/50 transition-all"
                 />
               </div>
 
               <div>
                 <Label htmlFor="category">Kategori *</Label>
                 <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })} required>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-2 border-orange-500/20 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/50">
                     <SelectValue placeholder="Pilih kategori" />
                   </SelectTrigger>
                   <SelectContent>
@@ -377,13 +414,14 @@ export default function ExpenseTracker() {
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   placeholder="50000"
                   required
+                  className="border-2 border-rose-500/20 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/50 transition-all"
                 />
               </div>
 
               <div>
                 <Label htmlFor="bank_account_id">Rekening</Label>
                 <Select value={formData.bank_account_id || "none"} onValueChange={(val) => setFormData({ ...formData, bank_account_id: val === "none" ? "" : val })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-2 border-orange-500/20 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/50">
                     <SelectValue placeholder="Pilih rekening" />
                   </SelectTrigger>
                   <SelectContent>
@@ -416,16 +454,17 @@ export default function ExpenseTracker() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Catatan tambahan..."
                   rows={3}
+                  className="border-2 border-rose-500/20 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/50 transition-all"
                 />
               </div>
 
               <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} className="border-2 border-rose-500/20 hover:bg-rose-500/10">
                   Batal
                 </Button>
-                <Button type="submit">
+                <GradientButton type="submit" variant="expense">
                   {editingId ? "Update" : "Simpan"}
-                </Button>
+                </GradientButton>
               </div>
             </form>
           </DialogContent>
@@ -434,62 +473,81 @@ export default function ExpenseTracker() {
 
       {/* Alert Dialog untuk konfirmasi checklist */}
       <AlertDialog open={checkConfirmId !== null} onOpenChange={() => setCheckConfirmId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Perubahan</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className="border-2 border-rose-500/20">
+          <AlertDialogHeader className="bg-gradient-to-r from-rose-500/10 to-orange-500/10 -m-6 mb-6 p-6 rounded-t-lg border-b-2 border-rose-500/20">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500 to-red-600">
+                <AlertCircle className="h-5 w-5 text-white" />
+              </div>
+              <AlertDialogTitle className="text-xl">Konfirmasi Perubahan</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="mt-2">
               Apakah Anda yakin ingin mengubah status checklist pengeluaran ini?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCheckToggle}>Ya, Ubah</AlertDialogAction>
+            <AlertDialogCancel className="border-2 border-rose-500/20">Batal</AlertDialogCancel>
+            <GradientButton onClick={confirmCheckToggle} variant="income">
+              Ya, Ubah
+            </GradientButton>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Pengeluaran</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div>
-            <p className="text-xs text-muted-foreground mt-1">{filteredExpenses.length} transaksi</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Rata-rata Harian</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(avgDaily)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Periode {filterMonth}</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <ColoredStatCard
+          title="Total Pengeluaran"
+          value={formatCurrency(totalExpenses)}
+          icon={TrendingDown}
+          gradient="expense"
+          subtitle={`${filteredExpenses.length} transaksi`}
+          trend={filteredExpenses.length > 0 ? { value: `${filteredExpenses.length} item`, isPositive: false } : undefined}
+        />
+        <ColoredStatCard
+          title="Rata-rata Harian"
+          value={formatCurrency(avgDaily)}
+          icon={Receipt}
+          gradient="budget"
+          subtitle={`Periode ${filterMonth}`}
+        />
+        <ColoredStatCard
+          title="Kategori Terbanyak"
+          value={getMostExpensiveCategory()}
+          icon={CreditCard}
+          gradient="savings"
+          subtitle={formatCurrency(getMostExpensiveCategoryAmount())}
+        />
+        <ColoredStatCard
+          title="Terkonfirmasi"
+          value={`${getCheckedCount()}/${filteredExpenses.length}`}
+          icon={CheckCircle}
+          gradient="income"
+          subtitle={`${getCheckedPercentage()}% selesai`}
+        />
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
+      <Card className="border-2 border-rose-500/20 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-rose-500/10 via-red-500/10 to-orange-500/10 border-b-2 border-rose-500/20">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filter
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500 to-red-600">
+                <Filter className="h-5 w-5 text-white" />
+              </div>
+              <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Filter & Export</span>
             </CardTitle>
-            <Button onClick={exportToCSV} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
+            <GradientButton onClick={exportToCSV} variant="income" size="sm" icon={Download}>
               Export CSV
-            </Button>
+            </GradientButton>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Kategori</Label>
               <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger>
+                <SelectTrigger className="border-2 border-rose-500/20 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -506,6 +564,7 @@ export default function ExpenseTracker() {
                 type="month"
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(e.target.value)}
+                className="border-2 border-orange-500/20 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/50"
               />
             </div>
           </div>
@@ -513,11 +572,16 @@ export default function ExpenseTracker() {
       </Card>
 
       {/* Expenses Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Pengeluaran</CardTitle>
+      <Card className="border-2 border-rose-500/20 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-rose-500/10 via-red-500/10 to-orange-500/10 border-b-2 border-rose-500/20">
+          <CardTitle className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500 to-red-600">
+              <Receipt className="h-5 w-5 text-white" />
+            </div>
+            <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Daftar Pengeluaran</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {loading ? (
             <p>Loading...</p>
           ) : filteredExpenses.length === 0 ? (
@@ -526,29 +590,59 @@ export default function ExpenseTracker() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead>Transaksi</TableHead>
-                    <TableHead>Kategori</TableHead>
-                    <TableHead>Jumlah</TableHead>
-                    <TableHead>Rekening</TableHead>
-                    <TableHead>Checklist</TableHead>
-                    <TableHead>Catatan</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
+                  <TableRow className="bg-gradient-to-r from-rose-500/10 via-red-500/10 to-orange-500/10 border-b-2 border-rose-500/20">
+                    <TableHead className="font-semibold">
+                      <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Tanggal</span>
+                    </TableHead>
+                    <TableHead className="font-semibold">
+                      <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Transaksi</span>
+                    </TableHead>
+                    <TableHead className="font-semibold">
+                      <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Kategori</span>
+                    </TableHead>
+                    <TableHead className="font-semibold">
+                      <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Jumlah</span>
+                    </TableHead>
+                    <TableHead className="font-semibold">
+                      <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Rekening</span>
+                    </TableHead>
+                    <TableHead className="font-semibold">
+                      <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Checklist</span>
+                    </TableHead>
+                    <TableHead className="font-semibold">
+                      <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Catatan</span>
+                    </TableHead>
+                    <TableHead className="text-right font-semibold">
+                      <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Aksi</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredExpenses.map((expense) => (
-                    <TableRow key={expense.id}>
+                    <TableRow 
+                      key={expense.id}
+                      className="hover:bg-gradient-to-r hover:from-rose-500/5 hover:to-orange-500/5 transition-all duration-300 hover:shadow-md"
+                    >
                       <TableCell>{format(new Date(expense.date), "dd MMM yyyy")}</TableCell>
-                      <TableCell>{expense.transaction_name || "-"}</TableCell>
-                      <TableCell>{expense.category}</TableCell>
-                      <TableCell className="font-medium text-red-600">{formatCurrency(expense.amount)}</TableCell>
+                      <TableCell className="font-medium">{expense.transaction_name || "-"}</TableCell>
+                      <TableCell>
+                        <CategoryBadge category={expense.category} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                          <span className="text-lg font-bold bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 bg-clip-text text-transparent">
+                            {formatCurrency(expense.amount)}
+                          </span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {expense.bank_accounts ? (
-                          <div className="text-sm">
-                            <div className="font-medium">{expense.bank_accounts.bank_name}</div>
-                            <div className="text-muted-foreground">{expense.bank_accounts.account_number}</div>
+                          <div className="flex items-center gap-2">
+                            <BankLogo bankName={expense.bank_accounts.bank_name} size="sm" />
+                            <div className="text-sm">
+                              <div className="font-medium">{expense.bank_accounts.bank_name}</div>
+                              <div className="text-muted-foreground text-xs">{expense.bank_accounts.account_number}</div>
+                            </div>
                           </div>
                         ) : "-"}
                       </TableCell>
@@ -556,24 +650,27 @@ export default function ExpenseTracker() {
                         <Checkbox
                           checked={expense.checked}
                           onCheckedChange={() => handleCheckToggle(expense.id, expense.checked)}
+                          className="border-2 border-emerald-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-emerald-500 data-[state=checked]:to-green-600"
                         />
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate">{expense.description || "-"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate text-muted-foreground">{expense.description || "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleEdit(expense)}
+                            className="hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white hover:border-transparent transition-all group"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-4 w-4 group-hover:scale-110 transition-transform" />
                           </Button>
                           <Button
                             size="sm"
                             variant="destructive"
                             onClick={() => handleDelete(expense.id)}
+                            className="hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all group"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
                           </Button>
                         </div>
                       </TableCell>
@@ -585,6 +682,7 @@ export default function ExpenseTracker() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AnimatedBackground>
   );
 }
