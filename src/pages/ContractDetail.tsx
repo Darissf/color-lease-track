@@ -369,17 +369,29 @@ export default function ContractDetail() {
               ) : (
                 <div className="relative">
                   {/* Timeline vertical line */}
-                  <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-border" />
+                  <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-border animate-fade-in" />
                   
                   <div className="space-y-6">
                     {paymentHistory.map((payment, index) => (
-                      <div key={payment.id} className="relative pl-16">
+                      <div 
+                        key={payment.id} 
+                        className="relative pl-16 animate-fade-in opacity-0"
+                        style={{ 
+                          animationDelay: `${index * 100}ms`,
+                          animationFillMode: 'forwards'
+                        }}
+                      >
                         {/* Timeline dot */}
-                        <div className="absolute left-3 top-1 h-6 w-6 rounded-full bg-background border-2 border-green-500 flex items-center justify-center">
+                        <div className="absolute left-3 top-1 h-6 w-6 rounded-full bg-background border-2 border-green-500 flex items-center justify-center animate-scale-in"
+                          style={{ 
+                            animationDelay: `${index * 100 + 150}ms`,
+                            animationFillMode: 'forwards'
+                          }}
+                        >
                           <div className="h-3 w-3 rounded-full bg-green-500" />
                         </div>
                         
-                        <div className="bg-muted/30 rounded-lg p-4 hover:bg-muted/50 transition-colors border border-border">
+                        <div className="bg-muted/30 rounded-lg p-4 hover:bg-muted/50 hover:scale-[1.02] transition-all duration-200 border border-border hover:shadow-md">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
