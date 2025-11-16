@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { CategoryBadge } from "@/components/CategoryBadge";
+import { EnhancedTooltip } from "@/components/EnhancedTooltip";
+import { getCategoryStyle } from "@/lib/categoryColors";
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -304,33 +307,54 @@ export default function MonthlyView() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Income Sources */}
-        <Card>
+        <Card className="card-hover-effect">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Sumber Pemasukan</CardTitle>
           </CardHeader>
           <CardContent>
             {incomeData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
+                  <defs>
+                    <linearGradient id="incomeGradient1" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                    </linearGradient>
+                    <linearGradient id="incomeGradient2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    </linearGradient>
+                    <linearGradient id="incomeGradient3" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.3}/>
+                    </linearGradient>
+                  </defs>
                   <Pie
                     data={incomeData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    outerRadius={90}
                     fill="#8884d8"
                     dataKey="value"
+                    animationBegin={0}
+                    animationDuration={800}
                   >
                     {incomeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                        stroke={COLORS[index % COLORS.length]}
+                        strokeWidth={2}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip content={<EnhancedTooltip type="pie" />} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
                 Belum ada data pemasukan
               </div>
             )}
@@ -338,13 +362,13 @@ export default function MonthlyView() {
         </Card>
 
         {/* Expenses by Category */}
-        <Card>
+        <Card className="card-hover-effect">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Pengeluaran per Kategori</CardTitle>
           </CardHeader>
           <CardContent>
             {expensesByCategory.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={expensesByCategory}
@@ -352,19 +376,29 @@ export default function MonthlyView() {
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    outerRadius={90}
                     fill="#8884d8"
                     dataKey="value"
+                    animationBegin={0}
+                    animationDuration={800}
                   >
-                    {expensesByCategory.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
+                    {expensesByCategory.map((entry, index) => {
+                      const categoryStyle = getCategoryStyle(entry.name);
+                      return (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[index % COLORS.length]}
+                          stroke={COLORS[index % COLORS.length]}
+                          strokeWidth={2}
+                        />
+                      );
+                    })}
                   </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip content={<EnhancedTooltip type="pie" />} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
                 Belum ada data pengeluaran
               </div>
             )}
@@ -418,7 +452,7 @@ export default function MonthlyView() {
         </Card>
 
         {/* Recent Expenses */}
-        <Card>
+        <Card className="card-hover-effect">
           <CardHeader>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Calendar className="h-4 w-4" />
@@ -429,14 +463,21 @@ export default function MonthlyView() {
             {recentExpenses.length > 0 ? (
               <div className="space-y-3">
                 {recentExpenses.map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                    <div>
+                  <div key={expense.id} className="flex items-center justify-between py-3 px-3 rounded-lg border border-border hover:border-primary/50 transition-all hover:shadow-sm">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CategoryBadge category={expense.category} size="sm" />
+                      </div>
                       <p className="font-medium text-sm">{expense.description || expense.category}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(expense.date).toLocaleDateString('id-ID')} • {expense.category}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(expense.date).toLocaleDateString('id-ID', { 
+                          day: 'numeric', 
+                          month: 'long', 
+                          year: 'numeric' 
+                        })}
                       </p>
                     </div>
-                    <span className="font-semibold text-red-600 text-sm">
+                    <span className="font-bold text-red-600 text-base ml-4">
                       -{formatCurrency(expense.amount)}
                     </span>
                   </div>
