@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Target, Calendar, TrendingUp, ArrowUpCircle, ArrowDownCircle, History, Repeat } from "lucide-react";
+import { Plus, Pencil, Trash2, Target, Calendar, TrendingUp, ArrowUpCircle, ArrowDownCircle, History, Repeat, Wallet, Loader2 } from "lucide-react";
 import { formatRupiah } from "@/lib/currency";
 import { format, differenceInDays } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredProgressBar } from "@/components/ColoredProgressBar";
 import { GradientButton } from "@/components/GradientButton";
+import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { cn } from "@/lib/utils";
 
 interface SavingsPlan {
@@ -519,33 +520,56 @@ export default function SavingsPlans() {
   };
 
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <AnimatedBackground theme="savings">
+        <div className="p-6 flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Target className="h-12 w-12 mx-auto mb-4 animate-spin bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600 bg-clip-text text-transparent" />
+            <p className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Memuat rencana tabungan...
+            </p>
+          </div>
+        </div>
+      </AnimatedBackground>
+    );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Rencana Tabungan</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Kelola dan pantau progress rencana tabungan Anda
-          </p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Rencana
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingPlan ? "Edit Rencana Tabungan" : "Tambah Rencana Tabungan"}
-              </DialogTitle>
+    <AnimatedBackground theme="savings">
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 via-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/50">
+              <Target className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600 bg-clip-text text-transparent">
+                Rencana Tabungan
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Kelola dan pantau progress rencana tabungan Anda menuju target finansial
+              </p>
+            </div>
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <GradientButton variant="savings" size="default" icon={Plus}>
+                Tambah Rencana
+              </GradientButton>
+            </DialogTrigger>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
+            <DialogHeader className="bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600 -m-6 mb-6 p-6 rounded-t-lg">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <Target className="h-6 w-6 text-white" />
+                </div>
+                <DialogTitle className="text-2xl font-bold text-white">
+                  {editingPlan ? "Edit Rencana Tabungan" : "Tambah Rencana Tabungan"}
+                </DialogTitle>
+              </div>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -555,6 +579,7 @@ export default function SavingsPlans() {
                   value={formData.plan_name}
                   onChange={(e) => setFormData({ ...formData, plan_name: e.target.value })}
                   placeholder="e.g., Liburan Bali, Dana Darurat"
+                  className="border-2 border-blue-500/20 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all"
                   required
                 />
               </div>
@@ -564,7 +589,7 @@ export default function SavingsPlans() {
                   value={formData.category} 
                   onValueChange={(value) => setFormData({ ...formData, category: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="border-2 border-cyan-500/20 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/50">
                     <SelectValue placeholder="Pilih kategori" />
                   </SelectTrigger>
                   <SelectContent>
@@ -587,6 +612,7 @@ export default function SavingsPlans() {
                   value={formData.target_amount}
                   onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })}
                   placeholder="0"
+                  className="border-2 border-blue-500/20 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all"
                   required
                 />
               </div>
@@ -598,6 +624,7 @@ export default function SavingsPlans() {
                   value={formData.current_amount}
                   onChange={(e) => setFormData({ ...formData, current_amount: e.target.value })}
                   placeholder="0"
+                  className="border-2 border-blue-500/20 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all"
                 />
               </div>
               <div>
@@ -607,6 +634,7 @@ export default function SavingsPlans() {
                   type="date"
                   value={formData.deadline}
                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                  className="border-2 border-purple-500/20 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 transition-all"
                 />
               </div>
               <div>
@@ -616,49 +644,83 @@ export default function SavingsPlans() {
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Catatan tambahan..."
+                  className="border-2 border-blue-500/20 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all"
                 />
               </div>
-              <Button type="submit" className="w-full">
-                {editingPlan ? "Update" : "Simpan"}
-              </Button>
+              <div className="flex gap-2 pt-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex-1 border-2 border-blue-500/20 hover:bg-blue-500/10"
+                  onClick={() => setDialogOpen(false)}
+                >
+                  Batal
+                </Button>
+                <GradientButton 
+                  type="submit" 
+                  variant="savings" 
+                  icon={Target}
+                  className="flex-1"
+                >
+                  {editingPlan ? "Update" : "Simpan"}
+                </GradientButton>
+              </div>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Total Saved</CardDescription>
-            <CardTitle className="text-2xl">{formatRupiah(totalSaved)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Total Target</CardDescription>
-            <CardTitle className="text-2xl">{formatRupiah(totalTarget)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Overall Progress</CardDescription>
-            <CardTitle className="text-2xl">{overallProgress.toFixed(1)}%</CardTitle>
-          </CardHeader>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <ColoredStatCard
+          title="Total Tabungan"
+          value={formatRupiah(totalSaved)}
+          icon={Wallet}
+          gradient="income"
+          trend={{ value: "+15%", isPositive: true }}
+          subtitle="Total yang sudah dikumpulkan"
+        />
+        <ColoredStatCard
+          title="Total Target"
+          value={formatRupiah(totalTarget)}
+          icon={Target}
+          gradient="budget"
+          subtitle={`${plans.length} rencana aktif`}
+        />
+        <ColoredStatCard
+          title="Progress Keseluruhan"
+          value={`${overallProgress.toFixed(1)}%`}
+          icon={TrendingUp}
+          gradient="savings"
+          trend={{ value: `${plans.length} rencana`, isPositive: true }}
+        />
+        <ColoredStatCard
+          title="Sisa Kebutuhan"
+          value={formatRupiah(totalTarget - totalSaved)}
+          icon={ArrowDownCircle}
+          gradient="expense"
+          subtitle={plans.length > 0 && plans[0].deadline ? `Target: ${format(new Date(plans[0].deadline), 'dd MMM yyyy')}` : 'Tidak ada deadline'}
+        />
       </div>
 
       {/* Overall Progress Bar */}
       {plans.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Total Progress</CardTitle>
+        <Card className="border-2 border-blue-500/20 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-purple-500/10 border-b-2 border-blue-500/20">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+              <CardTitle className="text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Progress Keseluruhan
+              </CardTitle>
+            </div>
           </CardHeader>
-          <CardContent>
-            <Progress value={overallProgress} className="h-2" />
-            <div className="flex justify-between text-sm text-muted-foreground mt-2">
-              <span>{formatRupiah(totalSaved)}</span>
-              <span>{formatRupiah(totalTarget)}</span>
+          <CardContent className="pt-6">
+            <ColoredProgressBar value={overallProgress} showLabel={true} height="h-4" animated={true} />
+            <div className="flex justify-between text-sm mt-3">
+              <span className="font-bold text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-lg">{formatRupiah(totalSaved)}</span>
+              <span className="font-bold text-blue-600 bg-blue-500/10 px-3 py-1 rounded-lg">{formatRupiah(totalTarget)}</span>
             </div>
           </CardContent>
         </Card>
@@ -736,22 +798,53 @@ export default function SavingsPlans() {
 
       {/* Savings Plans List with Tabs */}
       <Tabs defaultValue="plans" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="plans">Rencana Tabungan</TabsTrigger>
-          <TabsTrigger value="transactions">History Transaksi</TabsTrigger>
-          <TabsTrigger value="recurring">Auto-Deposit</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsList className="border-2 border-blue-500/20 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-slate-900 dark:to-slate-800 p-1">
+          <TabsTrigger 
+            value="plans"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/50"
+          >
+            <Target className="h-4 w-4 mr-2" />
+            Rencana Tabungan
+          </TabsTrigger>
+          <TabsTrigger 
+            value="transactions"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/50"
+          >
+            <History className="h-4 w-4 mr-2" />
+            History Transaksi
+          </TabsTrigger>
+          <TabsTrigger 
+            value="recurring"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50"
+          >
+            <Repeat className="h-4 w-4 mr-2" />
+            Auto-Deposit
+          </TabsTrigger>
+          <TabsTrigger 
+            value="analytics"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/50"
+          >
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Analytics
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="plans" className="space-y-4">
           {plans.length === 0 ? (
-            <Card>
+            <Card className="border-2 border-blue-500/20">
               <CardContent className="py-12 text-center">
-                <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Belum ada rencana tabungan</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <div className="h-20 w-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 via-cyan-500 to-purple-600 flex items-center justify-center shadow-xl shadow-blue-500/50">
+                  <Target className="h-10 w-10 text-white" />
+                </div>
+                <p className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                  Belum ada rencana tabungan
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
                   Mulai dengan menambahkan rencana tabungan pertama Anda
                 </p>
+                <GradientButton variant="savings" icon={Plus} onClick={() => setDialogOpen(true)}>
+                  Buat Rencana Pertama
+                </GradientButton>
               </CardContent>
             </Card>
           ) : (
@@ -763,25 +856,34 @@ export default function SavingsPlans() {
                 const planTransactions = transactions.filter(t => t.savings_plan_id === plan.id);
 
                 return (
-                  <Card key={plan.id}>
-                    <CardHeader className="pb-3">
+                  <Card 
+                    key={plan.id}
+                    className={cn(
+                      "border-2 hover:scale-[1.02] transition-all duration-300",
+                      getCategoryInfo(plan.category).shadow
+                    )}
+                  >
+                    <CardHeader className={cn("pb-3", getCategoryInfo(plan.category).gradient)}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <CardTitle className="text-lg">{plan.plan_name}</CardTitle>
-                            <Badge className={cn(getCategoryInfo(plan.category).gradient, "text-white border-none")}>
-                              {getCategoryInfo(plan.category).emoji} {getCategoryInfo(plan.category).label}
-                            </Badge>
+                            <div className="h-10 w-10 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl">
+                              {getCategoryInfo(plan.category).emoji}
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg text-white drop-shadow-lg">{plan.plan_name}</CardTitle>
+                              <p className="text-xs text-white/80">{getCategoryInfo(plan.category).label}</p>
+                            </div>
                           </div>
                           {plan.notes && (
-                            <CardDescription className="mt-1">{plan.notes}</CardDescription>
+                            <p className="text-sm text-white/90 mt-2 italic">{plan.notes}</p>
                           )}
                         </div>
                         <div className="flex gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 hover:bg-white/20 text-white"
                             onClick={() => openEditDialog(plan)}
                           >
                             <Pencil className="h-4 w-4" />
@@ -789,7 +891,7 @@ export default function SavingsPlans() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 hover:bg-white/20 text-white"
                             onClick={() => handleDelete(plan.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -801,34 +903,59 @@ export default function SavingsPlans() {
                       <div>
                         <div className="flex justify-between text-sm mb-2">
                           <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium">{progress.toFixed(1)}%</span>
+                          <span className="font-bold text-lg">{progress.toFixed(1)}%</span>
                         </div>
-                        <Progress value={progress} className="h-2" />
-                        <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                          <span>{formatRupiah(plan.current_amount)}</span>
-                          <span>{formatRupiah(plan.target_amount)}</span>
+                        <ColoredProgressBar value={progress} showLabel={false} height="h-4" animated={true} />
+                        <div className="flex justify-between text-sm mt-3">
+                          <span className="font-bold text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-lg">
+                            {formatRupiah(plan.current_amount)}
+                          </span>
+                          <span className="font-bold text-blue-600 bg-blue-500/10 px-3 py-1 rounded-lg">
+                            {formatRupiah(plan.target_amount)}
+                          </span>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 pt-2 border-t">
                         <div className="flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          <div className="h-8 w-8 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                            <TrendingUp className="h-4 w-4 text-rose-600" />
+                          </div>
                           <div>
                             <p className="text-xs text-muted-foreground">Remaining</p>
-                            <p className="text-sm font-medium">
+                            <p className="text-sm font-bold text-rose-600">
                               {formatRupiah(plan.target_amount - plan.current_amount)}
                             </p>
                           </div>
                         </div>
                         {plan.deadline && (
                           <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <div className={cn(
+                              "h-8 w-8 rounded-lg flex items-center justify-center",
+                              daysRemaining !== null && daysRemaining < 30 
+                                ? "bg-gradient-to-br from-red-500 to-rose-600 animate-pulse" 
+                                : daysRemaining !== null && daysRemaining < 90
+                                ? "bg-gradient-to-br from-orange-500 to-amber-600"
+                                : "bg-gradient-to-br from-emerald-500 to-green-600"
+                            )}>
+                              <Calendar className="h-4 w-4 text-white" />
+                            </div>
                             <div>
-                              <p className="text-xs text-muted-foreground">Deadline</p>
-                              <p className={`text-sm font-medium ${isOverdue ? "text-destructive" : ""}`}>
-                                {daysRemaining !== null && (
+                              <p className="text-xs text-muted-foreground">
+                                {isOverdue ? "Overdue" : "Deadline"}
+                              </p>
+                              <p className={cn(
+                                "text-sm font-medium",
+                                isOverdue ? "text-red-600" :
+                                daysRemaining !== null && daysRemaining < 30 ? "text-red-600" :
+                                daysRemaining !== null && daysRemaining < 90 ? "text-orange-600" :
+                                "text-emerald-600"
+                              )}>
+                                {daysRemaining === null ? (
+                                  format(new Date(plan.deadline), 'dd MMM yyyy')
+                                ) : (
                                   <>
-                                    {isOverdue ? "Overdue " : ""}
+                                    {isOverdue && '-'}
                                     {Math.abs(daysRemaining)} days
                                   </>
                                 )}
@@ -840,34 +967,34 @@ export default function SavingsPlans() {
 
                       <div className="pt-2 border-t space-y-2">
                         <div className="flex gap-2">
-                          <Button
+                          <GradientButton
+                            variant="income"
                             size="sm"
-                            variant="outline"
+                            icon={ArrowUpCircle}
                             className="flex-1"
                             onClick={() => openTransactionDialog(plan)}
                           >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Transaksi
-                          </Button>
-                          <Button
+                            Tambah Dana
+                          </GradientButton>
+                          <GradientButton
+                            variant="budget"
                             size="sm"
-                            variant="outline"
+                            icon={Repeat}
                             className="flex-1"
                             onClick={() => openRecurringDialog(plan)}
                           >
-                            <Repeat className="h-4 w-4 mr-1" />
                             Auto-Deposit
-                          </Button>
+                          </GradientButton>
                         </div>
                         <div className="flex gap-2">
                           {planTransactions.length > 0 && (
-                            <Badge variant="secondary" className="px-2 py-1">
+                            <Badge className="px-2 py-1 bg-gradient-to-r from-blue-500 to-cyan-600 text-white border-none">
                               <History className="h-3 w-3 mr-1" />
                               {planTransactions.length} transaksi
                             </Badge>
                           )}
                           {recurringTransactions.filter(r => r.savings_plan_id === plan.id && r.is_active).length > 0 && (
-                            <Badge variant="default" className="px-2 py-1">
+                            <Badge className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-green-600 text-white border-none">
                               <Repeat className="h-3 w-3 mr-1" />
                               Auto aktif
                             </Badge>
@@ -883,26 +1010,44 @@ export default function SavingsPlans() {
         </TabsContent>
 
         <TabsContent value="transactions">
-          <Card>
-            <CardHeader>
-              <CardTitle>History Transaksi</CardTitle>
-              <CardDescription>Semua transaksi deposit dan penarikan</CardDescription>
+          <Card className="border-2 border-emerald-500/20 shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 border-b-2 border-emerald-500/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg">
+                    <History className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                      History Transaksi
+                    </CardTitle>
+                    <CardDescription>Semua transaksi deposit dan penarikan</CardDescription>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {transactions.length === 0 ? (
                 <div className="py-12 text-center">
-                  <History className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Belum ada transaksi</p>
+                  <div className="h-20 w-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-xl">
+                    <History className="h-10 w-10 text-white" />
+                  </div>
+                  <p className="text-lg font-semibold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-2">
+                    Belum ada transaksi
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Transaksi Anda akan muncul di sini
+                  </p>
                 </div>
               ) : (
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>Rencana</TableHead>
-                      <TableHead>Tipe</TableHead>
-                      <TableHead>Jumlah</TableHead>
-                      <TableHead>Catatan</TableHead>
+                  <TableHeader className="bg-gradient-to-r from-emerald-500/10 to-green-500/10">
+                    <TableRow className="border-b-2 border-emerald-500/20">
+                      <TableHead className="font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">Tanggal</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">Rencana</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">Tipe</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">Jumlah</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">Catatan</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -910,7 +1055,10 @@ export default function SavingsPlans() {
                     {transactions.map((transaction) => {
                       const plan = plans.find(p => p.id === transaction.savings_plan_id);
                       return (
-                        <TableRow key={transaction.id}>
+                        <TableRow 
+                          key={transaction.id}
+                          className="hover:bg-gradient-to-r hover:from-emerald-500/5 hover:to-green-500/5 transition-all duration-300"
+                        >
                           <TableCell className="text-sm">
                             {format(new Date(transaction.transaction_date), "dd MMM yyyy")}
                           </TableCell>
@@ -928,8 +1076,15 @@ export default function SavingsPlans() {
                               {transaction.transaction_type === "deposit" ? "Deposit" : "Penarikan"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="font-medium">
-                            {formatRupiah(transaction.amount)}
+                          <TableCell>
+                            <span className={cn(
+                              "font-bold px-3 py-1 rounded-lg",
+                              transaction.transaction_type === "deposit"
+                                ? "text-emerald-600 bg-emerald-500/10"
+                                : "text-rose-600 bg-rose-500/10"
+                            )}>
+                              {formatRupiah(transaction.amount)}
+                            </span>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {transaction.notes || "-"}
@@ -938,10 +1093,10 @@ export default function SavingsPlans() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 hover:text-white transition-all group"
                               onClick={() => handleDeleteTransaction(transaction.id)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -955,31 +1110,49 @@ export default function SavingsPlans() {
         </TabsContent>
 
         <TabsContent value="recurring">
-          <Card>
-            <CardHeader>
-              <CardTitle>Auto-Deposit Bulanan</CardTitle>
-              <CardDescription>Kelola recurring transactions untuk deposit otomatis</CardDescription>
+          <Card className="border-2 border-purple-500/20 shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10 border-b-2 border-purple-500/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-lg">
+                    <Repeat className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                      Auto-Deposit Bulanan
+                    </CardTitle>
+                    <CardDescription>Kelola recurring transactions untuk deposit otomatis</CardDescription>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {recurringTransactions.length === 0 ? (
                 <div className="py-12 text-center">
-                  <Repeat className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Belum ada auto-deposit</p>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <div className="h-20 w-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-xl">
+                    <Repeat className="h-10 w-10 text-white" />
+                  </div>
+                  <p className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                    Belum ada auto-deposit
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">
                     Buat recurring transaction untuk deposit otomatis berkala
                   </p>
+                  <GradientButton variant="budget" icon={Plus} onClick={() => setRecurringDialogOpen(true)}>
+                    Setup Auto-Deposit
+                  </GradientButton>
                 </div>
               ) : (
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Rencana</TableHead>
-                      <TableHead>Jumlah</TableHead>
-                      <TableHead>Frekuensi</TableHead>
-                      <TableHead>Tanggal Mulai</TableHead>
-                      <TableHead>Tanggal Berakhir</TableHead>
-                      <TableHead>Eksekusi Berikutnya</TableHead>
-                      <TableHead>Status</TableHead>
+                  <TableHeader className="bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+                    <TableRow className="border-b-2 border-purple-500/20">
+                      <TableHead className="font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Rencana</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Jumlah</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Frekuensi</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Tanggal Mulai</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Tanggal Berakhir</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Eksekusi Berikutnya</TableHead>
+                      <TableHead className="font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Status</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -987,42 +1160,22 @@ export default function SavingsPlans() {
                     {recurringTransactions.map((recurring) => {
                       const plan = plans.find(p => p.id === recurring.savings_plan_id);
                       return (
-                        <TableRow key={recurring.id}>
+                        <TableRow key={recurring.id} className="hover:bg-gradient-to-r hover:from-purple-500/5 hover:to-blue-500/5 transition-all duration-300">
                           <TableCell className="font-medium">{plan?.plan_name}</TableCell>
-                          <TableCell>{formatRupiah(recurring.amount)}</TableCell>
-                          <TableCell className="capitalize">{recurring.frequency}</TableCell>
-                          <TableCell className="text-sm">
-                            {format(new Date(recurring.start_date), "dd MMM yyyy")}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {recurring.end_date 
-                              ? format(new Date(recurring.end_date), "dd MMM yyyy") 
-                              : "Tidak ada"}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {format(new Date(recurring.next_execution_date), "dd MMM yyyy")}
-                          </TableCell>
+                          <TableCell><span className="font-bold text-purple-600 bg-purple-500/10 px-3 py-1 rounded-lg">{formatRupiah(recurring.amount)}</span></TableCell>
+                          <TableCell><Badge className={cn("text-white border-none shadow-lg bg-gradient-to-r", recurring.frequency === "daily" ? "from-blue-500 to-cyan-600" : recurring.frequency === "weekly" ? "from-cyan-500 to-teal-600" : recurring.frequency === "monthly" ? "from-purple-500 to-blue-600" : "from-pink-500 to-purple-600")}>{recurring.frequency}</Badge></TableCell>
+                          <TableCell className="text-sm">{format(new Date(recurring.start_date), "dd MMM yyyy")}</TableCell>
+                          <TableCell className="text-sm">{recurring.end_date ? format(new Date(recurring.end_date), "dd MMM yyyy") : "Tidak ada"}</TableCell>
+                          <TableCell className="text-sm font-medium text-blue-600">{format(new Date(recurring.next_execution_date), "dd MMM yyyy")}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Switch
-                                checked={recurring.is_active}
-                                onCheckedChange={() => 
-                                  toggleRecurringStatus(recurring.id, recurring.is_active)
-                                }
-                              />
-                              <span className="text-sm">
-                                {recurring.is_active ? "Aktif" : "Nonaktif"}
-                              </span>
+                              <Switch checked={recurring.is_active} onCheckedChange={() => toggleRecurringStatus(recurring.id, recurring.is_active)} className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-emerald-500 data-[state=checked]:to-green-600" />
+                              <span className={cn("text-sm font-medium", recurring.is_active ? "text-emerald-600" : "text-muted-foreground")}>{recurring.is_active ? "Aktif" : "Nonaktif"}</span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleDeleteRecurring(recurring.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 hover:text-white transition-all group" onClick={() => handleDeleteRecurring(recurring.id)}>
+                              <Trash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -1305,6 +1458,7 @@ export default function SavingsPlans() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </AnimatedBackground>
   );
 }
