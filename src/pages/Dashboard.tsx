@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, CreditCard, Calendar, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, eachDayOfInterval, eachMonthOfInterval, subDays, subMonths } from "date-fns";
 import { AIBudgetAdvisor } from "@/components/AIBudgetAdvisor";
@@ -13,6 +13,10 @@ import { CategoryBadge } from "@/components/CategoryBadge";
 import { EnhancedTooltip } from "@/components/EnhancedTooltip";
 import { getCategoryStyle } from "@/lib/categoryColors";
 import { DashboardLoadingSkeleton } from "@/components/SkeletonLoader";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { ColoredStatCard } from "@/components/ColoredStatCard";
+import { GradientButton } from "@/components/GradientButton";
+import { ColoredProgressBar } from "@/components/ColoredProgressBar";
 
 interface DashboardStats {
   totalIncome: number;
@@ -245,102 +249,64 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Financial Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Ringkasan keuangan Anda {period === "week" ? "minggu ini" : period === "month" ? "bulan ini" : "tahun ini"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={period} onValueChange={(value: "week" | "month" | "year") => setPeriod(value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Pilih Periode" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">Minggu Ini</SelectItem>
-              <SelectItem value="month">Bulan Ini</SelectItem>
-              <SelectItem value="year">Tahun Ini</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={() => navigate("/nabila")} size="sm">
-            Lihat Detail →
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Income */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Pemasukan
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-              <ArrowUpRight className="h-4 w-4 text-green-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalIncome)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {period === "week" ? "Minggu ini" : period === "month" ? "Bulan ini" : "Tahun ini"}
+    <AnimatedBackground theme="neutral">
+      <div className="max-w-7xl mx-auto space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-gradient-purple">Financial Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              Ringkasan keuangan Anda {period === "week" ? "minggu ini" : period === "month" ? "bulan ini" : "tahun ini"}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={period} onValueChange={(value: "week" | "month" | "year") => setPeriod(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Pilih Periode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week">Minggu Ini</SelectItem>
+                <SelectItem value="month">Bulan Ini</SelectItem>
+                <SelectItem value="year">Tahun Ini</SelectItem>
+              </SelectContent>
+            </Select>
+            <GradientButton variant="primary" onClick={() => navigate("/nabila")}>
+              Lihat Detail →
+            </GradientButton>
+          </div>
+        </div>
 
-        {/* Total Expenses */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Pengeluaran
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
-              <ArrowDownRight className="h-4 w-4 text-red-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalExpenses)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {period === "week" ? "Minggu ini" : period === "month" ? "Bulan ini" : "Tahun ini"}
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Total Savings */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Tabungan
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <PiggyBank className="h-4 w-4 text-blue-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalSavings)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Akumulasi</p>
-          </CardContent>
-        </Card>
-
-        {/* Savings Rate */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Savings Rate
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-              <Wallet className="h-4 w-4 text-purple-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.savingsRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground mt-1">Dari pendapatan</p>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <ColoredStatCard
+            title="Total Pemasukan"
+            value={formatCurrency(stats.totalIncome)}
+            icon={ArrowUpRight}
+            gradient="income"
+            subtitle={period === "week" ? "Minggu ini" : period === "month" ? "Bulan ini" : "Tahun ini"}
+          />
+          <ColoredStatCard
+            title="Total Pengeluaran"
+            value={formatCurrency(stats.totalExpenses)}
+            icon={ArrowDownRight}
+            gradient="expense"
+            subtitle={period === "week" ? "Minggu ini" : period === "month" ? "Bulan ini" : "Tahun ini"}
+          />
+          <ColoredStatCard
+            title="Total Tabungan"
+            value={formatCurrency(stats.totalSavings)}
+            icon={PiggyBank}
+            gradient="savings"
+            subtitle="Akumulasi"
+          />
+          <ColoredStatCard
+            title="Savings Rate"
+            value={`${stats.savingsRate.toFixed(1)}%`}
+            icon={Wallet}
+            gradient="budget"
+            subtitle="Dari pendapatan"
+          />
+        </div>
 
       {/* Charts Row 1: Monthly Trend & Income by Client */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -621,5 +587,6 @@ export default function Dashboard() {
       {/* AI Budget Advisor */}
       <AIBudgetAdvisor />
     </div>
+  </AnimatedBackground>
   );
 }
