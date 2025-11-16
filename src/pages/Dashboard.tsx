@@ -19,7 +19,7 @@ interface DashboardStats {
   savingsRate: number;
 }
 
-const COLORS = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#f97316'];
 
 export default function Dashboard() {
   const { user } = useAuth();
