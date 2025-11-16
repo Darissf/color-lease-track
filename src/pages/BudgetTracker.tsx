@@ -34,7 +34,7 @@ import { KeyboardShortcutsHelp } from "@/components/budget/KeyboardShortcutsHelp
 import { TemplateLibrary } from "@/components/budget/TemplateLibrary";
 import { BudgetForecastChart } from "@/components/budget/charts/BudgetForecastChart";
 import { AIInsightsPanel } from "@/components/budget/AIInsightsPanel";
-import { calculateCategoryProgress, calculateDailyPace } from "@/utils/budgetCalculations";
+import { calculateCategoryProgress, calculateDailyPace, getCurrentDayForMonth } from "@/utils/budgetCalculations";
 import { useAlertChecker } from "@/hooks/useAlertChecker";
 import { useBudgetKeyboardShortcuts } from "@/hooks/useBudgetKeyboardShortcuts";
 
@@ -293,6 +293,18 @@ const BudgetTracker = () => {
     return { totalBudget, totalSpent, totalIncome, remaining, percentage, savingsRate };
   }, [currentBudget, expenses, income]);
 
+  // Calculate daily pace with correct day for selected month
+  const dailyPace = useMemo(() => {
+    const currentDay = getCurrentDayForMonth(selectedYear, selectedMonth);
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    
+    if (currentDay === 0 || stats.totalBudget === 0) {
+      return null;
+    }
+    
+    return calculateDailyPace(expenses, stats.totalBudget, currentDay, daysInMonth);
+  }, [expenses, stats.totalBudget, selectedYear, selectedMonth]);
+
   // Calculate category breakdown
   const categoryData: CategoryData[] = useMemo(() => {
     const categories = expenses.reduce((acc: any, expense) => {
@@ -523,12 +535,12 @@ const BudgetTracker = () => {
             </div>
 
             {/* Daily Pace Indicator */}
-            {expenses.length > 0 && (
+            {dailyPace && (
               <DailyPaceIndicator
-                expectedSpending={(stats.totalBudget / new Date(selectedYear, selectedMonth + 1, 0).getDate()) * new Date().getDate()}
-                actualSpending={stats.totalSpent}
-                isOverPace={stats.totalSpent > ((stats.totalBudget / new Date(selectedYear, selectedMonth + 1, 0).getDate()) * new Date().getDate())}
-                projectedTotal={(stats.totalSpent / new Date().getDate()) * new Date(selectedYear, selectedMonth + 1, 0).getDate()}
+                expectedSpending={dailyPace.expectedSpending}
+                actualSpending={dailyPace.actualSpending}
+                isOverPace={dailyPace.isOverPace}
+                projectedTotal={dailyPace.projectedTotal}
                 targetBudget={stats.totalBudget}
               />
             )}

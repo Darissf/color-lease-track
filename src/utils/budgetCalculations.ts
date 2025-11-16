@@ -1,5 +1,28 @@
 import { CategoryBudget, CategoryProgress } from "@/types/budgetTypes";
 
+export const getCurrentDayForMonth = (selectedYear: number, selectedMonth: number): number => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  
+  // Jika melihat bulan yang sama dengan bulan sekarang
+  if (selectedYear === currentYear && selectedMonth === currentMonth) {
+    return now.getDate(); // Tanggal hari ini
+  }
+  
+  // Jika melihat bulan lalu
+  if (
+    selectedYear < currentYear || 
+    (selectedYear === currentYear && selectedMonth < currentMonth)
+  ) {
+    // Gunakan total hari di bulan itu (bulan sudah lewat)
+    return new Date(selectedYear, selectedMonth + 1, 0).getDate();
+  }
+  
+  // Jika melihat bulan depan (belum terjadi)
+  return 0;
+};
+
 export const calculateCategoryProgress = (
   budgets: CategoryBudget[],
   expenses: any[]
