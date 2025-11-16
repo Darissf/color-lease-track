@@ -7,6 +7,45 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) translateX(0px); }
+    25% { transform: translateY(-20px) translateX(10px); }
+    50% { transform: translateY(0px) translateX(20px); }
+    75% { transform: translateY(20px) translateX(10px); }
+  }
+
+  @keyframes float-delayed {
+    0%, 100% { transform: translateY(0px) translateX(0px); }
+    25% { transform: translateY(20px) translateX(-10px); }
+    50% { transform: translateY(0px) translateX(-20px); }
+    75% { transform: translateY(-20px) translateX(-10px); }
+  }
+
+  @keyframes border-flow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .animate-float {
+    animation: float 20s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float-delayed 25s ease-in-out infinite;
+  }
+
+  .text-gradient-purple {
+    @apply bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-income {
+    @apply bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent font-bold;
+  }
+
+  .text-gradient-expense {
+    @apply bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent font-bold;
+  }
+
   :root {
     /* Base colors - Notion style */
     --background: 0 0% 100%;
