@@ -18,15 +18,20 @@ export const CategoryBadge = ({ category, size = "md", showIcon = true }: Catego
     lg: "text-base px-4 py-1.5"
   };
 
+  // Get shadow color dari bg class
+  const shadowColor = style.bg.replace('bg-', '');
+
   return (
     <Badge 
       variant="outline" 
       className={cn(
-        "flex items-center gap-1.5 font-medium border-2 transition-all duration-200 hover:scale-105",
+        "flex items-center gap-1.5 font-medium border-2 transition-all duration-300",
+        "hover:scale-110 hover:shadow-xl",
         style.bg,
         "text-white",
         style.border,
-        sizeClasses[size]
+        sizeClasses[size],
+        `hover:shadow-${shadowColor}/50`
       )}
     >
       {showIcon && <Icon className={size === "sm" ? "h-3 w-3" : size === "md" ? "h-4 w-4" : "h-5 w-5"} />}
