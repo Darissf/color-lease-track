@@ -10,7 +10,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText, ChevronDown, ChevronRight, Calendar, Wallet } from "lucide-react";
+import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText, ChevronDown, ChevronRight, Calendar, Wallet, Sparkles } from "lucide-react";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { ColoredStatCard } from "@/components/ColoredStatCard";
+import { GradientButton } from "@/components/GradientButton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -760,7 +763,7 @@ const ClientGroups = () => {
                 </div>
               </div>
               <div>
-                <Label>Nomor Telepon</Label>
+                <Label className="text-sm font-medium">Nomor Telepon</Label>
                 <div className="relative">
                   <Input
                     value={groupForm.nomor_telepon}
@@ -770,9 +773,10 @@ const ClientGroups = () => {
                     }}
                     placeholder="+62812345678 atau 08123456789"
                     className={cn(
-                      "pr-10",
-                      phoneError && "border-destructive",
-                      whatsappStatus?.has_whatsapp !== null && !phoneError && "border-green-500"
+                      "pr-10 transition-all",
+                      phoneError && "border-rose-500 focus:ring-rose-500/20",
+                      whatsappStatus?.has_whatsapp !== null && !phoneError && "border-emerald-500 focus:ring-emerald-500/20",
+                      !phoneError && !whatsappStatus && "focus:border-purple-500 focus:ring-purple-500/20"
                     )}
                   />
                   {validatingWhatsApp && (
