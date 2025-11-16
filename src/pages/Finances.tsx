@@ -7,6 +7,9 @@ import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Downloa
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { formatRupiah } from "@/lib/currency";
 import { useState } from "react";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { ColoredStatCard } from "@/components/ColoredStatCard";
+import { ColoredProgressBar } from "@/components/ColoredProgressBar";
 
 const monthlyData = [
   { month: "Jan", income: 125000000, expenses: 85000000, profit: 40000000 },
@@ -60,15 +63,16 @@ const Finances = () => {
   const netProfit = 97000000;
 
   return (
-    <div className="min-h-screen p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Analisis Keuangan
-          </h1>
-          <p className="text-muted-foreground">Lacak pendapatan, pengeluaran, dan profitabilitas secara real-time</p>
-        </div>
+    <AnimatedBackground theme="neutral">
+      <div className="min-h-screen p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gradient-purple mb-2">
+              Analisis Keuangan
+            </h1>
+            <p className="text-muted-foreground">Lacak pendapatan, pengeluaran, dan profitabilitas secara real-time</p>
+          </div>
         <div className="flex gap-2">
           <Select value={timeFilter} onValueChange={setTimeFilter}>
             <SelectTrigger className="w-[180px]">
@@ -424,7 +428,8 @@ const Finances = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </AnimatedBackground>
   );
 };
 
