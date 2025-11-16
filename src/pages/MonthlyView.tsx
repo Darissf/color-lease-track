@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Edit, TrendingUp, TrendingDown, DollarSign, PiggyBank, CreditCard, Calendar, ArrowUpRight, ArrowDownRight, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Edit, TrendingUp, TrendingDown, Wallet, PiggyBank, CreditCard, Calendar, ArrowUpRight, ArrowDownRight, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -291,7 +291,7 @@ export default function MonthlyView() {
               Savings Rate
             </CardTitle>
             <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-purple-600" />
+              <Wallet className="h-4 w-4 text-purple-600" />
             </div>
           </CardHeader>
           <CardContent>
@@ -455,7 +455,7 @@ export default function MonthlyView() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
+            <Wallet className="h-4 w-4" />
             Pemasukan Bulan {month}
           </CardTitle>
         </CardHeader>

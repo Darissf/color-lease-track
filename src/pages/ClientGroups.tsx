@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText, ChevronDown, ChevronRight, Calendar, DollarSign } from "lucide-react";
+import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText, ChevronDown, ChevronRight, Calendar, Wallet } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -1105,7 +1105,7 @@ const ClientGroups = () => {
                                       <CardContent className="p-4">
                                         <div className="flex items-center gap-2">
                                           <div className="p-2 bg-green-500/10 rounded-lg">
-                                            <DollarSign className="h-5 w-5 text-green-600" />
+                                            <Wallet className="h-5 w-5 text-green-600" />
                                           </div>
                                           <div className="flex-1">
                                             <p className="text-xs text-muted-foreground">Total Lunas</p>
@@ -1123,7 +1123,7 @@ const ClientGroups = () => {
                                       <CardContent className="p-4">
                                         <div className="flex items-center gap-2">
                                           <div className="p-2 bg-orange-500/10 rounded-lg">
-                                            <DollarSign className="h-5 w-5 text-orange-600" />
+                                            <Wallet className="h-5 w-5 text-orange-600" />
                                           </div>
                                           <div className="flex-1">
                                             <p className="text-xs text-muted-foreground">Total Belum Bayar</p>

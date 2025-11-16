@@ -13,8 +13,8 @@ import {
   ArrowLeft, 
   FileText, 
   Calendar, 
-  DollarSign, 
-  User, 
+  Wallet, 
+  User,
   MapPin, 
   CheckCircle, 
   AlertCircle,
@@ -22,8 +22,7 @@ import {
   ExternalLink,
   Clock,
   Receipt,
-  TrendingUp,
-  Wallet
+  TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -412,7 +411,7 @@ export default function ContractDetail() {
                               
                               {payment.bank_name && (
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                  <DollarSign className="h-3 w-3" />
+                                  <Wallet className="h-3 w-3" />
                                   <span>{payment.bank_name}</span>
                                 </div>
                               )}
@@ -491,7 +490,7 @@ export default function ContractDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+                <Wallet className="h-5 w-5" />
                 Ringkasan Pembayaran
               </CardTitle>
             </CardHeader>

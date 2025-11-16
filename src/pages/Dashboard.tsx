@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { TrendingUp, TrendingDown, DollarSign, PiggyBank, CreditCard, Calendar, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, CreditCard, Calendar, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -332,7 +332,7 @@ export default function Dashboard() {
               Savings Rate
             </CardTitle>
             <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-purple-600" />
+              <Wallet className="h-4 w-4 text-purple-600" />
             </div>
           </CardHeader>
           <CardContent>
