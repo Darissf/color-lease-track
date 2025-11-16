@@ -416,7 +416,7 @@ const Finances = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-xl font-bold ${
+                    <p className={`text-sm font-bold ${
                       transaction.type === "Income" ? "text-accent" : "text-secondary"
                     }`}>
                       {transaction.type === "Income" ? "+" : "-"}{formatRupiah(transaction.amount)}
