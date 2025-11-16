@@ -97,9 +97,9 @@ export default function AIUsageAnalytics() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 4
-    }).format(amount);
+      currency: "IDR",
+      minimumFractionDigits: 0
+    }).format(amount * 15000);
   };
 
   if (loading) {
