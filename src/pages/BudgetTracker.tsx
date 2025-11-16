@@ -314,6 +314,31 @@ const BudgetTracker = () => {
     value: cat.spent
   }));
 
+  // Command palette commands
+  const commands = [
+    {
+      id: 'create-budget',
+      label: 'Buat Budget Baru',
+      icon: <Plus className="w-4 h-4" />,
+      action: () => setDialogOpen(true),
+      keywords: ['new', 'create', 'buat']
+    },
+    {
+      id: 'edit-categories',
+      label: 'Kelola Budget Kategori',
+      icon: <Settings className="w-4 h-4" />,
+      action: () => setCategoryBudgetDialogOpen(true),
+      keywords: ['category', 'kategori', 'edit']
+    },
+    {
+      id: 'view-templates',
+      label: 'Lihat Template Budget',
+      icon: <Target className="w-4 h-4" />,
+      action: () => setTemplateDialogOpen(true),
+      keywords: ['template', 'apply']
+    },
+  ];
+
   if (loading) {
     return (
       <AnimatedBackground theme="budget">
@@ -331,6 +356,26 @@ const BudgetTracker = () => {
   return (
     <AnimatedBackground theme="budget">
       <div className="p-8 space-y-8">
+        {/* Alert Banner for Critical Alerts */}
+        {alerts.length > 0 && alerts.some(a => a.severity === 'danger') && (
+          <AlertBanner alerts={alerts.filter(a => a.severity === 'danger')} />
+        )}
+
+        {/* Quick Action Bar */}
+        <BudgetQuickActionBar
+          onQuickExpense={() => setDialogOpen(true)}
+          onEditBudget={() => setCategoryBudgetDialogOpen(true)}
+          onExport={() => toast({ title: "Export feature coming soon!" })}
+          onApplyTemplate={() => setTemplateDialogOpen(true)}
+        />
+
+        {/* Command Palette */}
+        <BudgetCommandPalette
+          open={commandPaletteOpen}
+          onOpenChange={setCommandPaletteOpen}
+          commands={commands}
+        />
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -338,6 +383,10 @@ const BudgetTracker = () => {
               Pelacak Anggaran Bulanan
             </h1>
             <p className="text-muted-foreground">Monitor dan kelola anggaran bulanan Anda</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <AlertNotificationCenter alerts={alerts} />
+            <KeyboardShortcutsHelp />
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -471,6 +520,57 @@ const BudgetTracker = () => {
               />
             </div>
 
+            {/* Daily Pace Indicator */}
+            {expenses.length > 0 && (
+              <DailyPaceIndicator
+                expectedSpending={(stats.totalBudget / new Date(selectedYear, selectedMonth + 1, 0).getDate()) * new Date().getDate()}
+                actualSpending={stats.totalSpent}
+                isOverPace={stats.totalSpent > ((stats.totalBudget / new Date(selectedYear, selectedMonth + 1, 0).getDate()) * new Date().getDate())}
+                projectedTotal={(stats.totalSpent / new Date().getDate()) * new Date(selectedYear, selectedMonth + 1, 0).getDate()}
+                targetBudget={stats.totalBudget}
+              />
+            )}
+
+            {/* AI Insights Panel */}
+            <AIInsightsPanel
+              totalSpent={stats.totalSpent}
+              targetBudget={stats.totalBudget}
+              categoryProgress={categoryProgress}
+              expenses={expenses}
+            />
+
+            {/* Category Budget Overview */}
+            {categoryProgress.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold">Budget per Kategori</h2>
+                  <Button 
+                    onClick={() => setCategoryBudgetDialogOpen(true)}
+                    variant="outline"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Kelola Budget Kategori
+                  </Button>
+                </div>
+                <CategoryBudgetOverview
+                  categoryProgress={categoryProgress}
+                  onAddExpense={(category) => {
+                    toast({ 
+                      title: "Quick Expense", 
+                      description: `Navigate to expenses with category: ${category}` 
+                    });
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Budget Forecast Chart */}
+            <BudgetForecastChart
+              expenses={expenses}
+              targetBudget={stats.totalBudget}
+              daysInMonth={new Date(selectedYear, selectedMonth + 1, 0).getDate()}
+            />
+
             {/* Budget Progress */}
             <Card className="p-6">
               <div className="space-y-4">
@@ -591,6 +691,24 @@ const BudgetTracker = () => {
           </>
         )}
       </div>
+
+      {/* Category Budget Manager Dialog */}
+      {currentBudget && (
+        <CategoryBudgetManager
+          open={categoryBudgetDialogOpen}
+          onOpenChange={setCategoryBudgetDialogOpen}
+          budgetId={currentBudget.id}
+          targetBelanja={currentBudget.target_belanja}
+          onUpdate={fetchCategoryBudgets}
+        />
+      )}
+
+      {/* Template Library Dialog */}
+      <TemplateLibrary
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
+        onApplyTemplate={handleApplyTemplate}
+      />
     </AnimatedBackground>
   );
 };
