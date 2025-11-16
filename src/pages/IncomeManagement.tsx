@@ -7,9 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, Wallet } from "lucide-react";
+import { Plus, Trash2, Edit, Wallet, TrendingUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { ColoredStatCard } from "@/components/ColoredStatCard";
+import { GradientButton } from "@/components/GradientButton";
+import BankLogo from "@/components/BankLogo";
 
 interface IncomeSource {
   id: string;
@@ -163,19 +167,19 @@ export default function IncomeManagement() {
   const paginatedIncomeSources = incomeSources.slice(startIndex, endIndex);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Kelola Pemasukan</h1>
-          <p className="text-sm text-muted-foreground">Rekedi Jelai - Akar Asal</p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => resetForm()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Pemasukan
-            </Button>
-          </DialogTrigger>
+    <AnimatedBackground theme="income">
+      <div className="max-w-7xl mx-auto space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-gradient-income mb-2">Kelola Pemasukan</h1>
+            <p className="text-muted-foreground">Rekedi Jelai - Akar Asal</p>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <GradientButton variant="income" icon={Plus} onClick={() => resetForm()}>
+                Tambah Pemasukan
+              </GradientButton>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingId ? "Edit" : "Tambah"} Sumber Pemasukan</DialogTitle>
@@ -233,18 +237,13 @@ export default function IncomeManagement() {
       </div>
 
       {/* Total Income Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Total Pemasukan
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold text-green-600">{formatCurrency(totalIncome)}</div>
-          <p className="text-sm text-muted-foreground mt-1">Dari {incomeSources.length} sumber</p>
-        </CardContent>
-      </Card>
+      <ColoredStatCard
+        title="Total Pemasukan"
+        value={formatCurrency(totalIncome)}
+        icon={TrendingUp}
+        gradient="income"
+        subtitle={`Dari ${incomeSources.length} sumber pemasukan`}
+      />
 
       {/* Income Sources Table */}
       <Card>
@@ -269,13 +268,20 @@ export default function IncomeManagement() {
                 </TableHeader>
                 <TableBody>
                   {paginatedIncomeSources.map((income, index) => (
-                    <TableRow key={income.id}>
+                    <TableRow key={income.id} className="hover:bg-accent/50 transition-colors">
                       <TableCell className="font-medium">{startIndex + index + 1}</TableCell>
                       <TableCell className="font-medium">{income.keterangan || income.source_name}</TableCell>
-                      <TableCell>{income.bank_name || "-"}</TableCell>
+                      <TableCell>
+                        {income.bank_name ? (
+                          <div className="flex items-center gap-2">
+                            <BankLogo bankName={income.bank_name} size="sm" />
+                            <span>{income.bank_name}</span>
+                          </div>
+                        ) : "-"}
+                      </TableCell>
                       <TableCell>{income.date ? new Date(income.date).toLocaleDateString('id-ID') : "-"}</TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">
-                        {formatCurrency(income.amount)}
+                      <TableCell className="text-right font-semibold">
+                        <span className="text-gradient-income">{formatCurrency(income.amount)}</span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -286,7 +292,7 @@ export default function IncomeManagement() {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleDelete(income.id)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -354,6 +360,7 @@ export default function IncomeManagement() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AnimatedBackground>
   );
 }
