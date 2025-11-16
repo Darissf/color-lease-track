@@ -46,6 +46,15 @@ All colors MUST be HSL.
     @apply bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent font-bold;
   }
 
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+  }
+
   :root {
     /* Base colors - Notion style */
     --background: 0 0% 100%;

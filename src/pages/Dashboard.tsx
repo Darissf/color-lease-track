@@ -12,6 +12,7 @@ import { AIBudgetAdvisor } from "@/components/AIBudgetAdvisor";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { EnhancedTooltip } from "@/components/EnhancedTooltip";
 import { getCategoryStyle } from "@/lib/categoryColors";
+import { DashboardLoadingSkeleton } from "@/components/SkeletonLoader";
 
 interface DashboardStats {
   totalIncome: number;
@@ -240,11 +241,7 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-muted-foreground">Memuat dashboard...</div>
-      </div>
-    );
+    return <DashboardLoadingSkeleton />;
   }
 
   return (

@@ -12,6 +12,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { EnhancedTooltip } from "@/components/EnhancedTooltip";
 import { getCategoryStyle } from "@/lib/categoryColors";
+import { MonthlyViewLoadingSkeleton } from "@/components/MonthlyViewSkeleton";
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -213,15 +214,17 @@ export default function MonthlyView() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-muted-foreground">Memuat dashboard...</div>
-      </div>
-    );
+    return <MonthlyViewLoadingSkeleton />;
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 p-6">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-950 dark:to-purple-950">
+      {/* Animated Background Shapes */}
+      <div className="absolute top-20 right-20 w-96 h-96 bg-purple-300/30 dark:bg-purple-500/20 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-20 left-20 w-96 h-96 bg-blue-300/30 dark:bg-blue-500/20 rounded-full blur-3xl animate-float-delayed" />
+      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-300/20 dark:bg-pink-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '5s' }} />
+      
+      <div className="relative z-10 max-w-7xl mx-auto space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -240,66 +243,78 @@ export default function MonthlyView() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Income */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Pemasukan
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-              <ArrowUpRight className="h-4 w-4 text-green-600" />
+        <Card className="relative overflow-hidden border-0 group hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500" />
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+          <CardHeader className="relative flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-white">Total Pemasukan</CardTitle>
+            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
+              <ArrowUpRight className="h-5 w-5 text-white" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalIncome)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Bulan {month}</p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-white">{formatCurrency(stats.totalIncome)}</div>
+            <div className="flex items-center gap-1 mt-2">
+              <ArrowUpRight className="h-4 w-4 text-emerald-100" />
+              <p className="text-xs text-emerald-100">Bulan {month}</p>
+            </div>
           </CardContent>
         </Card>
 
         {/* Total Expenses */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Pengeluaran
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-              <ArrowDownRight className="h-4 w-4 text-red-600" />
+        <Card className="relative overflow-hidden border-0 group hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-rose-500/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-500 via-red-500 to-orange-500" />
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+          <CardHeader className="relative flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-white">Total Pengeluaran</CardTitle>
+            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
+              <ArrowDownRight className="h-5 w-5 text-white" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalExpenses)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Bulan {month}</p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-white">{formatCurrency(stats.totalExpenses)}</div>
+            <div className="flex items-center gap-1 mt-2">
+              <ArrowDownRight className="h-4 w-4 text-rose-100" />
+              <p className="text-xs text-rose-100">Bulan {month}</p>
+            </div>
           </CardContent>
         </Card>
 
         {/* Total Savings */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Tabungan
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-              <PiggyBank className="h-4 w-4 text-blue-600" />
+        <Card className="relative overflow-hidden border-0 group hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-cyan-500 to-purple-500" />
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+          <CardHeader className="relative flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-white">Total Tabungan</CardTitle>
+            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
+              <PiggyBank className="h-5 w-5 text-white" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalSavings)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Akumulasi</p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-white">{formatCurrency(stats.totalSavings)}</div>
+            <div className="flex items-center gap-1 mt-2">
+              <Wallet className="h-4 w-4 text-blue-100" />
+              <p className="text-xs text-blue-100">Akumulasi</p>
+            </div>
           </CardContent>
         </Card>
 
         {/* Savings Rate */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Savings Rate
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-              <Wallet className="h-4 w-4 text-purple-600" />
+        <Card className="relative overflow-hidden border-0 group hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500" />
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+          <CardHeader className="relative flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-white">Savings Rate</CardTitle>
+            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
+              <TrendingUp className="h-5 w-5 text-white" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.savingsRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground mt-1">Dari pendapatan</p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-white">{stats.savingsRate.toFixed(1)}%</div>
+            <div className="flex items-center gap-1 mt-2">
+              <ArrowUpRight className="h-4 w-4 text-purple-100" />
+              <p className="text-xs text-purple-100">Dari pendapatan</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -309,7 +324,7 @@ export default function MonthlyView() {
         {/* Income Sources */}
         <Card className="card-hover-effect">
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Sumber Pemasukan</CardTitle>
+            <CardTitle className="text-xl font-bold text-gradient-purple">Sumber Pemasukan</CardTitle>
           </CardHeader>
           <CardContent>
             {incomeData.length > 0 ? (
@@ -364,7 +379,7 @@ export default function MonthlyView() {
         {/* Expenses by Category */}
         <Card className="card-hover-effect">
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Pengeluaran per Kategori</CardTitle>
+            <CardTitle className="text-xl font-bold text-gradient-purple">Pengeluaran per Kategori</CardTitle>
           </CardHeader>
           <CardContent>
             {expensesByCategory.length > 0 ? (
@@ -411,7 +426,7 @@ export default function MonthlyView() {
         {/* Budget Overview */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-xl font-bold text-gradient-purple flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               Budget Overview
             </CardTitle>
@@ -454,7 +469,7 @@ export default function MonthlyView() {
         {/* Recent Expenses */}
         <Card className="card-hover-effect">
           <CardHeader>
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-xl font-bold text-gradient-purple flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Pengeluaran Terbaru
             </CardTitle>
@@ -495,7 +510,7 @@ export default function MonthlyView() {
       {/* Income from Rental Contracts */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <CardTitle className="text-xl font-bold text-gradient-purple flex items-center gap-2">
             <Wallet className="h-4 w-4" />
             Pemasukan Bulan {month}
           </CardTitle>
@@ -558,6 +573,7 @@ export default function MonthlyView() {
         </Button>
       </div>
 
+      </div>
     </div>
   );
 }
