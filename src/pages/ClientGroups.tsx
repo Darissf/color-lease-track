@@ -77,6 +77,7 @@ const ClientGroups = () => {
   const [clientContracts, setClientContracts] = useState<Record<string, Contract[]>>({});
   const [loadingContracts, setLoadingContracts] = useState<Set<string>>(new Set());
   const [contractCounts, setContractCounts] = useState<Record<string, number>>({});
+  const [contractStatusBreakdown, setContractStatusBreakdown] = useState<Record<string, { active: number; completed: number }>>({});
   
   const navigate = useNavigate();
 
@@ -265,16 +266,30 @@ const ClientGroups = () => {
         const clientIds = groups.map(g => g.id);
         const { data: contracts, error: contractsError } = await supabase
           .from("rental_contracts")
-          .select("client_group_id")
+          .select("client_group_id, status")
           .in("client_group_id", clientIds);
         
         if (!contractsError && contracts) {
           // Count contracts per client
           const counts: Record<string, number> = {};
+          const statusBreakdown: Record<string, { active: number; completed: number }> = {};
+          
           contracts.forEach(contract => {
             counts[contract.client_group_id] = (counts[contract.client_group_id] || 0) + 1;
+            
+            if (!statusBreakdown[contract.client_group_id]) {
+              statusBreakdown[contract.client_group_id] = { active: 0, completed: 0 };
+            }
+            
+            if (contract.status.toLowerCase() === "masa sewa") {
+              statusBreakdown[contract.client_group_id].active += 1;
+            } else if (contract.status.toLowerCase() === "selesai") {
+              statusBreakdown[contract.client_group_id].completed += 1;
+            }
           });
+          
           setContractCounts(counts);
+          setContractStatusBreakdown(statusBreakdown);
         }
       }
     } catch (error: any) {
@@ -903,10 +918,27 @@ const ClientGroups = () => {
                               <span className="text-2xl">{group.icon || "👤"}</span>
                             )}
                             <span className="font-medium">{group.nama}</span>
-                                            {contractCounts[group.id] > 0 && (
-                              <Badge variant="secondary" className="text-xs">
-                                {contractCounts[group.id]} Kontrak
-                              </Badge>
+                            {contractCounts[group.id] > 0 && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-xs cursor-help">
+                                      {contractCounts[group.id]} Kontrak
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-xs">
+                                    <div className="space-y-1">
+                                      <p className="font-semibold">Breakdown Kontrak:</p>
+                                      <p className="text-blue-500">
+                                        • Masa Sewa: {contractStatusBreakdown[group.id]?.active || 0}
+                                      </p>
+                                      <p className="text-green-500">
+                                        • Selesai: {contractStatusBreakdown[group.id]?.completed || 0}
+                                      </p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </div>
                         </TableCell>
