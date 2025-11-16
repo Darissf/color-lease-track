@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +71,7 @@ const CATEGORY_COLORS = {
 
 const BudgetTracker = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [currentBudget, setCurrentBudget] = useState<MonthlyBudget | null>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -363,8 +365,8 @@ const BudgetTracker = () => {
 
         {/* Quick Action Bar */}
         <BudgetQuickActionBar
-          onQuickExpense={() => setDialogOpen(true)}
-          onEditBudget={() => setCategoryBudgetDialogOpen(true)}
+          onQuickExpense={() => navigate('/expense-tracker')}
+          onEditBudget={() => setDialogOpen(true)}
           onExport={() => toast({ title: "Export feature coming soon!" })}
           onApplyTemplate={() => setTemplateDialogOpen(true)}
         />
