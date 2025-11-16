@@ -38,6 +38,7 @@ import AIAutomation from "./pages/AIAutomation";
 import AIAdvisor from "./pages/AIAdvisor";
 import AIInsights from "./pages/AIInsights";
 import AIAutoPilot from "./pages/AIAutoPilot";
+import BudgetTracker from "./pages/BudgetTracker";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
                       <Route path="/income" element={<IncomeManagement />} />
                       <Route path="/expenses" element={<ExpenseTracker />} />
                       <Route path="/savings" element={<SavingsPlans />} />
+                      <Route path="/monthly-budget" element={<BudgetTracker />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/settings/admin" element={<AdminSettings />} />
                       <Route path="/settings/accounts" element={<AccountSettings />} />
