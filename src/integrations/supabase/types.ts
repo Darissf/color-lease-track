@@ -189,6 +189,60 @@ export type Database = {
           },
         ]
       }
+      alert_history: {
+        Row: {
+          alert_id: string | null
+          category: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          monthly_budget_id: string | null
+          severity: string
+          triggered_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_id?: string | null
+          category?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          monthly_budget_id?: string | null
+          severity: string
+          triggered_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_id?: string | null
+          category?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          monthly_budget_id?: string | null
+          severity?: string
+          triggered_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_history_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "budget_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_history_monthly_budget_id_fkey"
+            columns: ["monthly_budget_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -269,6 +323,169 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      budget_alerts: {
+        Row: {
+          alert_type: string
+          category: string | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          last_triggered_at: string | null
+          monthly_budget_id: string | null
+          notification_method: string | null
+          threshold_percentage: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_triggered_at?: string | null
+          monthly_budget_id?: string | null
+          notification_method?: string | null
+          threshold_percentage?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_triggered_at?: string | null
+          monthly_budget_id?: string | null
+          notification_method?: string | null
+          threshold_percentage?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_alerts_monthly_budget_id_fkey"
+            columns: ["monthly_budget_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_automation_rules: {
+        Row: {
+          configuration: Json
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          last_executed_at: string | null
+          rule_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          configuration: Json
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_executed_at?: string | null
+          rule_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_executed_at?: string | null
+          rule_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      budget_templates: {
+        Row: {
+          category_allocations: Json
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean | null
+          is_public: boolean | null
+          template_name: string
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          category_allocations: Json
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_public?: boolean | null
+          template_name: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          category_allocations?: Json
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          is_public?: boolean | null
+          template_name?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      category_budgets: {
+        Row: {
+          allocated_amount: number
+          category: string
+          created_at: string | null
+          id: string
+          monthly_budget_id: string | null
+          notes: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          allocated_amount?: number
+          category: string
+          created_at?: string | null
+          id?: string
+          monthly_budget_id?: string | null
+          notes?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          category?: string
+          created_at?: string | null
+          id?: string
+          monthly_budget_id?: string | null
+          notes?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_budgets_monthly_budget_id_fkey"
+            columns: ["monthly_budget_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_bookmarks: {
         Row: {
@@ -1227,6 +1444,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_budget_template: {
+        Args: { p_budget_id: string; p_template_id: string; p_user_id: string }
+        Returns: undefined
+      }
       check_user_role: {
         Args: { role_name: string; user_id: string }
         Returns: boolean

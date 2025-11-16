@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, Target, PiggyBank, Wallet, Calendar, Plus, AlertTriangle, CheckCircle2, ArrowUpDown } from "lucide-react";
+import { TrendingUp, Target, PiggyBank, Wallet, Calendar, Plus, AlertTriangle, CheckCircle2, ArrowUpDown, Settings } from "lucide-react";
 import { formatRupiah } from "@/lib/currency";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { GradientButton } from "@/components/GradientButton";
@@ -21,6 +21,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { id as localeId } from "date-fns/locale";
+import { CategoryBudget, CategoryProgress } from "@/types/budgetTypes";
+import { CategoryBudgetManager } from "@/components/budget/CategoryBudgetManager";
+import { CategoryBudgetOverview } from "@/components/budget/CategoryBudgetOverview";
+import { AlertNotificationCenter } from "@/components/budget/AlertNotificationCenter";
+import { AlertBanner } from "@/components/budget/AlertBanner";
+import { DailyPaceIndicator } from "@/components/budget/DailyPaceIndicator";
+import { BudgetQuickActionBar } from "@/components/budget/BudgetQuickActionBar";
+import { BudgetCommandPalette } from "@/components/budget/BudgetCommandPalette";
+import { KeyboardShortcutsHelp } from "@/components/budget/KeyboardShortcutsHelp";
+import { TemplateLibrary } from "@/components/budget/TemplateLibrary";
+import { BudgetForecastChart } from "@/components/budget/charts/BudgetForecastChart";
+import { AIInsightsPanel } from "@/components/budget/AIInsightsPanel";
+import { calculateCategoryProgress, calculateDailyPace } from "@/utils/budgetCalculations";
+import { useAlertChecker } from "@/hooks/useAlertChecker";
+import { useBudgetKeyboardShortcuts } from "@/hooks/useBudgetKeyboardShortcuts";
 
 interface MonthlyBudget {
   id: string;
@@ -63,6 +78,11 @@ const BudgetTracker = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [categoryBudgets, setCategoryBudgets] = useState<CategoryBudget[]>([]);
+  const [categoryProgress, setCategoryProgress] = useState<CategoryProgress[]>([]);
+  const [categoryBudgetDialogOpen, setCategoryBudgetDialogOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -72,11 +92,52 @@ const BudgetTracker = () => {
     notes: ''
   });
 
+  const alerts = useAlertChecker(currentBudget, expenses, categoryProgress);
+  
+  useBudgetKeyboardShortcuts({
+    onCreateBudget: () => setDialogOpen(true),
+    onOpenCommandPalette: () => setCommandPaletteOpen(true),
+  });
+
   useEffect(() => {
     if (user) {
       fetchData();
     }
   }, [user, selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    if (currentBudget && expenses.length > 0) {
+      const progress = calculateCategoryProgress(categoryBudgets, expenses);
+      setCategoryProgress(progress);
+    }
+  }, [categoryBudgets, expenses]);
+
+  const fetchCategoryBudgets = async () => {
+    if (!currentBudget) return;
+    
+    const { data } = await supabase
+      .from('category_budgets')
+      .select('*')
+      .eq('monthly_budget_id', currentBudget.id)
+      .order('category');
+    
+    setCategoryBudgets(data || []);
+  };
+
+  const handleApplyTemplate = async (templateId: string) => {
+    if (!currentBudget) return;
+    
+    const { error } = await supabase.rpc('apply_budget_template', {
+      p_user_id: user!.id,
+      p_budget_id: currentBudget.id,
+      p_template_id: templateId
+    });
+    
+    if (!error) {
+      toast({ title: "Template berhasil diterapkan!" });
+      fetchCategoryBudgets();
+    }
+  };
 
   const fetchData = async () => {
     if (!user) return;
@@ -95,6 +156,10 @@ const BudgetTracker = () => {
         .maybeSingle();
 
       setCurrentBudget(budgetData);
+      
+      if (budgetData) {
+        await fetchCategoryBudgets();
+      }
 
       // Fetch expenses for selected month
       const startDate = format(new Date(selectedYear, selectedMonth, 1), 'yyyy-MM-dd');
