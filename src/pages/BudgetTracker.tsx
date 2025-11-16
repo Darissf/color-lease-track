@@ -33,6 +33,7 @@ import { BudgetCommandPalette } from "@/components/budget/BudgetCommandPalette";
 import { KeyboardShortcutsHelp } from "@/components/budget/KeyboardShortcutsHelp";
 import { TemplateLibrary } from "@/components/budget/TemplateLibrary";
 import { BudgetForecastChart } from "@/components/budget/charts/BudgetForecastChart";
+import { DailyTrendChart } from "@/components/budget/charts/DailyTrendChart";
 import { AIInsightsPanel } from "@/components/budget/AIInsightsPanel";
 import { calculateCategoryProgress, calculateDailyPace, getCurrentDayForMonth } from "@/utils/budgetCalculations";
 import { useAlertChecker } from "@/hooks/useAlertChecker";
@@ -542,6 +543,18 @@ const BudgetTracker = () => {
                 isOverPace={dailyPace.isOverPace}
                 projectedTotal={dailyPace.projectedTotal}
                 targetBudget={stats.totalBudget}
+              />
+            )}
+
+            {/* Daily Trend Chart */}
+            {dailyPace && (
+              <DailyTrendChart
+                expenses={expenses}
+                targetBudget={stats.totalBudget}
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
+                currentDay={getCurrentDayForMonth(selectedYear, selectedMonth)}
+                daysInMonth={new Date(selectedYear, selectedMonth + 1, 0).getDate()}
               />
             )}
 
