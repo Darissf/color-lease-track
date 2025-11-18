@@ -1,15 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Loader2, TrendingUp, Lightbulb } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { useEditableContent } from "@/contexts/EditableContentContext";
 
 export const AIBudgetAdvisor = () => {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [summary, setSummary] = useState<any>(null);
+
+  // Editable content for description
+  const { getContent, isSuperAdmin } = useEditableContent();
+  const descKey = "/dashboard::ai-budget-advisor.description";
+  const defaultDesc =
+    "Dapatkan prediksi pengeluaran bulan depan dan saran optimasi budget berdasarkan pola historis Anda";
+  const desc = getContent(descKey, defaultDesc);
+
+  useEffect(() => {
+    const seed = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("editable_content")
+          .select("id")
+          .eq("content_key", descKey)
+          .maybeSingle();
+        if (!error && !data && isSuperAdmin) {
+          await supabase.from("editable_content").insert({
+            content_key: descKey,
+            content_value: defaultDesc,
+            page: "/dashboard",
+            category: "auto",
+          });
+        }
+      } catch (_) {}
+    };
+    seed();
+  }, [isSuperAdmin]);
 
   const handleAnalyze = async () => {
     try {
@@ -53,9 +82,7 @@ export const AIBudgetAdvisor = () => {
                 <Sparkles className="h-5 w-5 text-primary" />
                 AI Budget Advisor
               </CardTitle>
-              <CardDescription>
-                Dapatkan prediksi pengeluaran bulan depan dan saran optimasi budget berdasarkan pola historis Anda
-              </CardDescription>
+              <CardDescription>{desc}</CardDescription>
             </div>
             <Button onClick={handleAnalyze} disabled={loading}>
               {loading ? (
