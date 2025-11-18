@@ -5,11 +5,18 @@ import { Sparkles, Loader2, TrendingUp, Lightbulb } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { useEditableContent } from "@/contexts/EditableContentContext";
 
 export const AIBudgetAdvisor = () => {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [summary, setSummary] = useState<any>(null);
+  const { getContent } = useEditableContent();
+
+  // Content keys mapped to this component (fallback to defaults)
+  const descKey = "/dashboard::div[0]>div[2]>div[0]>main[0]>div[0]>div[3]>div[0]>div[5]>div[0]>div[0]>div[0]>div[0]>div[0]>p[0]";
+  const defaultDesc = "Dapatkan prediksi pengeluaran bulan depan dan saran optimasi budget berdasarkan pola historis Anda";
+  const description = getContent(descKey, defaultDesc);
 
   const handleAnalyze = async () => {
     try {
@@ -54,7 +61,7 @@ export const AIBudgetAdvisor = () => {
                 AI Budget Advisor
               </CardTitle>
               <CardDescription>
-                Dapatkan prediksi pengeluaran bulan depan dan saran optimasi budget berdasarkan pola historis Anda
+                {description}
               </CardDescription>
             </div>
             <Button onClick={handleAnalyze} disabled={loading}>
