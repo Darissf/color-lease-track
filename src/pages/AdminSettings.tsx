@@ -151,25 +151,25 @@ const AdminSettings = () => {
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="mb-6 flex items-center gap-4">
+    <div className="min-h-screen p-4 sm:p-6 md:p-8">
+      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/settings")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <div className="flex-1 w-full">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Pengaturan Admin
           </h1>
           <p className="text-muted-foreground">Kelola role dan hak akses pengguna</p>
         </div>
       </div>
 
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
+      <Card className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
-            <Shield className="h-6 w-6 text-white" />
-          </div>
+            <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+              <Shield className="h-6 w-6 text-white" />
+            </div>
             <div>
               <h2 className="text-xl font-bold">Manajemen User & Role</h2>
               <p className="text-sm text-muted-foreground">Kelola hak akses pengguna</p>
@@ -187,53 +187,122 @@ const AdminSettings = () => {
             <p className="text-muted-foreground">Belum ada pengguna terdaftar</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Tanggal Dibuat</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Tanggal Dibuat</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.full_name || "Nama tidak tersedia"}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {user.email}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {user.username || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={user.role || "none"}
+                          onValueChange={(value) => handleRoleChange(user.id, value, user.role_id)}
+                        >
+                          <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Tidak ada role</SelectItem>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="super_admin">Super Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(user.created_at).toLocaleDateString("id-ID")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Pencil className="h-4 w-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                          {user.role_id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteRole(user.role_id!)}
+                            >
+                              Hapus Role
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
               {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    {user.full_name || "Nama tidak tersedia"}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {user.email}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {user.username || "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={user.role || "none"}
-                      onValueChange={(value) => handleRoleChange(user.id, value, user.role_id)}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Tidak ada role</SelectItem>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="super_admin">Super Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(user.created_at).toLocaleDateString("id-ID")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
+                <Card key={user.id} className="p-4">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-medium text-lg">{user.full_name || "Nama tidak tersedia"}</p>
+                      <p className="text-sm text-muted-foreground break-all">{user.email}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Username:</span>
+                        <p className="font-medium">{user.username || "-"}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Dibuat:</span>
+                        <p className="font-medium">{new Date(user.created_at).toLocaleDateString("id-ID")}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-muted-foreground mb-1 block">Role:</label>
+                      <Select
+                        value={user.role || "none"}
+                        onValueChange={(value) => handleRoleChange(user.id, value, user.role_id)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Tidak ada role</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="super_admin">Super Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
+                        className="flex-1"
                         onClick={() => handleEditUser(user)}
                       >
                         <Pencil className="h-4 w-4 mr-1" />
@@ -241,19 +310,20 @@ const AdminSettings = () => {
                       </Button>
                       {user.role_id && (
                         <Button
-                          variant="ghost"
+                          variant="destructive"
                           size="sm"
+                          className="flex-1"
                           onClick={() => handleDeleteRole(user.role_id!)}
                         >
                           Hapus Role
                         </Button>
                       )}
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </Card>
 
