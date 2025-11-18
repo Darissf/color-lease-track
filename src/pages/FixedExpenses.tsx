@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, LayoutGrid } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, LayoutGrid, Moon, Sun } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/components/ui/theme-provider";
 import { FixedExpenseSummary } from "@/components/fixed-expenses/FixedExpenseSummary";
 import { FixedExpenseList } from "@/components/fixed-expenses/FixedExpenseList";
 import { FixedExpenseCalendar } from "@/components/fixed-expenses/FixedExpenseCalendar";
@@ -44,6 +45,7 @@ export interface FixedExpenseHistory {
 const FixedExpenses = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<FixedExpense[]>([]);
   const [history, setHistory] = useState<FixedExpenseHistory[]>([]);
@@ -124,6 +126,7 @@ const FixedExpenses = () => {
         title: "Berhasil",
         description: "Pengeluaran tetap berhasil dihapus",
       });
+
       fetchExpenses();
     } catch (error) {
       console.error('Error deleting expense:', error);
@@ -153,134 +156,201 @@ const FixedExpenses = () => {
         title: "Berhasil",
         description: `${expense.expense_name} ditandai sudah dibayar`,
       });
+
       fetchHistory();
     } catch (error) {
       console.error('Error marking as paid:', error);
       toast({
         title: "Error",
-        description: "Gagal menandai sebagai dibayar",
+        description: "Gagal menandai sebagai sudah dibayar",
         variant: "destructive",
       });
     }
   };
 
-  const handleFormSubmit = async () => {
+  const handleFormSubmit = () => {
     setIsFormOpen(false);
     fetchExpenses();
   };
 
-  return (
-    <div className="japanese-background relative min-h-screen">
-      {/* Animated Background Patterns */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-        {/* Seigaiha Wave Pattern */}
-        <div 
-          className="absolute inset-0 opacity-5 animate-wave-flow"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 200 100'%3E%3Cpath d='M0 50 Q25 25 50 50 T100 50 T150 50 T200 50' stroke='%23003A70' fill='none' stroke-width='2'/%3E%3Cpath d='M0 75 Q25 50 50 75 T100 75 T150 75 T200 75' stroke='%23003A70' fill='none' stroke-width='2'/%3E%3C/svg%3E")`,
-            backgroundSize: '200px 100px',
-          }}
-        />
-        
-        {/* Floating Sakura Petals */}
-        <div className="sakura-container absolute inset-0">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="sakura-petal absolute animate-sakura-fall"
-              style={{
-                left: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${15 + Math.random() * 10}s`,
-                width: '20px',
-                height: '20px',
-                background: 'radial-gradient(circle, hsl(var(--sakura-pink)) 0%, hsl(340 100% 75%) 100%)',
-                clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-                filter: 'blur(0.5px)',
-                opacity: 0.8,
-              }}
-            />
-          ))}
-        </div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
-        {/* Floating Japanese Lanterns */}
-        <div className="lantern-container absolute inset-0">
-          {[...Array(5)].map((_, i) => (
+  return (
+    <div className="min-h-screen relative overflow-hidden">
+      {/* ===== ANIMATED BACKGROUND ELEMENTS ===== */}
+      
+      {/* Stars (Dark Mode Only) */}
+      <div className="stars-background dark:block hidden">
+        {[...Array(100)].map((_, i) => (
+          <div
+            key={`star-${i}`}
+            className="star"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              width: `${1 + Math.random() * 2}px`,
+              height: `${1 + Math.random() * 2}px`,
+              animationDelay: `${Math.random() * 8}s`,
+              animationDuration: `${3 + Math.random() * 5}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Moon (Dark Mode Only) */}
+      <div className="moon-element dark:block hidden" />
+
+      {/* Night Fog (Dark Mode Only) */}
+      <div className="night-fog dark:block hidden" />
+
+      {/* Torii Gate Silhouette */}
+      <div className="torii-gate-silhouette">
+        <svg viewBox="0 0 800 600" className="w-full h-full" fill="currentColor">
+          <rect x="150" y="450" width="40" height="150" />
+          <rect x="610" y="450" width="40" height="150" />
+          <rect x="50" y="420" width="700" height="40" rx="10" />
+          <rect x="80" y="380" width="640" height="30" rx="8" />
+          <ellipse cx="120" cy="410" rx="20" ry="10" />
+          <ellipse cx="680" cy="410" rx="20" ry="10" />
+        </svg>
+      </div>
+
+      {/* Sakura Petals */}
+      <div className="sakura-container pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={`sakura-${i}`}
+            className="sakura-petal"
+            style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${15 + Math.random() * 10}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Japanese Lanterns */}
+      <div className="lantern-container pointer-events-none">
+        {[...Array(7)].map((_, i) => (
+          <div
+            key={`lantern-${i}`}
+            className="japanese-lantern fixed"
+            style={{
+              left: `${20 + i * 12}%`,
+              top: `${10 + Math.random() * 20}%`,
+              animationDelay: `${i * 0.5}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* NEW: Floating Origami */}
+      <div className="origami-container pointer-events-none">
+        {[...Array(18)].map((_, i) => {
+          const types = ['crane', 'boat', 'butterfly', 'star', 'heart'];
+          const type = types[i % types.length];
+          return (
             <div
-              key={i}
-              className="japanese-lantern absolute animate-lantern-float"
+              key={`origami-${i}`}
+              className={`origami-piece origami-${type} fixed`}
               style={{
-                left: `${20 + i * 15}%`,
-                top: `${10 + (i % 3) * 20}%`,
-                animationDelay: `${i * 0.5}s`,
-                width: '40px',
-                height: '60px',
-                background: 'linear-gradient(135deg, hsl(var(--torii-red)), hsl(14 91% 56%))',
-                borderRadius: '10px 10px 20px 20px',
-                boxShadow: '0 0 30px hsl(var(--torii-red) / 0.6)',
+                left: `${Math.random() * 90}%`,
+                top: `${Math.random() * 80}%`,
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${20 + Math.random() * 15}s`
               }}
             />
-          ))}
-        </div>
+          );
+        })}
+      </div>
+
+      {/* NEW: Fireflies */}
+      <div className="fireflies-container pointer-events-none">
+        {[...Array(35)].map((_, i) => (
+          <div
+            key={`firefly-${i}`}
+            className="firefly fixed"
+            style={{
+              left: `${Math.random() * 100}%`,
+              bottom: `${Math.random() * 60}%`,
+              animationDelay: `${Math.random() * 8}s`,
+              animationDuration: `${3 + Math.random() * 5}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* NEW: Bamboo Leaves */}
+      <div className="bamboo-leaves-container pointer-events-none">
+        {[...Array(28)].map((_, i) => (
+          <div
+            key={`bamboo-${i}`}
+            className="bamboo-leaf"
+            style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${12 + Math.random() * 13}s`
+            }}
+          />
+        ))}
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto p-6 space-y-6 relative" style={{ zIndex: 1 }}>
-        {/* Japanese Header */}
-        <div className="japanese-header flex justify-between items-center mb-8 animate-slide-down">
+      <div className="container mx-auto p-4 md:p-6 relative z-10">
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold japanese-title mb-2">
-              <span className="text-gradient-torii animate-shimmer-text">
-                固定費管理
-              </span>
+              <span className="text-gradient-torii animate-shimmer-text">固定費管理</span>
               <span className="text-gradient-gold"> / </span>
-              <span className="text-gradient-indigo">
-                Pengeluaran Tetap
-              </span>
+              <span className="text-gradient-indigo">Pengeluaran Tetap</span>
             </h1>
-            <p className="text-muted-foreground japanese-text">
-              Kelola tagihan bulanan Anda dengan gaya Jepang
-            </p>
+            <p className="text-muted-foreground">Kelola pengeluaran tetap bulanan Anda</p>
           </div>
-          
-          <Button 
-            onClick={handleAddExpense}
-            className="japanese-button relative overflow-hidden group"
-            style={{
-              background: 'var(--gradient-torii-gold)',
-              color: 'white',
-              boxShadow: 'var(--shadow-glow-gold)',
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4 animate-icon-rotate" />
-            <span>Tambah Pengeluaran Tetap</span>
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            </div>
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="relative overflow-hidden transition-all hover:scale-110"
+            >
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+            <Button
+              onClick={handleAddExpense}
+              className="gradient-torii-gold hover:scale-105 transition-all shadow-lg"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah Tagihan
+            </Button>
+          </div>
         </div>
 
+        {/* Summary Cards */}
         <FixedExpenseSummary expenses={expenses} history={history} />
 
-        <Tabs value={currentView} onValueChange={(v) => setCurrentView(v as 'list' | 'calendar')} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 p-1 bg-muted/50 backdrop-blur">
-            <TabsTrigger 
-              value="list" 
-              className="japanese-tab data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-teal-500 data-[state=active]:text-white transition-all"
-            >
-              <LayoutGrid className="mr-2 h-4 w-4 animate-icon-bounce" />
+        {/* Tabs */}
+        <Tabs value={currentView} onValueChange={(v) => setCurrentView(v as 'list' | 'calendar')} className="mt-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4" />
               Daftar
             </TabsTrigger>
-            <TabsTrigger 
-              value="calendar"
-              className="japanese-tab data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white transition-all"
-            >
-              <CalendarIcon className="mr-2 h-4 w-4 animate-icon-bounce" />
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
               Kalender
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="list" className="mt-6 animate-fade-in-up">
+          <TabsContent value="list" className="mt-4">
             <FixedExpenseList
               expenses={expenses}
               history={history}
@@ -290,8 +360,7 @@ const FixedExpenses = () => {
               onMarkAsPaid={handleMarkAsPaid}
             />
           </TabsContent>
-
-          <TabsContent value="calendar" className="mt-6 animate-fade-in-up">
+          <TabsContent value="calendar" className="mt-4">
             <FixedExpenseCalendar
               expenses={expenses}
               history={history}
@@ -300,6 +369,7 @@ const FixedExpenses = () => {
           </TabsContent>
         </Tabs>
 
+        {/* Form Dialog */}
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <FixedExpenseForm
