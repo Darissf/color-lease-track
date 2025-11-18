@@ -25,6 +25,9 @@ serve(async (req) => {
     if (userError || !user) throw new Error("Unauthorized");
 
     const { query, filters } = await req.json();
+    console.log("Search query:", query);
+    console.log("Filters:", filters);
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     // First get all content from database
@@ -39,6 +42,8 @@ serve(async (req) => {
 
     const { data: contents, error: dbError } = await dbQuery;
     if (dbError) throw dbError;
+    
+    console.log(`Found ${contents?.length || 0} content items in database`);
 
     // Use AI for semantic search
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -52,23 +57,45 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a semantic search assistant. Given a search query and a list of content items, return the IDs of the most relevant items in order of relevance. Return ONLY a JSON array of IDs."
+            content: "You are a semantic search assistant. Given a search query and a list of content items, return ONLY a raw JSON array of relevant item IDs in order of relevance. Do NOT wrap the JSON in markdown code blocks or add any explanation. Return ONLY the JSON array like: [\"id1\",\"id2\"]"
           },
           {
             role: "user",
-            content: `Search query: "${query}"\n\nContent items:\n${JSON.stringify(contents?.map(c => ({ id: c.id, key: c.content_key, value: c.content_value })))}\n\nReturn the top 10 most relevant item IDs as a JSON array.`
+            content: `Search query: "${query}"\n\nContent items:\n${JSON.stringify(contents?.map(c => ({ id: c.id, key: c.content_key, value: c.content_value, page: c.page })))}\n\nReturn the top 10 most relevant item IDs as a raw JSON array. Match based on semantic meaning, keywords, and context. Consider Indonesian language variations.`
           }
         ]
       }),
     });
 
     const aiData = await aiResponse.json();
-    const relevantIds = JSON.parse(aiData.choices[0].message.content);
+    let aiContent = aiData.choices[0].message.content;
+    
+    console.log("AI raw response:", aiContent);
+    
+    // Strip markdown code blocks if present
+    aiContent = aiContent.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    
+    console.log("AI cleaned response:", aiContent);
+    
+    // Parse the JSON array of IDs
+    let relevantIds: string[];
+    try {
+      relevantIds = JSON.parse(aiContent);
+    } catch (parseError) {
+      console.error("Failed to parse AI response:", parseError);
+      console.error("Content was:", aiContent);
+      // Fallback: return empty array
+      relevantIds = [];
+    }
+    
+    console.log("Parsed IDs:", relevantIds);
     
     // Reorder results based on AI ranking
     const rankedResults = relevantIds
       .map((id: string) => contents?.find(c => c.id === id))
       .filter(Boolean);
+
+    console.log(`Returning ${rankedResults.length} results`);
 
     return new Response(
       JSON.stringify({ results: rankedResults }),
