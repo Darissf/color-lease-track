@@ -115,6 +115,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { title: "List Kontrak Sewa", url: "/rental-contracts", icon: ClipboardList, badge: notifications.total > 0 ? `${notifications.total}` : undefined, badgeVariant: notifications.total > 0 ? "destructive" as const : undefined },
     { title: "Pemasukan", url: "/income", icon: DollarSign },
     { title: "Pengeluaran", url: "/expenses", icon: TrendingDown },
+    { title: "Pengeluaran Tetap", url: "/fixed-expenses", icon: Calendar },
     { title: "Savings Plans", url: "/savings", icon: PiggyBank },
     { title: "Monthly Budget", url: "/monthly-budget", icon: Calendar },
   ];

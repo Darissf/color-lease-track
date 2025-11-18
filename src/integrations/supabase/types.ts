@@ -1038,6 +1038,119 @@ export type Database = {
           },
         ]
       }
+      fixed_expense_history: {
+        Row: {
+          created_at: string
+          expense_id: string | null
+          fixed_expense_id: string
+          id: string
+          notes: string | null
+          paid_amount: number
+          paid_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expense_id?: string | null
+          fixed_expense_id: string
+          id?: string
+          notes?: string | null
+          paid_amount: number
+          paid_date: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expense_id?: string | null
+          fixed_expense_id?: string
+          id?: string
+          notes?: string | null
+          paid_amount?: number
+          paid_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_expense_history_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_expense_history_fixed_expense_id_fkey"
+            columns: ["fixed_expense_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_expenses: {
+        Row: {
+          auto_create_expense: boolean | null
+          bank_account_id: string | null
+          category: string
+          created_at: string
+          due_date_day: number
+          estimated_amount: number | null
+          expense_name: string
+          expense_type: string
+          fixed_amount: number | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          reminder_days_before: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_create_expense?: boolean | null
+          bank_account_id?: string | null
+          category: string
+          created_at?: string
+          due_date_day: number
+          estimated_amount?: number | null
+          expense_name: string
+          expense_type: string
+          fixed_amount?: number | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          reminder_days_before?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_create_expense?: boolean | null
+          bank_account_id?: string | null
+          category?: string
+          created_at?: string
+          due_date_day?: number
+          estimated_amount?: number | null
+          expense_name?: string
+          expense_type?: string
+          fixed_amount?: number | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          reminder_days_before?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_expenses_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       income_sources: {
         Row: {
           amount: number | null
