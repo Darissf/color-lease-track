@@ -32,9 +32,37 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user, signOut, isSuperAdmin, isAdmin, isUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const notifications = useAdminNotifications(isAdmin || isSuperAdmin);
+  const location = useLocation();
+  const { applyForPage } = useContentAutoApply();
+  const [applying, setApplying] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleAutoApply = async () => {
+    if (!isSuperAdmin) return;
+    setApplying(true);
+    try {
+      const res = await applyForPage(location.pathname);
+      if (!res) {
+        toast.message("Tidak ada konten untuk halaman ini");
+        return;
+      }
+      const { applied, skipped, notFound } = res;
+      if (applied > 0) {
+        toast.success(`Terapkan: ${applied} | Sama: ${skipped} | Tidak ditemukan: ${notFound}`);
+      } else if (skipped > 0 && notFound === 0) {
+        toast.success(`Semua sudah sesuai (${skipped})`);
+      } else {
+        toast.warning(`Tidak ditemukan: ${notFound}, sama: ${skipped}`);
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Gagal menerapkan konten");
+    } finally {
+      setApplying(false);
+    }
   };
 
   // Different menu for regular users vs admins
@@ -196,6 +224,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
+            {isSuperAdmin && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleAutoApply}
+                disabled={applying}
+                className="mr-1"
+                aria-label="Terapkan konten otomatis untuk halaman ini"
+                title="Terapkan konten otomatis untuk halaman ini"
+              >
+                {applying ? "Menerapkan..." : "Terapkan Otomatis"}
+              </Button>
+            )}
             {/* Notifications */}
             <button className="relative p-2 rounded hover:bg-accent transition-colors">
               <Bell className="h-4 w-4 text-foreground" />
