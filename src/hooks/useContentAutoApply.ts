@@ -18,12 +18,48 @@ function toCssSelector(domPath: string): string {
   return conv.join(" > ");
 }
 
+// Keep strong during this session: ensure DOM reverts are corrected
+const observerMap = new Map<string, MutationObserver>();
+const desiredMap = new WeakMap<HTMLElement, string>();
+
+async function waitForElement(selector: string, timeoutMs = 4000): Promise<HTMLElement | null> {
+  const start = performance.now();
+  return new Promise((resolve) => {
+    function check() {
+      const el = document.querySelector(selector) as HTMLElement | null;
+      if (el) return resolve(el);
+      if (performance.now() - start >= timeoutMs) return resolve(null);
+      requestAnimationFrame(check);
+    }
+    check();
+  });
+}
+
+function keepSynced(selector: string, el: HTMLElement, value: string) {
+  desiredMap.set(el, value);
+  el.setAttribute("data-auto-applied", "true");
+  const existing = observerMap.get(selector);
+  if (existing) return; // already observing
+
+  const parent = el.parentElement ?? document.body;
+  const obs = new MutationObserver(() => {
+    const target = document.querySelector(selector) as HTMLElement | null;
+    if (!target) return;
+    const desired = desiredMap.get(target) ?? value;
+    if ((target.textContent || "").trim() !== desired.trim()) {
+      target.textContent = desired;
+    }
+  });
+  obs.observe(parent, { subtree: true, childList: true, characterData: true });
+  observerMap.set(selector, obs);
+}
+
 export function useContentAutoApply() {
   async function applyForPage(pagePath: string) {
     try {
       const { data, error } = await supabase
         .from("editable_content")
-        .select("content_key, content_value, page")
+        .select("content_key, content_value, page, updated_at")
         .eq("page", pagePath);
       if (error) throw error;
 
@@ -31,37 +67,41 @@ export function useContentAutoApply() {
       let skipped = 0;
       let notFound = 0;
 
-      (data || []).forEach((item) => {
+      await Promise.all((data || []).map(async (item) => {
         const [page, rawPath] = String(item.content_key).split("::");
         if (!rawPath) return;
-        // Safety: only apply for current page
         if (page !== pagePath) return;
-
         const selector = toCssSelector(rawPath);
-        const el = document.querySelector(selector) as HTMLElement | null;
+
+        // Wait if element not mounted yet (charts, async sections, etc.)
+        let el = (document.querySelector(selector) as HTMLElement | null) || await waitForElement(selector, 4000);
         if (!el) {
           notFound += 1;
           return;
         }
+
         const newValue = String(item.content_value ?? "");
         const current = (el.textContent || "").trim();
         if (current === newValue.trim()) {
           skipped += 1;
+          // still ensure future changes remain synced
+          keepSynced(selector, el, newValue);
           return;
         }
         try {
           el.textContent = newValue;
           applied += 1;
+          keepSynced(selector, el, newValue);
         } catch {
-          // fallback: innerText
           try {
             (el as any).innerText = newValue;
             applied += 1;
+            keepSynced(selector, el, newValue);
           } catch {
             notFound += 1;
           }
         }
-      });
+      }));
 
       return { applied, skipped, notFound };
     } catch (e) {

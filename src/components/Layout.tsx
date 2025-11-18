@@ -9,7 +9,7 @@ import { useLocation } from "react-router-dom";
 import { useContentAutoApply } from "@/hooks/useContentAutoApply";
 
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const navItems = [
   { title: "Home", url: "/", icon: Home },
@@ -64,6 +64,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
       setApplying(false);
     }
   };
+
+  // Auto-apply on route change for super admin
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    // Run twice to catch late-mounted components
+    const t1 = setTimeout(() => {
+      applyForPage(location.pathname);
+    }, 60);
+    const t2 = setTimeout(() => {
+      applyForPage(location.pathname);
+    }, 900);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [isSuperAdmin, location.pathname, applyForPage]);
 
   // Different menu for regular users vs admins
   const pagesItems = (isUser && !isAdmin && !isSuperAdmin) ? [
