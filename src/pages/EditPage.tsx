@@ -56,9 +56,15 @@ const EditPage = () => {
 
       if (searchQuery.trim()) {
         const term = searchQuery.trim();
-        query = query.or(
-          `content_key.ilike.%${term}%,content_value.ilike.%${term}%,page.ilike.%${term}%,category.ilike.%${term}%`
-        );
+        const tokens = term.split(/\s+/).filter(Boolean);
+        const cols = ["content_key", "content_value", "page", "category"];
+        const orParts = [
+          // full phrase across all columns first
+          ...cols.map((c) => `${c}.ilike.%${term}%`),
+          // each token across all columns
+          ...tokens.flatMap((t) => cols.map((c) => `${c}.ilike.%${t}%`)),
+        ];
+        query = query.or(orParts.join(","));
       }
 
       const { data, error } = await query.order("updated_at", { ascending: false });
