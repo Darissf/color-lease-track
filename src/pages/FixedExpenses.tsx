@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Plus, Calendar as CalendarIcon, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -171,8 +170,7 @@ const FixedExpenses = () => {
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Pengeluaran Tetap</h1>
@@ -227,8 +225,7 @@ const FixedExpenses = () => {
             />
           </DialogContent>
         </Dialog>
-      </div>
-    </Layout>
+    </div>
   );
 };
 
