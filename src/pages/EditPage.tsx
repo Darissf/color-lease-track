@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Save, FileText, Loader2, RefreshCw } from "lucide-react";
+import { Search, Save, FileText, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ContentItem {
@@ -36,6 +36,9 @@ const EditPage = () => {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [newContentCount, setNewContentCount] = useState(0);
+  const [checking, setChecking] = useState(false);
+  const [unmappedKeys, setUnmappedKeys] = useState<Set<string>>(new Set());
+  const [staleKeys, setStaleKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -113,6 +116,45 @@ const EditPage = () => {
     setSyncing(false);
   };
 
+  const handleVerifyUnapplied = async () => {
+    setChecking(true);
+    try {
+      const { data: allContents, error: cErr } = await supabase
+        .from("editable_content")
+        .select("content_key,updated_at");
+      if (cErr) throw cErr;
+
+      const { data: mappings, error: mErr } = await supabase
+        .from("content_file_mapping")
+        .select("content_key,last_scanned,file_path");
+      if (mErr) throw mErr;
+
+      const mapByKey = new Map((mappings || []).map((m: any) => [m.content_key, m]));
+      const unmapped = new Set<string>();
+      const stale = new Set<string>();
+
+      (allContents || []).forEach((c: any) => {
+        const m = mapByKey.get(c.content_key);
+        if (!m) {
+          unmapped.add(c.content_key);
+        } else if (m.last_scanned && c.updated_at && m.last_scanned < c.updated_at) {
+          stale.add(c.content_key);
+        }
+      });
+
+      setUnmappedKeys(unmapped);
+      setStaleKeys(stale);
+      toast.success(
+        `Cek selesai: ${unmapped.size} belum terhubung, ${stale.size} berpotensi belum terganti`
+      );
+    } catch (error) {
+      console.error("Verify unapplied error:", error);
+      toast.error("Gagal mengecek keterhubungan konten");
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedContent || !user) return;
 
@@ -155,10 +197,16 @@ const EditPage = () => {
             Kelola dan edit konten aplikasi
           </p>
         </div>
-        <Button onClick={handleSync} disabled={syncing} variant="outline">
-          <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
-          Sinkron Ulang
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSync} disabled={syncing} variant="outline">
+            <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
+            Sinkron Ulang
+          </Button>
+          <Button onClick={handleVerifyUnapplied} disabled={checking} variant="outline">
+            <AlertTriangle className={cn("h-4 w-4 mr-2", checking && "animate-pulse")} />
+            Cek Belum Terganti
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -209,7 +257,9 @@ const EditPage = () => {
               <div className="p-2 space-y-1">
                 {contents.map((content) => {
                   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-                  const isNew = content.created_at && content.created_at > oneDayAgo;
+                  const isNew = (content as any).created_at && (content as any).created_at > oneDayAgo;
+                  const isUnmapped = unmappedKeys?.has && unmappedKeys.has(content.content_key);
+                  const isStale = staleKeys?.has && staleKeys.has(content.content_key);
                   
                   return (
                     <button
@@ -225,8 +275,18 @@ const EditPage = () => {
                           {content.content_key}
                         </p>
                         {isNew && (
-                          <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-500 hover:bg-green-600">
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                             NEW
+                          </Badge>
+                        )}
+                        {isUnmapped && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                            NOT LINKED
+                          </Badge>
+                        )}
+                        {isStale && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                            POTENSIAL BELUM TERGANTI
                           </Badge>
                         )}
                       </div>
