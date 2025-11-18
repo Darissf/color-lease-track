@@ -15,35 +15,52 @@ interface ContentItem {
 }
 
 export function ContentList() {
-  const { searchQuery, filters, selectedContent, setSelectedContent } = useContentStore();
+  const { searchQuery, filters, selectedContent, setSelectedContent, aiMode, aiResults } = useContentStore();
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchContents();
-  }, [searchQuery, filters]);
+  }, [searchQuery, filters, aiMode, aiResults]);
 
   const fetchContents = async () => {
     setLoading(true);
     try {
-      let query = supabase.from("editable_content").select("*");
+      let query = supabase.from("editable_content").select("id,content_key,content_value,page,category,updated_at");
 
-      if (searchQuery) {
-        query = query.or(`content_key.ilike.%${searchQuery}%,content_value.ilike.%${searchQuery}%`);
-      }
+      // If AI mode is on and we have ids, restrict to them
+      if (aiMode && aiResults.length > 0) {
+        query = query.in("id", aiResults);
+      } else {
+        if (searchQuery) {
+          const term = searchQuery.trim();
+          // Search across key, value, page and category
+          query = query.or(
+            `content_key.ilike.%${term}%,content_value.ilike.%${term}%,page.ilike.%${term}%,category.ilike.%${term}%`
+          );
+        }
 
-      if (filters.page && filters.page !== "all") {
-        query = query.eq("page", filters.page);
-      }
+        if (filters.page && filters.page !== "all") {
+          query = query.eq("page", filters.page);
+        }
 
-      if (filters.category && filters.category !== "all") {
-        query = query.eq("category", filters.category);
+        if (filters.category && filters.category !== "all") {
+          query = query.eq("category", filters.category);
+        }
       }
 
       const { data, error } = await query.order("updated_at", { ascending: false });
 
       if (error) throw error;
-      setContents(data || []);
+
+      // If AI mode, preserve AI order
+      let finalData = data || [];
+      if (aiMode && aiResults.length > 0) {
+        const map = new Map(finalData.map((c) => [c.id, c] as const));
+        finalData = aiResults.map((id) => map.get(id)).filter(Boolean) as ContentItem[];
+      }
+
+      setContents(finalData);
     } catch (error) {
       console.error("Error fetching contents:", error);
     } finally {

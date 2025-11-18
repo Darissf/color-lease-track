@@ -12,21 +12,44 @@ import {
 } from "@/components/ui/select";
 import { useContentStore } from "@/stores/contentStore";
 import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export function SearchPanel() {
-  const { setSearchQuery, setFilters, filters } = useContentStore();
+  const { setSearchQuery, setFilters, filters, setAiResults, clearAiResults } = useContentStore();
   const [localSearch, setLocalSearch] = useState("");
   const [isAISearch, setIsAISearch] = useState(false);
 
   const handleSearch = () => {
+    clearAiResults();
     setSearchQuery(localSearch);
   };
 
   const handleAISearch = async () => {
+    if (!localSearch.trim()) {
+      toast.message("Masukkan kata kunci untuk AI Search");
+      return;
+    }
     setIsAISearch(true);
-    // TODO: Implement AI search via edge function
-    setSearchQuery(localSearch);
-    setTimeout(() => setIsAISearch(false), 1000);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-content-search", {
+        body: {
+          query: localSearch,
+          filters,
+        },
+      });
+      if (error) throw error;
+
+      const ids: string[] = (data?.results || []).map((r: any) => r.id);
+      setAiResults(ids);
+      setSearchQuery(localSearch);
+      if (ids.length === 0) toast.info("AI tidak menemukan konten yang relevan");
+    } catch (e) {
+      console.error(e);
+      toast.error("Gagal menjalankan AI Search");
+    } finally {
+      setIsAISearch(false);
+    }
   };
 
   return (
@@ -80,6 +103,7 @@ export function SearchPanel() {
             <SelectItem value="heading">Headings</SelectItem>
             <SelectItem value="button">Buttons</SelectItem>
             <SelectItem value="description">Descriptions</SelectItem>
+            <SelectItem value="auto">Auto</SelectItem>
           </SelectContent>
         </Select>
 
@@ -96,3 +120,4 @@ export function SearchPanel() {
     </Card>
   );
 }
+
