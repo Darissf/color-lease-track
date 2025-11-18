@@ -18,11 +18,31 @@ function toCssSelector(domPath: string): string {
   return conv.join(" > ");
 }
 
+// Build selector variants from raw path to improve matching across roots
+function buildSelectorVariants(rawPath: string): string[] {
+  const base = toCssSelector(rawPath);
+  const variants = new Set<string>();
+  variants.add(base);
+
+  // Normalize div#root to #root for robustness
+  if (base.startsWith("div#root")) {
+    variants.add(base.replace(/^div#root\s*>\s*/, '#root > ').replace(/^div#root/, '#root'));
+  }
+
+  // Add #root scoping if missing
+  if (!/^#root\b/.test(base) && !/^div#root\b/.test(base)) {
+    variants.add(`#root > ${base}`);
+    variants.add(`body > #root > ${base}`);
+  }
+
+  return Array.from(variants);
+}
+
 // Keep strong during this session: ensure DOM reverts are corrected
 const observerMap = new Map<string, MutationObserver>();
 const desiredMap = new WeakMap<HTMLElement, string>();
 
-async function waitForElement(selector: string, timeoutMs = 4000): Promise<HTMLElement | null> {
+async function waitForElement(selector: string, timeoutMs = 6000): Promise<HTMLElement | null> {
   const start = performance.now();
   return new Promise((resolve) => {
     function check() {
@@ -71,10 +91,15 @@ export function useContentAutoApply() {
         const [page, rawPath] = String(item.content_key).split("::");
         if (!rawPath) return;
         if (page !== pagePath) return;
-        const selector = toCssSelector(rawPath);
 
-        // Wait if element not mounted yet (charts, async sections, etc.)
-        let el = (document.querySelector(selector) as HTMLElement | null) || await waitForElement(selector, 4000);
+        const variants = buildSelectorVariants(rawPath);
+        let el: HTMLElement | null = null;
+        let usedSelector = "";
+
+        for (const s of variants) {
+          el = (document.querySelector(s) as HTMLElement | null) || await waitForElement(s, 6000);
+          if (el) { usedSelector = s; break; }
+        }
         if (!el) {
           notFound += 1;
           return;
@@ -85,18 +110,18 @@ export function useContentAutoApply() {
         if (current === newValue.trim()) {
           skipped += 1;
           // still ensure future changes remain synced
-          keepSynced(selector, el, newValue);
+          keepSynced(usedSelector, el, newValue);
           return;
         }
         try {
           el.textContent = newValue;
           applied += 1;
-          keepSynced(selector, el, newValue);
+          keepSynced(usedSelector, el, newValue);
         } catch {
           try {
             (el as any).innerText = newValue;
             applied += 1;
-            keepSynced(selector, el, newValue);
+            keepSynced(usedSelector, el, newValue);
           } catch {
             notFound += 1;
           }
