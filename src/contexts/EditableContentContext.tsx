@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
 import { useAuth } from "./AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -40,6 +40,7 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
   const [historyStack, setHistoryStack] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const isSuperAdmin = userRole?.role === 'super_admin';
+  const sentAtRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     fetchContent();
@@ -145,7 +146,37 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
   };
 
   const getContent = (key: string, defaultValue: string = ""): string => {
-    return content[key] || defaultValue;
+    const value = content[key] ?? defaultValue;
+
+    // Fire-and-forget render tracking (throttled per user+key+page)
+    try {
+      const page = typeof window !== 'undefined' ? window.location.pathname : 'unknown';
+      const userId = user?.id;
+      if (userId) {
+        const now = Date.now();
+        const uid = `${userId}:${key}:${page}`;
+        const last = sentAtRef.current.get(uid) || 0;
+        if (now - last > 8000) {
+          sentAtRef.current.set(uid, now);
+          // No need to await
+          supabase
+            .from('content_render_stats' as any)
+            .upsert(
+              {
+                user_id: userId,
+                content_key: key,
+                page,
+                rendered_value: String(value),
+                last_seen_at: new Date().toISOString(),
+              } as any,
+              { onConflict: 'user_id,content_key,page' } as any
+            )
+            .then(() => { /* noop */ });
+        }
+      }
+    } catch {}
+
+    return value;
   };
 
   const getEditedCountForPage = (pathname: string): number => {

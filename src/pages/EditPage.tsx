@@ -120,36 +120,44 @@ const EditPage = () => {
     setChecking(true);
     try {
       const { data: allContents, error: cErr } = await supabase
-        .from("editable_content")
-        .select("content_key,updated_at");
+        .from('editable_content')
+        .select('content_key,content_value,updated_at');
       if (cErr) throw cErr;
 
-      const { data: mappings, error: mErr } = await supabase
-        .from("content_file_mapping")
-        .select("content_key,last_scanned,file_path");
-      if (mErr) throw mErr;
+      const { data: stats, error: sErr } = await supabase
+        .from('content_render_stats' as any)
+        .select('content_key,rendered_value,last_seen_at');
+      if (sErr) throw sErr;
 
-      const mapByKey = new Map((mappings || []).map((m: any) => [m.content_key, m]));
-      const unmapped = new Set<string>();
+      // Build latest render per key
+      const latestByKey = new Map<string, { rendered_value: string; last_seen_at: string }>();
+      (stats || []).forEach((row: any) => {
+        const prev = latestByKey.get(row.content_key);
+        if (!prev || (prev.last_seen_at || '') < (row.last_seen_at || '')) {
+          latestByKey.set(row.content_key, { rendered_value: row.rendered_value, last_seen_at: row.last_seen_at });
+        }
+      });
+
+      const notSeen = new Set<string>();
       const stale = new Set<string>();
 
       (allContents || []).forEach((c: any) => {
-        const m = mapByKey.get(c.content_key);
-        if (!m) {
-          unmapped.add(c.content_key);
-        } else if (m.last_scanned && c.updated_at && m.last_scanned < c.updated_at) {
+        const stat = latestByKey.get(c.content_key);
+        if (!stat) {
+          notSeen.add(c.content_key);
+          return;
+        }
+        if ((stat.last_seen_at && c.updated_at && stat.last_seen_at < c.updated_at) || (stat.rendered_value ?? '') !== (c.content_value ?? '')) {
           stale.add(c.content_key);
         }
       });
 
-      setUnmappedKeys(unmapped);
+      setUnmappedKeys(notSeen);
       setStaleKeys(stale);
-      toast.success(
-        `Cek selesai: ${unmapped.size} belum terhubung, ${stale.size} berpotensi belum terganti`
-      );
+      toast.success(`Audit selesai: ${notSeen.size} belum ditampilkan, ${stale.size} belum tersinkron`);
     } catch (error) {
-      console.error("Verify unapplied error:", error);
-      toast.error("Gagal mengecek keterhubungan konten");
+      console.error('Verify unapplied error:', error);
+      toast.error('Gagal melakukan audit otomatis');
     } finally {
       setChecking(false);
     }

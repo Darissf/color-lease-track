@@ -878,6 +878,36 @@ export type Database = {
         }
         Relationships: []
       }
+      content_render_stats: {
+        Row: {
+          content_key: string
+          created_at: string
+          id: string
+          last_seen_at: string
+          page: string
+          rendered_value: string
+          user_id: string
+        }
+        Insert: {
+          content_key: string
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          page: string
+          rendered_value: string
+          user_id: string
+        }
+        Update: {
+          content_key?: string
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          page?: string
+          rendered_value?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversation_sharing: {
         Row: {
           conversation_id: string | null
@@ -1564,7 +1594,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      content_render_latest: {
+        Row: {
+          content_key: string | null
+          last_seen_at: string | null
+          page: string | null
+          rendered_value: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_budget_template: {
