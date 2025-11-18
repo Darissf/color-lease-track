@@ -13,8 +13,6 @@ import { useState, useEffect } from "react";
 
 const navItems = [
   { title: "Home", url: "/", icon: Home },
-  { title: "Meetings", url: "/meetings", icon: Users },
-  { title: "Inbox", url: "/inbox", icon: FileText },
 ];
 
 // Moved pagesItems inside component to access user roles
