@@ -1,44 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Loader2, TrendingUp, Lightbulb } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { useEditableContent } from "@/contexts/EditableContentContext";
+import { EditableText } from "@/components/editable/EditableText";
 
 export const AIBudgetAdvisor = () => {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [summary, setSummary] = useState<any>(null);
-
-  // Editable content for description
-  const { getContent, isSuperAdmin } = useEditableContent();
-  const descKey = "/dashboard::ai-budget-advisor.description";
-  const defaultDesc =
-    "Dapatkan prediksi pengeluaran bulan depan dan saran optimasi budget berdasarkan pola historis Anda";
-  const desc = getContent(descKey, defaultDesc);
-
-  useEffect(() => {
-    const seed = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("editable_content")
-          .select("id")
-          .eq("content_key", descKey)
-          .maybeSingle();
-        if (!error && !data && isSuperAdmin) {
-          await supabase.from("editable_content").insert({
-            content_key: descKey,
-            content_value: defaultDesc,
-            page: "/dashboard",
-            category: "auto",
-          });
-        }
-      } catch (_) {}
-    };
-    seed();
-  }, [isSuperAdmin]);
 
   const handleAnalyze = async () => {
     try {
@@ -80,9 +52,22 @@ export const AIBudgetAdvisor = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                AI Budget Advisor
+                <EditableText
+                  keyId="/dashboard::ai-budget-advisor.title"
+                  defaultValue="AI Budget Advisor"
+                  page="/dashboard"
+                  category="ui"
+                  as="span"
+                />
               </CardTitle>
-              <CardDescription>{desc}</CardDescription>
+              <EditableText
+                keyId="/dashboard::ai-budget-advisor.description"
+                defaultValue="Dapatkan prediksi pengeluaran bulan depan dan saran optimasi budget berdasarkan pola historis Anda"
+                page="/dashboard"
+                category="ui"
+                as="p"
+                className="text-sm text-muted-foreground"
+              />
             </div>
             <Button onClick={handleAnalyze} disabled={loading}>
               {loading ? (

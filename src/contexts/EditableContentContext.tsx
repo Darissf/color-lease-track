@@ -85,6 +85,30 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
     setContent(contentMap);
   };
 
+  // Auto-seed helper
+  const ensureSeed = async (key: string, defaultValue: string, page: string, category: string) => {
+    if (!isSuperAdmin) return;
+
+    try {
+      const { data: existing } = await supabase
+        .from("editable_content")
+        .select("id")
+        .eq("content_key", key)
+        .maybeSingle();
+
+      if (!existing) {
+        await supabase.from("editable_content").insert({
+          content_key: key,
+          content_value: defaultValue,
+          page,
+          category,
+        });
+      }
+    } catch (error) {
+      console.error("Error seeding content:", error);
+    }
+  };
+
   const updateContent = async (key: string, value: string, page: string, category: string = 'general') => {
     if (!isSuperAdmin || !user) {
       toast.error("Hanya super admin yang dapat mengedit konten");
@@ -147,7 +171,11 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getContent = (key: string, defaultValue: string): string => {
+  const getContent = (key: string, defaultValue: string = "", page?: string, category?: string): string => {
+    // Auto-seed if needed (debounced)
+    if (defaultValue && page && isSuperAdmin && !content[key]) {
+      setTimeout(() => ensureSeed(key, defaultValue, page, category || "auto"), 100);
+    }
     return content[key] || defaultValue;
   };
 

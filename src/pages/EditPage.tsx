@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ interface ContentItem {
 const EditPage = () => {
   const { isSuperAdmin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
   const [editedValue, setEditedValue] = useState("");
@@ -41,6 +42,22 @@ const EditPage = () => {
     fetchContents();
   }, [searchQuery]);
 
+  // Auto-select content from query param
+  useEffect(() => {
+    const keyParam = searchParams.get("key");
+    if (keyParam && contents.length > 0) {
+      const found = contents.find((c) => c.content_key === keyParam);
+      if (found) {
+        setSelectedContent(found);
+        // Scroll to item
+        setTimeout(() => {
+          const element = document.getElementById(`content-${found.id}`);
+          element?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
+      }
+    }
+  }, [searchParams, contents]);
+
   useEffect(() => {
     if (selectedContent) {
       setEditedValue(selectedContent.content_value);
@@ -55,16 +72,9 @@ const EditPage = () => {
         .select("id,content_key,content_value,page,category,updated_at");
 
       if (searchQuery.trim()) {
-        const term = searchQuery.trim();
-        const tokens = term.split(/\s+/).filter(Boolean);
-        const cols = ["content_key", "content_value", "page", "category"];
-        const orParts = [
-          // full phrase across all columns first
-          ...cols.map((c) => `${c}.ilike.%${term}%`),
-          // each token across all columns
-          ...tokens.flatMap((t) => cols.map((c) => `${c}.ilike.%${t}%`)),
-        ];
-        query = query.or(orParts.join(","));
+        query = query.or(
+          `content_key.ilike.%${searchQuery}%,content_value.ilike.%${searchQuery}%,page.ilike.%${searchQuery}%`
+        );
       }
 
       const { data, error } = await query.order("updated_at", { ascending: false });
