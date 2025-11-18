@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Save, FileText, Loader2 } from "lucide-react";
+import { Search, Save, FileText, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ContentItem {
@@ -20,6 +20,7 @@ interface ContentItem {
   page: string;
   category: string;
   updated_at: string;
+  created_at?: string;
 }
 
 const EditPage = () => {
@@ -33,6 +34,8 @@ const EditPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [newContentCount, setNewContentCount] = useState(0);
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -66,12 +69,12 @@ const EditPage = () => {
     }
   }, [selectedContent]);
 
-  const fetchContents = async () => {
+  const fetchContents = async (showToast = false) => {
     setLoading(true);
     try {
       let query = supabase
         .from("editable_content")
-        .select("id,content_key,content_value,page,category,updated_at");
+        .select("id,content_key,content_value,page,category,updated_at,created_at");
 
       if (searchQuery.trim()) {
         query = query.or(
@@ -81,13 +84,33 @@ const EditPage = () => {
 
       const { data, error } = await query.order("updated_at", { ascending: false });
       if (error) throw error;
+      
+      // Detect new content (created in last 24 hours)
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const newCount = (data || []).filter(item => item.created_at && item.created_at > oneDayAgo).length;
+      setNewContentCount(newCount);
+      
       setContents(data || []);
+      
+      if (showToast) {
+        if (newCount > 0) {
+          toast.success(`Sinkronisasi selesai! Ditemukan ${newCount} konten baru`);
+        } else {
+          toast.success("Sinkronisasi selesai! Tidak ada konten baru");
+        }
+      }
     } catch (error) {
       console.error("Error fetching contents:", error);
       toast.error("Gagal memuat konten");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    await fetchContents(true);
+    setSyncing(false);
   };
 
   const handleSave = async () => {
@@ -132,6 +155,10 @@ const EditPage = () => {
             Kelola dan edit konten aplikasi
           </p>
         </div>
+        <Button onClick={handleSync} disabled={syncing} variant="outline">
+          <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
+          Sinkron Ulang
+        </Button>
       </div>
 
       {/* Search */}
@@ -159,7 +186,14 @@ const EditPage = () => {
         {/* Content List */}
         <Card className="col-span-2 flex flex-col overflow-hidden">
           <div className="p-4 border-b">
-            <h2 className="font-semibold">Content Items ({contents.length})</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Content Items ({contents.length})</h2>
+              {newContentCount > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {newContentCount} Baru
+                </Badge>
+              )}
+            </div>
           </div>
           <ScrollArea className="flex-1">
             {loading ? (
@@ -173,29 +207,41 @@ const EditPage = () => {
               </div>
             ) : (
               <div className="p-2 space-y-1">
-                {contents.map((content) => (
-                  <button
-                    key={content.id}
-                    onClick={() => setSelectedContent(content)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-lg transition-all hover:bg-accent",
-                      selectedContent?.id === content.id && "bg-accent border-2 border-primary"
-                    )}
-                  >
-                    <p className="font-mono text-xs text-primary truncate mb-1">
-                      {content.content_key}
-                    </p>
-                    <p className="text-sm line-clamp-2 mb-2">{content.content_value}</p>
-                    <div className="flex gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {content.category}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {content.page}
-                      </Badge>
-                    </div>
-                  </button>
-                ))}
+                {contents.map((content) => {
+                  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+                  const isNew = content.created_at && content.created_at > oneDayAgo;
+                  
+                  return (
+                    <button
+                      key={content.id}
+                      onClick={() => setSelectedContent(content)}
+                      className={cn(
+                        "w-full text-left p-3 rounded-lg transition-all hover:bg-accent",
+                        selectedContent?.id === content.id && "bg-accent border-2 border-primary"
+                      )}
+                    >
+                      <div className="flex items-start gap-2 mb-1">
+                        <p className="font-mono text-xs text-primary truncate flex-1">
+                          {content.content_key}
+                        </p>
+                        {isNew && (
+                          <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-500 hover:bg-green-600">
+                            NEW
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm line-clamp-2 mb-2">{content.content_value}</p>
+                      <div className="flex gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {content.category}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {content.page}
+                        </Badge>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
