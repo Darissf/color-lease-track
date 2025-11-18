@@ -7,7 +7,7 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  /* ===== JAPANESE COLOR PALETTE ===== */
+  /* ===== LIGHT MODE - JAPANESE COLOR PALETTE ===== */
   :root {
     /* Traditional Japanese Colors */
     --torii-red: 0 100% 46%;        /* #E60012 */
@@ -21,7 +21,7 @@ All colors MUST be HSL.
     --sunrise-orange: 30 100% 50%;  /* #FF8C00 */
     --ocean-teal: 180 50% 40%;      /* #33A1A1 */
     
-    /* Base colors - Notion style */
+    /* Base colors */
     --background: 0 0% 100%;
     --foreground: 0 0% 9%;
     
@@ -33,7 +33,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 9%;
     
-    /* Primary - Notion blue */
+    /* Primary */
     --primary: 0 0% 9%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 0 0% 20%;
@@ -46,7 +46,7 @@ All colors MUST be HSL.
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
     
-    /* Accent colors - Notion hover */
+    /* Accent colors */
     --accent: 0 0% 96%;
     --accent-foreground: 0 0% 9%;
     
@@ -54,7 +54,7 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Border colors - Subtle */
+    /* Border colors */
     --border: 0 0% 90%;
     --input: 0 0% 90%;
     --ring: 0 0% 9%;
@@ -66,20 +66,10 @@ All colors MUST be HSL.
     --chart-4: 43 96% 56%;
     --chart-5: 0 84% 60%;
     
-    /* Radius - Notion style */
+    /* Radius */
     --radius: 0.375rem;
     
-    /* Vibrant Gradients for Financial Cards */
-    --gradient-income: linear-gradient(135deg, hsl(160 84% 39%), hsl(158 64% 52%), hsl(152 76% 60%));
-    --gradient-expense: linear-gradient(135deg, hsl(0 84% 60%), hsl(14 91% 56%), hsl(25 95% 53%));
-    --gradient-savings: linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%), hsl(258 90% 66%));
-    --gradient-budget: linear-gradient(135deg, hsl(271 81% 56%), hsl(291 64% 42%), hsl(316 73% 52%));
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 9%), hsl(0 0% 20%));
-    --gradient-secondary: linear-gradient(135deg, hsl(220 90% 56%), hsl(0 0% 9%));
-    --gradient-accent: linear-gradient(180deg, hsl(0 0% 96%), hsl(0 0% 98%));
-    --gradient-card-hover: linear-gradient(135deg, hsl(258 90% 66% / 0.1), hsl(199 89% 48% / 0.1));
-    
-    /* Japanese Gradients */
+    /* Japanese Gradients - Light Mode */
     --gradient-torii-gold: linear-gradient(135deg, hsl(var(--torii-red)), hsl(var(--gold-kin)));
     --gradient-indigo: linear-gradient(135deg, hsl(var(--indigo-ai)), hsl(var(--ocean-teal)));
     --gradient-sakura: linear-gradient(135deg, hsl(var(--sakura-pink)), hsl(350 90% 75%));
@@ -89,35 +79,64 @@ All colors MUST be HSL.
     
     /* Enhanced Shadows */
     --shadow-elegant: 0 10px 30px -10px rgb(0 0 0 / 0.1);
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    --shadow-glow-income: 0 10px 40px -10px hsl(160 84% 39% / 0.4);
-    --shadow-glow-expense: 0 10px 40px -10px hsl(0 84% 60% / 0.4);
     --shadow-glow-gold: 0 10px 40px -10px hsl(var(--gold-kin) / 0.4);
     --shadow-glow-torii: 0 0 40px hsl(var(--torii-red) / 0.6);
   }
 
+  /* ===== DARK MODE - JAPANESE NIGHT THEME ===== */
   .dark {
-    --background: 0 0% 9%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 11%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 11%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 100%;
+    /* Background - Midnight Sky */
+    --midnight-blue: 220 40% 12%;          /* #0D1829 */
+    --night-indigo: 230 45% 18%;           /* #1A2642 */
+    --twilight-purple: 250 35% 22%;        /* #2A2857 */
+    
+    /* Accent - Moon & Stars */
+    --moon-gold: 45 95% 65%;               /* #F5E6A8 */
+    --moonlight-silver: 200 20% 75%;       /* #B8C9D9 */
+    --star-white: 60 100% 97%;             /* #FFFEF5 */
+    
+    /* Glow Effects */
+    --cherry-glow-pink: 330 100% 75%;      /* #FF99CC */
+    --lantern-glow-orange: 25 100% 60%;    /* #FF9933 */
+    --firefly-glow-green: 80 100% 65%;     /* #ADFF2F */
+    
+    /* Nature - Night Elements */
+    --bamboo-night-green: 140 30% 25%;     /* #2D4D3D */
+    --water-reflection: 200 40% 30%;       /* #2E4A5C */
+    --fog-mist: 210 15% 35%;               /* #4A5563 */
+    
+    /* Base Overrides */
+    --background: 220 40% 12%;
+    --foreground: 60 100% 97%;
+    --card: 230 45% 15%;
+    --card-foreground: 45 95% 85%;
+    --border: 220 30% 25%;
+    --input: 220 30% 20%;
+    --popover: 230 45% 15%;
+    --popover-foreground: 45 95% 85%;
+    --primary: 45 95% 65%;
+    --primary-foreground: 220 40% 12%;
+    --secondary: 230 45% 18%;
+    --secondary-foreground: 45 95% 85%;
+    --muted: 230 45% 18%;
+    --muted-foreground: 200 20% 65%;
+    --accent: 250 35% 22%;
+    --accent-foreground: 45 95% 85%;
     --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 0 0% 100%;
+    --destructive-foreground: 60 100% 97%;
+    --ring: 45 95% 65%;
+    
+    /* Dark Mode Gradients */
+    --gradient-night-sky: linear-gradient(180deg, hsl(var(--midnight-blue)) 0%, hsl(var(--night-indigo)) 50%, hsl(var(--twilight-purple)) 100%);
+    --gradient-moon-glow: radial-gradient(circle, hsl(var(--moon-gold)) 0%, hsl(var(--moonlight-silver)) 50%, transparent 100%);
+    --gradient-cherry-blossom-glow: linear-gradient(135deg, hsl(var(--cherry-glow-pink)) 0%, hsl(330 80% 60%) 50%, hsl(var(--twilight-purple)) 100%);
+    --gradient-firefly-trail: linear-gradient(90deg, transparent 0%, hsl(var(--firefly-glow-green)) 50%, transparent 100%);
+    --gradient-lantern-warm: radial-gradient(ellipse, hsl(var(--lantern-glow-orange)) 0%, hsl(25 100% 50%) 30%, transparent 70%);
+    
+    /* Shadows - Night Glow */
+    --shadow-night-glow: 0 0 40px rgba(245, 230, 168, 0.15);
+    --shadow-cherry-glow: 0 0 30px rgba(255, 153, 204, 0.2);
+    --shadow-lantern-glow: 0 0 35px rgba(255, 153, 51, 0.25);
   }
 
   /* ===== JAPANESE ANIMATIONS ===== */
@@ -140,6 +159,154 @@ All colors MUST be HSL.
     }
   }
 
+  /* NEW: Origami Float Animation */
+  @keyframes origami-float {
+    0% {
+      transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+      opacity: 0;
+    }
+    5% {
+      opacity: 1;
+    }
+    25% {
+      transform: translate3d(100px, -80px, 50px) rotateX(15deg) rotateY(45deg) rotateZ(10deg);
+    }
+    50% {
+      transform: translate3d(200px, -40px, 100px) rotateX(-10deg) rotateY(90deg) rotateZ(-15deg);
+    }
+    75% {
+      transform: translate3d(150px, -120px, 30px) rotateX(20deg) rotateY(135deg) rotateZ(5deg);
+    }
+    95% {
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(180deg) rotateZ(0deg);
+      opacity: 0;
+    }
+  }
+
+  /* NEW: Firefly Glow Animation */
+  @keyframes firefly-glow {
+    0%, 100% {
+      box-shadow: 
+        0 0 5px #ADFF2F,
+        0 0 10px #FFD700,
+        0 0 15px #ADFF2F,
+        0 0 20px #FFD700;
+      opacity: 0.3;
+    }
+    50% {
+      box-shadow: 
+        0 0 10px #ADFF2F,
+        0 0 20px #FFD700,
+        0 0 30px #ADFF2F,
+        0 0 40px #FFD700;
+      opacity: 1;
+    }
+  }
+
+  /* NEW: Firefly Drift Animation */
+  @keyframes firefly-drift {
+    0% {
+      transform: translate(0, 0);
+    }
+    20% {
+      transform: translate(50px, -60px);
+    }
+    40% {
+      transform: translate(-30px, -100px);
+    }
+    60% {
+      transform: translate(80px, -150px);
+    }
+    80% {
+      transform: translate(-20px, -200px);
+    }
+    100% {
+      transform: translate(0, -250px);
+    }
+  }
+
+  /* NEW: Bamboo Fall Animation */
+  @keyframes bamboo-fall {
+    0% {
+      transform: translateY(-100px) translateX(0) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 0.8;
+    }
+    100% {
+      transform: translateY(100vh) translateX(150px) rotate(1080deg);
+      opacity: 0;
+    }
+  }
+
+  /* NEW: Bamboo Sway Animation */
+  @keyframes bamboo-sway {
+    0%, 100% {
+      transform: translateX(0px);
+    }
+    25% {
+      transform: translateX(20px);
+    }
+    75% {
+      transform: translateX(-20px);
+    }
+  }
+
+  /* NEW: Torii Glow Animation */
+  @keyframes torii-glow {
+    0%, 100% {
+      filter: drop-shadow(0 0 30px rgba(230, 0, 18, 0.3));
+    }
+    50% {
+      filter: drop-shadow(0 0 50px rgba(230, 0, 18, 0.5));
+    }
+  }
+
+  /* NEW: Star Twinkle Animation */
+  @keyframes star-twinkle {
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+  }
+
+  /* NEW: Moon Pulse Animation */
+  @keyframes moon-pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 
+        0 0 60px rgba(245, 230, 168, 0.4),
+        0 0 100px rgba(245, 230, 168, 0.2);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 
+        0 0 80px rgba(245, 230, 168, 0.5),
+        0 0 120px rgba(245, 230, 168, 0.3);
+    }
+  }
+
+  /* NEW: Fog Drift Animation */
+  @keyframes fog-drift {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(50px);
+    }
+  }
+
   /* Wave Pattern Animation */
   @keyframes wave-flow {
     0% {
@@ -157,16 +324,6 @@ All colors MUST be HSL.
     }
     50% {
       transform: translateY(-30px) rotate(2deg);
-    }
-  }
-
-  /* Pattern Rotation */
-  @keyframes pattern-rotate {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
     }
   }
 
@@ -272,27 +429,47 @@ All colors MUST be HSL.
     }
   }
 
-  @keyframes edit-wiggle {
-    0%, 100% {
-      transform: rotate(0deg);
+  /* Calendar Animations */
+  @keyframes cell-appear {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
     }
-    25% {
-      transform: rotate(-10deg);
-    }
-    75% {
-      transform: rotate(10deg);
+    100% {
+      opacity: 1;
+      transform: scale(1);
     }
   }
 
-  @keyframes trash-shake {
+  @keyframes pill-slide-in {
+    0% {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes urgent-shake {
     0%, 100% {
       transform: translateX(0);
     }
-    25% {
+    10%, 30%, 50%, 70%, 90% {
       transform: translateX(-3px);
     }
-    75% {
+    20%, 40%, 60%, 80% {
       transform: translateX(3px);
+    }
+  }
+
+  @keyframes today-glow {
+    0%, 100% {
+      box-shadow: 0 0 15px hsl(var(--sunrise-orange) / 0.5);
+    }
+    50% {
+      box-shadow: 0 0 30px hsl(var(--sunrise-orange) / 0.8);
     }
   }
 
@@ -314,123 +491,11 @@ All colors MUST be HSL.
     }
   }
 
-  /* Button Animations */
-  @keyframes button-ripple {
-    0% {
-      transform: scale(0);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(4);
-      opacity: 0;
-    }
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 10px currentColor;
-    }
-    50% {
-      box-shadow: 0 0 20px currentColor;
-    }
-  }
-
-  /* Table Animations */
+  /* Row Animations */
   @keyframes row-fade-in {
     0% {
       opacity: 0;
-      transform: translateX(-20px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes badge-appear {
-    0% {
-      opacity: 0;
-      transform: scale(0.8);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes status-pulse {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-  }
-
-  @keyframes number-glow {
-    0%, 100% {
-      filter: brightness(1);
-    }
-    50% {
-      filter: brightness(1.2);
-    }
-  }
-
-  /* Calendar Animations */
-  @keyframes cell-appear {
-    0% {
-      opacity: 0;
-      transform: scale(0.8);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes success-pulse {
-    0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--matcha-green) / 0.4);
-    }
-    50% {
-      box-shadow: 0 0 0 10px hsl(var(--matcha-green) / 0);
-    }
-  }
-
-  @keyframes urgent-shake {
-    0%, 100% {
-      transform: translateX(0);
-    }
-    10%, 30%, 50%, 70%, 90% {
-      transform: translateX(-5px);
-    }
-    20%, 40%, 60%, 80% {
-      transform: translateX(5px);
-    }
-  }
-
-  @keyframes today-glow {
-    0%, 100% {
-      box-shadow: 0 0 20px hsl(var(--sunrise-orange) / 0.6);
-    }
-    50% {
-      box-shadow: 0 0 40px hsl(var(--sunrise-orange) / 0.9);
-    }
-  }
-
-  @keyframes warning-pulse {
-    0%, 100% {
-      background-color: hsl(var(--gold-kin) / 0.1);
-    }
-    50% {
-      background-color: hsl(var(--gold-kin) / 0.2);
-    }
-  }
-
-  @keyframes pill-slide-in {
-    0% {
-      opacity: 0;
-      transform: translateY(-10px);
+      transform: translateY(10px);
     }
     100% {
       opacity: 1;
@@ -438,100 +503,258 @@ All colors MUST be HSL.
     }
   }
 
-  @keyframes ring-pulse {
-    0% {
-      box-shadow: 0 0 0 0 hsl(var(--sunrise-orange) / 0.7);
-    }
-    70% {
-      box-shadow: 0 0 0 10px hsl(var(--sunrise-orange) / 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 hsl(var(--sunrise-orange) / 0);
-    }
+  /* Base Styles */
+  * {
+    @apply border-border;
   }
 
-  @keyframes stamp-appear {
-    0% {
-      transform: scale(0) rotate(-45deg);
-      opacity: 0;
-    }
-    50% {
-      transform: scale(1.2) rotate(5deg);
-    }
-    100% {
-      transform: scale(1) rotate(0deg);
-      opacity: 1;
-    }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer components {
+  /* ===== JAPANESE STYLED COMPONENTS ===== */
+  
+  /* Japanese Card */
+  .japanese-card {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+    @apply transition-all duration-300;
+    position: relative;
+    overflow: hidden;
   }
 
-  /* Interactive Animations */
-  @keyframes slide-down {
-    0% {
-      opacity: 0;
-      transform: translateY(-20px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .japanese-card:hover {
+    @apply transform -translate-y-2 scale-105;
+    box-shadow: 
+      0 20px 40px rgba(0, 58, 112, 0.3),
+      0 0 60px hsl(var(--gold-kin) / 0.2);
   }
 
-  @keyframes fade-in-up {
-    0% {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .dark .japanese-card {
+    background: linear-gradient(135deg, hsl(var(--night-indigo) / 0.6) 0%, hsl(var(--twilight-purple) / 0.4) 100%);
+    border-color: hsl(var(--moon-gold) / 0.2);
+    box-shadow: 
+      0 4px 20px rgba(0, 0, 0, 0.5),
+      0 0 30px rgba(245, 230, 168, 0.1);
   }
 
-  @keyframes slide-in-left {
-    0% {
-      opacity: 0;
-      transform: translateX(-30px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  .dark .japanese-card:hover {
+    box-shadow: 
+      0 8px 40px rgba(0, 0, 0, 0.6),
+      0 0 50px rgba(245, 230, 168, 0.2);
+    border-color: hsl(var(--moon-gold) / 0.4);
   }
 
-  @keyframes slide-in-right {
-    0% {
-      opacity: 0;
-      transform: translateX(30px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  /* Japanese Title */
+  .japanese-title {
+    font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
   }
 
-  /* Legacy animations */
-  @keyframes float {
-    0%, 100% { transform: translateY(0px) translateX(0px); }
-    25% { transform: translateY(-20px) translateX(10px); }
-    50% { transform: translateY(0px) translateX(20px); }
-    75% { transform: translateY(20px) translateX(10px); }
+  .dark .japanese-title {
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
   }
 
-  @keyframes float-delayed {
-    0%, 100% { transform: translateY(0px) translateX(0px); }
-    25% { transform: translateY(20px) translateX(-10px); }
-    50% { transform: translateY(0px) translateX(-20px); }
-    75% { transform: translateY(-20px) translateX(-10px); }
+  /* Text Gradients */
+  .text-gradient-torii {
+    background: linear-gradient(135deg, hsl(var(--torii-red)), hsl(var(--gold-kin)));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
-  @keyframes border-flow {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+  .text-gradient-gold {
+    background: linear-gradient(135deg, hsl(var(--gold-kin)), hsl(45 90% 65%));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+  .text-gradient-indigo {
+    background: linear-gradient(135deg, hsl(var(--indigo-ai)), hsl(var(--ocean-teal)));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .dark .text-gradient-night-moon {
+    background: linear-gradient(135deg, hsl(var(--moon-gold)), hsl(var(--moonlight-silver)));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .dark .text-gradient-cherry-glow {
+    background: linear-gradient(135deg, hsl(var(--cherry-glow-pink)), hsl(330 90% 70%));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ===== ANIMATED BACKGROUND ELEMENTS ===== */
+  
+  /* Sakura Petal */
+  .sakura-petal {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, #FFB7C5 0%, #FF69B4 100%);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation: sakura-fall linear infinite;
+    filter: blur(0.5px);
+    opacity: 0.8;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+
+  /* Origami Pieces */
+  .origami-piece {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    animation: origami-float ease-in-out infinite;
+    will-change: transform, opacity;
+    perspective: 1000px;
+  }
+
+  .origami-crane {
+    background: linear-gradient(135deg, #FFB7C5, #E60012);
+    clip-path: polygon(50% 0%, 0% 50%, 50% 100%, 100% 50%);
+  }
+
+  .origami-boat {
+    background: linear-gradient(135deg, #003A70, #33A1A1);
+    clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
+  }
+
+  .origami-butterfly {
+    background: linear-gradient(135deg, #4D2D52, #FFB7C5);
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 50% 90%, 18% 100%, 0% 38%);
+  }
+
+  .origami-star {
+    background: linear-gradient(135deg, #D4AF37, #FFD700);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  }
+
+  .origami-heart {
+    background: linear-gradient(135deg, #FFB7C5, #FF69B4);
+    clip-path: path('M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z');
+  }
+
+  /* Fireflies */
+  .firefly {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #ADFF2F;
+    border-radius: 50%;
+    animation: firefly-glow 3s ease-in-out infinite, firefly-drift 8s ease-in-out infinite;
+    will-change: transform, box-shadow, opacity;
+  }
+
+  .firefly::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 2px;
+    background: var(--gradient-firefly-trail);
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.6;
+  }
+
+  /* Bamboo Leaves */
+  .bamboo-leaf {
+    position: absolute;
+    width: 20px;
+    height: 8px;
+    background: linear-gradient(135deg, #2E7D32, #66BB6A, #A5D6A7);
+    border-radius: 50% 0 50% 0;
+    animation: bamboo-fall linear infinite, bamboo-sway 3s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  /* Lantern */
+  .japanese-lantern {
+    width: 40px;
+    height: 60px;
+    background: linear-gradient(135deg, #E60012, #FF6B6B);
+    border-radius: 10px 10px 20px 20px;
+    box-shadow: 0 0 30px rgba(230, 0, 18, 0.6);
+    animation: lantern-float 20s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .dark .japanese-lantern {
+    box-shadow: 0 0 40px rgba(255, 153, 51, 0.8);
+  }
+
+  /* Torii Gate */
+  .torii-gate-silhouette {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80vw;
+    max-width: 1200px;
+    height: 60vh;
+    opacity: 0.06;
+    z-index: 0;
+    pointer-events: none;
+    animation: torii-glow 8s ease-in-out infinite;
+  }
+
+  .dark .torii-gate-silhouette {
+    opacity: 0.12;
+    filter: drop-shadow(0 0 50px rgba(230, 0, 18, 0.4));
+  }
+
+  /* Stars (Dark Mode Only) */
+  .star {
+    position: absolute;
+    background: hsl(var(--star-white));
+    border-radius: 50%;
+    box-shadow: 0 0 5px hsl(var(--star-white));
+    animation: star-twinkle ease-in-out infinite;
+  }
+
+  /* Moon (Dark Mode Only) */
+  .moon-element {
+    position: fixed;
+    top: 10%;
+    right: 10%;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--gradient-moon-glow);
+    box-shadow: 
+      0 0 60px rgba(245, 230, 168, 0.4),
+      0 0 100px rgba(245, 230, 168, 0.2),
+      inset -20px -20px 40px rgba(0, 0, 0, 0.2);
+    opacity: 0.9;
+    z-index: 1;
+    animation: moon-pulse 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Night Fog (Dark Mode Only) */
+  .night-fog {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30vh;
+    background: linear-gradient(to top, hsl(var(--fog-mist)) 0%, transparent 100%);
+    opacity: 0.15;
+    z-index: 1;
+    animation: fog-drift 20s ease-in-out infinite;
+    pointer-events: none;
   }
 
   /* ===== ANIMATION UTILITY CLASSES ===== */
@@ -539,27 +762,40 @@ All colors MUST be HSL.
     animation: sakura-fall linear infinite;
   }
 
-  .animate-wave-flow {
-    animation: wave-flow 30s linear infinite;
+  .animate-origami-float {
+    animation: origami-float ease-in-out infinite;
+  }
+
+  .animate-firefly-glow {
+    animation: firefly-glow 3s ease-in-out infinite;
+  }
+
+  .animate-bamboo-fall {
+    animation: bamboo-fall linear infinite;
   }
 
   .animate-lantern-float {
     animation: lantern-float 20s ease-in-out infinite;
   }
 
+  .animate-star-twinkle {
+    animation: star-twinkle ease-in-out infinite;
+  }
+
+  .animate-moon-pulse {
+    animation: moon-pulse 8s ease-in-out infinite;
+  }
+
   .animate-glow-pulse {
     animation: glow-pulse 2s ease-in-out infinite;
   }
 
+  .animate-card-appear {
+    animation: card-appear 0.5s ease-out;
+  }
+
   .animate-shimmer-text {
-    background: linear-gradient(
-      90deg,
-      hsl(var(--torii-red)) 0%,
-      hsl(var(--gold-kin)) 25%,
-      hsl(var(--torii-red)) 50%,
-      hsl(var(--gold-kin)) 75%,
-      hsl(var(--torii-red)) 100%
-    );
+    background: linear-gradient(90deg, #E60012 0%, #D4AF37 25%, #E60012 50%, #D4AF37 75%, #E60012 100%);
     background-size: 200% auto;
     background-clip: text;
     -webkit-background-clip: text;
@@ -595,72 +831,35 @@ All colors MUST be HSL.
     animation: trending-down 2s ease-in-out infinite;
   }
 
-  .animate-card-appear {
-    animation: card-appear 0.5s ease-out;
+  .animate-cell-appear {
+    animation: cell-appear 0.3s ease-out;
   }
 
-  .animate-slide-down {
-    animation: slide-down 0.6s ease-out;
+  .animate-pill-slide-in {
+    animation: pill-slide-in 0.3s ease-out;
   }
 
-  .animate-fade-in-up {
-    animation: fade-in-up 0.6s ease-out;
+  .animate-urgent-shake {
+    animation: urgent-shake 0.5s ease-in-out infinite;
   }
 
-  .animate-float {
-    animation: float 20s ease-in-out infinite;
+  .animate-today-glow {
+    animation: today-glow 2s ease-in-out infinite;
   }
 
-  .animate-float-delayed {
-    animation: float-delayed 25s ease-in-out infinite;
+  .animate-chevron-slide-left {
+    animation: chevron-slide-left 1s ease-in-out infinite;
   }
 
-  .animate-shimmer {
-    animation: shimmer 2s infinite linear;
+  .animate-chevron-slide-right {
+    animation: chevron-slide-right 1s ease-in-out infinite;
   }
 
-  /* ===== TEXT GRADIENT UTILITIES ===== */
-  .text-gradient-purple {
-    @apply bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent;
+  .animate-row-fade-in {
+    animation: row-fade-in 0.4s ease-out;
   }
 
-  .text-gradient-income {
-    @apply bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent font-bold;
-  }
-
-  .text-gradient-expense {
-    @apply bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent font-bold;
-  }
-
-  .text-gradient-torii {
-    background: linear-gradient(135deg, hsl(var(--torii-red)), hsl(var(--gold-kin)));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .text-gradient-gold {
-    background: linear-gradient(135deg, hsl(var(--gold-kin)), hsl(50 80% 60%));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .text-gradient-indigo {
-    background: linear-gradient(135deg, hsl(var(--indigo-ai)), hsl(var(--ocean-teal)));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .text-gradient-sakura {
-    background: linear-gradient(135deg, hsl(var(--sakura-pink)), hsl(340 100% 80%));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  /* ===== BACKGROUND GRADIENT UTILITIES ===== */
+  /* Gradient Utilities */
   .gradient-torii-gold {
     background: var(--gradient-torii-gold);
   }
@@ -684,39 +883,35 @@ All colors MUST be HSL.
   .gradient-murasaki {
     background: var(--gradient-murasaki);
   }
+}
 
-  /* ===== JAPANESE CARD STYLES ===== */
-  .japanese-card {
-    @apply relative overflow-hidden rounded-xl border-2 transition-all duration-300;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+/* ===== PERFORMANCE OPTIMIZATION ===== */
+@media (max-width: 768px) {
+  .origami-piece {
+    display: none;
   }
-
-  .japanese-card:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  
+  .firefly:nth-child(n+16) {
+    display: none;
   }
-
-  .pattern-overlay {
-    @apply absolute inset-0 opacity-10 pointer-events-none;
+  
+  .bamboo-leaf:nth-child(n+11) {
+    display: none;
   }
-
-  /* ===== TYPOGRAPHY ===== */
-  .japanese-title {
-    font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
-    font-weight: 900;
-    letter-spacing: 0.05em;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  
+  .sakura-petal:nth-child(n+11) {
+    display: none;
   }
+}
 
-  .japanese-text {
-    font-family: 'Noto Sans JP', sans-serif;
-  }
-
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
+@media (prefers-reduced-motion: reduce) {
+  .origami-piece,
+  .firefly,
+  .bamboo-leaf,
+  .sakura-petal,
+  .japanese-lantern,
+  .star,
+  .moon-element {
+    animation: none !important;
   }
 }
