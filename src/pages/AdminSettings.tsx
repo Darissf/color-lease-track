@@ -151,31 +151,33 @@ const AdminSettings = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 md:p-8">
-      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/settings")}>
+    <div className="min-h-screen p-3 sm:p-4 md:p-6 lg:p-8">
+      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} className="shrink-0">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1 w-full">
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <div className="flex-1 w-full min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent break-words">
             Pengaturan Admin
           </h1>
-          <p className="text-muted-foreground">Kelola role dan hak akses pengguna</p>
+          <p className="text-sm text-muted-foreground">Kelola role dan hak akses pengguna</p>
         </div>
       </div>
 
-      <Card className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
-              <Shield className="h-6 w-6 text-white" />
+      <Card className="p-3 sm:p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg gradient-primary flex items-center justify-center shrink-0">
+              <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold">Manajemen User & Role</h2>
-              <p className="text-sm text-muted-foreground">Kelola hak akses pengguna</p>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg sm:text-xl font-bold truncate">Manajemen User & Role</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">Kelola hak akses pengguna</p>
             </div>
           </div>
-          <UserRegistrationForm onSuccess={fetchUsers} />
+          <div className="w-full sm:w-auto">
+            <UserRegistrationForm onSuccess={fetchUsers} />
+          </div>
         </div>
 
         {loading ? (
@@ -260,36 +262,36 @@ const AdminSettings = () => {
             </div>
 
             {/* Mobile Card View */}
-            <div className="md:hidden space-y-4">
+            <div className="md:hidden space-y-3">
               {users.map((user) => (
-                <Card key={user.id} className="p-4">
+                <Card key={user.id} className="p-3 overflow-hidden">
                   <div className="space-y-3">
-                    <div>
-                      <p className="font-medium text-lg">{user.full_name || "Nama tidak tersedia"}</p>
-                      <p className="text-sm text-muted-foreground break-all">{user.email}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-base sm:text-lg truncate">{user.full_name || "Nama tidak tersedia"}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground break-words overflow-wrap-anywhere">{user.email}</p>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Username:</span>
-                        <p className="font-medium">{user.username || "-"}</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                      <div className="min-w-0">
+                        <span className="text-muted-foreground block mb-0.5">Username:</span>
+                        <p className="font-medium truncate">{user.username || "-"}</p>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Dibuat:</span>
-                        <p className="font-medium">{new Date(user.created_at).toLocaleDateString("id-ID")}</p>
+                      <div className="min-w-0">
+                        <span className="text-muted-foreground block mb-0.5">Dibuat:</span>
+                        <p className="font-medium truncate">{new Date(user.created_at).toLocaleDateString("id-ID")}</p>
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-sm text-muted-foreground mb-1 block">Role:</label>
+                      <label className="text-xs sm:text-sm text-muted-foreground mb-1.5 block">Role:</label>
                       <Select
                         value={user.role || "none"}
                         onValueChange={(value) => handleRoleChange(user.id, value, user.role_id)}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-9">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background z-50">
                           <SelectItem value="none">Tidak ada role</SelectItem>
                           <SelectItem value="user">User</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
@@ -298,21 +300,21 @@ const AdminSettings = () => {
                       </Select>
                     </div>
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="w-full sm:flex-1 h-9 text-xs sm:text-sm"
                         onClick={() => handleEditUser(user)}
                       >
-                        <Pencil className="h-4 w-4 mr-1" />
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
                         Edit
                       </Button>
                       {user.role_id && (
                         <Button
                           variant="destructive"
                           size="sm"
-                          className="flex-1"
+                          className="w-full sm:flex-1 h-9 text-xs sm:text-sm"
                           onClick={() => handleDeleteRole(user.role_id!)}
                         >
                           Hapus Role
