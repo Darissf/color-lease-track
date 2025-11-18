@@ -65,9 +65,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Auto-apply on route change for super admin
+  // Auto-apply on route change for super admin OR when autoApply param is present
   useEffect(() => {
-    if (!isSuperAdmin) return;
+    const params = new URLSearchParams(window.location.search);
+    const shouldAutoApply = isSuperAdmin || params.get('autoApply') === 'true';
+    
+    if (!shouldAutoApply) return;
+    
     // Run twice to catch late-mounted components
     const t1 = setTimeout(() => {
       applyForPage(location.pathname);
@@ -75,6 +79,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
     const t2 = setTimeout(() => {
       applyForPage(location.pathname);
     }, 900);
+    
+    // Show toast notification when triggered by URL param
+    if (params.get('autoApply') === 'true') {
+      setTimeout(async () => {
+        const res = await applyForPage(location.pathname);
+        if (res) {
+          const { applied, skipped, notFound } = res;
+          if (applied > 0) {
+            toast.success(`Auto-apply selesai! Terapkan: ${applied} | Sama: ${skipped} | Tidak ditemukan: ${notFound}`);
+          } else {
+            toast.info(`Semua sudah sesuai (${skipped})`);
+          }
+        }
+      }, 1200);
+    }
+    
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
