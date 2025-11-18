@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Loader2, TrendingUp, Lightbulb } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { EditableText } from "@/components/editable/EditableText";
 
 export const AIBudgetAdvisor = () => {
   const [loading, setLoading] = useState(false);
@@ -52,22 +51,11 @@ export const AIBudgetAdvisor = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                <EditableText
-                  keyId="/dashboard::ai-budget-advisor.title"
-                  defaultValue="AI Budget Advisor"
-                  page="/dashboard"
-                  category="ui"
-                  as="span"
-                />
+                AI Budget Advisor
               </CardTitle>
-              <EditableText
-                keyId="/dashboard::ai-budget-advisor.description"
-                defaultValue="Dapatkan prediksi pengeluaran bulan depan dan saran optimasi budget berdasarkan pola historis Anda"
-                page="/dashboard"
-                category="ui"
-                as="p"
-                className="text-sm text-muted-foreground"
-              />
+              <CardDescription>
+                Dapatkan prediksi pengeluaran bulan depan dan saran optimasi budget berdasarkan pola historis Anda
+              </CardDescription>
             </div>
             <Button onClick={handleAnalyze} disabled={loading}>
               {loading ? (
