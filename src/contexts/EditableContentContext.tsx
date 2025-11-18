@@ -19,12 +19,10 @@ interface ContentHistory {
 }
 
 interface EditableContentContextType {
-  isEditMode: boolean;
   isSuperAdmin: boolean;
   content: EditableContent;
   updateContent: (key: string, value: string, page: string, category?: string) => Promise<void>;
   getContent: (key: string, defaultValue: string) => string;
-  toggleEditMode: () => void;
   getEditedCountForPage: (pathname: string) => number;
   undo: () => Promise<void>;
   redo: () => Promise<void>;
@@ -38,7 +36,6 @@ const EditableContentContext = createContext<EditableContentContextType | undefi
 
 export function EditableContentProvider({ children }: { children: ReactNode }) {
   const { user, userRole } = useAuth();
-  const [isEditMode, setIsEditMode] = useState(false);
   const [content, setContent] = useState<EditableContent>({});
   const [historyStack, setHistoryStack] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -83,30 +80,6 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
       contentMap[item.content_key] = item.content_value;
     });
     setContent(contentMap);
-  };
-
-  // Auto-seed helper
-  const ensureSeed = async (key: string, defaultValue: string, page: string, category: string) => {
-    if (!isSuperAdmin) return;
-
-    try {
-      const { data: existing } = await supabase
-        .from("editable_content")
-        .select("id")
-        .eq("content_key", key)
-        .maybeSingle();
-
-      if (!existing) {
-        await supabase.from("editable_content").insert({
-          content_key: key,
-          content_value: defaultValue,
-          page,
-          category,
-        });
-      }
-    } catch (error) {
-      console.error("Error seeding content:", error);
-    }
   };
 
   const updateContent = async (key: string, value: string, page: string, category: string = 'general') => {
@@ -163,7 +136,7 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
       const newStack = [...historyStack.slice(0, historyIndex + 1), key];
       setHistoryStack(newStack);
       setHistoryIndex(newStack.length - 1);
-      
+
       toast.success("Konten berhasil diupdate!");
     } catch (error: any) {
       console.error('Error updating content:', error);
@@ -171,21 +144,8 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getContent = (key: string, defaultValue: string = "", page?: string, category?: string): string => {
-    // Auto-seed if needed (debounced)
-    if (defaultValue && page && isSuperAdmin && !content[key]) {
-      setTimeout(() => ensureSeed(key, defaultValue, page, category || "auto"), 100);
-    }
+  const getContent = (key: string, defaultValue: string = ""): string => {
     return content[key] || defaultValue;
-  };
-
-  const toggleEditMode = () => {
-    if (!isSuperAdmin) {
-      toast.error("Hanya super admin yang dapat mengaktifkan mode edit");
-      return;
-    }
-    setIsEditMode(!isEditMode);
-    toast.success(isEditMode ? "Mode edit dinonaktifkan" : "Mode edit diaktifkan - Double click pada text untuk mengedit");
   };
 
   const getEditedCountForPage = (pathname: string): number => {
@@ -197,33 +157,34 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
     
     const previousIndex = historyIndex - 1;
     const previousKey = historyStack[previousIndex];
-    
-    if (!previousKey) return;
 
     try {
-      // Get the previous version from history
-      const { data: historyData, error } = await supabase
+      // Fetch all versions for this key
+      const { data: historyData } = await supabase
         .from('content_history')
         .select('*')
         .eq('content_key', previousKey)
-        .order('created_at', { ascending: false })
+        .order('version_number', { ascending: false })
         .limit(2);
 
-      if (error) throw error;
-      
-      const previousVersion = historyData?.[1];
-      if (previousVersion) {
-        await updateContent(
-          previousVersion.content_key,
-          previousVersion.content_value,
-          previousVersion.page,
-          previousVersion.category
-        );
-        setHistoryIndex(previousIndex);
+      if (!historyData || historyData.length < 2) {
+        toast.error("Tidak ada versi sebelumnya");
+        return;
       }
-    } catch (error) {
-      console.error('Error during undo:', error);
-      toast.error("Gagal melakukan undo");
+
+      const previousVersion = historyData[1];
+      await updateContent(
+        previousVersion.content_key,
+        previousVersion.content_value,
+        previousVersion.page,
+        previousVersion.category
+      );
+
+      setHistoryIndex(previousIndex);
+      toast.success("Berhasil undo!");
+    } catch (error: any) {
+      console.error('Error undoing:', error);
+      toast.error(error.message || "Gagal undo");
     }
   };
 
@@ -232,32 +193,34 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
     
     const nextIndex = historyIndex + 1;
     const nextKey = historyStack[nextIndex];
-    
-    if (!nextKey) return;
 
     try {
-      const { data: historyData, error } = await supabase
+      // Fetch the next version
+      const { data: historyData } = await supabase
         .from('content_history')
         .select('*')
         .eq('content_key', nextKey)
-        .order('created_at', { ascending: false })
+        .order('version_number', { ascending: false })
         .limit(1);
 
-      if (error) throw error;
-      
-      const nextVersion = historyData?.[0];
-      if (nextVersion) {
-        await updateContent(
-          nextVersion.content_key,
-          nextVersion.content_value,
-          nextVersion.page,
-          nextVersion.category
-        );
-        setHistoryIndex(nextIndex);
+      if (!historyData || historyData.length === 0) {
+        toast.error("Tidak ada versi berikutnya");
+        return;
       }
-    } catch (error) {
-      console.error('Error during redo:', error);
-      toast.error("Gagal melakukan redo");
+
+      const nextVersion = historyData[0];
+      await updateContent(
+        nextVersion.content_key,
+        nextVersion.content_value,
+        nextVersion.page,
+        nextVersion.category
+      );
+
+      setHistoryIndex(nextIndex);
+      toast.success("Berhasil redo!");
+    } catch (error: any) {
+      console.error('Error redoing:', error);
+      toast.error(error.message || "Gagal redo");
     }
   };
 
@@ -271,26 +234,27 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
       return data || [];
-    } catch (error) {
-      console.error('Error fetching history:', error);
+    } catch (error: any) {
+      console.error('Error getting history:', error);
+      toast.error(error.message || "Gagal mengambil history");
       return [];
     }
   };
 
   const restoreVersion = async (historyId: string) => {
-    if (!isSuperAdmin || !user) {
-      toast.error("Hanya super admin yang dapat restore konten");
+    if (!user || !isSuperAdmin) {
+      toast.error("Hanya super admin yang dapat restore versi");
       return;
     }
 
     try {
-      const { data: historyData, error: fetchError } = await supabase
+      const { data: historyData, error: historyError } = await supabase
         .from('content_history')
         .select('*')
         .eq('id', historyId)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (historyError) throw historyError;
 
       await updateContent(
         historyData.content_key,
@@ -312,19 +276,17 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
   return (
     <EditableContentContext.Provider
       value={{
-        isEditMode,
         isSuperAdmin,
         content,
         updateContent,
         getContent,
-        toggleEditMode,
         getEditedCountForPage,
         undo,
         redo,
         getHistory,
         restoreVersion,
         canUndo,
-        canRedo
+        canRedo,
       }}
     >
       {children}
@@ -332,10 +294,10 @@ export function EditableContentProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useEditableContent() {
+export const useEditableContent = () => {
   const context = useContext(EditableContentContext);
   if (context === undefined) {
-    throw new Error("useEditableContent must be used within EditableContentProvider");
+    throw new Error('useEditableContent must be used within EditableContentProvider');
   }
   return context;
-}
+};

@@ -7,8 +7,6 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { EditableContentProvider } from "./contexts/EditableContentContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
-import { EditModeToggle } from "./components/EditModeToggle";
-import { useAutoCaptureText } from "./hooks/useAutoCaptureText";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -45,11 +43,6 @@ import EditPage from "./pages/EditPage";
 
 const queryClient = new QueryClient();
 
-const AutoCaptureWrapper = () => {
-  useAutoCaptureText();
-  return null;
-};
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -58,9 +51,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <EditableContentProvider>
-            <AutoCaptureWrapper />
-            <EditModeToggle />
-          <Routes>
+            <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
