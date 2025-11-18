@@ -307,6 +307,129 @@ All colors MUST be HSL.
     }
   }
 
+  /* Hanko Notification Animations */
+  @keyframes hanko-stamp-appear {
+    0% {
+      transform: rotate(-45deg) scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: rotate(-5deg) scale(1.2);
+      opacity: 0.8;
+    }
+    70% {
+      transform: rotate(5deg) scale(1.1);
+    }
+    100% {
+      transform: rotate(0deg) scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes ink-splatter {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.5);
+      opacity: 0.4;
+    }
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  @keyframes notification-slide-in {
+    0% {
+      transform: translateX(400px) translateY(-20px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0) translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes progress-countdown {
+    0% {
+      width: 100%;
+    }
+    100% {
+      width: 0%;
+    }
+  }
+
+  @keyframes urgent-shake {
+    0%, 100% { 
+      transform: translateX(0); 
+    }
+    25% { 
+      transform: translateX(-5px); 
+    }
+    75% { 
+      transform: translateX(5px); 
+    }
+  }
+
+  @keyframes swing {
+    0%, 100% {
+      transform: rotate(-10deg);
+    }
+    50% {
+      transform: rotate(10deg);
+    }
+  }
+
+  /* Sakura Confetti Animations */
+  @keyframes sakura-explode {
+    0% {
+      transform: 
+        translate(0, 0) 
+        rotate(0deg) 
+        scale(0.3);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+      transform: 
+        translate(calc(var(--velocity-x) * 0.1), calc(var(--velocity-y) * -0.1)) 
+        rotate(calc(var(--rotation-speed) * 0.1 * 1deg))
+        scale(1);
+    }
+    50% {
+      transform: 
+        translate(
+          calc(var(--velocity-x) * 0.8 + sin(var(--rotation-speed)) * 30px),
+          calc(var(--velocity-y) * -0.3 + 50vh)
+        )
+        rotate(calc(var(--rotation-speed) * 0.5 * 1deg))
+        scale(1);
+    }
+    100% {
+      transform: 
+        translate(
+          calc(var(--velocity-x) * 1.2 + sin(var(--rotation-speed) * 2) * 50px),
+          calc(100vh + 50px)
+        )
+        rotate(calc(var(--rotation-speed) * 1deg))
+        scale(0.8);
+      opacity: 0;
+    }
+  }
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   /* Wave Pattern Animation */
   @keyframes wave-flow {
     0% {

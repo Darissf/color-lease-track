@@ -11,6 +11,11 @@ import { FixedExpenseCalendar } from "@/components/fixed-expenses/FixedExpenseCa
 import { FixedExpenseForm } from "@/components/fixed-expenses/FixedExpenseForm";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { HankoNotificationContainer } from "@/components/HankoNotificationContainer";
+import { SakuraConfetti } from "@/components/SakuraConfetti";
+import { useNotificationContext } from "@/contexts/NotificationContext";
+import { useExpenseNotifications } from "@/hooks/useExpenseNotifications";
 
 export interface FixedExpense {
   id: string;
@@ -18,14 +23,14 @@ export interface FixedExpense {
   expense_name: string;
   category: string;
   expense_type: 'fixed' | 'variable';
-  fixed_amount?: number;
-  estimated_amount?: number;
+  fixed_amount: number | null;
+  estimated_amount: number | null;
   due_date_day: number;
-  bank_account_id?: string;
-  reminder_days_before: number;
-  is_active: boolean;
-  auto_create_expense: boolean;
-  notes?: string;
+  bank_account_id: string | null;
+  reminder_days_before: number | null;
+  is_active: boolean | null;
+  auto_create_expense: boolean | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -42,16 +47,21 @@ export interface FixedExpenseHistory {
   created_at: string;
 }
 
-const FixedExpenses = () => {
+const FixedExpensesContent = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const { addNotification } = useNotificationContext();
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<FixedExpense[]>([]);
   const [history, setHistory] = useState<FixedExpenseHistory[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<FixedExpense | null>(null);
   const [currentView, setCurrentView] = useState<'list' | 'calendar'>('list');
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  // Auto-check for due dates and trigger notifications
+  useExpenseNotifications(expenses, history);
 
   useEffect(() => {
     if (user) {
@@ -139,12 +149,14 @@ const FixedExpenses = () => {
   };
 
   const handleMarkAsPaid = async (expense: FixedExpense, amount: number) => {
+    if (!user?.id) return;
+
     try {
       const { error } = await supabase
         .from('fixed_expense_history')
         .insert({
           fixed_expense_id: expense.id,
-          user_id: user?.id,
+          user_id: user.id,
           paid_date: new Date().toISOString().split('T')[0],
           paid_amount: amount,
           status: 'paid',
@@ -152,9 +164,16 @@ const FixedExpenses = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Berhasil",
-        description: `${expense.expense_name} ditandai sudah dibayar`,
+      // Trigger sakura confetti explosion
+      setShowConfetti(true);
+
+      // Show hanko notification instead of toast
+      addNotification({
+        type: 'paid',
+        title: '支払完了',
+        message: `${expense.expense_name} berhasil dibayar!`,
+        expenseName: expense.expense_name,
+        amount: amount,
       });
 
       fetchHistory();
@@ -168,219 +187,251 @@ const FixedExpenses = () => {
     }
   };
 
-  const handleFormSubmit = () => {
+  const handleFormSubmit = async () => {
     setIsFormOpen(false);
-    fetchExpenses();
+    await fetchExpenses();
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        <div className="text-lg">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* ===== ANIMATED BACKGROUND ELEMENTS ===== */}
-      
-      {/* Stars (Dark Mode Only) */}
-      <div className="stars-background dark:block hidden">
-        {[...Array(100)].map((_, i) => (
+    <>
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-background via-background to-muted/20">
+        {/* Animated Background Elements */}
+        
+        {/* Stars */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {[...Array(100)].map((_, i) => (
+            <div
+              key={`star-${i}`}
+              className="absolute w-1 h-1 bg-white rounded-full animate-[star-twinkle_3s_ease-in-out_infinite]"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                opacity: Math.random() * 0.7 + 0.3,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Moon */}
+        <div className="absolute top-20 right-20 w-32 h-32 rounded-full bg-gradient-to-br from-[hsl(var(--moon-gold))] to-yellow-200 opacity-80 blur-sm animate-[moon-pulse_6s_ease-in-out_infinite] pointer-events-none" />
+
+        {/* Night Fog */}
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={`fog-${i}`}
+              className="absolute w-96 h-96 rounded-full bg-[hsl(var(--fog-mist))] opacity-10 blur-3xl animate-[fog-drift_20s_ease-in-out_infinite]"
+              style={{
+                left: `${Math.random() * 80}%`,
+                top: `${Math.random() * 80}%`,
+                animationDelay: `${i * 4}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Torii Gate Silhouette */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-64 opacity-20 pointer-events-none">
+          <svg viewBox="0 0 200 200" className="w-full h-full animate-[torii-glow_4s_ease-in-out_infinite]">
+            <rect x="40" y="40" width="12" height="140" fill="currentColor" className="text-[hsl(var(--torii-red))]" />
+            <rect x="148" y="40" width="12" height="140" fill="currentColor" className="text-[hsl(var(--torii-red))]" />
+            <rect x="20" y="50" width="160" height="16" rx="4" fill="currentColor" className="text-[hsl(var(--torii-red))]" />
+            <rect x="30" y="80" width="140" height="12" rx="3" fill="currentColor" className="text-[hsl(var(--torii-red))]" />
+          </svg>
+        </div>
+
+        {/* Floating Origami */}
+        {[...Array(18)].map((_, i) => (
           <div
-            key={`star-${i}`}
-            className="star"
+            key={`origami-${i}`}
+            className="absolute animate-[origami-float_15s_ease-in-out_infinite] opacity-30"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              width: `${1 + Math.random() * 2}px`,
-              height: `${1 + Math.random() * 2}px`,
-              animationDelay: `${Math.random() * 8}s`,
-              animationDuration: `${3 + Math.random() * 5}s`
+              animationDelay: `${i * 0.8}s`,
+              animationDuration: `${12 + Math.random() * 8}s`,
             }}
-          />
+          >
+            <svg width="30" height="30" viewBox="0 0 50 50">
+              <polygon points="25,5 45,45 5,45" fill={`hsl(${Math.random() * 360}, 70%, 60%)`} opacity="0.6" />
+            </svg>
+          </div>
         ))}
-      </div>
 
-      {/* Moon (Dark Mode Only) */}
-      <div className="moon-element dark:block hidden" />
-
-      {/* Night Fog (Dark Mode Only) */}
-      <div className="night-fog dark:block hidden" />
-
-      {/* Torii Gate Silhouette */}
-      <div className="torii-gate-silhouette">
-        <svg viewBox="0 0 800 600" className="w-full h-full" fill="currentColor">
-          <rect x="150" y="450" width="40" height="150" />
-          <rect x="610" y="450" width="40" height="150" />
-          <rect x="50" y="420" width="700" height="40" rx="10" />
-          <rect x="80" y="380" width="640" height="30" rx="8" />
-          <ellipse cx="120" cy="410" rx="20" ry="10" />
-          <ellipse cx="680" cy="410" rx="20" ry="10" />
-        </svg>
-      </div>
-
-      {/* Sakura Petals */}
-      <div className="sakura-container pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={`sakura-${i}`}
-            className="sakura-petal"
-            style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${15 + Math.random() * 10}s`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Japanese Lanterns */}
-      <div className="lantern-container pointer-events-none">
-        {[...Array(7)].map((_, i) => (
-          <div
-            key={`lantern-${i}`}
-            className="japanese-lantern fixed"
-            style={{
-              left: `${20 + i * 12}%`,
-              top: `${10 + Math.random() * 20}%`,
-              animationDelay: `${i * 0.5}s`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* NEW: Floating Origami */}
-      <div className="origami-container pointer-events-none">
-        {[...Array(18)].map((_, i) => {
-          const types = ['crane', 'boat', 'butterfly', 'star', 'heart'];
-          const type = types[i % types.length];
-          return (
-            <div
-              key={`origami-${i}`}
-              className={`origami-piece origami-${type} fixed`}
-              style={{
-                left: `${Math.random() * 90}%`,
-                top: `${Math.random() * 80}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${20 + Math.random() * 15}s`
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* NEW: Fireflies */}
-      <div className="fireflies-container pointer-events-none">
+        {/* Fireflies */}
         {[...Array(35)].map((_, i) => (
           <div
             key={`firefly-${i}`}
-            className="firefly fixed"
+            className="absolute w-2 h-2 rounded-full bg-[hsl(var(--firefly-glow-green))] animate-[firefly-glow_2s_ease-in-out_infinite] pointer-events-none"
             style={{
               left: `${Math.random() * 100}%`,
-              bottom: `${Math.random() * 60}%`,
-              animationDelay: `${Math.random() * 8}s`,
-              animationDuration: `${3 + Math.random() * 5}s`
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 2}s`,
+              boxShadow: '0 0 10px hsl(var(--firefly-glow-green))',
             }}
-          />
+          >
+            <div className="animate-[firefly-drift_8s_ease-in-out_infinite]" />
+          </div>
         ))}
-      </div>
 
-      {/* NEW: Bamboo Leaves */}
-      <div className="bamboo-leaves-container pointer-events-none">
+        {/* Falling Bamboo Leaves */}
         {[...Array(28)].map((_, i) => (
           <div
             key={`bamboo-${i}`}
-            className="bamboo-leaf"
+            className="absolute animate-[bamboo-fall_12s_linear_infinite] opacity-40"
             style={{
               left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${12 + Math.random() * 13}s`
+              top: `-10%`,
+              animationDelay: `${i * 0.4}s`,
             }}
-          />
+          >
+            <div className="w-8 h-16 bg-gradient-to-b from-[hsl(var(--bamboo-night-green))] to-emerald-800 rounded-full animate-[bamboo-sway_2s_ease-in-out_infinite]" />
+          </div>
         ))}
-      </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto p-4 md:p-6 relative z-10">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold japanese-title mb-2">
-              <span className="text-gradient-torii animate-shimmer-text">固定費管理</span>
-              <span className="text-gradient-gold"> / </span>
-              <span className="text-gradient-indigo">Pengeluaran Tetap</span>
-            </h1>
-            <p className="text-muted-foreground">Kelola pengeluaran tetap bulanan Anda</p>
+        {/* Sakura Petals */}
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={`petal-${i}`}
+            className="absolute animate-[sakura-fall_15s_linear_infinite] opacity-60"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `-10%`,
+              animationDelay: `${i * 0.7}s`,
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 50 50">
+              <circle cx="25" cy="25" r="8" fill="hsl(var(--sakura-pink))" opacity="0.8" />
+              <ellipse cx="25" cy="15" rx="5" ry="10" fill="hsl(var(--cherry-glow-pink))" opacity="0.6" />
+              <ellipse cx="35" cy="25" rx="10" ry="5" fill="hsl(var(--cherry-glow-pink))" opacity="0.6" />
+              <ellipse cx="25" cy="35" rx="5" ry="10" fill="hsl(var(--cherry-glow-pink))" opacity="0.6" />
+              <ellipse cx="15" cy="25" rx="10" ry="5" fill="hsl(var(--cherry-glow-pink))" opacity="0.6" />
+            </svg>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="relative overflow-hidden transition-all hover:scale-110"
-            >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Toggle theme</span>
-            </Button>
-            <Button
-              onClick={handleAddExpense}
-              className="gradient-torii-gold hover:scale-105 transition-all shadow-lg"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Tagihan
-            </Button>
+        ))}
+
+        {/* Floating Lanterns */}
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={`lantern-${i}`}
+            className="absolute animate-[lantern-float_20s_ease-in-out_infinite]"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 80}%`,
+              animationDelay: `${i * 2.5}s`,
+            }}
+          >
+            <div className="w-16 h-20 bg-gradient-to-b from-[hsl(var(--lantern-glow-orange))] to-red-600 rounded-lg opacity-40 shadow-[0_0_30px_hsl(var(--lantern-glow-orange))]" />
           </div>
+        ))}
+
+        {/* Main Content */}
+        <div className="relative z-10 container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-[hsl(var(--torii-red))] via-[hsl(var(--sakura-pink))] to-[hsl(var(--gold-kin))] bg-clip-text text-transparent">
+                🏮 Pengeluaran Tetap 🏮
+              </h1>
+              <p className="text-muted-foreground">
+                Kelola tagihan bulanan Anda
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="rounded-full"
+              >
+                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+              <Button onClick={handleAddExpense} className="gap-2">
+                <Plus className="w-5 h-5" />
+                Tambah Pengeluaran
+              </Button>
+            </div>
+          </div>
+
+          {/* Summary */}
+          <FixedExpenseSummary expenses={expenses} history={history} />
+
+          {/* Tabs */}
+          <Tabs value={currentView} onValueChange={(v) => setCurrentView(v as 'list' | 'calendar')} className="mt-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="list" className="gap-2">
+                <LayoutGrid className="w-4 h-4" />
+                List View
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                Calendar View
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="list" className="mt-6">
+              <FixedExpenseList
+                expenses={expenses}
+                history={history}
+                loading={loading}
+                onEdit={handleEditExpense}
+                onDelete={handleDeleteExpense}
+                onMarkAsPaid={handleMarkAsPaid}
+              />
+            </TabsContent>
+
+            <TabsContent value="calendar" className="mt-6">
+              <FixedExpenseCalendar
+                expenses={expenses}
+                history={history}
+                onMarkAsPaid={handleMarkAsPaid}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
-
-        {/* Summary Cards */}
-        <FixedExpenseSummary expenses={expenses} history={history} />
-
-        {/* Tabs */}
-        <Tabs value={currentView} onValueChange={(v) => setCurrentView(v as 'list' | 'calendar')} className="mt-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="list" className="flex items-center gap-2">
-              <LayoutGrid className="h-4 w-4" />
-              Daftar
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4" />
-              Kalender
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="list" className="mt-4">
-            <FixedExpenseList
-              expenses={expenses}
-              history={history}
-              loading={loading}
-              onEdit={handleEditExpense}
-              onDelete={handleDeleteExpense}
-              onMarkAsPaid={handleMarkAsPaid}
-            />
-          </TabsContent>
-          <TabsContent value="calendar" className="mt-4">
-            <FixedExpenseCalendar
-              expenses={expenses}
-              history={history}
-              onMarkAsPaid={handleMarkAsPaid}
-            />
-          </TabsContent>
-        </Tabs>
 
         {/* Form Dialog */}
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <FixedExpenseForm
-              expense={editingExpense}
+              expense={editingExpense || undefined}
               onSubmit={handleFormSubmit}
               onCancel={() => setIsFormOpen(false)}
             />
           </DialogContent>
         </Dialog>
       </div>
-    </div>
+
+      {/* Hanko Notification Container */}
+      <HankoNotificationContainer />
+
+      {/* Sakura Confetti Effect */}
+      {showConfetti && (
+        <SakuraConfetti
+          trigger={showConfetti}
+          onComplete={() => setShowConfetti(false)}
+          particleCount={60}
+          duration={3000}
+        />
+      )}
+    </>
+  );
+};
+
+const FixedExpenses = () => {
+  return (
+    <NotificationProvider>
+      <FixedExpensesContent />
+    </NotificationProvider>
   );
 };
 
