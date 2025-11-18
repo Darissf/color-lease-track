@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_content_suggestions: {
+        Row: {
+          applied: boolean | null
+          confidence_score: number | null
+          content_key: string
+          created_at: string | null
+          id: string
+          original_content: string
+          suggested_content: string
+          suggestion_type: string
+        }
+        Insert: {
+          applied?: boolean | null
+          confidence_score?: number | null
+          content_key: string
+          created_at?: string | null
+          id?: string
+          original_content: string
+          suggested_content: string
+          suggestion_type: string
+        }
+        Update: {
+          applied?: boolean | null
+          confidence_score?: number | null
+          content_key?: string
+          created_at?: string | null
+          id?: string
+          original_content?: string
+          suggested_content?: string
+          suggestion_type?: string
+        }
+        Relationships: []
+      }
       ai_custom_tools: {
         Row: {
           created_at: string | null
@@ -719,6 +752,96 @@ export type Database = {
           updated_at?: string
           user_id?: string
           whatsapp_checked_at?: string | null
+        }
+        Relationships: []
+      }
+      content_analysis: {
+        Row: {
+          analyzed_at: string | null
+          analyzed_by: string | null
+          content_key: string
+          duplicates: Json | null
+          id: string
+          readability_score: number | null
+          seo_score: number | null
+          suggestions: Json | null
+          tone: string | null
+        }
+        Insert: {
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          content_key: string
+          duplicates?: Json | null
+          id?: string
+          readability_score?: number | null
+          seo_score?: number | null
+          suggestions?: Json | null
+          tone?: string | null
+        }
+        Update: {
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          content_key?: string
+          duplicates?: Json | null
+          id?: string
+          readability_score?: number | null
+          seo_score?: number | null
+          suggestions?: Json | null
+          tone?: string | null
+        }
+        Relationships: []
+      }
+      content_comments: {
+        Row: {
+          comment: string
+          content_key: string
+          created_at: string | null
+          id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          content_key: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          content_key?: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      content_file_mapping: {
+        Row: {
+          component_name: string | null
+          content_key: string
+          file_path: string
+          id: string
+          last_scanned: string | null
+          line_number: number | null
+        }
+        Insert: {
+          component_name?: string | null
+          content_key: string
+          file_path: string
+          id?: string
+          last_scanned?: string | null
+          line_number?: number | null
+        }
+        Update: {
+          component_name?: string | null
+          content_key?: string
+          file_path?: string
+          id?: string
+          last_scanned?: string | null
+          line_number?: number | null
         }
         Relationships: []
       }

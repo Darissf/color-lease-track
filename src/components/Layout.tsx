@@ -3,7 +3,7 @@ import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { EditModeToggle } from "@/components/EditModeToggle";
+
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState } from "react";
 
@@ -19,6 +19,7 @@ const adminNavItems = [
   { title: "Pengaturan", url: "/settings", icon: Settings },
   { title: "AI Settings", url: "/settings/ai", icon: Brain, badge: "AI", badgeVariant: "ai" as const },
   { title: "Admin Settings", url: "/settings/admin", icon: User2, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const },
+  { title: "Edit Page", url: "/edit-page", icon: Edit3, superAdminOnly: true, badge: "AI", badgeVariant: "secondary" as const },
   { title: "Content Management", url: "/content-management", icon: Edit3, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const },
   { title: "Audit Logs", url: "/audit-logs", icon: Shield, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const },
 ];
@@ -223,7 +224,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Page Content */}
         <main className="flex-1 overflow-auto bg-background p-6">
           {children}
-          <EditModeToggle />
         </main>
       </div>
     </div>

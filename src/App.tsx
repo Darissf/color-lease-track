@@ -7,7 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { EditableContentProvider } from "./contexts/EditableContentContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
-import { GlobalLiveEditor } from "./components/GlobalLiveEditor";
+
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -39,6 +39,7 @@ import AIAdvisor from "./pages/AIAdvisor";
 import AIInsights from "./pages/AIInsights";
 import AIAutoPilot from "./pages/AIAutoPilot";
 import BudgetTracker from "./pages/BudgetTracker";
+import EditPage from "./pages/EditPage";
 
 const queryClient = new QueryClient();
 
@@ -50,7 +51,6 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <EditableContentProvider>
-            <GlobalLiveEditor />
             <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -75,6 +75,7 @@ const App = () => (
                       <Route path="/settings/savings" element={<SavingsSettings />} />
                       <Route path="/audit-logs" element={<AuditLogs />} />
                       <Route path="/content-management" element={<ContentManagement />} />
+                      <Route path="/edit-page" element={<EditPage />} />
                       <Route path="/client-groups" element={<ClientGroups />} />
                       <Route path="/rental-contracts" element={<RentalContracts />} />
                       <Route path="/settings/ai" element={<AISettings />} />

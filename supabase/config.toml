@@ -41,3 +41,12 @@ verify_jwt = true
 
 [functions.ai-autopilot]
 verify_jwt = true
+
+[functions.ai-content-search]
+verify_jwt = true
+
+[functions.ai-content-assistant]
+verify_jwt = true
+
+[functions.ai-content-analyzer]
+verify_jwt = true
