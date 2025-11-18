@@ -3,6 +3,10 @@ import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useLocation } from "react-router-dom";
+import { useContentAutoApply } from "@/hooks/useContentAutoApply";
 
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState } from "react";
