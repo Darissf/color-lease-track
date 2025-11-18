@@ -4,25 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, CheckCircle, Calendar } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface FixedExpenseListProps {
@@ -34,18 +17,9 @@ interface FixedExpenseListProps {
   onMarkAsPaid: (expense: FixedExpense, amount: number) => void;
 }
 
-export const FixedExpenseList = ({
-  expenses,
-  history,
-  loading,
-  onEdit,
-  onDelete,
-  onMarkAsPaid,
-}: FixedExpenseListProps) => {
-  const isPaid = (expenseId: string) => {
-    return history.some(h => h.fixed_expense_id === expenseId && h.status === 'paid');
-  };
-
+export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete, onMarkAsPaid }: FixedExpenseListProps) => {
+  const isPaid = (expenseId: string) => history.some(h => h.fixed_expense_id === expenseId && h.status === 'paid');
+  
   const getStatus = (expense: FixedExpense) => {
     const today = new Date().getDate();
     const paid = isPaid(expense.id);
@@ -80,9 +54,7 @@ export const FixedExpenseList = ({
       <Card className="p-8 text-center">
         <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">Belum ada pengeluaran tetap</h3>
-        <p className="text-muted-foreground">
-          Tambahkan pengeluaran tetap untuk mulai melacak tagihan bulanan Anda
-        </p>
+        <p className="text-muted-foreground">Tambahkan pengeluaran tetap untuk mulai melacak tagihan bulanan Anda</p>
       </Card>
     );
   }
@@ -105,9 +77,7 @@ export const FixedExpenseList = ({
           {expenses.map((expense) => {
             const status = getStatus(expense);
             const paid = isPaid(expense.id);
-            const amount = expense.expense_type === 'fixed' 
-              ? expense.fixed_amount || 0 
-              : expense.estimated_amount || 0;
+            const amount = expense.expense_type === 'fixed' ? expense.fixed_amount || 0 : expense.estimated_amount || 0;
 
             return (
               <TableRow key={expense.id}>
@@ -118,48 +88,38 @@ export const FixedExpenseList = ({
                     {expense.expense_type === 'fixed' ? 'Tetap' : 'Variabel'}
                   </Badge>
                 </TableCell>
-                <TableCell>{formatCurrency(amount)}</TableCell>
-                <TableCell>Setiap tanggal {expense.due_date_day}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(amount)}</TableCell>
+                <TableCell>Tanggal {expense.due_date_day}</TableCell>
                 <TableCell>
                   <Badge variant={status.variant}>{status.label}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     {!paid && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onMarkAsPaid(expense, amount)}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
+                      <Button size="sm" variant="outline" onClick={() => onMarkAsPaid(expense, amount)}>
+                        <CheckCircle className="mr-1 h-3 w-3" />
                         Bayar
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onEdit(expense)}
-                    >
-                      <Edit className="h-4 w-4" />
+                    <Button size="sm" variant="ghost" onClick={() => onEdit(expense)}>
+                      <Edit className="h-3 w-3" />
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="ghost">
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Hapus Pengeluaran Tetap?</AlertDialogTitle>
+                          <AlertDialogTitle>Hapus Pengeluaran</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Tindakan ini tidak dapat dibatalkan. Pengeluaran tetap ini akan dihapus secara permanen.
+                            Apakah Anda yakin ingin menghapus {expense.expense_name}?
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onDelete(expense.id)}>
-                            Hapus
-                          </AlertDialogAction>
+                          <AlertDialogAction onClick={() => onDelete(expense.id)}>Hapus</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>

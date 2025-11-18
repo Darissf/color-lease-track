@@ -43,68 +43,58 @@ export const FixedExpenseSummary = ({ expenses, history }: FixedExpenseSummaryPr
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="japanese-card gradient-torii-gold text-white animate-card-appear border-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
           <CardTitle className="text-sm font-medium">Total Bulanan</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <DollarSign className="h-8 w-8 animate-icon-bounce" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalMonthly)}</div>
-          <p className="text-xs text-muted-foreground">
-            Tetap + Variabel
-          </p>
+        <CardContent className="relative">
+          <div className="text-3xl font-bold animate-count-up">{formatCurrency(totalMonthly)}</div>
+          <p className="text-xs opacity-90 mt-1">Tetap + Variabel</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="japanese-card gradient-indigo text-white animate-card-appear border-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
           <CardTitle className="text-sm font-medium">Pengeluaran Tetap</CardTitle>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <TrendingUp className="h-8 w-8 animate-trending-up" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalFixed)}</div>
-          <p className="text-xs text-muted-foreground">
-            {expenses.filter(e => e.expense_type === 'fixed' && e.is_active).length} tagihan
-          </p>
+        <CardContent className="relative">
+          <div className="text-3xl font-bold animate-count-up">{formatCurrency(totalFixed)}</div>
+          <p className="text-xs opacity-90 mt-1">{expenses.filter(e => e.expense_type === 'fixed' && e.is_active).length} tagihan</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="japanese-card gradient-sakura text-white animate-card-appear border-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
           <CardTitle className="text-sm font-medium">Pengeluaran Variabel</CardTitle>
-          <TrendingDown className="h-4 w-4 text-muted-foreground" />
+          <TrendingDown className="h-8 w-8 animate-trending-down" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalVariable)}</div>
-          <p className="text-xs text-muted-foreground">
-            {expenses.filter(e => e.expense_type === 'variable' && e.is_active).length} tagihan
-          </p>
+        <CardContent className="relative">
+          <div className="text-3xl font-bold animate-count-up">{formatCurrency(totalVariable)}</div>
+          <p className="text-xs opacity-90 mt-1">{expenses.filter(e => e.expense_type === 'variable' && e.is_active).length} tagihan</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="japanese-card gradient-matcha text-white animate-card-appear border-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
           <CardTitle className="text-sm font-medium">Sudah Dibayar</CardTitle>
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <CheckCircle2 className="h-8 w-8 animate-check-spin" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(paidThisMonth)}</div>
-          <p className="text-xs text-muted-foreground">
-            {history.filter(h => h.status === 'paid').length} pembayaran
-          </p>
+        <CardContent className="relative">
+          <div className="text-3xl font-bold animate-count-up">{formatCurrency(paidThisMonth)}</div>
+          <p className="text-xs opacity-90 mt-1">{history.filter(h => h.status === 'paid').length} pembayaran</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="japanese-card gradient-sunrise text-white animate-card-appear border-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
           <CardTitle className="text-sm font-medium">Menunggu</CardTitle>
-          <AlertCircle className="h-4 w-4 text-orange-500" />
+          <AlertCircle className="h-8 w-8 animate-alert-blink" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{unpaidCount}</div>
-          <p className="text-xs text-muted-foreground">
-            {upcomingCount} segera jatuh tempo
-          </p>
+        <CardContent className="relative">
+          <div className="text-3xl font-bold animate-count-up">{unpaidCount}</div>
+          <p className="text-xs opacity-90 mt-1">{upcomingCount} segera jatuh tempo</p>
         </CardContent>
       </Card>
     </div>
