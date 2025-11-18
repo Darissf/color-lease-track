@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Save, FileText, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
+import { Search, Save, FileText, Loader2, RefreshCw, AlertTriangle, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ContentItem {
@@ -334,10 +334,24 @@ const EditPage = () => {
                       {selectedContent.content_key}
                     </h2>
                   </div>
-                  <Button onClick={handleSave} disabled={saving || !hasChanges} size="sm">
-                    <Save className="h-4 w-4 mr-2" />
-                    {saving ? "Menyimpan..." : "Simpan"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => {
+                        const url = `${selectedContent.page}?autoApply=true`;
+                        window.open(url, '_blank');
+                        toast.success('Halaman dibuka! Auto-apply akan berjalan otomatis');
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Terapkan di Halaman Ini
+                    </Button>
+                    <Button onClick={handleSave} disabled={saving || !hasChanges} size="sm">
+                      <Save className="h-4 w-4 mr-2" />
+                      {saving ? "Menyimpan..." : "Simpan"}
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Badge variant="secondary">{selectedContent.category}</Badge>
