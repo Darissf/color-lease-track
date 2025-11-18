@@ -24,15 +24,34 @@ function buildSelectorVariants(rawPath: string): string[] {
   const variants = new Set<string>();
   variants.add(base);
 
+  // Fallbacks: try :nth-child and index-less paths
+  const nthChild = base.replace(/:nth-of-type\(/g, ':nth-child(');
+  if (nthChild !== base) variants.add(nthChild);
+
+  const noIndex = base.replace(/\[[0-9]+\]/g, '');
+  if (noIndex !== base) variants.add(noIndex);
+
+  const noIndexNthChild = nthChild.replace(/\[[0-9]+\]/g, '');
+  if (noIndexNthChild !== nthChild) variants.add(noIndexNthChild);
+
   // Normalize div#root to #root for robustness
-  if (base.startsWith("div#root")) {
+  if (base.startsWith('div#root')) {
     variants.add(base.replace(/^div#root\s*>\s*/, '#root > ').replace(/^div#root/, '#root'));
+    variants.add(nthChild.replace(/^div#root\s*>\s*/, '#root > ').replace(/^div#root/, '#root'));
+    variants.add(noIndex.replace(/^div#root\s*>\s*/, '#root > ').replace(/^div#root/, '#root'));
+    variants.add(noIndexNthChild.replace(/^div#root\s*>\s*/, '#root > ').replace(/^div#root/, '#root'));
   }
 
   // Add #root scoping if missing
   if (!/^#root\b/.test(base) && !/^div#root\b/.test(base)) {
     variants.add(`#root > ${base}`);
     variants.add(`body > #root > ${base}`);
+    variants.add(`#root > ${nthChild}`);
+    variants.add(`body > #root > ${nthChild}`);
+    variants.add(`#root > ${noIndex}`);
+    variants.add(`body > #root > ${noIndex}`);
+    variants.add(`#root > ${noIndexNthChild}`);
+    variants.add(`body > #root > ${noIndexNthChild}`);
   }
 
   return Array.from(variants);
@@ -42,7 +61,7 @@ function buildSelectorVariants(rawPath: string): string[] {
 const observerMap = new Map<string, MutationObserver>();
 const desiredMap = new WeakMap<HTMLElement, string>();
 
-async function waitForElement(selector: string, timeoutMs = 6000): Promise<HTMLElement | null> {
+async function waitForElement(selector: string, timeoutMs = 8000): Promise<HTMLElement | null> {
   const start = performance.now();
   return new Promise((resolve) => {
     function check() {
@@ -97,7 +116,7 @@ export function useContentAutoApply() {
         let usedSelector = "";
 
         for (const s of variants) {
-          el = (document.querySelector(s) as HTMLElement | null) || await waitForElement(s, 6000);
+          el = (document.querySelector(s) as HTMLElement | null) || await waitForElement(s, 8000);
           if (el) { usedSelector = s; break; }
         }
         if (!el) {
