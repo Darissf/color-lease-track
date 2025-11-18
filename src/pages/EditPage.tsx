@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEditableContent } from "@/contexts/EditableContentContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,8 @@ interface ContentItem {
 }
 
 const EditPage = () => {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, user } = useAuth();
+  const { updateContent } = useEditableContent();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [contents, setContents] = useState<ContentItem[]>([]);
@@ -89,30 +91,18 @@ const EditPage = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedContent) return;
+    if (!selectedContent || !user) return;
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("editable_content")
-        .update({
-          content_value: editedValue,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", selectedContent.id);
+      // Use updateContent from context for consistency
+      await updateContent(
+        selectedContent.content_key,
+        editedValue,
+        selectedContent.page,
+        selectedContent.category
+      );
 
-      if (error) throw error;
-
-      // Save to history
-      await supabase.from("content_history").insert({
-        content_key: selectedContent.content_key,
-        content_value: editedValue,
-        page: selectedContent.page,
-        category: selectedContent.category,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-      });
-
-      toast.success("Konten berhasil disimpan!");
       setSelectedContent({ ...selectedContent, content_value: editedValue });
       fetchContents();
     } catch (error) {
