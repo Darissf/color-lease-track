@@ -7,9 +7,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useContentAutoDiscovery, DiscoveredContent } from "@/hooks/useContentAutoDiscovery";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw, Zap, ZapOff } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw, Zap, ZapOff, Copy } from "lucide-react";
 
 interface AutoDiscoveryPanelProps {
   currentPage: string;
@@ -20,12 +23,15 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"confidence" | "category" | "text">("confidence");
+  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
+  const [selectedKeepKeys, setSelectedKeepKeys] = useState<Record<number, string>>({});
   
   const {
     discoveries,
     isScanning,
     smartAutoEnabled,
     autoSavedCount,
+    duplicates,
     scanPage,
     approveDiscovery,
     updateKey,
@@ -34,6 +40,8 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
     saveApproved,
     clearDiscoveries,
     toggleSmartAuto,
+    findDuplicates,
+    cleanupDuplicates,
   } = useContentAutoDiscovery();
 
   const filteredDiscoveries = discoveries
@@ -65,6 +73,25 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
     }
   };
 
+  const handleFindDuplicates = async () => {
+    const found = await findDuplicates();
+    if (found && found.length > 0) {
+      setShowDuplicatesModal(true);
+      // Initialize with first entry as default selection
+      const initialSelections: Record<number, string> = {};
+      found.forEach((group, index) => {
+        initialSelections[index] = group.entries[0].key;
+      });
+      setSelectedKeepKeys(initialSelections);
+    }
+  };
+
+  const handleCleanupDuplicate = async (groupIndex: number) => {
+    const keepKey = selectedKeepKeys[groupIndex];
+    if (!keepKey) return;
+    await cleanupDuplicates(groupIndex, keepKey);
+  };
+
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return "text-green-600";
     if (confidence >= 0.6) return "text-yellow-600";
@@ -79,6 +106,30 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
 
   return (
     <div className="space-y-4">
+      {/* Duplicate Detection Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Copy className="h-5 w-5 text-primary" />
+                Duplicate Detection
+                {duplicates.length > 0 && (
+                  <Badge variant="destructive">{duplicates.length}</Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Find and clean duplicate content entries
+              </CardDescription>
+            </div>
+            <Button onClick={handleFindDuplicates} variant="outline" size="sm">
+              <Search className="h-4 w-4 mr-2" />
+              Scan for Duplicates
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
+
       {/* Header */}
       <Card>
         <CardHeader>
@@ -259,6 +310,63 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
           </CardContent>
         </Card>
       )}
+
+      {/* Duplicates Modal */}
+      <Dialog open={showDuplicatesModal} onOpenChange={setShowDuplicatesModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Duplicate Content Found</DialogTitle>
+            <DialogDescription>
+              Select which entry to keep for each duplicate group. Others will be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-6">
+              {duplicates.map((group, groupIndex) => (
+                <Card key={groupIndex}>
+                  <CardHeader>
+                    <CardTitle className="text-sm">
+                      "{group.content.substring(0, 100)}..."
+                    </CardTitle>
+                    <CardDescription>
+                      Page: {group.page} • {group.entries.length} duplicates
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <RadioGroup
+                      value={selectedKeepKeys[groupIndex]}
+                      onValueChange={(value) => 
+                        setSelectedKeepKeys(prev => ({ ...prev, [groupIndex]: value }))
+                      }
+                    >
+                      {group.entries.map((entry) => (
+                        <div key={entry.id} className="flex items-center space-x-2 p-2 rounded border">
+                          <RadioGroupItem value={entry.key} id={`${groupIndex}-${entry.id}`} />
+                          <Label 
+                            htmlFor={`${groupIndex}-${entry.id}`}
+                            className="flex-1 cursor-pointer text-xs font-mono"
+                          >
+                            {entry.key}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                    <Button
+                      onClick={() => handleCleanupDuplicate(groupIndex)}
+                      size="sm"
+                      variant="destructive"
+                      className="w-full"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clean This Group
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
