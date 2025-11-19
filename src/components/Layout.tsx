@@ -128,7 +128,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { title: "Dashboard Saya", url: "/client-dashboard", icon: LayoutDashboard },
     { title: "Kontrak Saya", url: "/rental-contracts", icon: ClipboardList },
   ] : [
-    { title: "Nabila", url: "/nabila", icon: FileText },
+    { title: "Home", url: "/nabila", icon: FileText },
     { title: "Dashboard", url: "/dashboard", icon: Home },
     { title: "AI Hub", url: "/ai-hub", icon: Sparkles, badge: "NEW", badgeVariant: "ai" as const },
     { title: "ChatBot AI", url: "/chatbot", icon: Bot, badge: "AI", badgeVariant: "ai" as const },
