@@ -58,7 +58,7 @@ export const AIBudgetAdvisor = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                AI Budget Advisor
+                {getContent("dashboard.ai_advisor_title", "AI Budget Advisor")}
               </CardTitle>
               <CardDescription>
                 {description}
