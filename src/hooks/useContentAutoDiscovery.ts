@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,6 +14,26 @@ export interface DiscoveredContent {
   approved: boolean;
 }
 
+export interface DeletedItem {
+  id: string;
+  content_key: string;
+  content_value: string;
+  page: string;
+  category: string | null;
+  is_protected: boolean | null;
+  protection_reason: string | null;
+  created_at: string | null;
+  created_by: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+  last_applied_at: string | null;
+  deletedAt: number;
+  groupInfo: {
+    keptKey: string;
+    content: string;
+  };
+}
+
 export const useContentAutoDiscovery = () => {
   const [discoveries, setDiscoveries] = useState<DiscoveredContent[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -24,6 +44,8 @@ export const useContentAutoDiscovery = () => {
     page: string;
     entries: Array<{ key: string; id: string }>;
   }>>([]);
+  const [undoBuffer, setUndoBuffer] = useState<DeletedItem[]>([]);
+  const [undoTimers, setUndoTimers] = useState<Map<string, NodeJS.Timeout>>(new Map());
   const { toast } = useToast();
 
   const analyzeKeyQuality = useCallback((key: string): { type: 'semantic' | 'component' | 'generated', priority: number, score: number } => {
@@ -360,6 +382,20 @@ export const useContentAutoDiscovery = () => {
     }
   }, [toast]);
 
+  const removeFromUndoBuffer = useCallback((itemId: string) => {
+    setUndoBuffer(prev => prev.filter(item => item.id !== itemId));
+    
+    const timer = undoTimers.get(itemId);
+    if (timer) {
+      clearTimeout(timer);
+      setUndoTimers(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(itemId);
+        return newMap;
+      });
+    }
+  }, [undoTimers]);
+
   const cleanupDuplicates = useCallback(async (
     groupIndex: number,
     keepKey: string
@@ -372,19 +408,48 @@ export const useContentAutoDiscovery = () => {
 
       if (idsToDelete.length === 0) return;
 
-      const { error } = await supabase
+      // Fetch full data before deletion
+      const { data: itemsToDelete, error: fetchError } = await supabase
+        .from("editable_content")
+        .select("*")
+        .in("id", idsToDelete);
+
+      if (fetchError) throw fetchError;
+
+      // Delete from database
+      const { error: deleteError } = await supabase
         .from("editable_content")
         .delete()
         .in("id", idsToDelete);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
+
+      // Store in undo buffer with timestamp
+      const deletedItems: DeletedItem[] = (itemsToDelete || []).map(item => ({
+        ...item,
+        deletedAt: Date.now(),
+        groupInfo: {
+          keptKey: keepKey,
+          content: group.content
+        }
+      }));
+
+      setUndoBuffer(prev => [...prev, ...deletedItems]);
+
+      // Set 5-minute auto-cleanup timer for each item
+      deletedItems.forEach(item => {
+        const timer = setTimeout(() => {
+          removeFromUndoBuffer(item.id);
+        }, 5 * 60 * 1000); // 5 minutes
+
+        setUndoTimers(prev => new Map(prev).set(item.id, timer));
+      });
 
       toast({
         title: "Duplicates Cleaned",
         description: `Removed ${idsToDelete.length} duplicate entries`,
       });
 
-      // Refresh duplicates list
       await findDuplicates();
     } catch (error) {
       console.error("Error cleaning duplicates:", error);
@@ -394,7 +459,65 @@ export const useContentAutoDiscovery = () => {
         variant: "destructive",
       });
     }
-  }, [duplicates, toast, findDuplicates]);
+  }, [duplicates, toast, findDuplicates, removeFromUndoBuffer]);
+
+  const undoDelete = useCallback(async (itemIds?: string[]) => {
+    try {
+      const itemsToRestore = itemIds 
+        ? undoBuffer.filter(item => itemIds.includes(item.id))
+        : undoBuffer;
+
+      if (itemsToRestore.length === 0) {
+        toast({
+          title: "Nothing to Undo",
+          description: "No recent deletions found",
+        });
+        return;
+      }
+
+      // Prepare items for reinsertion (remove undo-specific fields)
+      const itemsToInsert = itemsToRestore.map(({ deletedAt, groupInfo, ...item }) => item);
+
+      // Re-insert into database
+      const { error } = await supabase
+        .from("editable_content")
+        .insert(itemsToInsert);
+
+      if (error) throw error;
+
+      // Remove from undo buffer and clear timers
+      itemsToRestore.forEach(item => {
+        removeFromUndoBuffer(item.id);
+      });
+
+      toast({
+        title: "Restored Successfully",
+        description: `Restored ${itemsToRestore.length} deleted item(s)`,
+      });
+
+      await findDuplicates();
+    } catch (error) {
+      console.error("Error undoing deletion:", error);
+      toast({
+        title: "Error",
+        description: "Failed to restore deleted items",
+        variant: "destructive",
+      });
+    }
+  }, [undoBuffer, toast, findDuplicates, removeFromUndoBuffer]);
+
+  const clearUndoBuffer = useCallback(() => {
+    undoTimers.forEach(timer => clearTimeout(timer));
+    setUndoTimers(new Map());
+    setUndoBuffer([]);
+  }, [undoTimers]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      undoTimers.forEach(timer => clearTimeout(timer));
+    };
+  }, [undoTimers]);
 
   return {
     discoveries,
@@ -402,6 +525,7 @@ export const useContentAutoDiscovery = () => {
     smartAutoEnabled,
     autoSavedCount,
     duplicates,
+    undoBuffer,
     scanPage,
     approveDiscovery,
     updateKey,
@@ -413,5 +537,7 @@ export const useContentAutoDiscovery = () => {
     findDuplicates,
     cleanupDuplicates,
     analyzeKeyQuality,
+    undoDelete,
+    clearUndoBuffer,
   };
 };
