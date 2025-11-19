@@ -17,6 +17,8 @@ export interface DiscoveredContent {
 export const useContentAutoDiscovery = () => {
   const [discoveries, setDiscoveries] = useState<DiscoveredContent[]>([]);
   const [isScanning, setIsScanning] = useState(false);
+  const [smartAutoEnabled, setSmartAutoEnabled] = useState(true);
+  const [autoSavedCount, setAutoSavedCount] = useState(0);
   const { toast } = useToast();
 
   const generateIntelligentKey = useCallback((element: HTMLElement, pagePath: string): string => {
@@ -128,14 +130,51 @@ export const useContentAutoDiscovery = () => {
         });
       });
 
-      setDiscoveries(discovered);
-      
-      toast({
-        title: "Scan Complete",
-        description: `Found ${discovered.length} potential content items`,
-      });
+      // Smart Auto: Auto-save high confidence items (>= 80%)
+      if (smartAutoEnabled) {
+        const highConfidence = discovered.filter(d => d.confidence >= 0.8);
+        const lowConfidence = discovered.filter(d => d.confidence < 0.8);
 
-      return discovered;
+        if (highConfidence.length > 0) {
+          // Auto-save high confidence items
+          const { data: { user } } = await supabase.auth.getUser();
+          const userId = user?.id || '';
+          
+          const inserts = highConfidence.map(d => ({
+            content_key: d.suggestedKey,
+            content_value: d.textContent,
+            page: d.page,
+            category: d.category,
+            created_by: userId,
+            updated_by: userId,
+          }));
+
+          const { error } = await supabase
+            .from("editable_content")
+            .insert(inserts);
+
+          if (!error) {
+            setAutoSavedCount(prev => prev + highConfidence.length);
+            toast({
+              title: "✨ Smart Auto-Saved",
+              description: `${highConfidence.length} high-confidence items saved automatically. ${lowConfidence.length} items need review.`,
+            });
+          }
+        }
+
+        // Only show low confidence items for manual review
+        setDiscoveries(lowConfidence);
+        return lowConfidence;
+      } else {
+        setDiscoveries(discovered);
+        
+        toast({
+          title: "Scan Complete",
+          description: `Found ${discovered.length} potential content items`,
+        });
+
+        return discovered;
+      }
     } catch (error) {
       console.error("Scan error:", error);
       toast({
@@ -223,9 +262,24 @@ export const useContentAutoDiscovery = () => {
     setDiscoveries([]);
   }, []);
 
+  const toggleSmartAuto = useCallback(() => {
+    setSmartAutoEnabled(prev => {
+      const newValue = !prev;
+      toast({
+        title: newValue ? "Smart Auto Enabled" : "Smart Auto Disabled",
+        description: newValue 
+          ? "High-confidence items (≥80%) will be auto-saved"
+          : "Content will need manual approval",
+      });
+      return newValue;
+    });
+  }, [toast]);
+
   return {
     discoveries,
     isScanning,
+    smartAutoEnabled,
+    autoSavedCount,
     scanPage,
     approveDiscovery,
     updateKey,
@@ -233,5 +287,6 @@ export const useContentAutoDiscovery = () => {
     bulkApprove,
     saveApproved,
     clearDiscoveries,
+    toggleSmartAuto,
   };
 };
