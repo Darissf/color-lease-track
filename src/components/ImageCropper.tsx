@@ -14,6 +14,9 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [scale, setScale] = useState(1);
   const [processing, setProcessing] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -50,11 +53,67 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
       drawWidth = drawHeight * aspectRatio;
     }
 
-    const x = (size - drawWidth) / 2;
-    const y = (size - drawHeight) / 2;
+    const centerX = (size - drawWidth) / 2;
+    const centerY = (size - drawHeight) / 2;
+
+    const x = centerX + position.x;
+    const y = centerY + position.y;
 
     ctx.drawImage(image, x, y, drawWidth, drawHeight);
-  }, [image, scale]);
+  }, [image, scale, position]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging) return;
+    
+    requestAnimationFrame(() => {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setDragStart({
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    
+    requestAnimationFrame(() => {
+      setPosition({
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y
+      });
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleReset = () => {
+    setPosition({ x: 0, y: 0 });
+    setScale(1);
+  };
 
   const handleCrop = async () => {
     if (!canvasRef.current) return;
@@ -81,12 +140,26 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-2">
             <canvas
               ref={canvasRef}
-              className="border-2 border-border rounded-lg"
-              style={{ maxWidth: "100%", height: "auto" }}
+              className="border-2 border-border rounded-lg select-none"
+              style={{ 
+                maxWidth: "100%", 
+                height: "auto",
+                cursor: isDragging ? 'grabbing' : 'grab'
+              }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
             />
+            <p className="text-sm text-muted-foreground">
+              🖱️ Drag gambar untuk menggeser posisi
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -103,6 +176,10 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
         </div>
 
         <DialogFooter>
+          <Button variant="outline" size="sm" onClick={handleReset} disabled={processing}>
+            Reset
+          </Button>
+          <div className="flex-1" />
           <Button variant="outline" onClick={onCancel} disabled={processing}>
             Batal
           </Button>
