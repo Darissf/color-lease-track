@@ -12,7 +12,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useContentAutoDiscovery, DiscoveredContent } from "@/hooks/useContentAutoDiscovery";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw, Zap, ZapOff, Copy } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw, Zap, ZapOff, Copy, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 interface AutoDiscoveryPanelProps {
   currentPage: string;
@@ -42,6 +43,7 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
     toggleSmartAuto,
     findDuplicates,
     cleanupDuplicates,
+    analyzeKeyQuality,
   } = useContentAutoDiscovery();
 
   const filteredDiscoveries = discoveries
@@ -76,13 +78,23 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
   const handleFindDuplicates = async () => {
     const found = await findDuplicates();
     if (found && found.length > 0) {
-      setShowDuplicatesModal(true);
-      // Initialize with first entry as default selection
+      // Smart default selection: auto-select the best key for each group
       const initialSelections: Record<number, string> = {};
       found.forEach((group, index) => {
-        initialSelections[index] = group.entries[0].key;
+        const sortedEntries = [...group.entries].sort((a, b) => {
+          const qualityA = analyzeKeyQuality(a.key);
+          const qualityB = analyzeKeyQuality(b.key);
+          
+          if (qualityA.priority !== qualityB.priority) {
+            return qualityA.priority - qualityB.priority;
+          }
+          return a.key.length - b.key.length;
+        });
+        
+        initialSelections[index] = sortedEntries[0].key;
       });
       setSelectedKeepKeys(initialSelections);
+      setShowDuplicatesModal(true);
     }
   };
 
@@ -317,52 +329,112 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
           <DialogHeader>
             <DialogTitle>Duplicate Content Found</DialogTitle>
             <DialogDescription>
-              Select which entry to keep for each duplicate group. Others will be deleted.
+              Found {duplicates.length} group(s) of duplicate content. These entries have the same content but different keys.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] pr-4">
             <div className="space-y-6">
-              {duplicates.map((group, groupIndex) => (
-                <Card key={groupIndex}>
-                  <CardHeader>
-                    <CardTitle className="text-sm">
-                      "{group.content.substring(0, 100)}..."
-                    </CardTitle>
-                    <CardDescription>
-                      Page: {group.page} • {group.entries.length} duplicates
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <RadioGroup
-                      value={selectedKeepKeys[groupIndex]}
-                      onValueChange={(value) => 
-                        setSelectedKeepKeys(prev => ({ ...prev, [groupIndex]: value }))
-                      }
-                    >
-                      {group.entries.map((entry) => (
-                        <div key={entry.id} className="flex items-center space-x-2 p-2 rounded border">
-                          <RadioGroupItem value={entry.key} id={`${groupIndex}-${entry.id}`} />
-                          <Label 
-                            htmlFor={`${groupIndex}-${entry.id}`}
-                            className="flex-1 cursor-pointer text-xs font-mono"
-                          >
-                            {entry.key}
-                          </Label>
+              {duplicates.map((group, groupIndex) => {
+                const allGenerated = group.entries.every(e => analyzeKeyQuality(e.key).type === 'generated');
+                
+                return (
+                  <Card key={groupIndex}>
+                    <CardHeader>
+                      <div className="space-y-2">
+                        <div className="text-lg font-bold text-primary">"{group.content}"</div>
+                        <CardDescription>
+                          Page: {group.page} • {group.entries.length} duplicate entries
+                        </CardDescription>
+                      </div>
+                      
+                      {allGenerated && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-3 flex items-start gap-2 mt-3">
+                          <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-sm text-yellow-700 dark:text-yellow-500">
+                            All entries are auto-generated. Consider creating a semantic key manually (e.g., "dashboard.section_name").
+                          </div>
                         </div>
-                      ))}
-                    </RadioGroup>
-                    <Button
-                      onClick={() => handleCleanupDuplicate(groupIndex)}
-                      size="sm"
-                      variant="destructive"
-                      className="w-full"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Clean This Group
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="text-sm font-medium">Select the best key to keep:</div>
+                      <div className="text-xs text-muted-foreground mb-2">
+                        💡 Tip: Semantic keys (short, descriptive) are easier to maintain than selector-based keys
+                      </div>
+                      
+                      <RadioGroup
+                        value={selectedKeepKeys[groupIndex]}
+                        onValueChange={(value) => 
+                          setSelectedKeepKeys(prev => ({ ...prev, [groupIndex]: value }))
+                        }
+                      >
+                        {group.entries.map((entry) => {
+                          const quality = analyzeKeyQuality(entry.key);
+                          const isRecommended = selectedKeepKeys[groupIndex] === entry.key;
+                          
+                          return (
+                            <div 
+                              key={entry.id} 
+                              className={`flex items-start space-x-2 p-3 rounded-md border ${
+                                isRecommended ? 'bg-green-500/5 border-green-500/20' : 'border-border'
+                              }`}
+                            >
+                              <RadioGroupItem 
+                                value={entry.key} 
+                                id={`${groupIndex}-${entry.id}`}
+                                className="mt-1 flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  {quality.type === 'semantic' && (
+                                    <>
+                                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                      <Badge variant="default" className="bg-green-600 text-xs">Recommended</Badge>
+                                    </>
+                                  )}
+                                  {quality.type === 'generated' && (
+                                    <>
+                                      <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+                                      <Badge variant="outline" className="text-xs border-yellow-600 text-yellow-600">Auto-Generated</Badge>
+                                    </>
+                                  )}
+                                  {quality.type === 'component' && (
+                                    <Badge variant="secondary" className="text-xs">Component-Based</Badge>
+                                  )}
+                                  <span className="text-xs text-muted-foreground">({entry.key.length} chars)</span>
+                                </div>
+                                <Label 
+                                  htmlFor={`${groupIndex}-${entry.id}`}
+                                  className="cursor-pointer text-xs font-mono break-all block"
+                                >
+                                  {entry.key.length > 80 
+                                    ? `${entry.key.substring(0, 40)}...${entry.key.substring(entry.key.length - 35)}` 
+                                    : entry.key
+                                  }
+                                </Label>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </RadioGroup>
+                      
+                      <Button
+                        onClick={() => {
+                          handleCleanupDuplicate(groupIndex);
+                          toast.success("Duplicates cleaned successfully");
+                        }}
+                        size="sm"
+                        variant="destructive"
+                        className="w-full"
+                        disabled={!selectedKeepKeys[groupIndex]}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Clean This Group ({group.entries.length - 1} will be deleted)
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </ScrollArea>
         </DialogContent>
