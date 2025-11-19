@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Loader2, RotateCw, RotateCcw } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface ImageCropperProps {
   file: File;
@@ -19,9 +18,7 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0);
-  const [showPreview, setShowPreview] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const reader = new FileReader();
@@ -90,38 +87,6 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
     // Restore context
     ctx.restore();
   }, [image, scale, position, rotation]);
-
-  // Preview canvas effect
-  useEffect(() => {
-    if (!image || !previewCanvasRef.current || !showPreview) return;
-
-    const canvas = previewCanvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const size = 400;
-    canvas.width = size;
-    canvas.height = size;
-
-    // Draw original image (centered, fit to canvas)
-    ctx.fillStyle = "#f3f4f6";
-    ctx.fillRect(0, 0, size, size);
-
-    const aspectRatio = image.width / image.height;
-    let drawWidth = size * 0.8;
-    let drawHeight = size * 0.8;
-
-    if (aspectRatio > 1) {
-      drawHeight = drawWidth / aspectRatio;
-    } else {
-      drawWidth = drawHeight * aspectRatio;
-    }
-
-    const x = (size - drawWidth) / 2;
-    const y = (size - drawHeight) / 2;
-
-    ctx.drawImage(image, x, y, drawWidth, drawHeight);
-  }, [image, showPreview]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setIsDragging(true);
@@ -196,7 +161,7 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
 
   return (
     <Dialog open onOpenChange={onCancel}>
-      <DialogContent className={cn(showPreview ? "max-w-4xl" : "max-w-2xl")} aria-describedby="crop-avatar-description">
+      <DialogContent className="max-w-2xl" aria-describedby="crop-avatar-description">
         <DialogHeader>
           <DialogTitle>Crop Avatar</DialogTitle>
         </DialogHeader>
@@ -205,111 +170,66 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
         </p>
 
         <div className="space-y-4">
-          {/* Mode Toggle */}
-          <div className="flex gap-2">
-            <Button
-              variant={!showPreview ? "default" : "outline"}
-              onClick={() => setShowPreview(false)}
-              className="flex-1"
+          <div className="flex flex-col items-center gap-2">
+            <canvas
+              ref={canvasRef}
+              className="border-2 border-border rounded-lg select-none"
+              style={{ 
+                maxWidth: "100%", 
+                height: "auto",
+                cursor: isDragging ? 'grabbing' : 'grab'
+              }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            />
+            <p className="text-sm text-muted-foreground">
+              🖱️ Drag gambar untuk menggeser posisi
+            </p>
+          </div>
+
+          {/* Rotation Controls */}
+          <div className="flex items-center gap-2 justify-center">
+            <label className="text-sm font-medium">Rotate</label>
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => setRotation((prev) => (prev - 90 + 360) % 360)}
               disabled={processing}
+              title="Rotate counter-clockwise"
             >
-              ✏️ Edit
+              <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button
-              variant={showPreview ? "default" : "outline"}
-              onClick={() => setShowPreview(true)}
-              className="flex-1"
+            <span className="text-sm text-muted-foreground min-w-[3rem] text-center">
+              {rotation}°
+            </span>
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => setRotation((prev) => (prev + 90) % 360)}
               disabled={processing}
+              title="Rotate clockwise"
             >
-              👁️ Preview
+              <RotateCw className="h-4 w-4" />
             </Button>
           </div>
 
-          {showPreview ? (
-            /* Preview Mode - Side by Side */
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-sm font-medium">Original</p>
-                <canvas
-                  ref={previewCanvasRef}
-                  className="border-2 border-border rounded-lg"
-                  style={{ maxWidth: "100%", height: "auto" }}
-                />
-              </div>
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-sm font-medium">Hasil Crop</p>
-                <canvas
-                  ref={canvasRef}
-                  className="border-2 border-primary rounded-lg"
-                  style={{ maxWidth: "100%", height: "auto" }}
-                />
-              </div>
-            </div>
-          ) : (
-            /* Edit Mode */
-            <>
-              <div className="flex flex-col items-center gap-2">
-                <canvas
-                  ref={canvasRef}
-                  className="border-2 border-border rounded-lg select-none"
-                  style={{ 
-                    maxWidth: "100%", 
-                    height: "auto",
-                    cursor: isDragging ? 'grabbing' : 'grab'
-                  }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                  onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                />
-                <p className="text-sm text-muted-foreground">
-                  🖱️ Drag gambar untuk menggeser posisi
-                </p>
-              </div>
-
-              {/* Rotation Controls */}
-              <div className="flex items-center gap-2 justify-center">
-                <label className="text-sm font-medium">Rotate</label>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setRotation((prev) => (prev - 90 + 360) % 360)}
-                  disabled={processing}
-                  title="Rotate counter-clockwise"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-                <span className="text-sm text-muted-foreground min-w-[3rem] text-center">
-                  {rotation}°
-                </span>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setRotation((prev) => (prev + 90) % 360)}
-                  disabled={processing}
-                  title="Rotate clockwise"
-                >
-                  <RotateCw className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Zoom Controls */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Zoom</label>
-                <Slider
-                  value={[scale]}
-                  onValueChange={(value) => setScale(value[0])}
-                  min={0.5}
-                  max={3}
-                  step={0.1}
-                  className="w-full"
-                />
-              </div>
-            </>
-          )}
+          {/* Zoom Controls */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Zoom</label>
+            <Slider
+              value={[scale]}
+              onValueChange={(value) => setScale(value[0])}
+              min={0.5}
+              max={3}
+              step={0.1}
+              className="w-full"
+            />
+          </div>
         </div>
 
         <DialogFooter>
