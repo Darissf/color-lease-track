@@ -44,6 +44,7 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
     canvas.width = size;
     canvas.height = size;
 
+    // Clear canvas
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, size, size);
 
@@ -71,14 +72,18 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
     const centerX = (size - drawWidth) / 2;
     const centerY = (size - drawHeight) / 2;
 
-    const x = centerX + position.x;
-    const y = centerY + position.y;
-
-    // Save context and apply rotation
+    // Save context and apply rotation around center
     ctx.save();
+    
+    // Move origin to center for rotation
     ctx.translate(size / 2, size / 2);
+    
+    // Apply rotation
     ctx.rotate((rotation * Math.PI) / 180);
-    ctx.translate(-size / 2, -size / 2);
+    
+    // Calculate position with rotation applied
+    const x = centerX + position.x - size / 2;
+    const y = centerY + position.y - size / 2;
 
     ctx.drawImage(image, x, y, drawWidth, drawHeight);
 
@@ -191,10 +196,13 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
 
   return (
     <Dialog open onOpenChange={onCancel}>
-      <DialogContent className={cn(showPreview ? "max-w-4xl" : "max-w-2xl")}>
+      <DialogContent className={cn(showPreview ? "max-w-4xl" : "max-w-2xl")} aria-describedby="crop-avatar-description">
         <DialogHeader>
           <DialogTitle>Crop Avatar</DialogTitle>
         </DialogHeader>
+        <p id="crop-avatar-description" className="sr-only">
+          Crop and adjust your avatar image by dragging, zooming, and rotating
+        </p>
 
         <div className="space-y-4">
           {/* Mode Toggle */}
