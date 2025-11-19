@@ -75,6 +75,11 @@ async function waitForElement(selector: string, timeoutMs = 8000): Promise<HTMLE
 }
 
 function keepSynced(selector: string, el: HTMLElement, value: string) {
+  // Don't sync elements that should be skipped
+  if (el.hasAttribute('data-skip-auto-apply')) {
+    return;
+  }
+  
   desiredMap.set(el, value);
   el.setAttribute("data-auto-applied", "true");
   const existing = observerMap.get(selector);
@@ -121,6 +126,12 @@ export function useContentAutoApply() {
         }
         if (!el) {
           notFound += 1;
+          return;
+        }
+
+        // Skip elements with data-skip-auto-apply attribute
+        if (el.hasAttribute('data-skip-auto-apply')) {
+          skipped += 1;
           return;
         }
 
