@@ -1,7 +1,9 @@
 import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -29,8 +31,27 @@ const adminNavItems = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, signOut, isSuperAdmin, isAdmin, isUser } = useAuth();
+  const { profile } = useProfile();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const notifications = useAdminNotifications(isAdmin || isSuperAdmin);
+  
+  // Helper function to get user initials
+  const getUserInitials = () => {
+    if (profile?.full_name) {
+      const names = profile.full_name.split(' ');
+      if (names.length >= 2) {
+        return `${names[0][0]}${names[1][0]}`.toUpperCase();
+      }
+      return names[0][0].toUpperCase();
+    }
+    if (profile?.username) {
+      return profile.username[0].toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return 'U';
+  };
   const location = useLocation();
   const { applyForPage } = useContentAutoApply();
   const [applying, setApplying] = useState(false);
@@ -284,15 +305,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 p-1.5 rounded hover:bg-accent transition-colors">
-                  <div className="w-6 h-6 bg-muted rounded flex items-center justify-center">
-                    <User className="h-3.5 w-3.5 text-foreground" />
-                  </div>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage 
+                      src={profile?.avatar_url || undefined} 
+                      alt={profile?.full_name || profile?.username || 'User'} 
+                    />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
                   <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                  {user?.email?.split("@")[0] || "User"}
+                <div className="px-2 py-1.5 text-sm">
+                  <div className="font-medium text-foreground">
+                    {profile?.full_name || profile?.username || user?.email?.split("@")[0] || "User"}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {user?.email}
+                  </div>
                 </div>
                 <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer text-sm">
                   <User className="mr-2 h-3.5 w-3.5" />
