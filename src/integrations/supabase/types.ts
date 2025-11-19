@@ -1001,7 +1001,10 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          is_protected: boolean | null
+          last_applied_at: string | null
           page: string
+          protection_reason: string | null
           updated_at: string | null
           updated_by: string | null
         }
@@ -1012,7 +1015,10 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_protected?: boolean | null
+          last_applied_at?: string | null
           page: string
+          protection_reason?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -1023,7 +1029,10 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_protected?: boolean | null
+          last_applied_at?: string | null
           page?: string
+          protection_reason?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }

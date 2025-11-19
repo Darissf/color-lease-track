@@ -7,20 +7,44 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIAssistant } from "./AIAssistant";
 import { ContentHistory } from "./ContentHistory";
 import { ContentAnalysis } from "./ContentAnalysis";
-import { Save, Sparkles, History, BarChart3, FileText, MapPin } from "lucide-react";
+import ProtectionManager from "./ProtectionManager";
+import { Save, Sparkles, History, BarChart3, FileText, MapPin, Eye, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 export function EditorPanel() {
-  const { selectedContent, setSelectedContent } = useContentStore();
+  const { selectedContent, setSelectedContent, togglePreview, showPreview } = useContentStore();
   const [editedValue, setEditedValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [metadata, setMetadata] = useState<any>(null);
 
   useEffect(() => {
     if (selectedContent) {
       setEditedValue(selectedContent.content_value);
+      loadMetadata();
     }
   }, [selectedContent]);
+
+  const loadMetadata = async () => {
+    if (!selectedContent) return;
+    
+    try {
+      const { data } = await supabase
+        .from("content_history")
+        .select("id")
+        .eq("content_key", selectedContent.content_key)
+        .order("created_at", { ascending: false });
+
+      setMetadata({
+        version_count: data?.length || 0,
+        character_count: selectedContent.content_value?.length || 0,
+        word_count: selectedContent.content_value?.split(/\s+/).length || 0,
+      });
+    } catch (error) {
+      console.error("Failed to load metadata:", error);
+    }
+  };
 
   const handleSave = async () => {
     if (!selectedContent) return;
@@ -94,20 +118,62 @@ export function EditorPanel() {
               <MapPin className="h-3 w-3" />
               <span className="truncate">{fileLocation}</span>
             </div>
+            {selectedContent.updated_at && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                <Clock className="h-3 w-3" />
+                Updated {formatDistanceToNow(new Date(selectedContent.updated_at))} ago
+              </div>
+            )}
           </div>
-          <Button 
-            onClick={handleSave} 
-            disabled={saving || !hasChanges}
-            size="sm"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving..." : "Save"}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={togglePreview}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              {showPreview ? "Hide" : "Show"} Preview
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={saving || !hasChanges}
+              size="sm"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">{selectedContent.category}</Badge>
           <Badge variant="outline">{selectedContent.page}</Badge>
+          <ProtectionManager
+            contentId={selectedContent.id}
+            contentKey={selectedContent.content_key}
+            isProtected={selectedContent.is_protected || false}
+            protectionReason={selectedContent.protection_reason || undefined}
+            onUpdate={() => {
+              // Refresh content
+              if (selectedContent) {
+                supabase
+                  .from("editable_content")
+                  .select("*")
+                  .eq("id", selectedContent.id)
+                  .single()
+                  .then(({ data }) => {
+                    if (data) setSelectedContent(data as any);
+                  });
+              }
+            }}
+          />
         </div>
+        {metadata && (
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <span>{metadata.character_count} characters</span>
+            <span>{metadata.word_count} words</span>
+            <span>{metadata.version_count} versions</span>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
