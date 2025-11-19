@@ -17,7 +17,7 @@ const notificationConfig = {
   paid: {
     gradient: 'from-[hsl(var(--matcha-green))] to-emerald-500',
     hankoColor: 'hsl(var(--moon-gold))',
-    hankoText: '支払済',
+    hankoText: 'LUNAS',
     icon: CheckCircle,
     borderColor: 'border-[hsl(var(--moon-gold))]',
     iconAnimation: 'animate-[spin_0.5s_ease-out]',
@@ -25,7 +25,7 @@ const notificationConfig = {
   'due-today': {
     gradient: 'from-orange-500 to-amber-500',
     hankoColor: '#dc2626',
-    hankoText: '本日',
+    hankoText: 'HARI INI',
     icon: Clock,
     borderColor: 'border-red-600',
     iconAnimation: 'animate-pulse',
@@ -33,7 +33,7 @@ const notificationConfig = {
   overdue: {
     gradient: 'from-[hsl(var(--torii-red))] to-red-700',
     hankoColor: '#7f1d1d',
-    hankoText: '延滞',
+    hankoText: 'TELAT',
     icon: AlertCircle,
     borderColor: 'border-red-900',
     iconAnimation: 'animate-[urgent-shake_0.5s_ease-in-out_infinite]',
@@ -41,7 +41,7 @@ const notificationConfig = {
   'due-soon': {
     gradient: 'from-[hsl(var(--moon-gold))] to-yellow-500',
     hankoColor: '#ea580c',
-    hankoText: '警告',
+    hankoText: 'PERINGATAN',
     icon: Bell,
     borderColor: 'border-orange-600',
     iconAnimation: 'animate-[swing_1s_ease-in-out_infinite]',
