@@ -107,6 +107,23 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
 
   const handleCleanAllDuplicates = async (keysToKeep: Record<number, string>, duplicateGroups: typeof duplicates) => {
     try {
+      // Show confirmation toast with keys to keep
+      const keysArray = Object.values(keysToKeep);
+      const keysPreview = keysArray.slice(0, 3).join(', ');
+      const remaining = keysArray.length - 3;
+      const totalDuplicatesToDelete = duplicateGroups.reduce((sum, g) => sum + g.entries.length - 1, 0);
+      
+      toast.info(
+        `🤖 Auto-cleaning ${duplicateGroups.length} duplicate group(s)...\n` +
+        `Keeping: ${keysPreview}${remaining > 0 ? ` and ${remaining} more...` : ''}\n` +
+        `Deleting ${totalDuplicatesToDelete} duplicate(s)`,
+        { duration: 3000 }
+      );
+      
+      // Brief delay to let user see the toast
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Proceed with cleanup
       let cleanedCount = 0;
       for (let i = 0; i < duplicateGroups.length; i++) {
         const keepKey = keysToKeep[i];
@@ -115,7 +132,8 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
           cleanedCount++;
         }
       }
-      toast.success(`🧹 Auto-cleaned ${cleanedCount} duplicate group(s) successfully`);
+      
+      toast.success(`✅ Auto-cleaned ${cleanedCount} duplicate group(s) successfully`);
       await findDuplicates(); // Refresh
     } catch (error) {
       toast.error("Failed to clean duplicates");
