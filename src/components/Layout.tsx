@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 import { useContentAutoApply } from "@/hooks/useContentAutoApply";
+import { useNavigate } from "react-router-dom";
 
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState, useEffect } from "react";
@@ -33,6 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { applyForPage } = useContentAutoApply();
   const [applying, setApplying] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
@@ -292,6 +294,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <div className="px-2 py-1.5 text-sm text-muted-foreground">
                   {user?.email?.split("@")[0] || "User"}
                 </div>
+                <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer text-sm">
+                  <User className="mr-2 h-3.5 w-3.5" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-sm">
                   <LogOut className="mr-2 h-3.5 w-3.5" />
                   <span>Logout</span>

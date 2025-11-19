@@ -41,6 +41,7 @@ import AIAutoPilot from "./pages/AIAutoPilot";
 import BudgetTracker from "./pages/BudgetTracker";
 import EditPage from "./pages/EditPage";
 import FixedExpenses from "./pages/FixedExpenses";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ const App = () => (
                       <Route path="/fixed-expenses" element={<FixedExpenses />} />
                       <Route path="/savings" element={<SavingsPlans />} />
                       <Route path="/monthly-budget" element={<BudgetTracker />} />
+                      <Route path="/profile" element={<Profile />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/settings/admin" element={<AdminSettings />} />
                       <Route path="/settings/accounts" element={<AccountSettings />} />

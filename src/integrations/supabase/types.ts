@@ -1325,6 +1325,12 @@ export type Database = {
           full_name: string | null
           id: string
           nomor_telepon: string | null
+          notification_budget_alert: boolean | null
+          notification_due_date: boolean | null
+          notification_email: boolean | null
+          notification_monthly_report: boolean | null
+          notification_payment: boolean | null
+          notification_push: boolean | null
           updated_at: string | null
           username: string | null
         }
@@ -1334,6 +1340,12 @@ export type Database = {
           full_name?: string | null
           id: string
           nomor_telepon?: string | null
+          notification_budget_alert?: boolean | null
+          notification_due_date?: boolean | null
+          notification_email?: boolean | null
+          notification_monthly_report?: boolean | null
+          notification_payment?: boolean | null
+          notification_push?: boolean | null
           updated_at?: string | null
           username?: string | null
         }
@@ -1343,6 +1355,12 @@ export type Database = {
           full_name?: string | null
           id?: string
           nomor_telepon?: string | null
+          notification_budget_alert?: boolean | null
+          notification_due_date?: boolean | null
+          notification_email?: boolean | null
+          notification_monthly_report?: boolean | null
+          notification_payment?: boolean | null
+          notification_push?: boolean | null
           updated_at?: string | null
           username?: string | null
         }

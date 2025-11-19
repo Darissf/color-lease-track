@@ -1038,3 +1038,152 @@ All colors MUST be HSL.
     animation: none !important;
   }
 }
+
+/* ===== PROFILE PAGE STYLES ===== */
+.profile-card {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--sakura-pink) / 0.05),
+    hsl(var(--matcha-green) / 0.03)
+  );
+  border: 2px solid hsl(var(--torii-red) / 0.2);
+  box-shadow: 
+    0 4px 20px rgba(230, 0, 18, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.profile-card:hover {
+  box-shadow: 
+    0 8px 30px rgba(230, 0, 18, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-color: hsl(var(--torii-red) / 0.4);
+}
+
+.dark .profile-card {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--night-indigo) / 0.5),
+    hsl(var(--twilight-purple) / 0.3)
+  );
+  border-color: hsl(var(--cherry-glow-pink) / 0.3);
+  box-shadow: 
+    0 4px 20px rgba(255, 153, 204, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .profile-card:hover {
+  border-color: hsl(var(--cherry-glow-pink) / 0.5);
+  box-shadow: 
+    0 8px 30px rgba(255, 153, 204, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.avatar-frame {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  padding: 8px;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--torii-red)),
+    hsl(var(--matcha-green))
+  );
+  box-shadow: 
+    0 0 30px rgba(230, 0, 18, 0.3),
+    0 0 60px rgba(106, 168, 79, 0.2);
+  animation: avatar-glow 3s ease-in-out infinite;
+}
+
+.dark .avatar-frame {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--cherry-glow-pink)),
+    hsl(var(--bamboo-green))
+  );
+  box-shadow: 
+    0 0 30px rgba(255, 153, 204, 0.4),
+    0 0 60px rgba(136, 176, 75, 0.3);
+}
+
+@keyframes avatar-glow {
+  0%, 100% {
+    box-shadow: 
+      0 0 30px rgba(230, 0, 18, 0.3),
+      0 0 60px rgba(106, 168, 79, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 40px rgba(230, 0, 18, 0.5),
+      0 0 80px rgba(106, 168, 79, 0.3);
+  }
+}
+
+.dark @keyframes avatar-glow {
+  0%, 100% {
+    box-shadow: 
+      0 0 30px rgba(255, 153, 204, 0.4),
+      0 0 60px rgba(136, 176, 75, 0.3);
+  }
+  50% {
+    box-shadow: 
+      0 0 40px rgba(255, 153, 204, 0.6),
+      0 0 80px rgba(136, 176, 75, 0.4);
+  }
+}
+
+/* Avatar inner circle */
+.avatar-frame > * {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+/* Profile form transitions */
+.profile-card input:not(:disabled) {
+  background: hsl(var(--background));
+  transition: all 0.2s ease;
+}
+
+.profile-card input:not(:disabled):focus {
+  border-color: hsl(var(--torii-red) / 0.5);
+  box-shadow: 0 0 0 3px hsl(var(--torii-red) / 0.1);
+}
+
+.dark .profile-card input:not(:disabled):focus {
+  border-color: hsl(var(--cherry-glow-pink) / 0.5);
+  box-shadow: 0 0 0 3px hsl(var(--cherry-glow-pink) / 0.1);
+}
+
+/* Switch styling for notifications */
+button[role="switch"][data-state="checked"] {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--matcha-green)),
+    hsl(var(--bamboo-green))
+  );
+}
+
+.dark button[role="switch"][data-state="checked"] {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--bamboo-green)),
+    hsl(var(--lantern-glow-orange))
+  );
+}
+
+/* Responsive avatar */
+@media (max-width: 768px) {
+  .avatar-frame {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .avatar-frame {
+    width: 120px;
+    height: 120px;
+  }
+}
+
