@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useContentAutoDiscovery, DiscoveredContent } from "@/hooks/useContentAutoDiscovery";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw, Zap, ZapOff, Copy, AlertCircle } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw, Zap, ZapOff, Copy, AlertCircle, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 interface AutoDiscoveryPanelProps {
@@ -26,6 +26,7 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
   const [sortBy, setSortBy] = useState<"confidence" | "category" | "text">("confidence");
   const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
   const [selectedKeepKeys, setSelectedKeepKeys] = useState<Record<number, string>>({});
+  const [autoCleanMode, setAutoCleanMode] = useState<'preview' | 'auto'>('preview');
   
   const {
     discoveries,
@@ -94,7 +95,30 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
         initialSelections[index] = sortedEntries[0].key;
       });
       setSelectedKeepKeys(initialSelections);
-      setShowDuplicatesModal(true);
+      
+      // If auto mode, clean immediately without modal
+      if (autoCleanMode === 'auto') {
+        await handleCleanAllDuplicates(initialSelections, found);
+      } else {
+        setShowDuplicatesModal(true);
+      }
+    }
+  };
+
+  const handleCleanAllDuplicates = async (keysToKeep: Record<number, string>, duplicateGroups: typeof duplicates) => {
+    try {
+      let cleanedCount = 0;
+      for (let i = 0; i < duplicateGroups.length; i++) {
+        const keepKey = keysToKeep[i];
+        if (keepKey) {
+          await cleanupDuplicates(i, keepKey);
+          cleanedCount++;
+        }
+      }
+      toast.success(`🧹 Auto-cleaned ${cleanedCount} duplicate group(s) successfully`);
+      await findDuplicates(); // Refresh
+    } catch (error) {
+      toast.error("Failed to clean duplicates");
     }
   };
 
@@ -121,8 +145,8 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
       {/* Duplicate Detection Section */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Copy className="h-5 w-5 text-primary" />
                 Duplicate Detection
@@ -130,14 +154,52 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
                   <Badge variant="destructive">{duplicates.length}</Badge>
                 )}
               </CardTitle>
-              <CardDescription>
-                Find and clean duplicate content entries
-              </CardDescription>
             </div>
-            <Button onClick={handleFindDuplicates} variant="outline" size="sm">
+            <CardDescription>
+              Find and clean duplicate content entries
+            </CardDescription>
+            
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Mode:</span>
+                <span className="text-xs text-muted-foreground">
+                  {autoCleanMode === 'preview' ? 'Preview before delete' : 'Auto-delete immediately'}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAutoCleanMode(autoCleanMode === 'preview' ? 'auto' : 'preview')}
+              >
+                {autoCleanMode === 'preview' ? (
+                  <>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Preview
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Auto
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <Button onClick={handleFindDuplicates} variant="outline" size="sm" className="w-full">
               <Search className="h-4 w-4 mr-2" />
               Scan for Duplicates
             </Button>
+
+            {duplicates.length > 0 && (
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                  ⚠️ Found {duplicates.length} duplicate group(s)
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {autoCleanMode === 'auto' ? 'Auto-cleaned on scan' : 'Click groups below to review'}
+                </p>
+              </div>
+            )}
           </div>
         </CardHeader>
       </Card>
