@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { GradientButton } from "@/components/GradientButton";
 import { useProfile } from "@/hooks/useProfile";
+import { formatCurrency } from "@/lib/currency";
 
 const MONTHS = [
   { name: "Januari", quarter: 1, monthKey: "januari" },
@@ -80,18 +81,77 @@ const toTitleCase = (str: string) => {
 
 export default function Nabila() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { profile } = useProfile();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [availableYears, setAvailableYears] = useState<number[]>([currentYear]);
   const [loading, setLoading] = useState(true);
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [loadingBalance, setLoadingBalance] = useState(true);
   
   const displayName = profile?.full_name 
     ? toTitleCase(profile.full_name)
     : profile?.username 
     ? toTitleCase(profile.username)
     : 'User';
+
+  const getRoleDisplay = (role: string | undefined) => {
+    switch (role) {
+      case 'super_admin':
+        return 'Super Admin';
+      case 'admin':
+        return 'Admin';
+      case 'user':
+        return 'User';
+      default:
+        return 'User';
+    }
+  };
+
+  const getRoleBadgeStyle = (role: string | undefined) => {
+    switch (role) {
+      case 'super_admin':
+        return 'bg-gradient-to-r from-purple-600 via-pink-600 to-red-600';
+      case 'admin':
+        return 'bg-gradient-to-r from-blue-600 to-cyan-600';
+      case 'user':
+        return 'bg-gradient-to-r from-gray-600 to-gray-700';
+      default:
+        return 'bg-gradient-to-r from-gray-600 to-gray-700';
+    }
+  };
+
+  // Fetch bank accounts and calculate total balance
+  useEffect(() => {
+    const fetchBankAccounts = async () => {
+      if (!user) return;
+      
+      setLoadingBalance(true);
+      try {
+        const { data: accounts, error } = await supabase
+          .from('bank_accounts')
+          .select('balance')
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+        
+        if (error) throw error;
+        
+        const total = accounts?.reduce((sum, account) => 
+          sum + (Number(account.balance) || 0), 0
+        ) || 0;
+        
+        setTotalBalance(total);
+      } catch (error) {
+        console.error('Error fetching bank accounts:', error);
+        setTotalBalance(0);
+      } finally {
+        setLoadingBalance(false);
+      }
+    };
+
+    fetchBankAccounts();
+  }, [user]);
 
   // Fetch available years from database based on actual financial data
   useEffect(() => {
@@ -208,8 +268,8 @@ export default function Nabila() {
                   {displayName}
                 </h2>
                 <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold">
-                    v24.0.0
+                  <span className={`px-3 py-1 rounded-full text-white text-xs font-semibold ${getRoleBadgeStyle(userRole?.role)}`}>
+                    {getRoleDisplay(userRole?.role)}
                   </span>
                 </div>
               </div>
@@ -217,7 +277,24 @@ export default function Nabila() {
             </div>
             
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border/50">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-border/50">
+              {/* Total Saldo Card */}
+              <div className="col-span-2 md:col-span-1 p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-2 border-purple-200 dark:border-purple-800">
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground font-medium">Total Saldo</div>
+                  {loadingBalance ? (
+                    <div className="text-lg font-bold text-purple-600">
+                      <div className="animate-pulse">Loading...</div>
+                    </div>
+                  ) : (
+                    <div className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      {formatCurrency(totalBalance)}
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground">Bank Accounts</div>
+                </div>
+              </div>
+              
               <div className="text-center space-y-1">
                 <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                   12
