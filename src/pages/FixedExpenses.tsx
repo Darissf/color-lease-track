@@ -170,7 +170,7 @@ const FixedExpensesContent = () => {
       // Show hanko notification instead of toast
       addNotification({
         type: 'paid',
-        title: '支払完了',
+        title: 'Pembayaran Selesai',
         message: `${expense.expense_name} berhasil dibayar!`,
         expenseName: expense.expense_name,
         amount: amount,

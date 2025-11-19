@@ -55,7 +55,7 @@ export const useExpenseNotifications = (
         if (expense.due_date_day === todayDay) {
           addNotification({
             type: 'due-today',
-            title: '本日支払期限',
+            title: 'Jatuh Tempo Hari Ini',
             message: `${expense.expense_name} jatuh tempo hari ini`,
             expenseName: expense.expense_name,
             amount,
@@ -65,7 +65,7 @@ export const useExpenseNotifications = (
         else if (daysUntilDue < 0) {
           addNotification({
             type: 'overdue',
-            title: '支払遅延',
+            title: 'Pembayaran Terlambat',
             message: `${expense.expense_name} sudah terlambat ${Math.abs(daysUntilDue)} hari`,
             expenseName: expense.expense_name,
             amount,
@@ -75,7 +75,7 @@ export const useExpenseNotifications = (
         else if (daysUntilDue > 0 && daysUntilDue <= reminderDays) {
           addNotification({
             type: 'due-soon',
-            title: '支払期限接近',
+            title: 'Segera Jatuh Tempo',
             message: `${expense.expense_name} akan jatuh tempo dalam ${daysUntilDue} hari`,
             expenseName: expense.expense_name,
             amount,
