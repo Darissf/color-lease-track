@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useContentAutoDiscovery, DiscoveredContent } from "@/hooks/useContentAutoDiscovery";
+import { useContentAutoDiscovery, DiscoveredContent, DeletedItem } from "@/hooks/useContentAutoDiscovery";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw, Zap, ZapOff, Copy, AlertCircle, Eye } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw, Zap, ZapOff, Copy, AlertCircle, Eye, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface AutoDiscoveryPanelProps {
@@ -34,6 +34,7 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
     smartAutoEnabled,
     autoSavedCount,
     duplicates,
+    undoBuffer,
     scanPage,
     approveDiscovery,
     updateKey,
@@ -45,6 +46,8 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
     findDuplicates,
     cleanupDuplicates,
     analyzeKeyQuality,
+    undoDelete,
+    clearUndoBuffer,
   } = useContentAutoDiscovery();
 
   const filteredDiscoveries = discoveries
@@ -133,7 +136,12 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
         }
       }
       
-      toast.success(`✅ Auto-cleaned ${cleanedCount} duplicate group(s) successfully`);
+      toast.success(`✅ Auto-cleaned ${cleanedCount} duplicate group(s) successfully`, {
+        action: {
+          label: "Undo",
+          onClick: () => undoDelete()
+        }
+      });
       await findDuplicates(); // Refresh
     } catch (error) {
       toast.error("Failed to clean duplicates");
@@ -221,6 +229,48 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
           </div>
         </CardHeader>
       </Card>
+
+      {/* Undo Banner */}
+      {undoBuffer.length > 0 && (
+        <Card className="bg-orange-50 dark:bg-orange-950/20 border-orange-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-orange-500" />
+                <div>
+                  <p className="font-medium text-orange-900 dark:text-orange-100">
+                    {undoBuffer.length} item(s) deleted recently
+                  </p>
+                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                    You can undo within 5 minutes
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => undoDelete()}
+                  className="border-orange-300"
+                >
+                  <Undo2 className="h-4 w-4 mr-2" />
+                  Undo All ({undoBuffer.length})
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearUndoBuffer}
+                  className="text-orange-700"
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+            
+            <UndoCountdown undoBuffer={undoBuffer} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Header */}
       <Card>
@@ -530,6 +580,38 @@ interface DiscoveryItemProps {
   onUpdateCategory: (category: string) => void;
   getConfidenceColor: (confidence: number) => string;
   getConfidenceBadge: (confidence: number) => "default" | "secondary" | "outline";
+}
+
+function UndoCountdown({ undoBuffer }: { undoBuffer: DeletedItem[] }) {
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (undoBuffer.length > 0) {
+        const oldestItem = undoBuffer[0];
+        const elapsed = Date.now() - oldestItem.deletedAt;
+        const remaining = (5 * 60 * 1000) - elapsed;
+        
+        if (remaining > 0) {
+          const minutes = Math.floor(remaining / 60000);
+          const seconds = Math.floor((remaining % 60000) / 1000);
+          setTimeLeft(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+        } else {
+          setTimeLeft("Expired");
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [undoBuffer]);
+
+  if (!timeLeft || undoBuffer.length === 0) return null;
+
+  return (
+    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
+      ⏱️ Oldest deletion expires in: {timeLeft}
+    </p>
+  );
 }
 
 function DiscoveryItem({
