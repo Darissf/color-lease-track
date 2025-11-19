@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 import { useContentAutoApply } from "@/hooks/useContentAutoApply";
@@ -142,7 +143,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex h-screen bg-background">
+    <TooltipProvider delayDuration={300}>
+      <div className="flex h-screen bg-background">
       {/* Notion-style Sidebar */}
       <aside
         className={`${
@@ -172,25 +174,31 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </p>
               )}
               {pagesItems.map((item) => (
-                <NavLink
-                  key={item.url}
-                  to={item.url}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
-                  activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
-                >
-                  <div className="flex items-center gap-2">
-                    <item.icon className="h-4 w-4 flex-shrink-0" />
-                    {sidebarOpen && <span>{item.title}</span>}
-                  </div>
-                  {sidebarOpen && item.badge && (
-                    <Badge 
-                      variant={item.badgeVariant} 
-                      className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider"
+                <Tooltip key={item.url}>
+                  <TooltipTrigger asChild>
+                    <NavLink
+                      to={item.url}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
+                      activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                     >
-                      {item.badge}
-                    </Badge>
-                  )}
-                </NavLink>
+                      <div className="flex items-center gap-2">
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {sidebarOpen && <span>{item.title}</span>}
+                      </div>
+                      {sidebarOpen && item.badge && (
+                        <Badge 
+                          variant={item.badgeVariant} 
+                          className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider"
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </NavLink>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="font-medium">
+                    {item.title}
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </>
           )}
@@ -207,25 +215,31 @@ export function Layout({ children }: { children: React.ReactNode }) {
               {adminNavItems.map((item) => {
                 if (item.superAdminOnly && !isSuperAdmin) return null;
                 return (
-                  <NavLink
-                    key={item.url}
-                    to={item.url}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
-                    activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
-                  >
-                    <div className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {sidebarOpen && <span>{item.title}</span>}
-                    </div>
-                    {sidebarOpen && item.badge && (
-                      <Badge 
-                        variant={item.badgeVariant} 
-                        className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider"
+                  <Tooltip key={item.url}>
+                    <TooltipTrigger asChild>
+                      <NavLink
+                        to={item.url}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
+                        activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
                       >
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </NavLink>
+                        <div className="flex items-center gap-2">
+                          <item.icon className="h-4 w-4 flex-shrink-0" />
+                          {sidebarOpen && <span>{item.title}</span>}
+                        </div>
+                        {sidebarOpen && item.badge && (
+                          <Badge 
+                            variant={item.badgeVariant} 
+                            className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider"
+                          >
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </NavLink>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium">
+                      {item.title}
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })}
             </>
@@ -332,5 +346,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
