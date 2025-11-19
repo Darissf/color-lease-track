@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { EditableContentProvider } from "./contexts/EditableContentContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { HankoNotificationContainer } from "./components/HankoNotificationContainer";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
 
@@ -50,10 +52,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <HankoNotificationContainer />
       <BrowserRouter>
         <AuthProvider>
-          <EditableContentProvider>
-            <Routes>
+          <NotificationProvider>
+            <EditableContentProvider>
+              <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
@@ -99,8 +103,9 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            </Routes>
-          </EditableContentProvider>
+              </Routes>
+            </EditableContentProvider>
+          </NotificationProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
