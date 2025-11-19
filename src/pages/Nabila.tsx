@@ -211,9 +211,6 @@ export default function Nabila() {
                   <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold">
                     v24.0.0
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    DKI Bank II Sumitro + Minimalis
-                  </span>
                 </div>
               </div>
               <div className="hidden md:block text-6xl">🏦</div>
