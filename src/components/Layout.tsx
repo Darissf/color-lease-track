@@ -25,7 +25,8 @@ const navItems = [
     { title: "Pengaturan", url: "/settings", icon: Settings, description: "Konfigurasi pengaturan aplikasi" },
     { title: "AI Settings", url: "/settings/ai", icon: Brain, badge: "AI", badgeVariant: "ai" as const, description: "Konfigurasi fitur AI dan model" },
     { title: "Admin Settings", url: "/settings/admin", icon: User2, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola pengguna dan hak akses sistem" },
-    { title: "Edit Page", url: "/edit-page", icon: Edit3, superAdminOnly: true, badge: "AI", badgeVariant: "secondary" as const, description: "Edit konten halaman dengan AI" },
+    { title: "Edit Page", url: "/edit-page", icon: Edit3, superAdminOnly: true, badge: "Quick", badgeVariant: "secondary" as const, description: "Edit konten cepat dengan UI sederhana" },
+    { title: "Content Studio", url: "/content-studio", icon: Sparkles, superAdminOnly: true, badge: "Pro", badgeVariant: "default" as const, description: "Professional content management dengan preview, bulk operations & analytics" },
     { title: "Content Management", url: "/content-management", icon: Edit3, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola konten editable di seluruh aplikasi" },
     { title: "Audit Logs", url: "/audit-logs", icon: Shield, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Lihat log aktivitas dan perubahan sistem" },
   ];
