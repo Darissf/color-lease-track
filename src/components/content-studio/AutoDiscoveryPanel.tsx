@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useContentAutoDiscovery, DiscoveredContent } from "@/hooks/useContentAutoDiscovery";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Sparkles, Save, Trash2, RefreshCw, Zap, ZapOff } from "lucide-react";
 
 interface AutoDiscoveryPanelProps {
   currentPage: string;
@@ -24,6 +24,8 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
   const {
     discoveries,
     isScanning,
+    smartAutoEnabled,
+    autoSavedCount,
     scanPage,
     approveDiscovery,
     updateKey,
@@ -31,6 +33,7 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
     bulkApprove,
     saveApproved,
     clearDiscoveries,
+    toggleSmartAuto,
   } = useContentAutoDiscovery();
 
   const filteredDiscoveries = discoveries
@@ -80,16 +83,36 @@ export default function AutoDiscoveryPanel({ currentPage }: AutoDiscoveryPanelPr
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
+            <div className="space-y-1">
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
                 Auto-Discovery
+                {smartAutoEnabled && (
+                  <Badge variant="secondary" className="text-xs">
+                    Smart Auto (≥80%)
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>
-                Automatically scan and capture content from the current page
+                {smartAutoEnabled 
+                  ? "High-confidence items (≥80%) are auto-saved. Review remaining items below."
+                  : "Scan pages and manually review discovered content"}
               </CardDescription>
+              {autoSavedCount > 0 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  ✨ {autoSavedCount} items auto-saved this session
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={toggleSmartAuto}
+                variant={smartAutoEnabled ? "default" : "outline"}
+                size="sm"
+              >
+                {smartAutoEnabled ? <Zap className="mr-2 h-4 w-4" /> : <ZapOff className="mr-2 h-4 w-4" />}
+                Smart Auto
+              </Button>
               <Button
                 onClick={handleScan}
                 disabled={isScanning}
