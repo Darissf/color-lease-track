@@ -26,6 +26,21 @@ export const useContentAutoDiscovery = () => {
   }>>([]);
   const { toast } = useToast();
 
+  const analyzeKeyQuality = useCallback((key: string): { type: 'semantic' | 'component' | 'generated', priority: number, score: number } => {
+    // Semantic keys: short, descriptive, human-readable (e.g., dashboard.ai_advisor_title)
+    if (key.includes('.') && !key.includes('[') && !key.includes('>') && key.length < 50) {
+      return { type: 'semantic', priority: 1, score: 100 - key.length };
+    }
+    
+    // Component-based keys: uses component names (e.g., CardTitle.heading)
+    if (key.match(/^[A-Z][a-zA-Z]+\./)) {
+      return { type: 'component', priority: 2, score: 80 - key.length };
+    }
+    
+    // Generated keys: long selector-based (e.g., /:div[0]>div[2]...)
+    return { type: 'generated', priority: 3, score: Math.max(0, 50 - key.length / 2) };
+  }, []);
+
   const generateIntelligentKey = useCallback((element: HTMLElement, pagePath: string): string => {
     const tagName = element.tagName.toLowerCase();
     const className = element.className || "";
@@ -397,5 +412,6 @@ export const useContentAutoDiscovery = () => {
     toggleSmartAuto,
     findDuplicates,
     cleanupDuplicates,
+    analyzeKeyQuality,
   };
 };
