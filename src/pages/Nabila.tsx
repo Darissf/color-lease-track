@@ -72,6 +72,12 @@ const QUARTER_THEMES = {
   },
 };
 
+const toTitleCase = (str: string) => {
+  return str.toLowerCase().split(' ').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
+
 export default function Nabila() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -80,6 +86,12 @@ export default function Nabila() {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [availableYears, setAvailableYears] = useState<number[]>([currentYear]);
   const [loading, setLoading] = useState(true);
+  
+  const displayName = profile?.full_name 
+    ? toTitleCase(profile.full_name)
+    : profile?.username 
+    ? toTitleCase(profile.username)
+    : 'User';
 
   // Fetch available years from database based on actual financial data
   useEffect(() => {
@@ -193,7 +205,7 @@ export default function Nabila() {
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent">
-                  {profile?.full_name || profile?.username || 'User'}
+                  {displayName}
                 </h2>
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold">
