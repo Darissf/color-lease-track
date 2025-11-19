@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
-import { Keyboard, LayoutDashboard, FileEdit, History, Download, Settings } from "lucide-react";
+import { Keyboard, LayoutDashboard, FileEdit, History, Download, Settings, Sparkles } from "lucide-react";
 import FilterPanel from "@/components/content-studio/FilterPanel";
 import { SearchPanel } from "@/components/content-studio/SearchPanel";
 import { ContentList } from "@/components/content-studio/ContentList";
@@ -15,6 +15,7 @@ import ContentDashboard from "@/components/content-studio/ContentDashboard";
 import { ContentHistory } from "@/components/content-studio/ContentHistory";
 import ImportExport from "@/components/content-studio/ImportExport";
 import KeyboardShortcuts from "@/components/content-studio/KeyboardShortcuts";
+import AutoDiscoveryPanel from "@/components/content-studio/AutoDiscoveryPanel";
 import { useContentStore } from "@/stores/contentStore";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -121,6 +122,10 @@ export default function ContentStudio() {
               <Download className="h-4 w-4 mr-2" />
               Import/Export
             </TabsTrigger>
+            <TabsTrigger value="auto-discovery">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Auto-Discovery
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="editor" className="flex-1 overflow-hidden mt-4">
@@ -193,6 +198,10 @@ export default function ContentStudio() {
 
           <TabsContent value="import-export" className="flex-1 overflow-y-auto px-6">
             <ImportExport />
+          </TabsContent>
+
+          <TabsContent value="auto-discovery" className="flex-1 overflow-y-auto px-6">
+            <AutoDiscoveryPanel currentPage={window.location.pathname} />
           </TabsContent>
         </Tabs>
       </div>
