@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { GradientButton } from "@/components/GradientButton";
+import { useProfile } from "@/hooks/useProfile";
 
 const MONTHS = [
   { name: "Januari", quarter: 1, monthKey: "januari" },
@@ -74,6 +75,7 @@ const QUARTER_THEMES = {
 export default function Nabila() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { profile } = useProfile();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [availableYears, setAvailableYears] = useState<number[]>([currentYear]);
@@ -191,7 +193,7 @@ export default function Nabila() {
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent">
-                  Nabila
+                  {profile?.full_name || profile?.username || 'User'}
                 </h2>
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold">
