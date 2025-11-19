@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,7 @@ import { GradientButton } from "@/components/GradientButton";
 import { useProfile } from "@/hooks/useProfile";
 import { formatCurrency } from "@/lib/currency";
 import { toast } from "sonner";
+import { BankBalanceHistory } from "@/components/BankBalanceHistory";
 
 const MONTHS = [
   { name: "Januari", quarter: 1, monthKey: "januari" },
@@ -90,6 +92,8 @@ export default function Nabila() {
   const [loading, setLoading] = useState(true);
   const [totalBalance, setTotalBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
+  const [prevBalance, setPrevBalance] = useState(0);
+  const [isBalanceAnimating, setIsBalanceAnimating] = useState(false);
   
   const displayName = profile?.full_name 
     ? toTitleCase(profile.full_name)
@@ -142,6 +146,13 @@ export default function Nabila() {
           sum + (Number(account.balance) || 0), 0
         ) || 0;
         
+        // Trigger animation jika balance berubah
+        if (total !== totalBalance && totalBalance !== 0) {
+          setPrevBalance(totalBalance);
+          setIsBalanceAnimating(true);
+          setTimeout(() => setIsBalanceAnimating(false), 600);
+        }
+        
         setTotalBalance(total);
       } catch (error) {
         console.error('Error fetching bank accounts:', error);
@@ -173,6 +184,10 @@ export default function Nabila() {
         (payload) => {
           console.log('Bank account change detected:', payload);
           
+          // Trigger animation sebelum fetch
+          setIsBalanceAnimating(true);
+          setTimeout(() => setIsBalanceAnimating(false), 600);
+          
           // Recalculate total balance
           const fetchBankAccounts = async () => {
             try {
@@ -188,6 +203,7 @@ export default function Nabila() {
                 sum + (Number(account.balance) || 0), 0
               ) || 0;
               
+              setPrevBalance(totalBalance);
               setTotalBalance(total);
 
               // Show notification based on event type
@@ -352,7 +368,9 @@ export default function Nabila() {
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-border/50">
               {/* Total Saldo Card */}
-              <div className="col-span-2 md:col-span-1 p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-2 border-purple-200 dark:border-purple-800">
+              <div className={`col-span-2 md:col-span-1 p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-2 border-purple-200 dark:border-purple-800 transition-all duration-300 ${
+                isBalanceAnimating ? 'animate-pulse-scale' : ''
+              }`}>
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground font-medium">Total Saldo</div>
                   {loadingBalance ? (
@@ -360,9 +378,22 @@ export default function Nabila() {
                       <div className="animate-pulse">Loading...</div>
                     </div>
                   ) : (
-                    <div className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                      {formatCurrency(totalBalance)}
-                    </div>
+                    <>
+                      <div className={`text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent transition-all duration-500 ${
+                        isBalanceAnimating ? 'animate-counter-up' : ''
+                      }`}>
+                        {formatCurrency(totalBalance)}
+                      </div>
+                      
+                      {/* Show change indicator jika ada perubahan */}
+                      {isBalanceAnimating && prevBalance > 0 && (
+                        <div className={`text-xs font-semibold ${
+                          totalBalance > prevBalance ? 'text-green-600' : 'text-red-600'
+                        } animate-fade-in`}>
+                          {totalBalance > prevBalance ? '↑' : '↓'} {formatCurrency(Math.abs(totalBalance - prevBalance))}
+                        </div>
+                      )}
+                    </>
                   )}
                   <div className="text-xs text-muted-foreground">Bank Accounts</div>
                 </div>
@@ -411,7 +442,22 @@ export default function Nabila() {
           </div>
         </Card>
 
-
+        {/* Bank Balance History Section */}
+        <div className="mt-8">
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="balance-history" className="border rounded-lg px-4">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  <span className="font-semibold">Riwayat Perubahan Saldo</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <BankBalanceHistory />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
 
         {/* Laporan Bulanan Finansial - Quarters */}
         <Card className="p-8 shadow-xl">

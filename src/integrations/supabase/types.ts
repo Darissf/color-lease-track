@@ -315,6 +315,53 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_account_balance_history: {
+        Row: {
+          bank_account_id: string
+          bank_name: string
+          change_amount: number | null
+          change_type: string | null
+          created_at: string
+          id: string
+          new_balance: number
+          notes: string | null
+          old_balance: number
+          user_id: string
+        }
+        Insert: {
+          bank_account_id: string
+          bank_name: string
+          change_amount?: number | null
+          change_type?: string | null
+          created_at?: string
+          id?: string
+          new_balance: number
+          notes?: string | null
+          old_balance: number
+          user_id: string
+        }
+        Update: {
+          bank_account_id?: string
+          bank_name?: string
+          change_amount?: number | null
+          change_type?: string | null
+          created_at?: string
+          id?: string
+          new_balance?: number
+          notes?: string | null
+          old_balance?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_account_balance_history_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_accounts: {
         Row: {
           account_holder_name: string | null
