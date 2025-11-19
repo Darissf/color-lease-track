@@ -2,17 +2,17 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf, Clock } from "lucide-react";
+import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf, Clock, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { GradientButton } from "@/components/GradientButton";
 import { useProfile } from "@/hooks/useProfile";
 import { formatCurrency } from "@/lib/currency";
 import { toast } from "sonner";
 import { BankBalanceHistory } from "@/components/BankBalanceHistory";
+import { useTheme } from "@/components/ui/theme-provider";
 
 const MONTHS = [
   { name: "Januari", quarter: 1, monthKey: "januari" },
@@ -86,6 +86,7 @@ export default function Nabila() {
   const navigate = useNavigate();
   const { user, userRole } = useAuth();
   const { profile } = useProfile();
+  const { theme, setTheme } = useTheme();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [availableYears, setAvailableYears] = useState<number[]>([currentYear]);
@@ -336,24 +337,100 @@ export default function Nabila() {
   ];
 
   return (
-    <AnimatedBackground theme="neutral">
-      <div className="max-w-7xl mx-auto space-y-8 p-6">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-6xl md:text-7xl font-serif italic bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-900">
+      {/* Animated Stars Background - Minimal */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(30)].map((_, i) => (
+          <div
+            key={`star-${i}`}
+            className="absolute rounded-full bg-white animate-pulse"
+            style={{
+              width: Math.random() * 2 + 1 + 'px',
+              height: Math.random() * 2 + 1 + 'px',
+              top: Math.random() * 100 + '%',
+              left: Math.random() * 100 + '%',
+              animationDelay: Math.random() * 3 + 's',
+              animationDuration: Math.random() * 2 + 2 + 's'
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Moon */}
+      <div className="absolute top-20 right-20 pointer-events-none">
+        <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-yellow-200 to-orange-200 shadow-2xl shadow-yellow-500/30 animate-float">
+          <div className="absolute inset-2 rounded-full bg-gradient-to-br from-yellow-100 to-orange-100 opacity-80"></div>
+          {/* Crater details */}
+          <div className="absolute top-8 left-8 w-6 h-6 rounded-full bg-yellow-300/30"></div>
+          <div className="absolute bottom-10 right-12 w-4 h-4 rounded-full bg-orange-300/20"></div>
+        </div>
+      </div>
+
+      {/* Sakura Petals - Minimal */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={`sakura-${i}`}
+            className="absolute text-2xl opacity-70 animate-float"
+            style={{
+              top: -20 + 'px',
+              left: Math.random() * 100 + '%',
+              animationDelay: Math.random() * 5 + 's',
+              animationDuration: Math.random() * 5 + 8 + 's'
+            }}
+          >
+            🌸
+          </div>
+        ))}
+      </div>
+
+      {/* Fireflies - Minimal */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={`firefly-${i}`}
+            className="absolute w-1 h-1 bg-yellow-300 rounded-full shadow-lg shadow-yellow-400/50 animate-pulse"
+            style={{
+              top: Math.random() * 80 + 10 + '%',
+              left: Math.random() * 90 + 5 + '%',
+              animationDelay: Math.random() * 2 + 's',
+              animationDuration: Math.random() * 2 + 1 + 's'
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Theme Toggle Button */}
+      <button
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        className="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all duration-300 group"
+        aria-label="Toggle theme"
+      >
+        {theme === "dark" ? (
+          <Sun className="h-5 w-5 text-yellow-300 group-hover:rotate-180 transition-transform duration-500" />
+        ) : (
+          <Moon className="h-5 w-5 text-indigo-300 group-hover:-rotate-12 transition-transform duration-500" />
+        )}
+      </button>
+
+      {/* Content */}
+      <div className="relative z-10 max-w-7xl mx-auto space-y-8 p-6">
+        {/* Header with Gradient */}
+        <div className="text-center space-y-4 py-12">
+          <h1 className="text-6xl md:text-8xl font-serif italic bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-2xl animate-fade-in">
             Financial Planner.
           </h1>
-          <p className="text-3xl md:text-4xl font-serif italic bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent">
+          <p className="text-3xl md:text-4xl font-serif italic bg-gradient-to-r from-slate-300 to-slate-400 bg-clip-text text-transparent animate-fade-in" style={{ animationDelay: '0.2s' }}>
             KAKEIBO PAGE
           </p>
         </div>
 
-        {/* Info Card with Glassmorphic Style */}
-        <Card className="p-8 bg-gradient-to-br from-white/60 to-white/40 dark:from-slate-900/60 dark:to-slate-800/40 backdrop-blur-sm border-2 shadow-xl hover:shadow-2xl transition-all duration-300">
+        {/* Info Card with Glass Effect */}
+        <Card className="p-8 bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 animate-scale-in">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent">
                   {displayName}
                 </h2>
                 <div className="flex items-center gap-2">
@@ -366,20 +443,20 @@ export default function Nabila() {
             </div>
             
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-border/50">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-white/10">
               {/* Total Saldo Card */}
-              <div className={`col-span-2 md:col-span-1 p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-2 border-purple-200 dark:border-purple-800 transition-all duration-300 ${
+              <div className={`col-span-2 md:col-span-1 p-4 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-purple-400/30 backdrop-blur-sm transition-all duration-300 ${
                 isBalanceAnimating ? 'animate-pulse-scale' : ''
               }`}>
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground font-medium">Total Saldo</div>
+                  <div className="text-xs text-purple-200 font-medium">Total Saldo</div>
                   {loadingBalance ? (
-                    <div className="text-lg font-bold text-purple-600">
+                    <div className="text-lg font-bold text-purple-300">
                       <div className="animate-pulse">Loading...</div>
                     </div>
                   ) : (
                     <>
-                      <div className={`text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent transition-all duration-500 ${
+                      <div className={`text-lg font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent transition-all duration-500 ${
                         isBalanceAnimating ? 'animate-counter-up' : ''
                       }`}>
                         {formatCurrency(totalBalance)}
@@ -388,96 +465,99 @@ export default function Nabila() {
                       {/* Show change indicator jika ada perubahan */}
                       {isBalanceAnimating && prevBalance > 0 && (
                         <div className={`text-xs font-semibold ${
-                          totalBalance > prevBalance ? 'text-green-600' : 'text-red-600'
+                          totalBalance > prevBalance ? 'text-green-300' : 'text-red-300'
                         } animate-fade-in`}>
                           {totalBalance > prevBalance ? '↑' : '↓'} {formatCurrency(Math.abs(totalBalance - prevBalance))}
                         </div>
                       )}
                     </>
                   )}
-                  <div className="text-xs text-muted-foreground">Bank Accounts</div>
+                  <div className="text-xs text-purple-200/70">Bank Accounts</div>
                 </div>
               </div>
               
               {/* Bulan Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 border-2 border-blue-200 dark:border-blue-800">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-2 border-blue-400/30 backdrop-blur-sm">
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
                     12
                   </div>
-                  <div className="text-xs text-muted-foreground font-medium">Bulan</div>
+                  <div className="text-xs text-blue-200 font-medium">Bulan</div>
                 </div>
               </div>
               
               {/* Kuartal Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 border-2 border-emerald-200 dark:border-emerald-800">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-indigo-400/30 backdrop-blur-sm">
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
                     4
                   </div>
-                  <div className="text-xs text-muted-foreground font-medium">Kuartal</div>
+                  <div className="text-xs text-indigo-200 font-medium">Kuartal</div>
                 </div>
               </div>
               
-              {/* Tahun Data Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-2 border-orange-200 dark:border-orange-800">
+              {/* Data Years Card */}
+              <div className="p-4 rounded-lg bg-gradient-to-br from-pink-500/20 to-rose-500/20 border-2 border-pink-400/30 backdrop-blur-sm">
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-pink-300 to-rose-300 bg-clip-text text-transparent">
                     {availableYears.length}
                   </div>
-                  <div className="text-xs text-muted-foreground font-medium">Tahun Data</div>
+                  <div className="text-xs text-pink-200 font-medium">Data Years</div>
                 </div>
               </div>
               
-              {/* Siap Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30 border-2 border-rose-200 dark:border-rose-800">
+              {/* Readiness Card */}
+              <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-2 border-emerald-400/30 backdrop-blur-sm">
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
-                    100%
+                  <div className="text-2xl font-bold bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
+                    95%
                   </div>
-                  <div className="text-xs text-muted-foreground font-medium">Siap</div>
+                  <div className="text-xs text-emerald-200 font-medium">Readiness</div>
                 </div>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Bank Balance History Section */}
-        <div className="mt-8">
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="balance-history" className="border rounded-lg px-4">
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  <span className="font-semibold">Riwayat Perubahan Saldo</span>
+        {/* Bank Balance History Accordion */}
+        <Accordion type="single" collapsible className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <AccordionItem value="bank-history" className="border border-white/20 rounded-lg bg-white/10 backdrop-blur-lg">
+            <AccordionTrigger className="px-6 py-4 hover:no-underline group">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/30 to-cyan-500/30 group-hover:from-blue-500/40 group-hover:to-cyan-500/40 transition-all">
+                  <Clock className="h-5 w-5 text-blue-200" />
                 </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <BankBalanceHistory />
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-
-        {/* Laporan Bulanan Finansial - Quarters */}
-        <Card className="p-8 shadow-xl">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
-                <TrendingUp className="h-6 w-6 text-white" />
+                <span className="text-lg font-semibold bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+                  Riwayat Perubahan Saldo Bank
+                </span>
               </div>
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent">
-                Laporan Bulanan Finansial
-              </h3>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">Tahun:</span>
-              <Select 
-                value={selectedYear.toString()} 
-                onValueChange={(value) => setSelectedYear(parseInt(value))}
-                disabled={loading}
-              >
-                <SelectTrigger className="w-[140px] border-2 focus:border-purple-500 transition-colors">
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-4">
+              <BankBalanceHistory />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
+        {/* Laporan Bulanan Finansial */}
+        <Card className="p-8 relative overflow-hidden bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-rose-500/10 pointer-events-none"></div>
+          
+          <div className="relative space-y-6">
+            {/* Section Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/30 to-pink-500/30 backdrop-blur-sm">
+                  <Calendar className="h-6 w-6 text-purple-200" />
+                </div>
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-300 via-pink-300 to-rose-300 bg-clip-text text-transparent">
+                  Laporan Bulanan Finansial
+                </h3>
+              </div>
+              
+              {/* Year Selector */}
+              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                <SelectTrigger className="w-32 bg-white/10 backdrop-blur-sm border-white/20 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -489,119 +569,123 @@ export default function Nabila() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {quarters.map((quarter) => {
-              const theme = QUARTER_THEMES[quarter.number as keyof typeof QUARTER_THEMES];
-              const QuarterIcon = theme.icon;
-              
-              return (
-                <div 
-                  key={quarter.number} 
-                  className={`relative overflow-hidden rounded-xl border-2 ${theme.border} bg-gradient-to-br ${theme.bg} p-6 shadow-lg ${theme.shadow} transition-all duration-300 hover:shadow-2xl`}
-                >
-                  {/* Gradient Top Bar */}
-                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.gradient}`}></div>
+            
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
+                <p className="mt-4 text-purple-200">Loading data...</p>
+              </div>
+            ) : (
+              <div className="grid gap-6">
+                {quarters.map((quarter) => {
+                  const theme = QUARTER_THEMES[quarter.number as keyof typeof QUARTER_THEMES];
+                  const Icon = theme.icon;
                   
-                  {/* Quarter Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-3xl">{theme.emoji}</span>
-                        <h4 className={`text-xl font-bold bg-gradient-to-r ${theme.textGradient} bg-clip-text text-transparent`}>
-                          Q{quarter.number}
-                        </h4>
-                      </div>
-                      <p className="text-xs text-muted-foreground font-medium">{theme.name}</p>
-                    </div>
-                    <div className={`p-2 rounded-lg bg-gradient-to-br ${theme.gradient} bg-opacity-10`}>
-                      <QuarterIcon className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </div>
-                  
-                  {/* Month Buttons */}
-                  <div className="space-y-2">
-                    {quarter.months.map((month) => (
-                      <button
-                        key={month.name}
-                        className={`w-full group relative overflow-hidden rounded-lg border ${theme.border} bg-white/80 dark:bg-slate-900/80 p-3 text-left transition-all duration-300 ${theme.hover} hover:scale-105 active:scale-95`}
-                        onClick={() => navigate(`/month/${selectedYear}/${month.monthKey}`)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`p-1.5 rounded-md bg-gradient-to-br ${theme.gradient} group-hover:scale-110 transition-transform duration-300`}>
-                            <Calendar className="h-3.5 w-3.5 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-semibold text-sm text-foreground group-hover:translate-x-1 transition-transform duration-300">
-                              {month.name}
+                  return (
+                    <Card
+                      key={quarter.number}
+                      className={`p-6 bg-gradient-to-br ${theme.bg} border-2 ${theme.border} ${theme.shadow} ${theme.hover} backdrop-blur-sm transition-all duration-300 cursor-pointer hover:scale-[1.02] group`}
+                    >
+                      <div className="space-y-4">
+                        {/* Quarter Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-3 rounded-lg bg-gradient-to-br ${theme.gradient} shadow-lg`}>
+                              <Icon className="h-6 w-6 text-white" />
                             </div>
-                            <div className="text-xs text-muted-foreground">{selectedYear}</div>
+                            <div>
+                              <h4 className={`text-xl font-bold bg-gradient-to-r ${theme.textGradient} bg-clip-text text-transparent`}>
+                                Kuartal {quarter.number}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">{theme.name} {theme.emoji}</p>
+                            </div>
                           </div>
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                        
+                        {/* Months Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {quarter.months.map((month) => (
+                            <Button
+                              key={month.monthKey}
+                              variant="outline"
+                              onClick={() => navigate(`/monthly-view?month=${month.monthKey}&year=${selectedYear}`)}
+                              className="h-auto py-4 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-slate-700/70 border-2 hover:scale-105 transition-all duration-200"
+                            >
+                              <div className="flex flex-col items-start w-full gap-1">
+                                <div className="flex items-center gap-2 w-full">
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-semibold">{month.name}</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  Lihat Detail →
+                                </span>
+                              </div>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Card>
 
         {/* Rencana Anggaran & Tabungan Bulanan */}
-        <Card className="p-8 relative overflow-hidden shadow-xl">
+        <Card className="p-8 relative overflow-hidden bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl animate-fade-in" style={{ animationDelay: '0.5s' }}>
           {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-rose-500/5 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-rose-500/10 pointer-events-none"></div>
           
           <div className="relative space-y-6">
             {/* Section Header */}
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
-                <Target className="h-6 w-6 text-white" />
+              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/30 to-pink-500/30 backdrop-blur-sm">
+                <Target className="h-6 w-6 text-purple-200" />
               </div>
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent">
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-300 via-pink-300 to-rose-300 bg-clip-text text-transparent">
                 Rencana Anggaran & Tabungan Bulanan
               </h3>
             </div>
             
             {/* Stats Preview Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 border border-emerald-200 dark:border-emerald-800">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-400/30 backdrop-blur-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <Wallet className="h-4 w-4 text-emerald-600" />
-                  <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Target Budget</div>
+                  <Wallet className="h-4 w-4 text-emerald-300" />
+                  <div className="text-xs font-semibold text-emerald-200">Target Budget</div>
                 </div>
-                <div className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                <div className="text-lg font-bold bg-gradient-to-r from-emerald-300 to-green-300 bg-clip-text text-transparent">
                   Rp 0
                 </div>
               </div>
               
-              <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 border border-blue-200 dark:border-blue-800">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/30 backdrop-blur-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
-                  <div className="text-xs font-semibold text-blue-700 dark:text-blue-400">Savings Goal</div>
+                  <TrendingUp className="h-4 w-4 text-blue-300" />
+                  <div className="text-xs font-semibold text-blue-200">Savings Goal</div>
                 </div>
-                <div className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                <div className="text-lg font-bold bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
                   Rp 0
                 </div>
               </div>
               
-              <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-400/30 backdrop-blur-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <Target className="h-4 w-4 text-purple-600" />
-                  <div className="text-xs font-semibold text-purple-700 dark:text-purple-400">Achievement</div>
+                  <Target className="h-4 w-4 text-purple-300" />
+                  <div className="text-xs font-semibold text-purple-200">Achievement</div>
                 </div>
-                <div className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <div className="text-lg font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
                   0%
                 </div>
               </div>
               
-              <div className="p-4 rounded-lg bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-200 dark:border-orange-800">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-orange-500/20 to-amber-500/20 border border-orange-400/30 backdrop-blur-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="h-4 w-4 text-orange-600" />
-                  <div className="text-xs font-semibold text-orange-700 dark:text-orange-400">Months</div>
+                  <Calendar className="h-4 w-4 text-orange-300" />
+                  <div className="text-xs font-semibold text-orange-200">Months</div>
                 </div>
-                <div className="text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                <div className="text-lg font-bold bg-gradient-to-r from-orange-300 to-amber-300 bg-clip-text text-transparent">
                   0/12
                 </div>
               </div>
@@ -622,6 +706,6 @@ export default function Nabila() {
           </div>
         </Card>
       </div>
-    </AnimatedBackground>
+    </div>
   );
 }
