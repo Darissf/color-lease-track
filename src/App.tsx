@@ -52,10 +52,10 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <HankoNotificationContainer />
       <BrowserRouter>
         <AuthProvider>
           <NotificationProvider>
+            <HankoNotificationContainer />
             <EditableContentProvider>
               <Routes>
             <Route path="/login" element={<Login />} />
