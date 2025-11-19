@@ -15,7 +15,7 @@ import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { useNotificationContext } from "@/contexts/NotificationContext";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
   const { profile, loading, refetch } = useProfile();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -361,21 +361,25 @@ export default function Profile() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm">Peringatan Budget</Label>
-                    <Switch
-                      checked={notifications.notification_budget_alert}
-                      onCheckedChange={(checked) => handleNotificationChange("notification_budget_alert", checked)}
-                    />
-                  </div>
+                  {(isAdmin || isSuperAdmin) && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Peringatan Budget</Label>
+                        <Switch
+                          checked={notifications.notification_budget_alert}
+                          onCheckedChange={(checked) => handleNotificationChange("notification_budget_alert", checked)}
+                        />
+                      </div>
 
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm">Laporan Bulanan</Label>
-                    <Switch
-                      checked={notifications.notification_monthly_report}
-                      onCheckedChange={(checked) => handleNotificationChange("notification_monthly_report", checked)}
-                    />
-                  </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Laporan Bulanan</Label>
+                        <Switch
+                          checked={notifications.notification_monthly_report}
+                          onCheckedChange={(checked) => handleNotificationChange("notification_monthly_report", checked)}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
