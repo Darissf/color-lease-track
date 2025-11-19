@@ -162,19 +162,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.url}
-              to={item.url}
-              end={item.url === "/"}
-              className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : ""}`}
-              activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
-            >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span>{item.title}</span>}
-            </NavLink>
-          ))}
-
           {/* Pages Section */}
           {pagesItems.length > 0 && (
             <>
