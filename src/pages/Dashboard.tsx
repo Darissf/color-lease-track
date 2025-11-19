@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEditableContent } from "@/contexts/EditableContentContext";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, CreditCard, Calendar, ArrowUpRight, ArrowDownRight, Users, PieChart as PieChartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +32,7 @@ const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { getContent } = useEditableContent();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<"week" | "month" | "year">("month");
   const [stats, setStats] = useState<DashboardStats>({
@@ -259,10 +261,10 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Financial Dashboard
+                {getContent("dashboard.title", "Financial Dashboard")}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Ringkasan keuangan Anda {period === "week" ? "minggu ini" : period === "month" ? "bulan ini" : "tahun ini"}
+                {getContent("dashboard.subtitle", "Ringkasan keuangan Anda")} {period === "week" ? "minggu ini" : period === "month" ? "bulan ini" : "tahun ini"}
               </p>
             </div>
           </div>
@@ -286,28 +288,28 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <ColoredStatCard
-            title="Total Pemasukan"
+            title={getContent("dashboard.total_income", "Total Pemasukan")}
             value={formatCurrency(stats.totalIncome)}
             icon={ArrowUpRight}
             gradient="income"
             subtitle={period === "week" ? "Minggu ini" : period === "month" ? "Bulan ini" : "Tahun ini"}
           />
           <ColoredStatCard
-            title="Total Pengeluaran"
+            title={getContent("dashboard.total_expenses", "Total Pengeluaran")}
             value={formatCurrency(stats.totalExpenses)}
             icon={ArrowDownRight}
             gradient="expense"
             subtitle={period === "week" ? "Minggu ini" : period === "month" ? "Bulan ini" : "Tahun ini"}
           />
           <ColoredStatCard
-            title="Total Tabungan"
+            title={getContent("dashboard.total_savings", "Total Tabungan")}
             value={formatCurrency(stats.totalSavings)}
             icon={PiggyBank}
             gradient="savings"
             subtitle="Akumulasi"
           />
           <ColoredStatCard
-            title="Savings Rate"
+            title={getContent("dashboard.savings_rate", "Savings Rate")}
             value={`${stats.savingsRate.toFixed(1)}%`}
             icon={Wallet}
             gradient="budget"
