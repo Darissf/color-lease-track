@@ -19,6 +19,11 @@ export const useContentAutoDiscovery = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [smartAutoEnabled, setSmartAutoEnabled] = useState(true);
   const [autoSavedCount, setAutoSavedCount] = useState(0);
+  const [duplicates, setDuplicates] = useState<Array<{
+    content: string;
+    page: string;
+    entries: Array<{ key: string; id: string }>;
+  }>>([]);
   const { toast } = useToast();
 
   const generateIntelligentKey = useCallback((element: HTMLElement, pagePath: string): string => {
@@ -87,12 +92,20 @@ export const useContentAutoDiscovery = () => {
       const elements = document.querySelectorAll(selectorsToScan.join(", "));
       const discovered: DiscoveredContent[] = [];
 
-      // Fetch existing keys to avoid duplicates
+      // Fetch existing content with values to avoid duplicates
       const { data: existingContent } = await supabase
         .from("editable_content")
-        .select("content_key");
+        .select("content_key, content_value, page");
 
       const existingKeys = new Set(existingContent?.map(c => c.content_key) || []);
+      
+      // Create content-based duplicate detection map
+      const existingContentMap = new Map(
+        existingContent?.map(c => ({
+          key: `${c.page}::${c.content_value.trim().toLowerCase()}`,
+          entry: c
+        })).map(item => [item.key, item.entry]) || []
+      );
 
       elements.forEach((el, index) => {
         const element = el as HTMLElement;
@@ -103,6 +116,14 @@ export const useContentAutoDiscovery = () => {
         
         // Skip if already managed by getContent
         if (element.hasAttribute("data-editable-key")) return;
+        
+        // Check for content-based duplicates
+        const contentKey = `${pagePath}::${text.toLowerCase()}`;
+        if (existingContentMap.has(contentKey)) {
+          const existingEntry = existingContentMap.get(contentKey);
+          console.log(`Skipping duplicate content: "${text}" (already exists as "${existingEntry?.content_key}")`);
+          return;
+        }
 
         const suggestedKey = generateIntelligentKey(element, pagePath);
         
@@ -275,11 +296,97 @@ export const useContentAutoDiscovery = () => {
     });
   }, [toast]);
 
+  const findDuplicates = useCallback(async () => {
+    try {
+      const { data: allContent, error } = await supabase
+        .from("editable_content")
+        .select("id, content_key, content_value, page");
+
+      if (error) throw error;
+
+      // Group by content_value + page
+      const groupedContent = new Map<string, Array<{ key: string; id: string }>>();
+      
+      allContent?.forEach(item => {
+        const normalizedKey = `${item.page}::${item.content_value.trim().toLowerCase()}`;
+        if (!groupedContent.has(normalizedKey)) {
+          groupedContent.set(normalizedKey, []);
+        }
+        groupedContent.get(normalizedKey)?.push({
+          key: item.content_key,
+          id: item.id
+        });
+      });
+
+      // Filter only groups with duplicates
+      const duplicateGroups = Array.from(groupedContent.entries())
+        .filter(([_, entries]) => entries.length > 1)
+        .map(([key, entries]) => {
+          const [page, content] = key.split("::");
+          return { content, page, entries };
+        });
+
+      setDuplicates(duplicateGroups);
+      
+      toast({
+        title: "Duplicate Scan Complete",
+        description: `Found ${duplicateGroups.length} duplicate groups`,
+      });
+
+      return duplicateGroups;
+    } catch (error) {
+      console.error("Error finding duplicates:", error);
+      toast({
+        title: "Error",
+        description: "Failed to scan for duplicates",
+        variant: "destructive",
+      });
+      return [];
+    }
+  }, [toast]);
+
+  const cleanupDuplicates = useCallback(async (
+    groupIndex: number,
+    keepKey: string
+  ) => {
+    try {
+      const group = duplicates[groupIndex];
+      const idsToDelete = group.entries
+        .filter(e => e.key !== keepKey)
+        .map(e => e.id);
+
+      if (idsToDelete.length === 0) return;
+
+      const { error } = await supabase
+        .from("editable_content")
+        .delete()
+        .in("id", idsToDelete);
+
+      if (error) throw error;
+
+      toast({
+        title: "Duplicates Cleaned",
+        description: `Removed ${idsToDelete.length} duplicate entries`,
+      });
+
+      // Refresh duplicates list
+      await findDuplicates();
+    } catch (error) {
+      console.error("Error cleaning duplicates:", error);
+      toast({
+        title: "Error",
+        description: "Failed to clean duplicates",
+        variant: "destructive",
+      });
+    }
+  }, [duplicates, toast, findDuplicates]);
+
   return {
     discoveries,
     isScanning,
     smartAutoEnabled,
     autoSavedCount,
+    duplicates,
     scanPage,
     approveDiscovery,
     updateKey,
@@ -288,5 +395,7 @@ export const useContentAutoDiscovery = () => {
     saveApproved,
     clearDiscoveries,
     toggleSmartAuto,
+    findDuplicates,
+    cleanupDuplicates,
   };
 };
