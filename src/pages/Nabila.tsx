@@ -10,6 +10,7 @@ import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { GradientButton } from "@/components/GradientButton";
 import { useProfile } from "@/hooks/useProfile";
 import { formatCurrency } from "@/lib/currency";
+import { toast } from "sonner";
 
 const MONTHS = [
   { name: "Januari", quarter: 1, monthKey: "januari" },
@@ -151,6 +152,78 @@ export default function Nabila() {
     };
 
     fetchBankAccounts();
+  }, [user]);
+
+  // Real-time subscription for bank account changes
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up realtime subscription for bank accounts...');
+
+    const channel = supabase
+      .channel('bank-accounts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'bank_accounts',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Bank account change detected:', payload);
+          
+          // Recalculate total balance
+          const fetchBankAccounts = async () => {
+            try {
+              const { data: accounts, error } = await supabase
+                .from('bank_accounts')
+                .select('balance, bank_name')
+                .eq('user_id', user.id)
+                .eq('is_active', true);
+              
+              if (error) throw error;
+              
+              const total = accounts?.reduce((sum, account) => 
+                sum + (Number(account.balance) || 0), 0
+              ) || 0;
+              
+              setTotalBalance(total);
+
+              // Show notification based on event type
+              if (payload.eventType === 'INSERT') {
+                toast.success('Bank Account Ditambahkan', {
+                  description: `Saldo baru telah ditambahkan`
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                const newBalance = (payload.new as any).balance;
+                const oldBalance = (payload.old as any).balance;
+                const bankName = (payload.new as any).bank_name;
+                
+                if (newBalance !== oldBalance) {
+                  toast.info('Saldo Bank Diupdate', {
+                    description: `${bankName}: ${formatCurrency(oldBalance)} → ${formatCurrency(newBalance)}`
+                  });
+                }
+              } else if (payload.eventType === 'DELETE') {
+                toast.warning('Bank Account Dihapus', {
+                  description: 'Saldo telah diperbarui'
+                });
+              }
+            } catch (error) {
+              console.error('Error fetching updated bank accounts:', error);
+            }
+          };
+
+          fetchBankAccounts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up realtime subscription...');
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   // Fetch available years from database based on actual financial data
@@ -295,29 +368,44 @@ export default function Nabila() {
                 </div>
               </div>
               
-              <div className="text-center space-y-1">
-                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  12
+              {/* Bulan Card */}
+              <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 border-2 border-blue-200 dark:border-blue-800">
+                <div className="text-center space-y-1">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                    12
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium">Bulan</div>
                 </div>
-                <div className="text-xs text-muted-foreground">Bulan</div>
               </div>
-              <div className="text-center space-y-1">
-                <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                  4
+              
+              {/* Kuartal Card */}
+              <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 border-2 border-emerald-200 dark:border-emerald-800">
+                <div className="text-center space-y-1">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                    4
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium">Kuartal</div>
                 </div>
-                <div className="text-xs text-muted-foreground">Kuartal</div>
               </div>
-              <div className="text-center space-y-1">
-                <div className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-                  {availableYears.length}
+              
+              {/* Tahun Data Card */}
+              <div className="p-4 rounded-lg bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-2 border-orange-200 dark:border-orange-800">
+                <div className="text-center space-y-1">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                    {availableYears.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium">Tahun Data</div>
                 </div>
-                <div className="text-xs text-muted-foreground">Tahun Data</div>
               </div>
-              <div className="text-center space-y-1">
-                <div className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
-                  100%
+              
+              {/* Siap Card */}
+              <div className="p-4 rounded-lg bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30 border-2 border-rose-200 dark:border-rose-800">
+                <div className="text-center space-y-1">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
+                    100%
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium">Siap</div>
                 </div>
-                <div className="text-xs text-muted-foreground">Siap</div>
               </div>
             </div>
           </div>
