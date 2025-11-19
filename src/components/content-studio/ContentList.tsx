@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ContentListItem } from "./ContentListItem";
 import { useContentStore } from "@/stores/contentStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { Loader2, FileText } from "lucide-react";
 
 interface ContentItem {
@@ -15,7 +16,18 @@ interface ContentItem {
 }
 
 export function ContentList() {
-  const { searchQuery, filters, selectedContent, setSelectedContent, aiMode, aiResults } = useContentStore();
+  const { 
+    searchQuery, 
+    filters, 
+    selectedContent, 
+    setSelectedContent, 
+    aiMode, 
+    aiResults,
+    selectedIds,
+    toggleSelection,
+    selectAll,
+    clearSelection 
+  } = useContentStore();
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -90,20 +102,44 @@ export function ContentList() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
-        <h2 className="font-semibold">
-          Content Items ({contents.length})
-        </h2>
+      <div className="p-4 border-b space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">
+            Content Items ({contents.length})
+          </h2>
+          {selectedIds.size > 0 ? (
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              Clear ({selectedIds.size})
+            </Button>
+          ) : (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => selectAll(contents.map(c => c.id))}
+            >
+              Select All
+            </Button>
+          )}
+        </div>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {contents.map((content) => (
-            <ContentListItem
-              key={content.id}
-              content={content}
-              isSelected={selectedContent?.id === content.id}
-              onClick={() => setSelectedContent(content)}
-            />
+            <div key={content.id} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(content.id)}
+                onChange={() => toggleSelection(content.id)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <div className="flex-1">
+                <ContentListItem
+                  content={content}
+                  isSelected={selectedContent?.id === content.id}
+                  onClick={() => setSelectedContent(content)}
+                />
+              </div>
+            </div>
           ))}
         </div>
       </ScrollArea>
