@@ -993,6 +993,42 @@ export type Database = {
           },
         ]
       }
+      database_backups: {
+        Row: {
+          backup_size_kb: number | null
+          commit_url: string | null
+          created_at: string
+          error_message: string | null
+          file_path: string | null
+          id: string
+          status: string
+          tables_backed_up: string[] | null
+          user_id: string
+        }
+        Insert: {
+          backup_size_kb?: number | null
+          commit_url?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_path?: string | null
+          id?: string
+          status: string
+          tables_backed_up?: string[] | null
+          user_id: string
+        }
+        Update: {
+          backup_size_kb?: number | null
+          commit_url?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_path?: string | null
+          id?: string
+          status?: string
+          tables_backed_up?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       editable_content: {
         Row: {
           category: string | null
