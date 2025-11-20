@@ -10,7 +10,6 @@ import { HankoNotificationContainer } from "./components/HankoNotificationContai
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
 
-import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Nabila from "./pages/Nabila";
@@ -67,8 +66,7 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/nabila" element={<Nabila />} />
+                      <Route path="/" element={<Nabila />} />
                       <Route path="/month/:year/:month" element={<MonthlyView />} />
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/income" element={<IncomeManagement />} />

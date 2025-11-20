@@ -132,9 +132,8 @@ export function SearchPanel() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Pages</SelectItem>
-            <SelectItem value="/">Home</SelectItem>
+            <SelectItem value="/">Nabila</SelectItem>
             <SelectItem value="/dashboard">Dashboard</SelectItem>
-            <SelectItem value="/nabila">Nabila</SelectItem>
           </SelectContent>
         </Select>
 

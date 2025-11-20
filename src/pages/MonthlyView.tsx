@@ -229,7 +229,7 @@ export default function MonthlyView() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/nabila")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
