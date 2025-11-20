@@ -279,7 +279,7 @@ export default function Dashboard() {
                 <SelectItem value="year">Tahun Ini</SelectItem>
               </SelectContent>
             </Select>
-            <GradientButton variant="income" onClick={() => navigate("/nabila")}>
+            <GradientButton variant="income" onClick={() => navigate("/")}>
               Lihat Detail →
             </GradientButton>
           </div>
@@ -568,7 +568,7 @@ export default function Dashboard() {
               <GradientButton
                 variant="income"
                 className="h-16 justify-start gap-3"
-                onClick={() => navigate("/nabila")}
+                onClick={() => navigate("/")}
                 icon={TrendingUp}
               >
                 <span className="text-sm font-medium">Tambah Pemasukan</span>
@@ -576,7 +576,7 @@ export default function Dashboard() {
               <GradientButton
                 variant="expense"
                 className="h-16 justify-start gap-3"
-                onClick={() => navigate("/nabila")}
+                onClick={() => navigate("/")}
                 icon={TrendingDown}
               >
                 <span className="text-sm font-medium">Catat Pengeluaran</span>
@@ -584,7 +584,7 @@ export default function Dashboard() {
               <GradientButton
                 variant="savings"
                 className="h-16 justify-start gap-3"
-                onClick={() => navigate("/nabila")}
+                onClick={() => navigate("/")}
                 icon={PiggyBank}
               >
                 <span className="text-sm font-medium">Update Tabungan</span>
