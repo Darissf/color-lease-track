@@ -89,21 +89,27 @@ All colors MUST be HSL.
     --midnight-blue: 220 40% 12%;          /* #0D1829 */
     --night-indigo: 230 45% 18%;           /* #1A2642 */
     --twilight-purple: 250 35% 22%;        /* #2A2857 */
+    --deep-navy: 225 50% 10%;              /* #080E1F */
     
     /* Accent - Moon & Stars */
     --moon-gold: 45 95% 65%;               /* #F5E6A8 */
     --moonlight-silver: 200 20% 75%;       /* #B8C9D9 */
     --star-white: 60 100% 97%;             /* #FFFEF5 */
+    --star-blue: 210 100% 70%;             /* #66B3FF */
+    --star-pink: 320 100% 75%;             /* #FF99DD */
     
     /* Glow Effects */
     --cherry-glow-pink: 330 100% 75%;      /* #FF99CC */
     --lantern-glow-orange: 25 100% 60%;    /* #FF9933 */
+    --lantern-glow-red: 0 100% 60%;        /* #FF3333 */
     --firefly-glow-green: 80 100% 65%;     /* #ADFF2F */
+    --firefly-glow-yellow: 55 100% 65%;    /* #FFE84D */
     
     /* Nature - Night Elements */
     --bamboo-night-green: 140 30% 25%;     /* #2D4D3D */
     --water-reflection: 200 40% 30%;       /* #2E4A5C */
     --fog-mist: 210 15% 35%;               /* #4A5563 */
+    --mist-purple: 260 20% 40%;            /* #5C527A */
     
     /* Base Overrides */
     --background: 220 40% 12%;
@@ -880,6 +886,303 @@ All colors MUST be HSL.
     100% {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  /* ===== JAPANESE NIGHT DASHBOARD ANIMATIONS ===== */
+  
+  /* Star Animations */
+  @keyframes star-twinkle {
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.5);
+    }
+  }
+
+  @keyframes shooting-star {
+    0% {
+      transform: translateX(0) translateY(0);
+      opacity: 1;
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(300px) translateY(300px);
+      opacity: 0;
+    }
+  }
+
+  /* Moon Animations */
+  @keyframes moon-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.8;
+      filter: blur(8px);
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 1;
+      filter: blur(12px);
+    }
+  }
+
+  @keyframes moon-glow {
+    0%, 100% {
+      box-shadow: 0 0 40px hsl(var(--moon-gold) / 0.6),
+                  0 0 80px hsl(var(--moon-gold) / 0.4),
+                  0 0 120px hsl(var(--moon-gold) / 0.2);
+    }
+    50% {
+      box-shadow: 0 0 60px hsl(var(--moon-gold) / 0.8),
+                  0 0 120px hsl(var(--moon-gold) / 0.6),
+                  0 0 180px hsl(var(--moon-gold) / 0.4);
+    }
+  }
+
+  /* Lantern Animations */
+  @keyframes lantern-swing {
+    0%, 100% {
+      transform: rotate(-5deg);
+    }
+    50% {
+      transform: rotate(5deg);
+    }
+  }
+
+  @keyframes lantern-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--lantern-glow-orange) / 0.8),
+                  0 0 40px hsl(var(--lantern-glow-orange) / 0.6),
+                  inset 0 0 20px hsl(var(--lantern-glow-orange) / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 30px hsl(var(--lantern-glow-orange)),
+                  0 0 60px hsl(var(--lantern-glow-orange) / 0.8),
+                  inset 0 0 30px hsl(var(--lantern-glow-orange) / 0.6);
+    }
+  }
+
+  @keyframes lantern-float {
+    0% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  /* Water & Wave Animations */
+  @keyframes water-ripple {
+    0% {
+      transform: scale(0.8);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  @keyframes wave-flow {
+    0% {
+      transform: translateX(-50%) translateY(0);
+    }
+    100% {
+      transform: translateX(50%) translateY(10px);
+    }
+  }
+
+  /* Fog & Mist Animations */
+  @keyframes fog-drift {
+    0% {
+      transform: translateX(0) translateY(0);
+      opacity: 0.1;
+    }
+    50% {
+      opacity: 0.2;
+    }
+    100% {
+      transform: translateX(100px) translateY(-50px);
+      opacity: 0.1;
+    }
+  }
+
+  @keyframes mist-rise {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 0.3;
+    }
+    100% {
+      transform: translateY(-200px) scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  /* Cloud Animations */
+  @keyframes cloud-drift {
+    0% {
+      transform: translateX(-100px);
+    }
+    100% {
+      transform: translateX(calc(100vw + 100px));
+    }
+  }
+
+  /* Light Ray Animations */
+  @keyframes light-beam {
+    0% {
+      opacity: 0.1;
+      transform: translateY(0) rotate(45deg);
+    }
+    50% {
+      opacity: 0.3;
+    }
+    100% {
+      opacity: 0.1;
+      transform: translateY(50px) rotate(45deg);
+    }
+  }
+
+  /* Meteor Animation */
+  @keyframes meteor-streak {
+    0% {
+      transform: translateX(0) translateY(0) rotate(45deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(-200px) translateY(200px) rotate(45deg);
+      opacity: 0;
+    }
+  }
+
+  /* Sparkle Animations */
+  @keyframes sparkle-twinkle {
+    0%, 100% {
+      opacity: 0;
+      transform: scale(0);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes sparkle-burst {
+    0% {
+      transform: scale(0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(2) rotate(180deg);
+      opacity: 0;
+    }
+  }
+
+  /* Rainbow Animation */
+  @keyframes rainbow-shimmer {
+    0% {
+      opacity: 0.2;
+      filter: hue-rotate(0deg);
+    }
+    50% {
+      opacity: 0.4;
+    }
+    100% {
+      opacity: 0.2;
+      filter: hue-rotate(360deg);
+    }
+  }
+
+  /* Torii Gate Animation */
+  @keyframes torii-glow {
+    0%, 100% {
+      opacity: 0.2;
+      filter: drop-shadow(0 0 10px hsl(var(--torii-red)));
+    }
+    50% {
+      opacity: 0.4;
+      filter: drop-shadow(0 0 30px hsl(var(--torii-red)));
+    }
+  }
+
+  /* Steam Animation */
+  @keyframes steam-rise {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 0.2;
+    }
+    100% {
+      transform: translateY(-150px) scale(2);
+      opacity: 0;
+    }
+  }
+
+  /* Particle Animations */
+  @keyframes particle-float {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(-50px) translateX(20px);
+      opacity: 1;
+    }
+  }
+
+  @keyframes particle-spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Card Animations */
+  @keyframes card-glow-pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--moon-gold) / 0.2),
+                  0 4px 30px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px hsl(var(--moon-gold) / 0.4),
+                  0 8px 50px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  @keyframes border-flow {
+    0% {
+      border-color: hsl(var(--cherry-glow-pink) / 0.5);
+    }
+    33% {
+      border-color: hsl(var(--moon-gold) / 0.5);
+    }
+    66% {
+      border-color: hsl(var(--firefly-glow-green) / 0.5);
+    }
+    100% {
+      border-color: hsl(var(--cherry-glow-pink) / 0.5);
+    }
+  }
+
+  /* Gradient Animation */
+  @keyframes gradient-shift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
     }
   }
 
