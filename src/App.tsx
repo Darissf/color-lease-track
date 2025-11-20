@@ -29,6 +29,7 @@ import ContentStudio from "./pages/ContentStudio";
 import ClientGroups from "./pages/ClientGroups";
 import RentalContracts from "./pages/RentalContracts";
 import AISettings from "./pages/AISettings";
+import DatabaseBackup from "./pages/DatabaseBackup";
 import AIUsageAnalytics from "./pages/AIUsageAnalytics";
 import ChatBotAI from "./pages/ChatBotAI";
 import AIAnalytics from "./pages/AIAnalytics";
@@ -87,6 +88,7 @@ const App = () => (
                       <Route path="/client-groups" element={<ClientGroups />} />
                       <Route path="/rental-contracts" element={<RentalContracts />} />
                       <Route path="/settings/ai" element={<AISettings />} />
+                      <Route path="/database-backup" element={<DatabaseBackup />} />
                       <Route path="/chatbot" element={<ChatBotAI />} />
                       <Route path="/ai-analytics" element={<AIAnalytics />} />
                       <Route path="/ai-hub" element={<AIHub />} />

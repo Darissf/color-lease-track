@@ -1,5 +1,8 @@
 project_id = "uqzzpxfmwhmhiqniiyjk"
 
+[functions.database-backup]
+verify_jwt = true
+
 [functions.process-recurring-transactions]
 verify_jwt = false
 
