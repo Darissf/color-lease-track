@@ -32,15 +32,9 @@ import AISettings from "./pages/AISettings";
 import DatabaseBackup from "./pages/DatabaseBackup";
 import AIUsageAnalytics from "./pages/AIUsageAnalytics";
 import ChatBotAI from "./pages/ChatBotAI";
-import AIAnalytics from "./pages/AIAnalytics";
 import ClientDashboard from "./pages/ClientDashboard";
 import ContractDetail from "./pages/ContractDetail";
 import NotFound from "./pages/NotFound";
-import AIHub from "./pages/AIHub";
-import AIAutomation from "./pages/AIAutomation";
-import AIAdvisor from "./pages/AIAdvisor";
-import AIInsights from "./pages/AIInsights";
-import AIAutoPilot from "./pages/AIAutoPilot";
 import BudgetTracker from "./pages/BudgetTracker";
 import EditPage from "./pages/EditPage";
 import FixedExpenses from "./pages/FixedExpenses";
@@ -90,12 +84,6 @@ const App = () => (
                       <Route path="/settings/ai" element={<AISettings />} />
                       <Route path="/database-backup" element={<DatabaseBackup />} />
                       <Route path="/chatbot" element={<ChatBotAI />} />
-                      <Route path="/ai-analytics" element={<AIAnalytics />} />
-                      <Route path="/ai-hub" element={<AIHub />} />
-                      <Route path="/ai-automation" element={<AIAutomation />} />
-                      <Route path="/ai-advisor" element={<AIAdvisor />} />
-                      <Route path="/ai-insights" element={<AIInsights />} />
-                      <Route path="/ai-autopilot" element={<AIAutoPilot />} />
                       <Route path="/ai-usage" element={<AIUsageAnalytics />} />
                       <Route path="/client-dashboard" element={<ClientDashboard />} />
                       <Route path="/contract/:id" element={<ContractDetail />} />

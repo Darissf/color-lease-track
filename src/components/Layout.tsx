@@ -132,7 +132,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   ] : [
     { title: "Home", url: "/", icon: FileText, description: "Halaman utama aplikasi" },
     { title: "Dashboard", url: "/dashboard", icon: Home, description: "Lihat ringkasan keuangan dan aktivitas terkini" },
-    { title: "AI Hub", url: "/ai-hub", icon: Sparkles, badge: "NEW", badgeVariant: "ai" as const, description: "Akses fitur AI untuk analisis dan otomasi" },
     { title: "ChatBot AI", url: "/chatbot", icon: Bot, badge: "AI", badgeVariant: "ai" as const, description: "Chat dengan asisten AI untuk bantuan keuangan" },
     { title: "List Client", url: "/client-groups", icon: Users, description: "Kelola data klien dan grup klien" },
     { title: "List Kontrak Sewa", url: "/rental-contracts", icon: ClipboardList, badge: notifications.total > 0 ? `${notifications.total}` : undefined, badgeVariant: notifications.total > 0 ? "destructive" as const : undefined, description: "Kelola kontrak sewa properti dan pembayaran" },
