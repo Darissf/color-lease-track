@@ -608,7 +608,7 @@ export default function Nabila() {
                             <Button
                               key={month.monthKey}
                               variant="outline"
-                              onClick={() => navigate(`/monthly-view?month=${month.monthKey}&year=${selectedYear}`)}
+                              onClick={() => navigate(`/month/${selectedYear}/${month.monthKey}`)}
                               className="h-auto py-4 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-slate-700/70 border-2 hover:scale-105 transition-all duration-200"
                             >
                               <div className="flex flex-col items-start w-full gap-1">
