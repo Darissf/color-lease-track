@@ -163,7 +163,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5" data-editable-ignore>
           {/* Pages Section */}
           {pagesItems.length > 0 && (
             <>
