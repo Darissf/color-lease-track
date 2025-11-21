@@ -233,7 +233,7 @@ export default function MonthlyView() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold capitalize">{month}</h1>
+              <h1 className="text-3xl font-bold capitalize">{month} {selectedYear}</h1>
               <p className="text-sm text-muted-foreground">Dashboard Keuangan Bulanan</p>
             </div>
           </div>
