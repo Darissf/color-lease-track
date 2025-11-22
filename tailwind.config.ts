@@ -57,6 +57,15 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Light Blue Theme Colors
+        "sky-blue": "hsl(var(--sky-blue))",
+        "light-blue": "hsl(var(--light-blue))",
+        "deep-blue": "hsl(var(--deep-blue))",
+        "cyan": "hsl(var(--cyan))",
+        "accent-orange": "hsl(var(--accent-orange))",
+        "accent-purple": "hsl(var(--accent-purple))",
+        "accent-green": "hsl(var(--accent-green))",
+        "accent-yellow": "hsl(var(--accent-yellow))",
       },
       borderRadius: {
         lg: "var(--radius)",

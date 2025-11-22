@@ -7,19 +7,31 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  /* ===== LIGHT MODE - JAPANESE COLOR PALETTE ===== */
+  /* ===== LIGHT MODE - LIGHT BLUE THEME ===== */
   :root {
-    /* Traditional Japanese Colors */
-    --torii-red: 0 100% 46%;        /* #E60012 */
-    --indigo-ai: 210 100% 22%;      /* #003A70 */
-    --gold-kin: 45 68% 53%;         /* #D4AF37 */
-    --sakura-pink: 350 100% 87%;    /* #FFB7C5 */
-    --matcha-green: 84 37% 49%;     /* #88B04B */
-    --murasaki-purple: 283 30% 26%; /* #4D2D52 */
-    --cream-kinari: 50 100% 97%;    /* #FFFBF0 */
-    --sumi-black: 0 0% 11%;         /* #1C1C1C */
-    --sunrise-orange: 30 100% 50%;  /* #FF8C00 */
-    --ocean-teal: 180 50% 40%;      /* #33A1A1 */
+    /* Light Blue Theme Colors */
+    --sky-blue: 199 89% 48%;        /* #0ea5e9 - Main brand color */
+    --light-blue: 199 95% 74%;      /* #38bdf8 - Light accent */
+    --deep-blue: 199 89% 35%;       /* #0284c7 - Dark variant */
+    --cyan: 188 94% 43%;            /* #06b6d4 - Modern tech */
+    
+    /* Accent Colors */
+    --accent-orange: 24 95% 61%;    /* #fb923c - CTA & urgency */
+    --accent-purple: 271 81% 63%;   /* #a855f7 - Premium features */
+    --accent-green: 160 84% 39%;    /* #10b981 - Success & certification */
+    --accent-yellow: 45 96% 56%;    /* #facc15 - Highlights */
+    
+    /* Legacy Colors (keep for compatibility) */
+    --torii-red: 0 100% 46%;
+    --indigo-ai: 210 100% 22%;
+    --gold-kin: 45 68% 53%;
+    --sakura-pink: 350 100% 87%;
+    --matcha-green: 84 37% 49%;
+    --murasaki-purple: 283 30% 26%;
+    --cream-kinari: 50 100% 97%;
+    --sumi-black: 0 0% 11%;
+    --sunrise-orange: 30 100% 50%;
+    --ocean-teal: 180 50% 40%;
     
     /* Base colors */
     --background: 0 0% 100%;
@@ -69,7 +81,14 @@ All colors MUST be HSL.
     /* Radius */
     --radius: 0.375rem;
     
-    /* Japanese Gradients - Light Mode */
+    /* Light Blue Theme Gradients */
+    --gradient-sky-cyan: linear-gradient(135deg, hsl(var(--sky-blue)), hsl(var(--cyan)));
+    --gradient-blue-purple: linear-gradient(135deg, hsl(var(--light-blue)), hsl(var(--accent-purple)));
+    --gradient-orange-yellow: linear-gradient(135deg, hsl(var(--accent-orange)), hsl(var(--accent-yellow)));
+    --gradient-green-emerald: linear-gradient(135deg, hsl(var(--accent-green)), hsl(160 84% 50%));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--sky-blue)) 0%, hsl(var(--cyan)) 50%, hsl(var(--deep-blue)) 100%);
+    
+    /* Legacy Gradients (keep for compatibility) */
     --gradient-torii-gold: linear-gradient(135deg, hsl(var(--torii-red)), hsl(var(--gold-kin)));
     --gradient-indigo: linear-gradient(135deg, hsl(var(--indigo-ai)), hsl(var(--ocean-teal)));
     --gradient-sakura: linear-gradient(135deg, hsl(var(--sakura-pink)), hsl(350 90% 75%));
@@ -79,6 +98,9 @@ All colors MUST be HSL.
     
     /* Enhanced Shadows */
     --shadow-elegant: 0 10px 30px -10px rgb(0 0 0 / 0.1);
+    --shadow-glow-sky: 0 10px 40px -10px hsl(var(--sky-blue) / 0.5);
+    --shadow-glow-cyan: 0 0 40px hsl(var(--cyan) / 0.4);
+    --shadow-glow-orange: 0 0 40px hsl(var(--accent-orange) / 0.5);
     --shadow-glow-gold: 0 10px 40px -10px hsl(var(--gold-kin) / 0.4);
     --shadow-glow-torii: 0 0 40px hsl(var(--torii-red) / 0.6);
   }
