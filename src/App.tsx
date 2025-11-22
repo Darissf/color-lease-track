@@ -9,6 +9,7 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import { HankoNotificationContainer } from "./components/HankoNotificationContainer";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -52,16 +53,17 @@ import MetaAdsDashboard from "./pages/MetaAdsDashboard";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter basename={import.meta.env.DEV ? '' : '/vip'}>
-        <AuthProvider>
-          <NotificationProvider>
-            <HankoNotificationContainer />
-            <EditableContentProvider>
-              <Routes>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter basename={import.meta.env.DEV ? '' : '/vip'}>
+          <AuthProvider>
+            <NotificationProvider>
+              <HankoNotificationContainer />
+              <EditableContentProvider>
+                <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/about" element={<AboutUs />} />
             <Route path="/blog" element={<Blog />} />
@@ -112,13 +114,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-              </Routes>
-            </EditableContentProvider>
-          </NotificationProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+                </Routes>
+              </EditableContentProvider>
+            </NotificationProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
