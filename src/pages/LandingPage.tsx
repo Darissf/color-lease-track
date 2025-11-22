@@ -95,13 +95,21 @@ const LandingPage = () => {
   const { data: metaSettings } = useQuery({
     queryKey: ["meta-ads-settings"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("meta_ads_settings")
         .select("pixel_id, is_active")
         .limit(1)
-        .single();
+        .maybeSingle();
+      
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching meta settings:", error);
+        return null;
+      }
+      
       return data;
     },
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Initialize Meta Pixel when settings are loaded
