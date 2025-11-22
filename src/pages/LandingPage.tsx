@@ -98,12 +98,12 @@ const LandingPage = () => {
               <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
                 <Shield className="w-7 h-7 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-cyan-600 bg-clip-text text-transparent">
-                  ScaffoldingBali
-                </h1>
-                <p className="text-xs text-gray-500">Professional Scaffolding Rental</p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-cyan-600 bg-clip-text text-transparent">
+                Sewa Scaffolding Bali
+              </h1>
+              <p className="text-xs text-gray-500">Professional Scaffolding Rental</p>
+            </div>
             </div>
 
             {/* Desktop Menu */}
@@ -322,8 +322,8 @@ const LandingPage = () => {
                       </div>
                       <div>
                         <h4 className="font-bold text-gray-800 mb-2">Email</h4>
-                        <a href="mailto:info@scaffoldingbali.com" className="text-sky-600 hover:text-sky-700 font-medium">
-                          info@scaffoldingbali.com
+                        <a href="mailto:info@sewascaffoldingbali.com" className="text-sky-600 hover:text-sky-700 font-medium">
+                          info@sewascaffoldingbali.com
                         </a>
                         <p className="text-sm text-gray-500 mt-1">Respon dalam 1-2 jam kerja</p>
                       </div>
@@ -369,7 +369,7 @@ const LandingPage = () => {
                 <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-lg flex items-center justify-center">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-xl font-bold">ScaffoldingBali</h3>
+                <h3 className="text-xl font-bold">Sewa Scaffolding Bali</h3>
               </div>
               <p className="text-gray-400">
                 Penyedia scaffolding terpercaya di Bali dengan pengalaman lebih dari 10 tahun.
@@ -403,7 +403,7 @@ const LandingPage = () => {
                 </li>
                 <li className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
-                  info@scaffoldingbali.com
+                  info@sewascaffoldingbali.com
                 </li>
                 <li className="flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
@@ -414,7 +414,7 @@ const LandingPage = () => {
           </div>
 
           <div className="border-t border-gray-700 pt-8 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} ScaffoldingBali. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Sewa Scaffolding Bali. All rights reserved.</p>
           </div>
         </div>
       </footer>
