@@ -49,6 +49,7 @@ import FixedExpenses from "./pages/FixedExpenses";
 import Profile from "./pages/Profile";
 import PortfolioManager from "./pages/PortfolioManager";
 import MetaAdsDashboard from "./pages/MetaAdsDashboard";
+import LandingSettings from "./pages/LandingSettings";
 
 const queryClient = new QueryClient();
 
@@ -108,6 +109,7 @@ const App = () => (
                             <Route path="/rental-contracts" element={<RentalContracts />} />
                             <Route path="/client-dashboard" element={<ClientDashboard />} />
                             <Route path="/contract/:id" element={<ContractDetail />} />
+                            <Route path="/landing-settings" element={<LandingSettings />} />
                             <Route path="/portfolio-manager" element={<PortfolioManager />} />
                             <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
                             <Route path="/database-backup" element={<DatabaseBackup />} />
