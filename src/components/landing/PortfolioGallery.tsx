@@ -1,52 +1,19 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { trackEvent } from "@/lib/metaPixel";
 
-const projects = [
-  {
-    id: 1,
-    title: "Villa Mewah Seminyak",
-    location: "Seminyak, Bali",
-    image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80",
-    category: "villa",
-  },
-  {
-    id: 2,
-    title: "Hotel Resort Nusa Dua",
-    location: "Nusa Dua, Bali",
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
-    category: "hotel",
-  },
-  {
-    id: 3,
-    title: "Gedung Komersial Denpasar",
-    location: "Denpasar, Bali",
-    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80",
-    category: "komersial",
-  },
-  {
-    id: 4,
-    title: "Villa Pantai Canggu",
-    location: "Canggu, Bali",
-    image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
-    category: "villa",
-  },
-  {
-    id: 5,
-    title: "Apartemen Mewah Sanur",
-    location: "Sanur, Bali",
-    image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80",
-    category: "komersial",
-  },
-  {
-    id: 6,
-    title: "Resort Ubud",
-    location: "Ubud, Bali",
-    image: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80",
-    category: "hotel",
-  },
-];
+interface Project {
+  id: string;
+  title: string;
+  location: string;
+  image_url: string;
+  category: string;
+  description?: string;
+}
 
 const categories = [
   { id: "all", label: "Semua" },
@@ -55,13 +22,89 @@ const categories = [
   { id: "komersial", label: "Komersial" },
 ];
 
+// Fallback data jika database kosong
+const fallbackProjects: Project[] = [
+  {
+    id: "1",
+    title: "Villa Mewah Seminyak",
+    location: "Seminyak, Bali",
+    image_url: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80",
+    category: "villa",
+  },
+  {
+    id: "2",
+    title: "Hotel Resort Nusa Dua",
+    location: "Nusa Dua, Bali",
+    image_url: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
+    category: "hotel",
+  },
+  {
+    id: "3",
+    title: "Gedung Komersial Denpasar",
+    location: "Denpasar, Bali",
+    image_url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80",
+    category: "komersial",
+  },
+  {
+    id: "4",
+    title: "Villa Pantai Canggu",
+    location: "Canggu, Bali",
+    image_url: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
+    category: "villa",
+  },
+  {
+    id: "5",
+    title: "Apartemen Mewah Sanur",
+    location: "Sanur, Bali",
+    image_url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80",
+    category: "komersial",
+  },
+  {
+    id: "6",
+    title: "Resort Ubud",
+    location: "Ubud, Bali",
+    image_url: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80",
+    category: "hotel",
+  },
+];
+
 export const PortfolioGallery = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [lightboxImage, setLightboxImage] = useState<typeof projects[0] | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<Project | null>(null);
+
+  // Fetch projects from database
+  const { data: dbProjects = [], isLoading } = useQuery({
+    queryKey: ["portfolio-projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("portfolio_projects")
+        .select("*")
+        .order("display_order", { ascending: true })
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Project[];
+    },
+  });
+
+  // Use database projects or fallback
+  const projects = dbProjects.length > 0 ? dbProjects : fallbackProjects;
 
   const filteredProjects = selectedCategory === "all"
     ? projects
     : projects.filter(p => p.category === selectedCategory);
+
+  const handleProjectClick = (project: Project) => {
+    // Track ViewContent event for Meta Pixel
+    trackEvent("ViewContent", {
+      content_name: project.title,
+      content_category: project.category,
+      content_ids: [project.id],
+      content_type: "portfolio",
+    });
+
+    setLightboxImage(project);
+  };
 
   return (
     <section className="py-20 bg-white">
@@ -98,41 +141,53 @@ export const PortfolioGallery = () => {
           ))}
         </div>
 
-        {/* Gallery Grid */}
-        <motion.div
-          layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          <AnimatePresence mode="popLayout">
-            {filteredProjects.map((project) => (
-              <motion.div
-                key={project.id}
-                layout
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.4 }}
-                className="group relative overflow-hidden rounded-2xl shadow-xl cursor-pointer h-64"
-                onClick={() => setLightboxImage(project)}
-              >
-                <img
-                  src={project.image}
-                  alt={project.title}
-                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                    <h3 className="text-xl font-bold mb-2">{project.title}</h3>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="w-4 h-4" />
-                      {project.location}
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-64 bg-gray-200 rounded-2xl" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Gallery Grid */
+          <motion.div
+            layout
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredProjects.map((project) => (
+                <motion.div
+                  key={project.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.4 }}
+                  className="group relative overflow-hidden rounded-2xl shadow-xl cursor-pointer h-64"
+                  onClick={() => handleProjectClick(project)}
+                >
+                  <img
+                    src={project.image_url}
+                    alt={project.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                      <h3 className="text-xl font-bold mb-2">{project.title}</h3>
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="w-4 h-4" />
+                        {project.location}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
 
         {/* Lightbox */}
         <AnimatePresence>
@@ -158,7 +213,7 @@ export const PortfolioGallery = () => {
                   <X className="w-8 h-8" />
                 </button>
                 <img
-                  src={lightboxImage.image}
+                  src={lightboxImage.image_url}
                   alt={lightboxImage.title}
                   className="w-full rounded-lg"
                 />
@@ -168,6 +223,9 @@ export const PortfolioGallery = () => {
                     <MapPin className="w-4 h-4" />
                     {lightboxImage.location}
                   </p>
+                  {lightboxImage.description && (
+                    <p className="text-sm mt-3 opacity-80">{lightboxImage.description}</p>
+                  )}
                 </div>
               </motion.div>
             </motion.div>
