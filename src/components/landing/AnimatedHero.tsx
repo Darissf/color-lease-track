@@ -4,17 +4,20 @@ import { Button } from "@/components/ui/button";
 
 export const AnimatedHero = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-sky-400 via-cyan-400 to-blue-500">
+    <section className="relative min-h-screen pt-20 flex items-center justify-center overflow-hidden bg-gradient-to-br from-sky-400 via-cyan-400 to-blue-500">
       {/* Animated Background Particles */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(10)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute w-2 h-2 bg-white/30 rounded-full"
-            initial={{ x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight }}
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
             animate={{
-              y: [null, Math.random() * -200 - 100],
-              x: [null, Math.random() * 100 - 50],
+              y: [0, -100, 0],
+              x: [0, Math.random() * 50 - 25, 0],
               opacity: [0.3, 0, 0.3],
             }}
             transition={{
@@ -64,10 +67,10 @@ export const AnimatedHero = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            Sewa Scaffolding
+            Sewa Scaffolding Bali
             <br />
             <span className="bg-gradient-to-r from-orange-400 to-yellow-300 bg-clip-text text-transparent">
-              Terpercaya di Bali
+              Partner Konstruksi Terpercaya
             </span>
           </motion.h1>
 
