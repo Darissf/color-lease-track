@@ -377,6 +377,15 @@ const LandingPage = () => {
             </div>
 
             <div>
+              <h4 className="text-lg font-bold mb-4">Perusahaan</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/about" className="hover:text-sky-400 transition-colors">Tentang Kami</Link></li>
+                <li><Link to="/blog" className="hover:text-sky-400 transition-colors">Blog</Link></li>
+                <li><a href="#portfolio" className="hover:text-sky-400 transition-colors">Portfolio</a></li>
+              </ul>
+            </div>
+
+            <div>
               <h4 className="text-lg font-bold mb-4">Layanan</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#layanan" className="hover:text-sky-400 transition-colors">Sewa Scaffolding</a></li>
