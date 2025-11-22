@@ -17,19 +17,19 @@ import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState, useEffect } from "react";
 
 const navItems = [
-  { title: "Home", url: "/", icon: Home },
+  { title: "Home", url: "/vip/", icon: Home },
 ];
 
 // Moved pagesItems inside component to access user roles
 
   const adminNavItems = [
-    { title: "Pengaturan", url: "/settings", icon: Settings, description: "Konfigurasi pengaturan aplikasi" },
-    { title: "AI Settings", url: "/settings/ai", icon: Brain, badge: "AI", badgeVariant: "ai" as const, description: "Konfigurasi fitur AI dan model" },
-    { title: "Admin Settings", url: "/settings/admin", icon: User2, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola pengguna dan hak akses sistem" },
-    { title: "Edit Page", url: "/edit-page", icon: Edit3, superAdminOnly: true, badge: "Quick", badgeVariant: "secondary" as const, description: "Edit konten cepat dengan UI sederhana" },
-    { title: "Content Studio", url: "/content-studio", icon: Sparkles, superAdminOnly: true, badge: "Pro", badgeVariant: "default" as const, description: "Professional content management dengan preview, bulk operations & analytics" },
-    { title: "Content Management", url: "/content-management", icon: Edit3, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola konten editable di seluruh aplikasi" },
-    { title: "Audit Logs", url: "/audit-logs", icon: Shield, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Lihat log aktivitas dan perubahan sistem" },
+    { title: "Pengaturan", url: "/vip/settings", icon: Settings, description: "Konfigurasi pengaturan aplikasi" },
+    { title: "AI Settings", url: "/vip/settings/ai", icon: Brain, badge: "AI", badgeVariant: "ai" as const, description: "Konfigurasi fitur AI dan model" },
+    { title: "Admin Settings", url: "/vip/settings/admin", icon: User2, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola pengguna dan hak akses sistem" },
+    { title: "Edit Page", url: "/vip/edit-page", icon: Edit3, superAdminOnly: true, badge: "Quick", badgeVariant: "secondary" as const, description: "Edit konten cepat dengan UI sederhana" },
+    { title: "Content Studio", url: "/vip/content-studio", icon: Sparkles, superAdminOnly: true, badge: "Pro", badgeVariant: "default" as const, description: "Professional content management dengan preview, bulk operations & analytics" },
+    { title: "Content Management", url: "/vip/content-management", icon: Edit3, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola konten editable di seluruh aplikasi" },
+    { title: "Audit Logs", url: "/vip/audit-logs", icon: Shield, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Lihat log aktivitas dan perubahan sistem" },
   ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -137,20 +137,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   // Different menu for regular users vs admins
   const pagesItems = (isUser && !isAdmin && !isSuperAdmin) ? [
-    { title: "Home", url: "/", icon: Home, description: "Kembali ke halaman utama" },
-    { title: "Dashboard Saya", url: "/client-dashboard", icon: LayoutDashboard, description: "Lihat ringkasan dan statistik akun Anda" },
-    { title: "Kontrak Saya", url: "/rental-contracts", icon: ClipboardList, description: "Kelola kontrak sewa properti Anda" },
+    { title: "Home", url: "/vip/", icon: Home, description: "Kembali ke halaman utama" },
+    { title: "Dashboard Saya", url: "/vip/client-dashboard", icon: LayoutDashboard, description: "Lihat ringkasan dan statistik akun Anda" },
+    { title: "Kontrak Saya", url: "/vip/rental-contracts", icon: ClipboardList, description: "Kelola kontrak sewa properti Anda" },
   ] : [
-    { title: "Home", url: "/", icon: FileText, description: "Halaman utama aplikasi" },
-    { title: "Dashboard", url: "/dashboard", icon: Home, description: "Lihat ringkasan keuangan dan aktivitas terkini" },
-    { title: "ChatBot AI", url: "/chatbot", icon: Bot, badge: "AI", badgeVariant: "ai" as const, description: "Chat dengan asisten AI untuk bantuan keuangan" },
-    { title: "List Client", url: "/client-groups", icon: Users, description: "Kelola data klien dan grup klien" },
-    { title: "List Kontrak Sewa", url: "/rental-contracts", icon: ClipboardList, badge: notifications.total > 0 ? `${notifications.total}` : undefined, badgeVariant: notifications.total > 0 ? "destructive" as const : undefined, description: "Kelola kontrak sewa properti dan pembayaran" },
-    { title: "Pemasukan", url: "/income", icon: DollarSign, description: "Catat dan kelola sumber pemasukan" },
-    { title: "Pengeluaran", url: "/expenses", icon: TrendingDown, description: "Catat dan pantau pengeluaran harian" },
-    { title: "Pengeluaran Tetap", url: "/fixed-expenses", icon: Calendar, description: "Atur pengeluaran tetap bulanan" },
-    { title: "Savings Plans", url: "/savings", icon: PiggyBank, description: "Rencanakan dan pantau target tabungan" },
-    { title: "Monthly Budget", url: "/monthly-budget", icon: Calendar, description: "Kelola anggaran bulanan dan tracking" },
+    { title: "Home", url: "/vip/", icon: FileText, description: "Halaman utama aplikasi" },
+    { title: "Dashboard", url: "/vip/dashboard", icon: Home, description: "Lihat ringkasan keuangan dan aktivitas terkini" },
+    { title: "ChatBot AI", url: "/vip/chatbot", icon: Bot, badge: "AI", badgeVariant: "ai" as const, description: "Chat dengan asisten AI untuk bantuan keuangan" },
+    { title: "List Client", url: "/vip/client-groups", icon: Users, description: "Kelola data klien dan grup klien" },
+    { title: "List Kontrak Sewa", url: "/vip/rental-contracts", icon: ClipboardList, badge: notifications.total > 0 ? `${notifications.total}` : undefined, badgeVariant: notifications.total > 0 ? "destructive" as const : undefined, description: "Kelola kontrak sewa properti dan pembayaran" },
+    { title: "Pemasukan", url: "/vip/income", icon: DollarSign, description: "Catat dan kelola sumber pemasukan" },
+    { title: "Pengeluaran", url: "/vip/expenses", icon: TrendingDown, description: "Catat dan pantau pengeluaran harian" },
+    { title: "Pengeluaran Tetap", url: "/vip/fixed-expenses", icon: Calendar, description: "Atur pengeluaran tetap bulanan" },
+    { title: "Savings Plans", url: "/vip/savings", icon: PiggyBank, description: "Rencanakan dan pantau target tabungan" },
+    { title: "Monthly Budget", url: "/vip/monthly-budget", icon: Calendar, description: "Kelola anggaran bulanan dan tracking" },
   ];
 
   return (
@@ -363,7 +363,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     {user?.email}
                   </div>
                 </div>
-                <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer text-sm">
+                <DropdownMenuItem onClick={() => navigate('/vip/profile')} className="cursor-pointer text-sm">
                   <User className="mr-2 h-3.5 w-3.5" />
                   <span>Profile</span>
                 </DropdownMenuItem>

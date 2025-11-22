@@ -58,62 +58,70 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename={import.meta.env.DEV ? '' : '/vip'}>
+        <BrowserRouter>
           <AuthProvider>
             <NotificationProvider>
               <HankoNotificationContainer />
               <EditableContentProvider>
                 <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/about" element={<AboutUs />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogDetail />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Routes>
-                      <Route path="/" element={<Nabila />} />
-                      <Route path="/month/:year/:month" element={<MonthlyView />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/income" element={<IncomeManagement />} />
-                      <Route path="/expenses" element={<ExpenseTracker />} />
-                      <Route path="/fixed-expenses" element={<FixedExpenses />} />
-                      <Route path="/savings" element={<SavingsPlans />} />
-                      <Route path="/monthly-budget" element={<BudgetTracker />} />
-                      <Route path="/profile" element={<Profile />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/settings/admin" element={<AdminSettings />} />
-                      <Route path="/settings/accounts" element={<AccountSettings />} />
-                      <Route path="/settings/income" element={<IncomeSettings />} />
-                      <Route path="/settings/savings" element={<SavingsSettings />} />
-                      <Route path="/audit-logs" element={<AuditLogs />} />
-                      <Route path="/content-management" element={<ContentManagement />} />
-                      <Route path="/edit-page" element={<EditPage />} />
-                      <Route path="/content-studio" element={<ContentStudio />} />
-                      <Route path="/blog-posts" element={<BlogPosts />} />
-                      <Route path="/blog-posts/new" element={<BlogPostEditor />} />
-                      <Route path="/blog-posts/:id/edit" element={<BlogPostEditor />} />
-                      <Route path="/blog-categories" element={<BlogCategories />} />
-                      <Route path="/client-groups" element={<ClientGroups />} />
-                      <Route path="/rental-contracts" element={<RentalContracts />} />
-                      <Route path="/settings/ai" element={<AISettings />} />
-                      <Route path="/database-backup" element={<DatabaseBackup />} />
-                      <Route path="/chatbot" element={<ChatBotAI />} />
-                      <Route path="/ai-usage" element={<AIUsageAnalytics />} />
-                      <Route path="/client-dashboard" element={<ClientDashboard />} />
-                      <Route path="/contract/:id" element={<ContractDetail />} />
-                      <Route path="/portfolio-manager" element={<PortfolioManager />} />
-                      <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+                  {/* Public Routes */}
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/about" element={<AboutUs />} />
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogDetail />} />
+                  
+                  {/* VIP Auth Routes */}
+                  <Route path="/vip/login" element={<Login />} />
+                  <Route path="/vip/register" element={<Register />} />
+                  
+                  {/* Protected VIP Routes */}
+                  <Route
+                    path="/vip/*"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Routes>
+                            <Route path="/" element={<Nabila />} />
+                            <Route path="/month/:year/:month" element={<MonthlyView />} />
+                            <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/income" element={<IncomeManagement />} />
+                            <Route path="/expenses" element={<ExpenseTracker />} />
+                            <Route path="/fixed-expenses" element={<FixedExpenses />} />
+                            <Route path="/savings" element={<SavingsPlans />} />
+                            <Route path="/monthly-budget" element={<BudgetTracker />} />
+                            <Route path="/profile" element={<Profile />} />
+                            <Route path="/settings" element={<Settings />} />
+                            <Route path="/settings/admin" element={<AdminSettings />} />
+                            <Route path="/settings/accounts" element={<AccountSettings />} />
+                            <Route path="/settings/income" element={<IncomeSettings />} />
+                            <Route path="/settings/savings" element={<SavingsSettings />} />
+                            <Route path="/settings/ai" element={<AISettings />} />
+                            <Route path="/audit-logs" element={<AuditLogs />} />
+                            <Route path="/content-management" element={<ContentManagement />} />
+                            <Route path="/edit-page" element={<EditPage />} />
+                            <Route path="/content-studio" element={<ContentStudio />} />
+                            <Route path="/blog-posts" element={<BlogPosts />} />
+                            <Route path="/blog-posts/new" element={<BlogPostEditor />} />
+                            <Route path="/blog-posts/:id/edit" element={<BlogPostEditor />} />
+                            <Route path="/blog-categories" element={<BlogCategories />} />
+                            <Route path="/client-groups" element={<ClientGroups />} />
+                            <Route path="/rental-contracts" element={<RentalContracts />} />
+                            <Route path="/client-dashboard" element={<ClientDashboard />} />
+                            <Route path="/contract/:id" element={<ContractDetail />} />
+                            <Route path="/portfolio-manager" element={<PortfolioManager />} />
+                            <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
+                            <Route path="/database-backup" element={<DatabaseBackup />} />
+                            <Route path="/chatbot" element={<ChatBotAI />} />
+                            <Route path="/ai-usage" element={<AIUsageAnalytics />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  
+                  {/* Fallback */}
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </EditableContentProvider>
             </NotificationProvider>

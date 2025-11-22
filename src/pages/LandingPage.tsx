@@ -162,7 +162,7 @@ const LandingPage = () => {
               <a href="#kontak" className="text-gray-700 hover:text-sky-600 font-medium transition-colors">
                 Kontak
               </a>
-              <Link to="/login">
+              <Link to="/vip/login">
                 <Button className="bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white shadow-lg">
                   Portal Admin
                 </Button>
@@ -194,7 +194,7 @@ const LandingPage = () => {
                 <a href="#kontak" className="text-gray-700 hover:text-sky-600 font-medium">
                   Kontak
                 </a>
-                <Link to="/login">
+                <Link to="/vip/login">
                   <Button className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 text-white">
                     Portal Admin
                   </Button>

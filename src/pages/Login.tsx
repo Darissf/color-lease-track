@@ -74,7 +74,7 @@ export default function Login() {
           </form>
           <div className="mt-4 text-center text-sm">
             Belum punya akun?{" "}
-            <Link to="/register" className="text-primary hover:underline font-medium">
+            <Link to="/vip/register" className="text-primary hover:underline font-medium">
               Daftar sekarang
             </Link>
           </div>

@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
     });
     if (error) throw error;
-    navigate('/');
+    navigate('/vip/');
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
@@ -101,13 +101,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: 'user',
       });
     }
-    navigate('/login');
+    navigate('/vip/login');
   };
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-    navigate('/login');
+    navigate('/vip/login');
   };
 
   const value = {
