@@ -64,7 +64,9 @@ export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete,
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[50px]">No</TableHead>
             <TableHead>Nama Tagihan</TableHead>
+            <TableHead>Keterangan</TableHead>
             <TableHead>Kategori</TableHead>
             <TableHead>Tipe</TableHead>
             <TableHead>Jumlah</TableHead>
@@ -74,14 +76,20 @@ export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete,
           </TableRow>
         </TableHeader>
         <TableBody>
-          {expenses.map((expense) => {
+          {expenses.map((expense, index) => {
             const status = getStatus(expense);
             const paid = isPaid(expense.id);
             const amount = expense.expense_type === 'fixed' ? expense.fixed_amount || 0 : expense.estimated_amount || 0;
 
             return (
               <TableRow key={expense.id}>
+                <TableCell className="text-center font-medium text-muted-foreground">
+                  {index + 1}
+                </TableCell>
                 <TableCell className="font-medium">{expense.expense_name}</TableCell>
+                <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                  {expense.notes || '-'}
+                </TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell>
                   <Badge variant={expense.expense_type === 'fixed' ? 'default' : 'secondary'}>
