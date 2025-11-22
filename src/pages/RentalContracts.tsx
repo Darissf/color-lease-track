@@ -48,6 +48,15 @@ interface RentalContract {
   bank_account_id: string | null;
   google_maps_link: string | null;
   notes: string | null;
+  jenis_scaffolding: string | null;
+  jumlah_unit: number | null;
+  lokasi_detail: string | null;
+  tanggal_kirim: string | null;
+  tanggal_ambil: string | null;
+  status_pengiriman: string | null;
+  status_pengambilan: string | null;
+  biaya_kirim: number | null;
+  penanggung_jawab: string | null;
 }
 
 interface BankAccount {
@@ -92,6 +101,15 @@ const RentalContracts = () => {
     bank_account_id: "",
     google_maps_link: "",
     notes: "",
+    jenis_scaffolding: "",
+    jumlah_unit: "",
+    lokasi_detail: "",
+    tanggal_kirim: undefined as Date | undefined,
+    tanggal_ambil: undefined as Date | undefined,
+    status_pengiriman: "belum_kirim",
+    status_pengambilan: "belum_diambil",
+    biaya_kirim: "",
+    penanggung_jawab: "",
   });
   const [paymentProofFiles, setPaymentProofFiles] = useState<File[]>([]);
 
@@ -223,6 +241,15 @@ const RentalContracts = () => {
         bank_account_id: contractForm.bank_account_id || null,
         google_maps_link: contractForm.google_maps_link || null,
         notes: contractForm.notes || null,
+        jenis_scaffolding: contractForm.jenis_scaffolding || null,
+        jumlah_unit: parseInt(contractForm.jumlah_unit) || 0,
+        lokasi_detail: contractForm.lokasi_detail || null,
+        tanggal_kirim: contractForm.tanggal_kirim ? format(contractForm.tanggal_kirim, "yyyy-MM-dd") : null,
+        tanggal_ambil: contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "yyyy-MM-dd") : null,
+        status_pengiriman: contractForm.status_pengiriman || "belum_kirim",
+        status_pengambilan: contractForm.status_pengambilan || "belum_diambil",
+        biaya_kirim: parseFloat(contractForm.biaya_kirim) || 0,
+        penanggung_jawab: contractForm.penanggung_jawab || null,
       };
 
       if (editingContractId) {
@@ -342,6 +369,15 @@ const RentalContracts = () => {
       bank_account_id: contract.bank_account_id || "",
       google_maps_link: contract.google_maps_link || "",
       notes: contract.notes || "",
+      jenis_scaffolding: contract.jenis_scaffolding || "",
+      jumlah_unit: contract.jumlah_unit?.toString() || "",
+      lokasi_detail: contract.lokasi_detail || "",
+      tanggal_kirim: contract.tanggal_kirim ? new Date(contract.tanggal_kirim) : undefined,
+      tanggal_ambil: contract.tanggal_ambil ? new Date(contract.tanggal_ambil) : undefined,
+      status_pengiriman: contract.status_pengiriman || "belum_kirim",
+      status_pengambilan: contract.status_pengambilan || "belum_diambil",
+      biaya_kirim: contract.biaya_kirim?.toString() || "",
+      penanggung_jawab: contract.penanggung_jawab || "",
     });
     setIsContractDialogOpen(true);
   };
@@ -385,6 +421,15 @@ const RentalContracts = () => {
       bank_account_id: "",
       google_maps_link: "",
       notes: "",
+      jenis_scaffolding: "",
+      jumlah_unit: "",
+      lokasi_detail: "",
+      tanggal_kirim: undefined,
+      tanggal_ambil: undefined,
+      status_pengiriman: "belum_kirim",
+      status_pengambilan: "belum_diambil",
+      biaya_kirim: "",
+      penanggung_jawab: "",
     });
     setPaymentProofFiles([]);
   };
@@ -736,6 +781,165 @@ const RentalContracts = () => {
                     <SelectItem value="berulang">Berulang</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Scaffolding Details Section */}
+              <div className="border-t pt-4 space-y-4">
+                <h3 className="font-semibold text-sm text-foreground">Detail Scaffolding</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Jenis Scaffolding</Label>
+                    <Select
+                      value={contractForm.jenis_scaffolding}
+                      onValueChange={(value) => setContractForm({ ...contractForm, jenis_scaffolding: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih jenis" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Ring Lock">Ring Lock</SelectItem>
+                        <SelectItem value="Cup Lock">Cup Lock</SelectItem>
+                        <SelectItem value="Frame">Frame</SelectItem>
+                        <SelectItem value="Kwikstage">Kwikstage</SelectItem>
+                        <SelectItem value="Lainnya">Lainnya</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Jumlah Unit</Label>
+                    <Input
+                      type="number"
+                      value={contractForm.jumlah_unit}
+                      onChange={(e) => setContractForm({ ...contractForm, jumlah_unit: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Lokasi Proyek</Label>
+                  <Textarea
+                    value={contractForm.lokasi_detail}
+                    onChange={(e) => setContractForm({ ...contractForm, lokasi_detail: e.target.value })}
+                    placeholder="Alamat detail lokasi proyek"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tanggal Pengiriman</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !contractForm.tanggal_kirim && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {contractForm.tanggal_kirim ? format(contractForm.tanggal_kirim, "PPP", { locale: localeId }) : "Pilih tanggal"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={contractForm.tanggal_kirim}
+                          onSelect={(date) => setContractForm({ ...contractForm, tanggal_kirim: date })}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div>
+                    <Label>Tanggal Pengambilan</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !contractForm.tanggal_ambil && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "PPP", { locale: localeId }) : "Pilih tanggal"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={contractForm.tanggal_ambil}
+                          onSelect={(date) => setContractForm({ ...contractForm, tanggal_ambil: date })}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Status Pengiriman</Label>
+                    <Select
+                      value={contractForm.status_pengiriman}
+                      onValueChange={(value) => setContractForm({ ...contractForm, status_pengiriman: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="belum_kirim">🔴 Belum Kirim</SelectItem>
+                        <SelectItem value="dalam_perjalanan">🟡 Dalam Perjalanan</SelectItem>
+                        <SelectItem value="terkirim">🟢 Terkirim</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Status Pengambilan</Label>
+                    <Select
+                      value={contractForm.status_pengambilan}
+                      onValueChange={(value) => setContractForm({ ...contractForm, status_pengambilan: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="belum_diambil">🔴 Belum Diambil</SelectItem>
+                        <SelectItem value="dijadwalkan">🟡 Dijadwalkan</SelectItem>
+                        <SelectItem value="diambil">🟢 Diambil</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Biaya Pengiriman</Label>
+                    <Input
+                      type="number"
+                      value={contractForm.biaya_kirim}
+                      onChange={(e) => setContractForm({ ...contractForm, biaya_kirim: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Penanggung Jawab</Label>
+                    <Input
+                      value={contractForm.penanggung_jawab}
+                      onChange={(e) => setContractForm({ ...contractForm, penanggung_jawab: e.target.value })}
+                      placeholder="Nama driver/teknisi"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

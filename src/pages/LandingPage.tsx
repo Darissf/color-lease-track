@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Building2, Shield, Clock, CheckCircle2, Award, Headphones } from "lucide-react";
 
@@ -26,13 +27,16 @@ const LandingPage = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
+      <section className="pt-32 pb-20 px-6 bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
+          <div className="inline-block mb-4 px-4 py-2 bg-primary/10 rounded-full">
+            <span className="text-primary font-semibold">✓ Tersertifikasi & Terpercaya</span>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Sewa Scaffolding Profesional di Bali
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Solusi terpercaya untuk kebutuhan konstruksi Anda dengan standar keamanan tinggi dan layanan terbaik
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
+            Solusi lengkap scaffolding dengan <span className="text-foreground font-semibold">pengiriman cepat</span>, instalasi profesional, dan sistem tracking online untuk proyek konstruksi Anda
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="text-lg px-8" asChild>
@@ -48,34 +52,81 @@ const LandingPage = () => {
       {/* Services Section */}
       <section id="services" className="py-20 px-6 bg-muted/30">
         <div className="container mx-auto">
-          <h2 className="text-4xl font-bold text-center text-foreground mb-12">Layanan Kami</h2>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-foreground mb-4">Layanan Kami</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Solusi lengkap scaffolding dari pengiriman hingga pengambilan dengan sistem tracking online
+            </p>
+          </div>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-card p-8 rounded-lg border border-border hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-card p-8 rounded-lg border border-border hover:shadow-lg hover:border-primary/50 transition-all group">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <Building2 className="h-6 w-6 text-primary" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Sewa Scaffolding</h3>
-              <p className="text-muted-foreground">
-                Berbagai jenis scaffolding dengan kualitas premium untuk proyek konstruksi Anda, lengkap dengan peralatan safety.
+              <p className="text-muted-foreground mb-4">
+                Ring Lock, Cup Lock, Frame Scaffolding tersedia dalam berbagai ukuran dan kuantitas
               </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>Tersertifikasi SNI</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>Kondisi Prima</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>Harga Kompetitif</span>
+                </li>
+              </ul>
             </div>
-            <div className="bg-card p-8 rounded-lg border border-border hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-card p-8 rounded-lg border border-border hover:shadow-lg hover:border-primary/50 transition-all group">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <Shield className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-3">Instalasi Profesional</h3>
-              <p className="text-muted-foreground">
-                Tim ahli kami siap memasang scaffolding dengan standar keamanan internasional dan pengalaman bertahun-tahun.
+              <h3 className="text-xl font-semibold text-foreground mb-3">Pengiriman & Instalasi</h3>
+              <p className="text-muted-foreground mb-4">
+                Pengiriman cepat ke seluruh Bali dengan tracking real-time dan instalasi oleh teknisi bersertifikat
               </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>Pengiriman On-Time</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>Tracking Online</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>Instalasi Gratis*</span>
+                </li>
+              </ul>
             </div>
-            <div className="bg-card p-8 rounded-lg border border-border hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-card p-8 rounded-lg border border-border hover:shadow-lg hover:border-primary/50 transition-all group">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <Clock className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-3">Konsultasi Gratis</h3>
-              <p className="text-muted-foreground">
-                Dapatkan konsultasi gratis untuk menentukan solusi scaffolding yang tepat sesuai kebutuhan proyek Anda.
+              <h3 className="text-xl font-semibold text-foreground mb-3">Konsultasi & Survey</h3>
+              <p className="text-muted-foreground mb-4">
+                Survey lokasi gratis dan konsultasi dengan engineer berpengalaman untuk solusi terbaik
               </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>Survey Gratis</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>Perhitungan Akurat</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>Rekomendasi Ahli</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -126,19 +177,57 @@ const LandingPage = () => {
 
       {/* Contact Section */}
       <section id="contact" className="py-20 px-6">
-        <div className="container mx-auto max-w-2xl text-center">
-          <h2 className="text-4xl font-bold text-foreground mb-6">Hubungi Kami</h2>
-          <div className="space-y-4 text-muted-foreground">
-            <p className="text-lg">
-              <strong className="text-foreground">Telepon:</strong> +62 812-3456-7890
-            </p>
-            <p className="text-lg">
-              <strong className="text-foreground">Email:</strong> info@scaffoldingbali.com
-            </p>
-            <p className="text-lg">
-              <strong className="text-foreground">Alamat:</strong> Jl. Bypass Ngurah Rai No. 123, Denpasar, Bali
-            </p>
+        <div className="container mx-auto max-w-3xl">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-foreground mb-4">Hubungi Kami</h2>
+            <p className="text-muted-foreground">Tim kami siap membantu Anda 24/7</p>
           </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Headphones className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Telepon & WhatsApp</h3>
+                  <p className="text-muted-foreground mb-2">Hubungi kami langsung</p>
+                  <a href="tel:+6281234567890" className="text-primary font-medium hover:underline">
+                    +62 812-3456-7890
+                  </a>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Headphones className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Email</h3>
+                  <p className="text-muted-foreground mb-2">Kirim pertanyaan Anda</p>
+                  <a href="mailto:info@scaffoldingbali.com" className="text-primary font-medium hover:underline">
+                    info@scaffoldingbali.com
+                  </a>
+                </div>
+              </div>
+            </Card>
+          </div>
+          <Card className="mt-8 p-6 bg-muted/50">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">Alamat Kantor & Workshop</h3>
+                <p className="text-muted-foreground">
+                  Jl. Bypass Ngurah Rai No. 123, Denpasar, Bali 80361
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Buka: Senin - Sabtu, 08:00 - 17:00 WITA
+                </p>
+              </div>
+            </div>
+          </Card>
         </div>
       </section>
 
