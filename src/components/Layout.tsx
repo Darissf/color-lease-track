@@ -1,4 +1,4 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 import { useContentAutoApply } from "@/hooks/useContentAutoApply";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState, useEffect } from "react";
@@ -34,8 +35,18 @@ const navItems = [
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, signOut, isSuperAdmin, isAdmin, isUser } = useAuth();
   const { profile } = useProfile();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const notifications = useAdminNotifications(isAdmin || isSuperAdmin);
+  
+  // Close sidebar on mobile by default
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    } else {
+      setSidebarOpen(true);
+    }
+  }, [isMobile]);
   
   // Helper function to get user initials
   const getUserInitials = () => {
@@ -144,12 +155,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-background overflow-hidden">
+      {/* Backdrop overlay for mobile */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
       {/* Notion-style Sidebar */}
       <aside
         className={`${
           sidebarOpen ? "w-64" : "w-20"
-        } bg-sidebar-background border-r border-sidebar-border transition-all duration-300 flex flex-col`}
+        } bg-sidebar-background border-r border-sidebar-border transition-all duration-300 flex flex-col
+        ${isMobile ? 'fixed inset-y-0 left-0 z-50 transform ' + (sidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'relative'}
+        lg:relative lg:translate-x-0`}
       >
         {/* Logo */}
         <div className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border">
@@ -176,10 +197,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               {pagesItems.map((item) => (
                 <Tooltip key={item.url}>
                   <TooltipTrigger asChild>
-                    <NavLink
+                     <NavLink
                       to={item.url}
                       className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
                       activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                      onClick={() => isMobile && setSidebarOpen(false)}
                     >
                       <div className="flex items-center gap-2">
                         <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -217,10 +239,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 return (
                   <Tooltip key={item.url}>
                     <TooltipTrigger asChild>
-                      <NavLink
+                       <NavLink
                         to={item.url}
                         className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
                         activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                        onClick={() => isMobile && setSidebarOpen(false)}
                       >
                         <div className="flex items-center gap-2">
                           <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -271,6 +294,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Header - Notion Style */}
         <header className="h-14 bg-card border-b border-border px-4 flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1">
+            {/* Hamburger Menu for Mobile */}
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden mr-2"
+                aria-label="Toggle Menu"
+              >
+                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            )}
+            
             {/* Search Bar */}
             <div className="relative w-full max-w-md">
               <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
