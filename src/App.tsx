@@ -12,6 +12,7 @@ import { Layout } from "./components/Layout";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import LandingPage from "./pages/LandingPage";
 import Nabila from "./pages/Nabila";
 import MonthlyView from "./pages/MonthlyView";
 import Dashboard from "./pages/Dashboard";
@@ -47,12 +48,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/vip">
+      <BrowserRouter basename={import.meta.env.DEV ? '' : '/vip'}>
         <AuthProvider>
           <NotificationProvider>
             <HankoNotificationContainer />
             <EditableContentProvider>
               <Routes>
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
