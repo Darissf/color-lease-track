@@ -1567,6 +1567,7 @@ export type Database = {
       rental_contracts: {
         Row: {
           bank_account_id: string | null
+          biaya_kirim: number | null
           bukti_pembayaran_files: Json | null
           client_group_id: string
           created_at: string
@@ -1574,19 +1575,28 @@ export type Database = {
           google_maps_link: string | null
           id: string
           invoice: string | null
+          jenis_scaffolding: string | null
           jumlah_lunas: number | null
+          jumlah_unit: number | null
           keterangan: string | null
+          lokasi_detail: string | null
           notes: string | null
+          penanggung_jawab: string | null
           start_date: string
           status: string
+          status_pengambilan: string | null
+          status_pengiriman: string | null
           tagihan_belum_bayar: number | null
           tanggal: string | null
+          tanggal_ambil: string | null
+          tanggal_kirim: string | null
           tanggal_lunas: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           bank_account_id?: string | null
+          biaya_kirim?: number | null
           bukti_pembayaran_files?: Json | null
           client_group_id: string
           created_at?: string
@@ -1594,19 +1604,28 @@ export type Database = {
           google_maps_link?: string | null
           id?: string
           invoice?: string | null
+          jenis_scaffolding?: string | null
           jumlah_lunas?: number | null
+          jumlah_unit?: number | null
           keterangan?: string | null
+          lokasi_detail?: string | null
           notes?: string | null
+          penanggung_jawab?: string | null
           start_date: string
           status?: string
+          status_pengambilan?: string | null
+          status_pengiriman?: string | null
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
+          tanggal_ambil?: string | null
+          tanggal_kirim?: string | null
           tanggal_lunas?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           bank_account_id?: string | null
+          biaya_kirim?: number | null
           bukti_pembayaran_files?: Json | null
           client_group_id?: string
           created_at?: string
@@ -1614,13 +1633,21 @@ export type Database = {
           google_maps_link?: string | null
           id?: string
           invoice?: string | null
+          jenis_scaffolding?: string | null
           jumlah_lunas?: number | null
+          jumlah_unit?: number | null
           keterangan?: string | null
+          lokasi_detail?: string | null
           notes?: string | null
+          penanggung_jawab?: string | null
           start_date?: string
           status?: string
+          status_pengambilan?: string | null
+          status_pengiriman?: string | null
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
+          tanggal_ambil?: string | null
+          tanggal_kirim?: string | null
           tanggal_lunas?: string | null
           updated_at?: string
           user_id?: string
