@@ -152,7 +152,8 @@ const FixedExpensesContent = () => {
     if (!user?.id) return;
 
     try {
-      const { error } = await supabase
+      // Step 1: Insert to fixed_expense_history
+      const { error: historyError } = await supabase
         .from('fixed_expense_history')
         .insert({
           fixed_expense_id: expense.id,
@@ -162,7 +163,24 @@ const FixedExpensesContent = () => {
           status: 'paid',
         });
 
-      if (error) throw error;
+      if (historyError) throw historyError;
+
+      // Step 2: Auto-create expense entry
+      const { error: expenseError } = await supabase
+        .from('expenses')
+        .insert({
+          user_id: user.id,
+          transaction_name: expense.expense_name,
+          category: 'Pengeluaran Tetap',
+          amount: amount,
+          date: new Date().toISOString().split('T')[0],
+          description: `Pembayaran ${expense.expense_name} - Jatuh tempo tanggal ${expense.due_date_day}`,
+          bank_account_id: expense.bank_account_id || null,
+          is_fixed: true,
+          checked: false,
+        });
+
+      if (expenseError) throw expenseError;
 
       // Trigger sakura confetti explosion
       setShowConfetti(true);
@@ -171,7 +189,7 @@ const FixedExpensesContent = () => {
       addNotification({
         type: 'paid',
         title: 'Pembayaran Selesai',
-        message: `${expense.expense_name} berhasil dibayar!`,
+        message: `${expense.expense_name} berhasil dibayar dan tercatat di Pengeluaran!`,
         expenseName: expense.expense_name,
         amount: amount,
       });
@@ -181,7 +199,7 @@ const FixedExpensesContent = () => {
       console.error('Error marking as paid:', error);
       toast({
         title: "Error",
-        description: "Gagal menandai sebagai sudah dibayar",
+        description: "Gagal mencatat pembayaran",
         variant: "destructive",
       });
     }
