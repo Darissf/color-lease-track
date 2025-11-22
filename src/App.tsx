@@ -13,6 +13,9 @@ import { Layout } from "./components/Layout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import LandingPage from "./pages/LandingPage";
+import AboutUs from "./pages/AboutUs";
+import Blog from "./pages/Blog";
+import BlogDetail from "./pages/BlogDetail";
 import Nabila from "./pages/Nabila";
 import MonthlyView from "./pages/MonthlyView";
 import Dashboard from "./pages/Dashboard";
@@ -27,6 +30,9 @@ import SavingsSettings from "./pages/SavingsSettings";
 import AuditLogs from "./pages/AuditLogs";
 import ContentManagement from "./pages/ContentManagement";
 import ContentStudio from "./pages/ContentStudio";
+import BlogPosts from "./pages/admin/BlogPosts";
+import BlogPostEditor from "./pages/admin/BlogPostEditor";
+import BlogCategories from "./pages/admin/BlogCategories";
 import ClientGroups from "./pages/ClientGroups";
 import RentalContracts from "./pages/RentalContracts";
 import AISettings from "./pages/AISettings";
@@ -55,6 +61,9 @@ const App = () => (
             <EditableContentProvider>
               <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
@@ -81,6 +90,10 @@ const App = () => (
                       <Route path="/content-management" element={<ContentManagement />} />
                       <Route path="/edit-page" element={<EditPage />} />
                       <Route path="/content-studio" element={<ContentStudio />} />
+                      <Route path="/blog-posts" element={<BlogPosts />} />
+                      <Route path="/blog-posts/new" element={<BlogPostEditor />} />
+                      <Route path="/blog-posts/:id/edit" element={<BlogPostEditor />} />
+                      <Route path="/blog-categories" element={<BlogCategories />} />
                       <Route path="/client-groups" element={<ClientGroups />} />
                       <Route path="/rental-contracts" element={<RentalContracts />} />
                       <Route path="/settings/ai" element={<AISettings />} />
