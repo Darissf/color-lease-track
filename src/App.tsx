@@ -46,6 +46,8 @@ import BudgetTracker from "./pages/BudgetTracker";
 import EditPage from "./pages/EditPage";
 import FixedExpenses from "./pages/FixedExpenses";
 import Profile from "./pages/Profile";
+import PortfolioManager from "./pages/PortfolioManager";
+import MetaAdsDashboard from "./pages/MetaAdsDashboard";
 
 const queryClient = new QueryClient();
 
@@ -102,6 +104,8 @@ const App = () => (
                       <Route path="/ai-usage" element={<AIUsageAnalytics />} />
                       <Route path="/client-dashboard" element={<ClientDashboard />} />
                       <Route path="/contract/:id" element={<ContractDetail />} />
+                      <Route path="/portfolio-manager" element={<PortfolioManager />} />
+                      <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Layout>

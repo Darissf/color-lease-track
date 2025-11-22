@@ -53,3 +53,6 @@ verify_jwt = true
 
 [functions.ai-content-analyzer]
 verify_jwt = true
+
+[functions.meta-conversion-api]
+verify_jwt = false

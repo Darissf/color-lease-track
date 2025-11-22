@@ -1420,6 +1420,60 @@ export type Database = {
           },
         ]
       }
+      meta_ads_settings: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          pixel_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          pixel_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          pixel_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meta_events: {
+        Row: {
+          created_at: string | null
+          event_data: Json | null
+          event_name: string
+          id: string
+          user_data: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_name: string
+          id?: string
+          user_data?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_name?: string
+          id?: string
+          user_data?: Json | null
+        }
+        Relationships: []
+      }
       monthly_budgets: {
         Row: {
           created_at: string
@@ -1540,6 +1594,54 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      portfolio_projects: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          is_featured: boolean | null
+          location: string
+          project_date: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_featured?: boolean | null
+          location: string
+          project_date?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_featured?: boolean | null
+          location?: string
+          project_date?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

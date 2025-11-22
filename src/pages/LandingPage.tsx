@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, Phone, Mail, MapPin, Clock, Shield, Award, Truck, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ import { TestimonialCarousel } from "@/components/landing/TestimonialCarousel";
 import { QuoteForm } from "@/components/landing/QuoteForm";
 import { FloatingWhatsApp } from "@/components/landing/FloatingWhatsApp";
 import { ScrollAnimationWrapper } from "@/components/landing/ScrollAnimationWrapper";
+import { EditableText } from "@/components/EditableText";
+import { initMetaPixel, trackEvent } from "@/lib/metaPixel";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const services = [
   {
@@ -86,6 +90,36 @@ const features = [
 
 const LandingPage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Fetch Meta Ads settings and initialize pixel
+  const { data: metaSettings } = useQuery({
+    queryKey: ["meta-ads-settings"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("meta_ads_settings")
+        .select("pixel_id, is_active")
+        .limit(1)
+        .single();
+      return data;
+    },
+  });
+
+  // Initialize Meta Pixel when settings are loaded
+  useEffect(() => {
+    if (metaSettings?.pixel_id && metaSettings?.is_active) {
+      initMetaPixel({
+        pixelId: metaSettings.pixel_id,
+        enabled: true,
+      });
+    }
+  }, [metaSettings]);
+
+  // Track contact actions
+  const handleContactClick = (method: "whatsapp" | "phone" | "email") => {
+    trackEvent("Contact", {
+      contact_method: method,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -305,7 +339,11 @@ const LandingPage = () => {
                       </div>
                       <div>
                         <h4 className="font-bold text-gray-800 mb-2">Telepon</h4>
-                        <a href="tel:+6281234567890" className="text-sky-600 hover:text-sky-700 font-medium">
+                        <a 
+                          href="tel:+6281234567890" 
+                          className="text-sky-600 hover:text-sky-700 font-medium"
+                          onClick={() => handleContactClick("phone")}
+                        >
                           +62 812-3456-7890
                         </a>
                         <p className="text-sm text-gray-500 mt-1">Senin - Sabtu: 08:00 - 18:00</p>
@@ -322,7 +360,11 @@ const LandingPage = () => {
                       </div>
                       <div>
                         <h4 className="font-bold text-gray-800 mb-2">Email</h4>
-                        <a href="mailto:info@sewascaffoldingbali.com" className="text-sky-600 hover:text-sky-700 font-medium">
+                        <a 
+                          href="mailto:info@sewascaffoldingbali.com" 
+                          className="text-sky-600 hover:text-sky-700 font-medium"
+                          onClick={() => handleContactClick("email")}
+                        >
                           info@sewascaffoldingbali.com
                         </a>
                         <p className="text-sm text-gray-500 mt-1">Respon dalam 1-2 jam kerja</p>
