@@ -271,8 +271,9 @@ export default function ExpenseTracker() {
   };
 
   const exportToCSV = () => {
-    const headers = ["Tanggal", "Transaksi", "Kategori", "Jumlah", "Rekening", "Checklist", "Catatan"];
-    const rows = filteredExpenses.map(exp => [
+    const headers = ["No", "Tanggal", "Transaksi", "Kategori", "Jumlah", "Rekening", "Checklist", "Catatan"];
+    const rows = filteredExpenses.map((exp, index) => [
+      (index + 1).toString(),
       exp.date,
       exp.transaction_name || "-",
       exp.category,
@@ -591,6 +592,9 @@ export default function ExpenseTracker() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-rose-500/10 via-red-500/10 to-orange-500/10 border-b-2 border-rose-500/20">
+                    <TableHead className="font-semibold w-[60px]">
+                      <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">No</span>
+                    </TableHead>
                     <TableHead className="font-semibold">
                       <span className="bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">Tanggal</span>
                     </TableHead>
@@ -618,11 +622,14 @@ export default function ExpenseTracker() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredExpenses.map((expense) => (
+                  {filteredExpenses.map((expense, index) => (
                     <TableRow 
                       key={expense.id}
                       className="hover:bg-gradient-to-r hover:from-rose-500/5 hover:to-orange-500/5 transition-all duration-300 hover:shadow-md"
                     >
+                      <TableCell className="text-center font-medium text-muted-foreground">
+                        {index + 1}
+                      </TableCell>
                       <TableCell>{format(new Date(expense.date), "dd MMM yyyy")}</TableCell>
                       <TableCell className="font-medium">{expense.transaction_name || "-"}</TableCell>
                       <TableCell>
