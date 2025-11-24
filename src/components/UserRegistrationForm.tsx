@@ -26,9 +26,9 @@ import { useAuditLog } from "@/hooks/useAuditLog";
 interface UserRegistrationData {
   full_name: string;
   username?: string;
-  email: string;
+  email?: string;
   password: string;
-  nomor_telepon?: string;
+  nomor_telepon: string;
   role: string;
 }
 
@@ -124,22 +124,16 @@ export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) =
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              {...register("email", { 
-                required: "Email wajib diisi",
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: "Email tidak valid"
-                }
-              })}
+              {...register("email")}
               placeholder="john@example.com"
             />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Opsional - jika tidak diisi, user harus verifikasi email setelah login
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -162,12 +156,17 @@ export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) =
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="nomor_telepon">Nomor Telepon</Label>
+            <Label htmlFor="nomor_telepon">Nomor Telepon *</Label>
             <Input
               id="nomor_telepon"
-              {...register("nomor_telepon")}
+              {...register("nomor_telepon", {
+                required: "Nomor telepon wajib diisi"
+              })}
               placeholder="08123456789"
             />
+            {errors.nomor_telepon && (
+              <p className="text-sm text-destructive">{errors.nomor_telepon.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">

@@ -1333,6 +1333,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_verification_tokens: {
+        Row: {
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          token: string
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -1545,6 +1575,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      login_sessions: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          id: string
+          ip_address: string | null
+          last_active: string | null
+          logged_out_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: Json | null
+          id?: string
+          ip_address?: string | null
+          last_active?: string | null
+          logged_out_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: Json | null
+          id?: string
+          ip_address?: string | null
+          last_active?: string | null
+          logged_out_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       meta_ads_settings: {
         Row: {
@@ -1817,6 +1880,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          email_verified: boolean | null
           full_name: string | null
           id: string
           nomor_telepon: string | null
@@ -1826,12 +1890,15 @@ export type Database = {
           notification_monthly_report: boolean | null
           notification_payment: boolean | null
           notification_push: boolean | null
+          temp_email: boolean | null
+          two_factor_enabled: boolean | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          email_verified?: boolean | null
           full_name?: string | null
           id: string
           nomor_telepon?: string | null
@@ -1841,12 +1908,15 @@ export type Database = {
           notification_monthly_report?: boolean | null
           notification_payment?: boolean | null
           notification_push?: boolean | null
+          temp_email?: boolean | null
+          two_factor_enabled?: boolean | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          email_verified?: boolean | null
           full_name?: string | null
           id?: string
           nomor_telepon?: string | null
@@ -1856,6 +1926,8 @@ export type Database = {
           notification_monthly_report?: boolean | null
           notification_payment?: boolean | null
           notification_push?: boolean | null
+          temp_email?: boolean | null
+          two_factor_enabled?: boolean | null
           updated_at?: string | null
           username?: string | null
         }
@@ -2236,6 +2308,69 @@ export type Database = {
           sender_name?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      temporary_access_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string
+          expires_at: string
+          force_password_change: boolean | null
+          id: string
+          used: boolean | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by: string
+          expires_at: string
+          force_password_change?: boolean | null
+          id?: string
+          used?: boolean | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string
+          force_password_change?: boolean | null
+          id?: string
+          used?: boolean | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      two_factor_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          user_id?: string
+          verified?: boolean | null
         }
         Relationships: []
       }
