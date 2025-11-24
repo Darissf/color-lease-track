@@ -13,6 +13,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import EmailVerification from "./pages/EmailVerification";
 import LandingPage from "./pages/LandingPage";
 import AboutUs from "./pages/AboutUs";
 import Blog from "./pages/Blog";
@@ -74,8 +75,9 @@ const App = () => (
                   <Route path="/blog/:slug" element={<BlogDetail />} />
                   
                   {/* VIP Auth Routes */}
-                  <Route path="/vip/login" element={<Login />} />
-                  <Route path="/vip/register" element={<Register />} />
+            <Route path="/vip/login" element={<Login />} />
+            <Route path="/vip/register" element={<Register />} />
+            <Route path="/vip/verify-email" element={<ProtectedRoute><EmailVerification /></ProtectedRoute>} />
                   
                   {/* Protected VIP Routes */}
                   <Route

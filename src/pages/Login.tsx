@@ -1,28 +1,162 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Building2 } from "lucide-react";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // email or phone
   const [password, setPassword] = useState("");
+  const [tempCode, setTempCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showTempCodeInput, setShowTempCodeInput] = useState(false);
+  const [show2FA, setShow2FA] = useState(false);
+  const [twoFACode, setTwoFACode] = useState("");
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const { signIn } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      let loginEmail = identifier;
+      
+      // Check if identifier is phone number
+      const isPhone = /^[0-9+\-\s()]+$/.test(identifier);
+      
+      if (isPhone) {
+        // Get email by phone
+        const { data, error } = await supabase.functions.invoke('get-user-by-phone', {
+          body: { phone: identifier }
+        });
+        
+        if (error || !data?.email) {
+          throw new Error("Nomor telepon tidak terdaftar");
+        }
+        
+        loginEmail = data.email;
+      }
+
+      // Attempt login
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password
+      });
+
+      if (signInError) throw signInError;
+
+      // Check if 2FA is enabled
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('two_factor_enabled, email_verified, temp_email')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profile?.two_factor_enabled) {
+        // Send 2FA code
+        await supabase.functions.invoke('send-2fa-whatsapp', {
+          body: { userId: authData.user.id }
+        });
+        
+        setPendingUserId(authData.user.id);
+        setShow2FA(true);
+        toast.info("Kode 2FA telah dikirim ke WhatsApp Anda");
+        return;
+      }
+
+      // Check email verification
+      if (profile?.temp_email || !profile?.email_verified) {
+        navigate('/vip/verify-email');
+        return;
+      }
+
+      toast.success("Login berhasil!");
+      navigate('/vip/dashboard');
+    } catch (error: any) {
+      toast.error(error.message || "Login gagal");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTempCodeLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Verify temp code exists and is valid
+      const { data: tempCodeData, error } = await supabase
+        .from('temporary_access_codes')
+        .select('user_id, force_password_change')
+        .eq('code', tempCode)
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (error || !tempCodeData) {
+        throw new Error("Kode akses tidak valid atau sudah kadaluarsa");
+      }
+
+      // Get user auth to login
+      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(tempCodeData.user_id);
+      
+      if (userError || !user) {
+        throw new Error("User tidak ditemukan");
+      }
+
+      // Sign in the user
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: tempCode // Use temp code as temporary password
+      });
+
+      if (signInError) throw signInError;
+
+      // Mark code as used
+      await supabase
+        .from('temporary_access_codes')
+        .update({ used: true, used_at: new Date().toISOString() })
+        .eq('code', tempCode);
+
+      if (tempCodeData.force_password_change) {
+        toast.info("Silakan ganti password Anda");
+        navigate('/vip/settings/account');
+      } else {
+        navigate('/vip/dashboard');
+      }
+
       toast.success("Login berhasil!");
     } catch (error: any) {
       toast.error(error.message || "Login gagal");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-2fa-code', {
+        body: { userId: pendingUserId, code: twoFACode }
+      });
+
+      if (error || !data?.verified) {
+        throw new Error("Kode 2FA tidak valid");
+      }
+
+      toast.success("Login berhasil!");
+      navigate('/vip/dashboard');
+    } catch (error: any) {
+      toast.error(error.message || "Verifikasi 2FA gagal");
     } finally {
       setLoading(false);
     }
@@ -40,43 +174,115 @@ export default function Login() {
               Financial Tracker
             </CardTitle>
             <CardDescription className="mt-2">
-              Masuk ke akun Anda untuk melanjutkan
+              {show2FA
+                ? "Masukkan kode 2FA yang dikirim ke WhatsApp Anda"
+                : showTempCodeInput
+                ? "Masukkan kode akses sementara dari administrator"
+                : "Masuk dengan email/nomor telepon Anda"
+              }
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="nama@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Memproses..." : "Masuk"}
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            Belum punya akun?{" "}
-            <Link to="/vip/register" className="text-primary hover:underline font-medium">
-              Daftar sekarang
-            </Link>
+          {show2FA ? (
+            <form onSubmit={handleVerify2FA} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="twoFACode">Kode 2FA (6 digit)</Label>
+                <Input
+                  id="twoFACode"
+                  type="text"
+                  placeholder="000000"
+                  value={twoFACode}
+                  onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  className="text-center text-2xl tracking-widest font-bold"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading || twoFACode.length !== 6}>
+                {loading ? "Memverifikasi..." : "Verifikasi"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setShow2FA(false);
+                  setTwoFACode("");
+                  setPendingUserId(null);
+                }}
+              >
+                Kembali
+              </Button>
+            </form>
+          ) : showTempCodeInput ? (
+            <form onSubmit={handleTempCodeLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="tempCode">Kode Akses Sementara</Label>
+                <Input
+                  id="tempCode"
+                  type="text"
+                  placeholder="Masukkan kode dari administrator"
+                  value={tempCode}
+                  onChange={(e) => setTempCode(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Loading..." : "Login dengan Kode"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setShowTempCodeInput(false);
+                  setTempCode("");
+                }}
+              >
+                Login Normal
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="identifier">Email atau Nomor WhatsApp</Label>
+                <Input
+                  id="identifier"
+                  type="text"
+                  placeholder="email@example.com atau 08123456789"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Memproses..." : "Masuk"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowTempCodeInput(true)}
+              >
+                Login dengan Kode Akses
+              </Button>
+            </form>
+          )}
+          
+          <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
+            Lupa password? Hubungi administrator
           </div>
         </CardContent>
       </Card>

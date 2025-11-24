@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,19 +130,33 @@ serve(async (req) => {
 
     console.log("[send-email] Sending via Resend...");
 
-    // Send email via Resend
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: `${config.sender_name} <${config.sender_email}>`,
-      to: [to],
-      subject: subject,
-      html: finalHtml,
-      reply_to: config.reply_to_email || undefined,
-      tags: template_type ? [{ name: "type", value: template_type }] : undefined,
+    // Send email via Resend API
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      throw new Error("RESEND_API_KEY not configured");
+    }
+
+    const emailResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: `${config.sender_name} <${config.sender_email}>`,
+        to: [to],
+        subject: subject,
+        html: finalHtml,
+        reply_to: config.reply_to_email || undefined,
+        tags: template_type ? [{ name: "type", value: template_type }] : undefined,
+      }),
     });
 
-    if (emailError) {
-      console.error("[send-email] Resend error:", emailError);
-      throw emailError;
+    const emailData = await emailResponse.json();
+
+    if (!emailResponse.ok) {
+      console.error("[send-email] Resend error:", emailData);
+      throw new Error(emailData.message || "Failed to send email");
     }
 
     console.log("[send-email] Email sent successfully:", emailData?.id);

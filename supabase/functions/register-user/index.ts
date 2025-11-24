@@ -44,19 +44,28 @@ Deno.serve(async (req) => {
 
     const { email, password, full_name, username, nomor_telepon, role } = await req.json()
 
-    if (!email || !password || !full_name || !role) {
-      throw new Error('Missing required fields: email, password, full_name, role')
+    if (!password || !full_name || !role) {
+      throw new Error('Missing required fields: password, full_name, role')
     }
+
+    if (!email && !nomor_telepon) {
+      throw new Error('Email or phone number required')
+    }
+
+    // Generate temp email if email not provided
+    const finalEmail = email || `noemail_${nomor_telepon}@temp.local`
+    const isTempEmail = !email
 
     // Create user in auth
     const { data: newUser, error: userError } = await supabaseClient.auth.admin.createUser({
-      email,
+      email: finalEmail,
       password,
-      email_confirm: true,
+      email_confirm: !isTempEmail,
       user_metadata: {
         full_name,
         username,
-        nomor_telepon
+        nomor_telepon,
+        temp_email: isTempEmail
       }
     })
 
@@ -69,7 +78,9 @@ Deno.serve(async (req) => {
         id: newUser.user.id,
         full_name,
         username,
-        nomor_telepon
+        nomor_telepon,
+        email_verified: !isTempEmail,
+        temp_email: isTempEmail
       })
 
     if (profileError) throw profileError
