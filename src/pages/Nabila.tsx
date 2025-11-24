@@ -527,7 +527,7 @@ export default function Nabila() {
                 <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/30 to-cyan-500/30 group-hover:from-blue-500/40 group-hover:to-cyan-500/40 transition-all">
                   <Clock className="h-5 w-5 text-blue-200" />
                 </div>
-                <span className="text-lg font-semibold bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+                <span className="text-lg font-semibold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                   Riwayat Perubahan Saldo Bank
                 </span>
               </div>
