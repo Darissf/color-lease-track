@@ -45,7 +45,7 @@ const Settings = () => {
       title: "WhatsApp Settings",
       description: "Konfigurasi notifikasi WhatsApp otomatis",
       icon: MessageSquare,
-      path: "/settings/whatsapp",
+      path: "/vip/settings/whatsapp",
       color: "text-green-500",
       adminOnly: true
     }
