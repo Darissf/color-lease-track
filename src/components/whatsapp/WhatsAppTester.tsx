@@ -30,6 +30,12 @@ export const WhatsAppTester = () => {
   };
 
   const handleTemplateSelect = (templateType: string) => {
+    if (templateType === 'none') {
+      setMessage('');
+      setSelectedTemplate('');
+      return;
+    }
+    
     const template = templates.find(t => t.template_type === templateType);
     if (template) {
       setMessage(template.template_content);
@@ -154,7 +160,7 @@ export const WhatsAppTester = () => {
                 <SelectValue placeholder="Pilih template..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Kosongkan</SelectItem>
+                <SelectItem value="none">Kosongkan</SelectItem>
                 {templates.map((template) => (
                   <SelectItem key={template.id} value={template.template_type}>
                     {template.template_name}
