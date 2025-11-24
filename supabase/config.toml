@@ -56,3 +56,12 @@ verify_jwt = true
 
 [functions.meta-conversion-api]
 verify_jwt = false
+
+[functions.send-whatsapp]
+verify_jwt = true
+
+[functions.process-whatsapp-queue]
+verify_jwt = false
+
+[functions.check-whatsapp-health]
+verify_jwt = true
