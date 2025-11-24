@@ -2077,6 +2077,235 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_health_checks: {
+        Row: {
+          check_type: string
+          checked_at: string | null
+          error_message: string | null
+          id: string
+          response_time_ms: number | null
+          session_status: string | null
+          status: string
+          user_id: string
+          waha_version: string | null
+        }
+        Insert: {
+          check_type: string
+          checked_at?: string | null
+          error_message?: string | null
+          id?: string
+          response_time_ms?: number | null
+          session_status?: string | null
+          status: string
+          user_id: string
+          waha_version?: string | null
+        }
+        Update: {
+          check_type?: string
+          checked_at?: string | null
+          error_message?: string | null
+          id?: string
+          response_time_ms?: number | null
+          session_status?: string | null
+          status?: string
+          user_id?: string
+          waha_version?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_message_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          template_content: string
+          template_name: string
+          template_type: string
+          updated_at: string | null
+          user_id: string
+          variables: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_content: string
+          template_name: string
+          template_type: string
+          updated_at?: string | null
+          user_id: string
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_content?: string
+          template_name?: string
+          template_type?: string
+          updated_at?: string | null
+          user_id?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
+      whatsapp_notification_queue: {
+        Row: {
+          contract_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          notification_type: string
+          priority: number | null
+          processing_started_at: string | null
+          scheduled_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          notification_type: string
+          priority?: number | null
+          processing_started_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          notification_type?: string
+          priority?: number | null
+          processing_started_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_notification_queue_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_notifications_log: {
+        Row: {
+          contract_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          message_content: string
+          next_retry_at: string | null
+          notification_type: string
+          recipient_name: string | null
+          recipient_phone: string
+          retry_count: number | null
+          sent_at: string | null
+          status: string
+          user_id: string
+          waha_response: Json | null
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_content: string
+          next_retry_at?: string | null
+          notification_type: string
+          recipient_name?: string | null
+          recipient_phone: string
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string
+          user_id: string
+          waha_response?: Json | null
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_content?: string
+          next_retry_at?: string | null
+          notification_type?: string
+          recipient_name?: string | null
+          recipient_phone?: string
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+          waha_response?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_notifications_log_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_settings: {
+        Row: {
+          auto_retry_enabled: boolean | null
+          connection_status: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          is_active: boolean | null
+          last_connection_test: string | null
+          max_retry_attempts: number | null
+          retry_delay_minutes: number | null
+          updated_at: string | null
+          user_id: string
+          waha_api_key: string
+          waha_api_url: string
+          waha_session_name: string
+        }
+        Insert: {
+          auto_retry_enabled?: boolean | null
+          connection_status?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_connection_test?: string | null
+          max_retry_attempts?: number | null
+          retry_delay_minutes?: number | null
+          updated_at?: string | null
+          user_id: string
+          waha_api_key: string
+          waha_api_url: string
+          waha_session_name?: string
+        }
+        Update: {
+          auto_retry_enabled?: boolean | null
+          connection_status?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_connection_test?: string | null
+          max_retry_attempts?: number | null
+          retry_delay_minutes?: number | null
+          updated_at?: string | null
+          user_id?: string
+          waha_api_key?: string
+          waha_api_url?: string
+          waha_session_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       content_render_latest: {
@@ -2101,6 +2330,13 @@ export type Database = {
       is_admin: { Args: { user_id: string }; Returns: boolean }
       is_super_admin: { Args: { user_id: string }; Returns: boolean }
       is_user: { Args: { user_id: string }; Returns: boolean }
+      process_whatsapp_notification_queue: {
+        Args: never
+        Returns: {
+          error_count: number
+          processed_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
