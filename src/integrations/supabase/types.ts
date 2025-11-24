@@ -1207,6 +1207,132 @@ export type Database = {
         }
         Relationships: []
       }
+      email_logs: {
+        Row: {
+          clicked_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          recipient_email: string
+          recipient_name: string | null
+          resend_email_id: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string | null
+          template_type: string | null
+          user_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          resend_email_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          template_type?: string | null
+          user_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          resend_email_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          template_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_signatures: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          signature_html: string
+          signature_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          signature_html: string
+          signature_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          signature_html?: string
+          signature_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          body_template: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          subject_template: string
+          template_name: string
+          template_type: string
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string
+          variables: Json | null
+        }
+        Insert: {
+          body_template: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          subject_template: string
+          template_name: string
+          template_type: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id: string
+          variables?: Json | null
+        }
+        Update: {
+          body_template?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          subject_template?: string
+          template_name?: string
+          template_type?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -1555,6 +1681,48 @@ export type Database = {
           updated_at?: string
           user_id?: string
           year?: number
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string | null
+          email_enabled: boolean | null
+          id: string
+          notification_type: string
+          preferred_time_end: string | null
+          preferred_time_start: string | null
+          priority: number | null
+          timezone: string | null
+          updated_at: string | null
+          user_id: string
+          whatsapp_enabled: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          notification_type: string
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          priority?: number | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id: string
+          whatsapp_enabled?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          notification_type?: string
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          priority?: number | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id?: string
+          whatsapp_enabled?: boolean | null
         }
         Relationships: []
       }
@@ -2023,6 +2191,108 @@ export type Database = {
           },
         ]
       }
+      smtp_settings: {
+        Row: {
+          api_key_encrypted: string | null
+          created_at: string | null
+          daily_limit: number | null
+          emails_sent_today: number | null
+          id: string
+          is_active: boolean | null
+          last_reset_date: string | null
+          provider: string | null
+          reply_to_email: string | null
+          sender_email: string
+          sender_name: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          created_at?: string | null
+          daily_limit?: number | null
+          emails_sent_today?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_reset_date?: string | null
+          provider?: string | null
+          reply_to_email?: string | null
+          sender_email: string
+          sender_name?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          created_at?: string | null
+          daily_limit?: number | null
+          emails_sent_today?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_reset_date?: string | null
+          provider?: string | null
+          reply_to_email?: string | null
+          sender_email?: string
+          sender_name?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      unified_notification_queue: {
+        Row: {
+          attempts: number | null
+          channel: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          last_attempt_at: string | null
+          message_content: string
+          metadata: Json | null
+          notification_type: string
+          recipient_identifier: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string | null
+          subject: string | null
+          user_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          channel: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          message_content: string
+          metadata?: Json | null
+          notification_type: string
+          recipient_identifier: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          user_id: string
+        }
+        Update: {
+          attempts?: number | null
+          channel?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          message_content?: string
+          metadata?: Json | null
+          notification_type?: string
+          recipient_identifier?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_ai_settings: {
         Row: {
           ai_provider: string
@@ -2327,6 +2597,10 @@ export type Database = {
         Args: { role_name: string; user_id: string }
         Returns: boolean
       }
+      increment_template_usage: {
+        Args: { p_template_type: string }
+        Returns: undefined
+      }
       initialize_whatsapp_templates: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -2341,6 +2615,7 @@ export type Database = {
           processed_count: number
         }[]
       }
+      reset_daily_email_counter: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
