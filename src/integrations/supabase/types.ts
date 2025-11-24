@@ -2327,6 +2327,10 @@ export type Database = {
         Args: { role_name: string; user_id: string }
         Returns: boolean
       }
+      initialize_whatsapp_templates: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: { user_id: string }; Returns: boolean }
       is_super_admin: { Args: { user_id: string }; Returns: boolean }
       is_user: { Args: { user_id: string }; Returns: boolean }

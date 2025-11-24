@@ -48,6 +48,8 @@ export const useNotificationLogs = (filters?: Filters) => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      console.log('[Notification Logs] Fetching logs with filters:', filters);
+      
       let query = supabase
         .from('whatsapp_notifications_log')
         .select('*', { count: 'exact' })
@@ -69,8 +71,12 @@ export const useNotificationLogs = (filters?: Filters) => {
 
       const { data, error, count } = await query;
 
-      if (error) throw error;
-
+      if (error) {
+        console.error('[Notification Logs] Error:', error);
+        throw error;
+      }
+      
+      console.log('[Notification Logs] Data fetched:', data?.length || 0, 'logs');
       setLogs((data || []) as NotificationLog[]);
 
       // Calculate stats

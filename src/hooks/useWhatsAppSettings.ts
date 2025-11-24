@@ -25,15 +25,27 @@ export const useWhatsAppSettings = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      console.log('[WhatsApp Settings] Fetching settings...');
+      
       const { data, error } = await supabase
         .from('whatsapp_settings')
         .select('*')
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setSettings(data as WhatsAppSettings);
+      if (error) {
+        console.error('[WhatsApp Settings] Error:', error);
+        throw error;
+      }
+      
+      console.log('[WhatsApp Settings] Data fetched:', data ? 'Found' : 'Empty');
+      setSettings(data as WhatsAppSettings | null);
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error('[WhatsApp Settings] Fetch error:', error);
+      toast({
+        title: 'Error',
+        description: 'Gagal memuat pengaturan WhatsApp',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
