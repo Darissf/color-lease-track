@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Book, Settings as SettingsIcon, Wallet, PiggyBank, ChevronRight, MessageSquare } from "lucide-react";
+import { Book, Settings as SettingsIcon, Wallet, PiggyBank, ChevronRight, MessageSquare, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -31,14 +31,14 @@ const Settings = () => {
       title: "Akun Rekening",
       description: "Kelola rekening bank dan metode pembayaran",
       icon: Wallet,
-      path: "/settings/accounts",
+      path: "/vip/settings/accounts",
       color: "text-blue-500"
     },
     {
       title: "Pengaturan Tabungan",
       description: "Konfigurasi target dan alokasi tabungan",
       icon: PiggyBank,
-      path: "/settings/savings",
+      path: "/vip/settings/savings",
       color: "text-purple-500"
     },
     {
@@ -47,6 +47,14 @@ const Settings = () => {
       icon: MessageSquare,
       path: "/vip/settings/whatsapp",
       color: "text-green-500",
+      adminOnly: true
+    },
+    {
+      title: "SMTP Email Settings",
+      description: "Konfigurasi pengiriman email otomatis via Resend",
+      icon: Mail,
+      path: "/vip/settings/smtp",
+      color: "text-blue-600",
       adminOnly: true
     }
   ];

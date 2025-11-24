@@ -51,6 +51,7 @@ import PortfolioManager from "./pages/PortfolioManager";
 import MetaAdsDashboard from "./pages/MetaAdsDashboard";
 import LandingSettings from "./pages/LandingSettings";
 import WhatsAppSettings from "./pages/WhatsAppSettings";
+import SMTPSettings from "./pages/SMTPSettings";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ const App = () => (
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/settings/admin" element={<AdminSettings />} />
                             <Route path="/settings/whatsapp" element={<WhatsAppSettings />} />
+                            <Route path="/settings/smtp" element={<SMTPSettings />} />
                             <Route path="/settings/accounts" element={<AccountSettings />} />
                             <Route path="/settings/income" element={<IncomeSettings />} />
                             <Route path="/settings/savings" element={<SavingsSettings />} />
