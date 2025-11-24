@@ -73,8 +73,22 @@ export const WhatsAppConfigForm = () => {
     );
   }
 
+  // Empty state - belum ada konfigurasi
+  const isEmpty = !settings || !settings.waha_api_url;
+
   return (
     <div className="space-y-6">
+      {isEmpty && (
+        <Card className="p-6 bg-muted/50 border-dashed">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="font-semibold mb-2">Belum Ada Konfigurasi</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Silakan isi form di bawah untuk mengkonfigurasi koneksi WhatsApp WAHA
+            </p>
+          </div>
+        </Card>
+      )}
       {/* Connection Status */}
       <Card className="p-4 bg-muted/50">
         <div className="flex items-center justify-between">

@@ -37,6 +37,24 @@ export const MessageTemplates = () => {
     );
   }
 
+  // Empty state
+  if (templates.length === 0) {
+    return (
+      <Card className="p-12 border-dashed">
+        <div className="text-center">
+          <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="font-semibold text-lg mb-2">Belum Ada Template</h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            Template pesan WhatsApp belum tersedia. Template akan dibuat otomatis saat Anda pertama kali menyimpan konfigurasi WhatsApp.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Pastikan Anda sudah mengisi konfigurasi di tab "Konfigurasi" terlebih dahulu.
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

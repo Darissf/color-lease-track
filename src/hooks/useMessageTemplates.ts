@@ -24,15 +24,22 @@ export const useMessageTemplates = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
+      console.log('[Message Templates] Fetching templates...');
+      
       const { data, error } = await supabase
         .from('whatsapp_message_templates')
         .select('*')
         .order('template_type');
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Message Templates] Error:', error);
+        throw error;
+      }
+      
+      console.log('[Message Templates] Data fetched:', data?.length || 0, 'templates');
       setTemplates((data || []) as MessageTemplate[]);
     } catch (error) {
-      console.error('Error fetching templates:', error);
+      console.error('[Message Templates] Fetch error:', error);
       toast({
         title: 'Error',
         description: 'Gagal memuat template',
