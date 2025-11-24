@@ -168,7 +168,7 @@ const AdminSettings = () => {
       <div className="grid gap-4 md:grid-cols-2 mb-6">
         <Card 
           className="p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
-          onClick={() => navigate("/settings/whatsapp")}
+          onClick={() => navigate("/vip/settings/whatsapp")}
         >
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg gradient-success flex items-center justify-center">
@@ -188,7 +188,7 @@ const AdminSettings = () => {
 
         <Card 
           className="p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
-          onClick={() => navigate("/audit-logs")}
+          onClick={() => navigate("/vip/audit-logs")}
         >
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center">
