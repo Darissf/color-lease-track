@@ -32,7 +32,7 @@ const WhatsAppSettings = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/vip/')}
+            onClick={() => navigate('/settings/admin')}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

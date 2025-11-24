@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Book, Settings as SettingsIcon, Wallet, PiggyBank, ChevronRight } from "lucide-react";
+import { Book, Settings as SettingsIcon, Wallet, PiggyBank, ChevronRight, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const learningResources = [
   {
@@ -23,6 +24,7 @@ const learningResources = [
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { isSuperAdmin } = useAuth();
 
   const settingsMenu = [
     {
@@ -38,6 +40,14 @@ const Settings = () => {
       icon: PiggyBank,
       path: "/settings/savings",
       color: "text-purple-500"
+    },
+    {
+      title: "WhatsApp Settings",
+      description: "Konfigurasi notifikasi WhatsApp otomatis",
+      icon: MessageSquare,
+      path: "/settings/whatsapp",
+      color: "text-green-500",
+      adminOnly: true
     }
   ];
 
@@ -55,26 +65,31 @@ const Settings = () => {
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground mb-4">Pengaturan Akun</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          {settingsMenu.map((item) => (
-            <Card 
-              key={item.path}
-              className="p-6 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
-              onClick={() => navigate(item.path)}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className={`h-12 w-12 rounded-lg bg-muted flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                  <item.icon className={`h-6 w-6 ${item.color}`} />
+          {settingsMenu.map((item) => {
+            // Skip admin-only items if not super admin
+            if (item.adminOnly && !isSuperAdmin) return null;
+            
+            return (
+              <Card 
+                key={item.path}
+                className="p-6 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
+                onClick={() => navigate(item.path)}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`h-12 w-12 rounded-lg bg-muted flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    <item.icon className={`h-6 w-6 ${item.color}`} />
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-              </div>
-              <h3 className="font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                {item.title}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {item.description}
-              </p>
-            </Card>
-          ))}
+                <h3 className="font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {item.description}
+                </p>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
