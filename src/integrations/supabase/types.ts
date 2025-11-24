@@ -1212,9 +1212,12 @@ export type Database = {
           clicked_at: string | null
           created_at: string | null
           error_message: string | null
+          fallback_attempts: number | null
           id: string
           metadata: Json | null
           opened_at: string | null
+          provider_id: string | null
+          provider_name: string | null
           recipient_email: string
           recipient_name: string | null
           resend_email_id: string | null
@@ -1229,9 +1232,12 @@ export type Database = {
           clicked_at?: string | null
           created_at?: string | null
           error_message?: string | null
+          fallback_attempts?: number | null
           id?: string
           metadata?: Json | null
           opened_at?: string | null
+          provider_id?: string | null
+          provider_name?: string | null
           recipient_email: string
           recipient_name?: string | null
           resend_email_id?: string | null
@@ -1246,9 +1252,12 @@ export type Database = {
           clicked_at?: string | null
           created_at?: string | null
           error_message?: string | null
+          fallback_attempts?: number | null
           id?: string
           metadata?: Json | null
           opened_at?: string | null
+          provider_id?: string | null
+          provider_name?: string | null
           recipient_email?: string
           recipient_name?: string | null
           resend_email_id?: string | null
@@ -1257,6 +1266,86 @@ export type Database = {
           status?: string | null
           subject?: string | null
           template_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "email_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_providers: {
+        Row: {
+          api_endpoint: string | null
+          api_key_encrypted: string
+          created_at: string | null
+          daily_limit: number | null
+          display_name: string | null
+          emails_sent_month: number | null
+          emails_sent_today: number | null
+          health_status: string | null
+          id: string
+          is_active: boolean | null
+          last_error: string | null
+          last_month_reset: string | null
+          last_reset_date: string | null
+          last_success_at: string | null
+          monthly_limit: number | null
+          priority: number | null
+          provider_name: string
+          sender_email: string
+          sender_name: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          api_endpoint?: string | null
+          api_key_encrypted: string
+          created_at?: string | null
+          daily_limit?: number | null
+          display_name?: string | null
+          emails_sent_month?: number | null
+          emails_sent_today?: number | null
+          health_status?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_month_reset?: string | null
+          last_reset_date?: string | null
+          last_success_at?: string | null
+          monthly_limit?: number | null
+          priority?: number | null
+          provider_name: string
+          sender_email: string
+          sender_name?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          api_endpoint?: string | null
+          api_key_encrypted?: string
+          created_at?: string | null
+          daily_limit?: number | null
+          display_name?: string | null
+          emails_sent_month?: number | null
+          emails_sent_today?: number | null
+          health_status?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_month_reset?: string | null
+          last_reset_date?: string | null
+          last_success_at?: string | null
+          monthly_limit?: number | null
+          priority?: number | null
+          provider_name?: string
+          sender_email?: string
+          sender_name?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -2732,6 +2821,10 @@ export type Database = {
         Args: { role_name: string; user_id: string }
         Returns: boolean
       }
+      increment_provider_usage: {
+        Args: { p_provider_id: string }
+        Returns: undefined
+      }
       increment_template_usage: {
         Args: { p_template_type: string }
         Returns: undefined
@@ -2751,6 +2844,12 @@ export type Database = {
         }[]
       }
       reset_daily_email_counter: { Args: never; Returns: undefined }
+      reset_email_provider_daily_counters: { Args: never; Returns: undefined }
+      reset_email_provider_monthly_counters: { Args: never; Returns: undefined }
+      update_provider_error: {
+        Args: { p_error_message: string; p_provider_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

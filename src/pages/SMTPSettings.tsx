@@ -11,11 +11,12 @@ import EmailLogsPanel from "@/components/smtp/EmailLogsPanel";
 import EmailSignatureManager from "@/components/smtp/EmailSignatureManager";
 import EmailTester from "@/components/smtp/EmailTester";
 import UnifiedNotificationCenter from "@/components/smtp/UnifiedNotificationCenter";
+import EmailProviderManager from "@/components/smtp/EmailProviderManager";
 
 const SMTPSettings = () => {
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState("config");
+  const [activeTab, setActiveTab] = useState("providers");
 
   // Redirect if not super admin
   if (!isSuperAdmin) {
@@ -56,7 +57,8 @@ const SMTPSettings = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+              <TabsTrigger value="providers">Providers</TabsTrigger>
               <TabsTrigger value="config">Config</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="signatures">Signatures</TabsTrigger>
@@ -64,6 +66,10 @@ const SMTPSettings = () => {
               <TabsTrigger value="logs">Logs</TabsTrigger>
               <TabsTrigger value="test">Test</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="providers" className="space-y-4">
+              <EmailProviderManager />
+            </TabsContent>
 
             <TabsContent value="config" className="space-y-4">
               <SMTPConfigForm />
