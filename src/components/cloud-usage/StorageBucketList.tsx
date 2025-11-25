@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Lock, Unlock } from "lucide-react";
 
 interface BucketStats {
-  bucketName: string;
+  name: string;
   fileCount: number;
   size: number;
   isPublic: boolean;
@@ -63,8 +63,8 @@ export function StorageBucketList({ buckets, totalSize }: StorageBucketListProps
               buckets.map((bucket) => {
                 const percentage = totalSize > 0 ? (bucket.size / totalSize) * 100 : 0;
                 return (
-                  <TableRow key={bucket.bucketName}>
-                    <TableCell className="font-medium">{bucket.bucketName}</TableCell>
+                  <TableRow key={bucket.name}>
+                    <TableCell className="font-medium">{bucket.name}</TableCell>
                     <TableCell className="text-right">{formatNumber(bucket.fileCount)}</TableCell>
                     <TableCell className="text-right">{formatBytes(bucket.size)}</TableCell>
                     <TableCell>

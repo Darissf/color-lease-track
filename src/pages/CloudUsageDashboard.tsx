@@ -28,7 +28,7 @@ interface TableStats {
 }
 
 interface BucketStats {
-  bucketName: string;
+  name: string;
   fileCount: number;
   size: number;
   isPublic: boolean;
@@ -84,92 +84,41 @@ export default function CloudUsageDashboard() {
 
   const fetchDatabaseStats = async () => {
     try {
-      // Estimate from row counts (rough approximation)
-      const tableQueries = [
-        { name: 'editable_content', query: supabase.from('editable_content').select('*', { count: 'exact', head: true }) },
-        { name: 'blog_posts', query: supabase.from('blog_posts').select('*', { count: 'exact', head: true }) },
-        { name: 'ai_usage_analytics', query: supabase.from('ai_usage_analytics').select('*', { count: 'exact', head: true }) },
-        { name: 'expenses', query: supabase.from('expenses').select('*', { count: 'exact', head: true }) },
-        { name: 'profiles', query: supabase.from('profiles').select('*', { count: 'exact', head: true }) },
-        { name: 'monthly_budgets', query: supabase.from('monthly_budgets').select('*', { count: 'exact', head: true }) },
-        { name: 'bank_accounts', query: supabase.from('bank_accounts').select('*', { count: 'exact', head: true }) },
-        { name: 'income_sources', query: supabase.from('income_sources').select('*', { count: 'exact', head: true }) },
-      ];
+      // Use edge function to get real database metrics
+      const { data, error } = await supabase.functions.invoke('get-cloud-metrics');
+      
+      if (error) throw error;
 
-      let totalSize = 0;
-      const tableStats: TableStats[] = [];
-
-      for (const { name, query } of tableQueries) {
-        try {
-          const { count } = await query;
-          
-          // Rough estimate: 1KB per row average
-          const estimatedSize = (count || 0) * 1024;
-          totalSize += estimatedSize;
-
-          tableStats.push({
-            tableName: name,
-            size: estimatedSize,
-            rowCount: count || 0,
-            lastModified: 'Recently'
-          });
-        } catch (err) {
-          console.log(`Could not access table: ${name}`);
-        }
-      }
-
-      // Sort by size descending
-      tableStats.sort((a, b) => b.size - a.size);
+      setDatabaseSize(data.databaseSize || 0);
+      
+      // Transform data to match interface
+      const tableStats: TableStats[] = (data.tables || []).map((t: any) => ({
+        tableName: t.tableName || '',
+        size: t.size || 0,
+        rowCount: t.rowCount || 0,
+        lastModified: t.lastModified ? formatDistanceToNow(new Date(t.lastModified), { addSuffix: true }) : 'Unknown'
+      }));
+      
       setTables(tableStats.slice(0, 10)); // Top 10 tables
-      setDatabaseSize(totalSize);
     } catch (error) {
       console.error("Error fetching database stats:", error);
+      toast.error("Failed to fetch database statistics");
       setDatabaseSize(0);
     }
   };
 
   const fetchStorageStats = async () => {
     try {
-      // Known storage buckets
-      const bucketNames = ['avatars', 'ktp-documents', 'client-icons', 'portfolio-images', 'payment-proofs'];
-      const bucketStats: BucketStats[] = [];
-      let totalSize = 0;
+      // Use edge function to get real storage metrics
+      const { data, error } = await supabase.functions.invoke('get-cloud-metrics');
+      
+      if (error) throw error;
 
-      for (const bucketName of bucketNames) {
-        try {
-          const { data: objects, error } = await supabase
-            .storage
-            .from(bucketName)
-            .list();
-
-          if (error) {
-            console.log(`Could not access bucket ${bucketName}:`, error);
-            continue;
-          }
-
-          const fileCount = objects?.length || 0;
-          // Rough estimate: 16KB average per file
-          const bucketSize = fileCount * 16 * 1024;
-          totalSize += bucketSize;
-
-          // Determine if bucket is public (hardcoded knowledge)
-          const isPublic = ['avatars', 'client-icons', 'portfolio-images'].includes(bucketName);
-
-          bucketStats.push({
-            bucketName,
-            fileCount,
-            size: bucketSize,
-            isPublic
-          });
-        } catch (err) {
-          console.log(`Error accessing bucket ${bucketName}:`, err);
-        }
-      }
-
-      setBuckets(bucketStats);
-      setStorageSize(totalSize);
+      setStorageSize(data.storageSize || 0);
+      setBuckets(data.buckets || []);
     } catch (error) {
       console.error("Error fetching storage stats:", error);
+      toast.error("Failed to fetch storage statistics");
       setStorageSize(0);
     }
   };
@@ -267,7 +216,7 @@ export default function CloudUsageDashboard() {
       ...tables.map(t => [t.tableName, (t.size / 1024).toFixed(2), t.rowCount.toString()]),
       ['', ''],
       ['Bucket Name', 'Files', 'Size (KB)'],
-      ...buckets.map(b => [b.bucketName, b.fileCount.toString(), (b.size / 1024).toFixed(2)])
+      ...buckets.map(b => [b.name, b.fileCount.toString(), (b.size / 1024).toFixed(2)])
     ];
 
     const csvContent = data.map(row => row.join(',')).join('\n');
