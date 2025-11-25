@@ -2866,6 +2866,15 @@ export type Database = {
         Args: { role_name: string; user_id: string }
         Returns: boolean
       }
+      get_table_sizes: {
+        Args: never
+        Returns: {
+          last_modified: string
+          row_count: number
+          size_bytes: number
+          table_name: string
+        }[]
+      }
       increment_provider_usage: {
         Args: { p_provider_id: string }
         Returns: undefined
