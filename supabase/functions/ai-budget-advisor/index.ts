@@ -11,6 +11,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -29,6 +31,20 @@ serve(async (req) => {
     }
 
     console.log("AI Budget Advisor request for user:", user.id);
+
+    // Fetch user's AI settings
+    const { data: aiSettings } = await supabaseClient
+      .from("user_ai_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const provider = aiSettings?.ai_provider || "lovable";
+    const apiKey = aiSettings?.api_key || Deno.env.get("LOVABLE_API_KEY");
+    const model = aiSettings?.model_name || "google/gemini-2.5-flash";
+
+    console.log("Budget advisor - Using provider:", provider, "model:", model);
 
     // Fetch last 6 months of expenses
     const sixMonthsAgo = new Date();
@@ -138,40 +154,71 @@ FORMAT JAWABAN:
 
 Gunakan format rupiah Indonesia (Rp) untuk semua angka dan berikan saran yang praktis dan actionable.`;
 
-    // Call Lovable AI
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    let aiResponse;
+    let aiData;
+
+    if (provider === "deepseek") {
+      aiResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: "Anda adalah ahli keuangan profesional yang memberikan analisis mendalam dan saran praktis untuk optimasi budget. Gunakan data historis untuk membuat prediksi akurat dan berikan saran yang spesifik dengan estimasi penghematan." },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        }),
+      });
+    } else if (provider === "claude") {
+      aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: 2000,
+          messages: [
+            { role: "user", content: `Anda adalah ahli keuangan profesional yang memberikan analisis mendalam dan saran praktis untuk optimasi budget. Gunakan data historis untuk membuat prediksi akurat dan berikan saran yang spesifik dengan estimasi penghematan.\n\n${prompt}` }
+          ],
+          temperature: 0.7,
+        }),
+      });
+    } else {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            {
+              role: "system",
+              content: "Anda adalah ahli keuangan profesional yang memberikan analisis mendalam dan saran praktis untuk optimasi budget. Gunakan data historis untuk membuat prediksi akurat dan berikan saran yang spesifik dengan estimasi penghematan."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        }),
+      });
     }
-
-    console.log("Calling Lovable AI for budget analysis...");
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: "Anda adalah ahli keuangan profesional yang memberikan analisis mendalam dan saran praktis untuk optimasi budget. Gunakan data historis untuk membuat prediksi akurat dan berikan saran yang spesifik dengan estimasi penghematan."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
-    });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("Lovable AI error:", aiResponse.status, errorText);
+      console.error("AI error:", aiResponse.status, errorText);
       
       if (aiResponse.status === 429) {
         return new Response(
@@ -181,7 +228,7 @@ Gunakan format rupiah Indonesia (Rp) untuk semua angka dan berikan saran yang pr
       }
       if (aiResponse.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Payment required. Please add credits to your Lovable workspace." }),
+          JSON.stringify({ error: "Payment required. Please add credits to your AI workspace." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -189,10 +236,39 @@ Gunakan format rupiah Indonesia (Rp) untuk semua angka dan berikan saran yang pr
       throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
-    const aiData = await aiResponse.json();
-    const analysis = aiData.choices[0].message.content;
+    aiData = await aiResponse.json();
+    
+    let analysis;
+    let usage;
+
+    if (provider === "claude") {
+      analysis = aiData.content[0].text;
+      usage = {
+        prompt_tokens: aiData.usage?.input_tokens || 0,
+        completion_tokens: aiData.usage?.output_tokens || 0,
+        total_tokens: (aiData.usage?.input_tokens || 0) + (aiData.usage?.output_tokens || 0)
+      };
+    } else {
+      analysis = aiData.choices[0].message.content;
+      usage = aiData.usage || {};
+    }
 
     console.log("AI Budget analysis completed successfully");
+
+    // Log usage to analytics
+    const responseTime = Date.now() - startTime;
+    await supabaseClient.from("ai_usage_analytics").insert({
+      user_id: user.id,
+      ai_provider: provider,
+      model_name: model,
+      tokens_used: usage.total_tokens,
+      request_tokens: usage.prompt_tokens,
+      response_tokens: usage.completion_tokens,
+      cost_estimate: calculateCost(provider, usage),
+      response_time_ms: responseTime,
+      status: "success",
+      function_name: "ai-budget-advisor"
+    });
 
     return new Response(
       JSON.stringify({
@@ -212,6 +288,35 @@ Gunakan format rupiah Indonesia (Rp) untuk semua angka dan berikan saran yang pr
     );
   } catch (error) {
     console.error("Error in ai-budget-advisor:", error);
+    
+    // Log failed attempt
+    const responseTime = Date.now() - startTime;
+    try {
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const supabaseClient = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const { data: { user } } = await supabaseClient.auth.getUser();
+      
+        if (user) {
+          await supabaseClient.from("ai_usage_analytics").insert({
+            user_id: user.id,
+            ai_provider: "unknown",
+            model_name: "unknown",
+            status: "error",
+            error_message: error instanceof Error ? error.message : "Unknown error",
+            response_time_ms: responseTime,
+            function_name: "ai-budget-advisor"
+          });
+        }
+      }
+    } catch (logError) {
+      console.error("Failed to log error:", logError);
+    }
+
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
@@ -221,3 +326,16 @@ Gunakan format rupiah Indonesia (Rp) untuk semua angka dan berikan saran yang pr
     );
   }
 });
+
+function calculateCost(provider: string, usage: any): number {
+  const promptTokens = usage.prompt_tokens || 0;
+  const completionTokens = usage.completion_tokens || 0;
+
+  if (provider === "deepseek") {
+    return (promptTokens * 0.00000014 + completionTokens * 0.00000028);
+  } else if (provider === "claude") {
+    return (promptTokens * 0.000003 + completionTokens * 0.000015);
+  } else {
+    return (promptTokens * 0.0000001 + completionTokens * 0.0000003);
+  }
+}
