@@ -10,6 +10,7 @@ import EmailTemplateEditor from "@/components/smtp/EmailTemplateEditor";
 import EmailLogsPanel from "@/components/smtp/EmailLogsPanel";
 import EmailSignatureManager from "@/components/smtp/EmailSignatureManager";
 import EmailTester from "@/components/smtp/EmailTester";
+import EmailRotationTester from "@/components/smtp/EmailRotationTester";
 import UnifiedNotificationCenter from "@/components/smtp/UnifiedNotificationCenter";
 import EmailProviderManager from "@/components/smtp/EmailProviderManager";
 
@@ -92,7 +93,10 @@ const SMTPSettings = () => {
             </TabsContent>
 
             <TabsContent value="test" className="space-y-4">
-              <EmailTester />
+              <div className="space-y-6">
+                <EmailTester />
+                <EmailRotationTester />
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
