@@ -210,6 +210,10 @@ const EmailProviderManager = () => {
         return "✉️";
       case "mailgun":
         return "📮";
+      case "mailjet":
+        return "🚀";
+      case "sendgrid":
+        return "📤";
       default:
         return "📬";
     }
@@ -357,9 +361,10 @@ const EmailProviderManager = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="resend">Resend</SelectItem>
-                  <SelectItem value="brevo">Brevo</SelectItem>
-                  <SelectItem value="mailgun">Mailgun</SelectItem>
+                  <SelectItem value="resend">📧 Resend (3,000/month free)</SelectItem>
+                  <SelectItem value="brevo">✉️ Brevo (9,000/month free)</SelectItem>
+                  <SelectItem value="mailjet">🚀 Mailjet (6,000/month free)</SelectItem>
+                  <SelectItem value="sendgrid">📤 SendGrid (3,000/month free)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
