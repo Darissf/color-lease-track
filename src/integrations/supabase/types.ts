@@ -1257,6 +1257,7 @@ export type Database = {
           clicked_at: string | null
           created_at: string | null
           error_message: string | null
+          external_message_id: string | null
           fallback_attempts: number | null
           id: string
           metadata: Json | null
@@ -1266,6 +1267,7 @@ export type Database = {
           recipient_email: string
           recipient_name: string | null
           resend_email_id: string | null
+          response_time_ms: number | null
           scheduled_for: string | null
           sent_at: string | null
           status: string | null
@@ -1277,6 +1279,7 @@ export type Database = {
           clicked_at?: string | null
           created_at?: string | null
           error_message?: string | null
+          external_message_id?: string | null
           fallback_attempts?: number | null
           id?: string
           metadata?: Json | null
@@ -1286,6 +1289,7 @@ export type Database = {
           recipient_email: string
           recipient_name?: string | null
           resend_email_id?: string | null
+          response_time_ms?: number | null
           scheduled_for?: string | null
           sent_at?: string | null
           status?: string | null
@@ -1297,6 +1301,7 @@ export type Database = {
           clicked_at?: string | null
           created_at?: string | null
           error_message?: string | null
+          external_message_id?: string | null
           fallback_attempts?: number | null
           id?: string
           metadata?: Json | null
@@ -1306,6 +1311,7 @@ export type Database = {
           recipient_email?: string
           recipient_name?: string | null
           resend_email_id?: string | null
+          response_time_ms?: number | null
           scheduled_for?: string | null
           sent_at?: string | null
           status?: string | null

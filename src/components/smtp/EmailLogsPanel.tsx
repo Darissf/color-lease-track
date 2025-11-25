@@ -32,6 +32,8 @@ interface EmailLog {
   sent_at: string;
   created_at: string;
   error_message?: string;
+  provider_name?: string;
+  response_time_ms?: number;
 }
 
 const EmailLogsPanel = () => {
@@ -40,15 +42,17 @@ const EmailLogsPanel = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [providerFilter, setProviderFilter] = useState("all");
   const [stats, setStats] = useState({
     totalSent: 0,
     successRate: 0,
     failedCount: 0,
+    avgResponseTime: 0,
   });
 
   useEffect(() => {
     fetchLogs();
-  }, [statusFilter]);
+  }, [statusFilter, providerFilter]);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -61,6 +65,10 @@ const EmailLogsPanel = () => {
 
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
+      }
+
+      if (providerFilter !== "all") {
+        query = query.eq("provider_name", providerFilter);
       }
 
       const { data, error } = await query;
@@ -85,11 +93,20 @@ const EmailLogsPanel = () => {
     const total = data.length;
     const sent = data.filter((log) => log.status === "sent").length;
     const failed = data.filter((log) => log.status === "failed").length;
+    
+    const responseTimes = data
+      .filter((log) => log.response_time_ms)
+      .map((log) => log.response_time_ms!);
+    const avgResponseTime =
+      responseTimes.length > 0
+        ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+        : 0;
 
     setStats({
       totalSent: total,
       successRate: total > 0 ? Math.round((sent / total) * 100) : 0,
       failedCount: failed,
+      avgResponseTime,
     });
   };
 
@@ -100,13 +117,15 @@ const EmailLogsPanel = () => {
   );
 
   const exportToCSV = () => {
-    const headers = ["Date", "Recipient", "Subject", "Status", "Template Type"];
+    const headers = ["Date", "Recipient", "Subject", "Status", "Template Type", "Provider", "Response Time (ms)"];
     const rows = filteredLogs.map((log) => [
       format(new Date(log.created_at), "yyyy-MM-dd HH:mm"),
       log.recipient_email,
       log.subject || "",
       log.status,
       log.template_type || "",
+      log.provider_name || "",
+      log.response_time_ms?.toString() || "",
     ]);
 
     const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
@@ -117,6 +136,10 @@ const EmailLogsPanel = () => {
     a.download = `email-logs-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
   };
+
+  const uniqueProviders = Array.from(
+    new Set(logs.map((log) => log.provider_name).filter(Boolean))
+  );
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
@@ -129,7 +152,7 @@ const EmailLogsPanel = () => {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <div className="text-sm text-muted-foreground">Total Sent</div>
           <div className="text-2xl font-bold">{stats.totalSent}</div>
@@ -144,6 +167,12 @@ const EmailLogsPanel = () => {
           <div className="text-sm text-muted-foreground">Failed</div>
           <div className="text-2xl font-bold text-destructive">
             {stats.failedCount}
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-sm text-muted-foreground">Avg Response</div>
+          <div className="text-2xl font-bold text-blue-600">
+            {stats.avgResponseTime}ms
           </div>
         </Card>
       </div>
@@ -170,6 +199,19 @@ const EmailLogsPanel = () => {
               <SelectItem value="failed">Failed</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={providerFilter} onValueChange={setProviderFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="All Providers" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Providers</SelectItem>
+              {uniqueProviders.map((provider) => (
+                <SelectItem key={provider} value={provider!}>
+                  {provider}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" onClick={fetchLogs} disabled={loading}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -187,14 +229,15 @@ const EmailLogsPanel = () => {
                 <TableHead>Date</TableHead>
                 <TableHead>Recipient</TableHead>
                 <TableHead>Subject</TableHead>
-                <TableHead>Template</TableHead>
+                <TableHead>Provider</TableHead>
+                <TableHead>Response</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredLogs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     No logs found
                   </TableCell>
                 </TableRow>
@@ -208,7 +251,20 @@ const EmailLogsPanel = () => {
                     <TableCell className="max-w-xs truncate">
                       {log.subject || "-"}
                     </TableCell>
-                    <TableCell>{log.template_type || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {log.provider_name || "-"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {log.response_time_ms ? (
+                        <span className="text-sm text-muted-foreground">
+                          {log.response_time_ms}ms
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
                     <TableCell>{getStatusBadge(log.status)}</TableCell>
                   </TableRow>
                 ))

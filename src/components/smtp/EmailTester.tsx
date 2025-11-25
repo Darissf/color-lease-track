@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -13,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Send, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Send, CheckCircle, XCircle, Zap } from "lucide-react";
 
 interface EmailTemplate {
   id: string;
@@ -23,20 +24,41 @@ interface EmailTemplate {
   body_template: string;
 }
 
+interface EmailProvider {
+  id: string;
+  provider_name: string;
+  display_name: string;
+  is_active: boolean;
+}
+
+interface TestResult {
+  success: boolean;
+  message: string;
+  provider?: {
+    id: string;
+    name: string;
+    display_name: string;
+  };
+  response_time_ms?: number;
+  message_id?: string;
+  fallback_attempts?: number;
+}
+
 const EmailTester = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [providers, setProviders] = useState<EmailProvider[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [selectedProvider, setSelectedProvider] = useState<string>("auto");
   const [testEmail, setTestEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(
-    null
-  );
+  const [result, setResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
     fetchTemplates();
+    fetchProviders();
   }, []);
 
   useEffect(() => {
@@ -66,6 +88,21 @@ const EmailTester = () => {
     }
   };
 
+  const fetchProviders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("email_providers")
+        .select("id, provider_name, display_name, is_active")
+        .eq("is_active", true)
+        .order("priority", { ascending: true });
+
+      if (error) throw error;
+      setProviders(data || []);
+    } catch (error: any) {
+      console.error("Error fetching providers:", error);
+    }
+  };
+
   const handleSendTest = async () => {
     if (!testEmail || !subject || !message) {
       toast({
@@ -80,13 +117,19 @@ const EmailTester = () => {
     setResult(null);
 
     try {
+      const requestBody: any = {
+        to: testEmail,
+        subject: subject,
+        html: message,
+        template_type: "test",
+      };
+
+      if (selectedProvider !== "auto") {
+        requestBody.provider_id = selectedProvider;
+      }
+
       const { data, error } = await supabase.functions.invoke("send-email", {
-        body: {
-          to: testEmail,
-          subject: subject,
-          html: message,
-          template_type: "test",
-        },
+        body: requestBody,
       });
 
       if (error) throw error;
@@ -94,11 +137,15 @@ const EmailTester = () => {
       setResult({
         success: true,
         message: "Test email sent successfully!",
+        provider: data.provider,
+        response_time_ms: data.response_time_ms,
+        message_id: data.message_id,
+        fallback_attempts: data.fallback_attempts,
       });
 
       toast({
         title: "Success",
-        description: "Test email sent successfully",
+        description: `Email sent via ${data.provider?.display_name || data.provider?.name}`,
       });
     } catch (error: any) {
       console.error("Send test error:", error);
@@ -123,21 +170,45 @@ const EmailTester = () => {
         <h3 className="text-lg font-semibold">Test Email Sending</h3>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Select Template (Optional)</Label>
-            <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a template..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Custom Email</SelectItem>
-                {templates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.template_name}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Select Template (Optional)</Label>
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Custom Email</SelectItem>
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.template_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Select Provider (Optional)</Label>
+              <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Auto (Rotation)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      Auto (Rotation)
+                    </div>
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  {providers.map((provider) => (
+                    <SelectItem key={provider.id} value={provider.id}>
+                      {provider.display_name || provider.provider_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -175,25 +246,52 @@ const EmailTester = () => {
 
           {result && (
             <Card
-              className={`p-4 ${
+              className={`p-4 space-y-3 ${
                 result.success
                   ? "bg-green-50 border-green-200"
                   : "bg-destructive/10 border-destructive/20"
               }`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-start gap-3">
                 {result.success ? (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-destructive" />
+                  <XCircle className="h-5 w-5 text-destructive mt-0.5" />
                 )}
-                <span
-                  className={
-                    result.success ? "text-green-800" : "text-destructive"
-                  }
-                >
-                  {result.message}
-                </span>
+                <div className="flex-1 space-y-2">
+                  <p
+                    className={`font-medium ${
+                      result.success ? "text-green-800" : "text-destructive"
+                    }`}
+                  >
+                    {result.message}
+                  </p>
+                  
+                  {result.success && result.provider && (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary">
+                          Provider: {result.provider.display_name || result.provider.name}
+                        </Badge>
+                        {result.response_time_ms && (
+                          <Badge variant="secondary">
+                            Response: {result.response_time_ms}ms
+                          </Badge>
+                        )}
+                        {result.fallback_attempts !== undefined && result.fallback_attempts > 0 && (
+                          <Badge variant="outline">
+                            Fallback attempts: {result.fallback_attempts}
+                          </Badge>
+                        )}
+                      </div>
+                      {result.message_id && (
+                        <p className="text-xs text-muted-foreground font-mono">
+                          Message ID: {result.message_id}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </Card>
           )}

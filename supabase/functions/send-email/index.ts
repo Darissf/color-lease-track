@@ -375,7 +375,9 @@ serve(async (req) => {
     let fallbackAttempts = 0;
     let usedProvider: EmailProvider | null = null;
     let emailId: string | null = null;
+    let responseTimeMs: number | null = null;
     const failedProviders: string[] = [];
+    const startTime = Date.now();
 
     // Try to send with available providers (up to 4 attempts for 4 providers)
     for (let attempt = 0; attempt < 4; attempt++) {
@@ -389,7 +391,8 @@ serve(async (req) => {
 
         console.log(`[send-email] Attempt ${attempt + 1}: Using ${provider.provider_name} (ID: ${provider.id})`);
 
-        // Attempt to send
+        // Attempt to send with response time tracking
+        const attemptStartTime = Date.now();
         const result = await sendWithProvider(
           provider,
           to,
@@ -397,12 +400,14 @@ serve(async (req) => {
           finalHtml,
           undefined
         );
+        const attemptEndTime = Date.now();
+        responseTimeMs = attemptEndTime - attemptStartTime;
 
         // Success!
         await updateProviderSuccess(supabase, provider.id);
         usedProvider = provider;
         emailId = result.id || result.messageId || null;
-        console.log(`[send-email] ✅ Successfully sent via ${provider.provider_name}`);
+        console.log(`[send-email] ✅ Successfully sent via ${provider.provider_name} in ${responseTimeMs}ms`);
         break;
       } catch (error: any) {
         lastError = error;
@@ -497,6 +502,8 @@ serve(async (req) => {
       fallback_attempts: fallbackAttempts,
       metadata: metadata,
       sent_at: new Date().toISOString(),
+      response_time_ms: responseTimeMs,
+      external_message_id: emailId,
     });
 
     // Increment template usage if applicable
@@ -509,8 +516,13 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        email_id: emailId,
-        provider: usedProvider.provider_name,
+        message_id: emailId,
+        provider: {
+          id: usedProvider.id,
+          name: usedProvider.provider_name,
+          display_name: usedProvider.sender_name,
+        },
+        response_time_ms: responseTimeMs,
         fallback_attempts: fallbackAttempts,
       }),
       {
