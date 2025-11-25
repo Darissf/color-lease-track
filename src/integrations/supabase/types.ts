@@ -173,6 +173,7 @@ export type Database = {
           cost_estimate: number | null
           created_at: string
           error_message: string | null
+          function_name: string | null
           id: string
           model_name: string
           request_tokens: number | null
@@ -188,6 +189,7 @@ export type Database = {
           cost_estimate?: number | null
           created_at?: string
           error_message?: string | null
+          function_name?: string | null
           id?: string
           model_name: string
           request_tokens?: number | null
@@ -203,6 +205,7 @@ export type Database = {
           cost_estimate?: number | null
           created_at?: string
           error_message?: string | null
+          function_name?: string | null
           id?: string
           model_name?: string
           request_tokens?: number | null

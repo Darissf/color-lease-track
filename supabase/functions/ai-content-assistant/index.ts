@@ -11,6 +11,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Authorization required");
@@ -25,7 +27,20 @@ serve(async (req) => {
     if (userError || !user) throw new Error("Unauthorized");
 
     const { content, action } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    // Fetch user's AI settings
+    const { data: aiSettings } = await supabaseClient
+      .from("user_ai_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const provider = aiSettings?.ai_provider || "lovable";
+    const apiKey = aiSettings?.api_key || Deno.env.get("LOVABLE_API_KEY");
+    const model = aiSettings?.model_name || "google/gemini-2.5-flash-lite";
+
+    console.log("Content assistant - Using provider:", provider, "model:", model);
 
     // Define prompts for different actions
     const prompts: Record<string, string> = {
@@ -40,20 +55,56 @@ serve(async (req) => {
 
     const systemPrompt = prompts[action] || prompts.grammar;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: content }
-        ]
-      }),
-    });
+    let aiResponse;
+    let aiData;
+
+    if (provider === "deepseek") {
+      aiResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: content }
+          ]
+        }),
+      });
+    } else if (provider === "claude") {
+      aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: 2000,
+          messages: [
+            { role: "user", content: `${systemPrompt}\n\n${content}` }
+          ]
+        }),
+      });
+    } else {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: content }
+          ]
+        }),
+      });
+    }
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
@@ -61,8 +112,37 @@ serve(async (req) => {
       throw new Error(`AI API returned ${aiResponse.status}`);
     }
 
-    const aiData = await aiResponse.json();
-    const suggested = aiData.choices[0].message.content;
+    aiData = await aiResponse.json();
+    
+    let suggested;
+    let usage;
+
+    if (provider === "claude") {
+      suggested = aiData.content[0].text;
+      usage = {
+        prompt_tokens: aiData.usage?.input_tokens || 0,
+        completion_tokens: aiData.usage?.output_tokens || 0,
+        total_tokens: (aiData.usage?.input_tokens || 0) + (aiData.usage?.output_tokens || 0)
+      };
+    } else {
+      suggested = aiData.choices[0].message.content;
+      usage = aiData.usage || {};
+    }
+
+    // Log usage to analytics
+    const responseTime = Date.now() - startTime;
+    await supabaseClient.from("ai_usage_analytics").insert({
+      user_id: user.id,
+      ai_provider: provider,
+      model_name: model,
+      tokens_used: usage.total_tokens,
+      request_tokens: usage.prompt_tokens,
+      response_tokens: usage.completion_tokens,
+      cost_estimate: calculateCost(provider, usage),
+      response_time_ms: responseTime,
+      status: "success",
+      function_name: "ai-content-assistant"
+    });
 
     return new Response(
       JSON.stringify({
@@ -75,9 +155,51 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error:", error);
+    
+    // Log failed attempt
+    const responseTime = Date.now() - startTime;
+    try {
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const supabaseClient = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const { data: { user } } = await supabaseClient.auth.getUser();
+      
+        if (user) {
+          await supabaseClient.from("ai_usage_analytics").insert({
+            user_id: user.id,
+            ai_provider: "unknown",
+            model_name: "unknown",
+            status: "error",
+            error_message: error instanceof Error ? error.message : "Unknown error",
+            response_time_ms: responseTime,
+            function_name: "ai-content-assistant"
+          });
+        }
+      }
+    } catch (logError) {
+      console.error("Failed to log error:", logError);
+    }
+
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
+
+function calculateCost(provider: string, usage: any): number {
+  const promptTokens = usage.prompt_tokens || 0;
+  const completionTokens = usage.completion_tokens || 0;
+
+  if (provider === "deepseek") {
+    return (promptTokens * 0.00000014 + completionTokens * 0.00000028);
+  } else if (provider === "claude") {
+    return (promptTokens * 0.000003 + completionTokens * 0.000015);
+  } else {
+    return (promptTokens * 0.0000001 + completionTokens * 0.0000003);
+  }
+}
