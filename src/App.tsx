@@ -39,7 +39,7 @@ import ClientGroups from "./pages/ClientGroups";
 import RentalContracts from "./pages/RentalContracts";
 import AISettings from "./pages/AISettings";
 import DatabaseBackup from "./pages/DatabaseBackup";
-import AIUsageAnalytics from "./pages/AIUsageAnalytics";
+import CloudUsageDashboard from "./pages/CloudUsageDashboard";
 import ChatBotAI from "./pages/ChatBotAI";
 import ClientDashboard from "./pages/ClientDashboard";
 import ContractDetail from "./pages/ContractDetail";
@@ -120,7 +120,7 @@ const App = () => (
                             <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
                             <Route path="/database-backup" element={<DatabaseBackup />} />
                             <Route path="/chatbot" element={<ChatBotAI />} />
-                            <Route path="/ai-usage" element={<AIUsageAnalytics />} />
+                            <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </Layout>
