@@ -78,9 +78,10 @@ const EmailRotationTester = () => {
       setResults([...testResults]);
       setProgress(((i + 1) / emailCount) * 100);
 
-      // Small delay between sends to avoid rate limiting
+      // Delay between sends to respect rate limits (Resend: 2 req/sec max)
+      // Using 1500ms = 1.5 seconds to safely stay under limit
       if (i < emailCount - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
       }
     }
 
