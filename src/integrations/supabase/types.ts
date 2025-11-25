@@ -938,6 +938,48 @@ export type Database = {
         }
         Relationships: []
       }
+      cloud_usage_snapshots: {
+        Row: {
+          active_users: number | null
+          ai_calls: number | null
+          ai_cost_usd: number | null
+          created_at: string | null
+          database_size_bytes: number | null
+          edge_function_calls: number | null
+          email_sent: number | null
+          id: string
+          snapshot_date: string
+          storage_size_bytes: number | null
+          user_id: string
+        }
+        Insert: {
+          active_users?: number | null
+          ai_calls?: number | null
+          ai_cost_usd?: number | null
+          created_at?: string | null
+          database_size_bytes?: number | null
+          edge_function_calls?: number | null
+          email_sent?: number | null
+          id?: string
+          snapshot_date: string
+          storage_size_bytes?: number | null
+          user_id: string
+        }
+        Update: {
+          active_users?: number | null
+          ai_calls?: number | null
+          ai_cost_usd?: number | null
+          created_at?: string | null
+          database_size_bytes?: number | null
+          edge_function_calls?: number | null
+          email_sent?: number | null
+          id?: string
+          snapshot_date?: string
+          storage_size_bytes?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_analysis: {
         Row: {
           analyzed_at: string | null

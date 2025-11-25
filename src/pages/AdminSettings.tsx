@@ -228,7 +228,7 @@ const AdminSettings = () => {
 
         <Card 
           className="p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
-          onClick={() => navigate("/vip/ai-usage")}
+          onClick={() => navigate("/vip/cloud-usage")}
         >
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-purple-600 flex items-center justify-center">
@@ -236,10 +236,10 @@ const AdminSettings = () => {
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                AI Usage Analytics
+                Cloud Usage Dashboard
               </h3>
               <p className="text-xs text-muted-foreground">
-                Monitor penggunaan & biaya AI
+                Monitor semua resource cloud & biaya
               </p>
             </div>
             <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground group-hover:text-primary" />
