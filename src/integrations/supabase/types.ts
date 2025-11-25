@@ -1327,6 +1327,8 @@ export type Database = {
         Row: {
           api_endpoint: string | null
           api_key_encrypted: string
+          auto_disabled_at: string | null
+          consecutive_errors: number | null
           created_at: string | null
           daily_limit: number | null
           display_name: string | null
@@ -1339,6 +1341,7 @@ export type Database = {
           last_month_reset: string | null
           last_reset_date: string | null
           last_success_at: string | null
+          last_used_at: string | null
           monthly_limit: number | null
           priority: number | null
           provider_name: string
@@ -1350,6 +1353,8 @@ export type Database = {
         Insert: {
           api_endpoint?: string | null
           api_key_encrypted: string
+          auto_disabled_at?: string | null
+          consecutive_errors?: number | null
           created_at?: string | null
           daily_limit?: number | null
           display_name?: string | null
@@ -1362,6 +1367,7 @@ export type Database = {
           last_month_reset?: string | null
           last_reset_date?: string | null
           last_success_at?: string | null
+          last_used_at?: string | null
           monthly_limit?: number | null
           priority?: number | null
           provider_name: string
@@ -1373,6 +1379,8 @@ export type Database = {
         Update: {
           api_endpoint?: string | null
           api_key_encrypted?: string
+          auto_disabled_at?: string | null
+          consecutive_errors?: number | null
           created_at?: string | null
           daily_limit?: number | null
           display_name?: string | null
@@ -1385,6 +1393,7 @@ export type Database = {
           last_month_reset?: string | null
           last_reset_date?: string | null
           last_success_at?: string | null
+          last_used_at?: string | null
           monthly_limit?: number | null
           priority?: number | null
           provider_name?: string

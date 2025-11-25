@@ -28,6 +28,10 @@ interface EmailProvider {
   monthly_limit: number;
   emails_sent_month: number;
   user_id: string;
+  health_status: string;
+  consecutive_errors: number;
+  last_used_at: string | null;
+  auto_disabled_at: string | null;
 }
 
 // Provider-specific send functions
@@ -184,17 +188,19 @@ async function sendWithProvider(provider: EmailProvider, to: string, subject: st
   }
 }
 
-async function selectBestProvider(supabase: any, forceProviderId?: string) {
+async function selectBestProvider(
+  supabase: any,
+  excludeProviders: string[] = [],
+  forceProviderId?: string
+) {
   let query = supabase
     .from("email_providers")
     .select("*")
     .eq("is_active", true)
-    .eq("health_status", "healthy");
+    .order("last_used_at", { ascending: true, nullsFirst: true });
 
   if (forceProviderId) {
     query = query.eq("id", forceProviderId);
-  } else {
-    query = query.order("priority", { ascending: true });
   }
 
   const { data: providers, error } = await query;
@@ -209,29 +215,71 @@ async function selectBestProvider(supabase: any, forceProviderId?: string) {
     return null;
   }
 
-  // Filter providers with available quota
-  const availableProviders = providers.filter(
-    (p: EmailProvider) =>
-      p.emails_sent_today < p.daily_limit && p.emails_sent_month < p.monthly_limit
+  // Filter out excluded providers (failed in previous attempts)
+  let availableProviders = providers.filter(
+    (p: EmailProvider) => !excludeProviders.includes(p.id)
   );
 
+  // Filter providers with available quota and healthy status
+  availableProviders = availableProviders.filter((p: EmailProvider) => {
+    const dailyAvailable = p.emails_sent_today < p.daily_limit;
+    const monthlyAvailable = p.emails_sent_month < p.monthly_limit;
+    const isHealthy = p.health_status === "healthy" && (p.consecutive_errors || 0) < 3;
+    
+    return dailyAvailable && monthlyAvailable && isHealthy;
+  });
+
   if (availableProviders.length === 0) {
-    console.warn("[send-email] All providers exhausted quota");
+    console.warn("[send-email] All providers exhausted quota or unhealthy");
     return null;
   }
 
+  // True round-robin: return provider that was used longest ago (or never used)
   return availableProviders[0];
 }
 
 async function updateProviderSuccess(supabase: any, providerId: string) {
   await supabase.rpc("increment_provider_usage", { p_provider_id: providerId });
+  
+  // Update last_used_at for round-robin and reset error tracking
+  await supabase
+    .from("email_providers")
+    .update({
+      last_used_at: new Date().toISOString(),
+      consecutive_errors: 0,
+      auto_disabled_at: null,
+      health_status: "healthy",
+    })
+    .eq("id", providerId);
 }
 
-async function updateProviderError(supabase: any, providerId: string, error: string) {
-  await supabase.rpc("update_provider_error", {
-    p_provider_id: providerId,
-    p_error_message: error,
-  });
+async function updateProviderError(supabase: any, providerId: string, errorMsg: string) {
+  // Get current consecutive errors
+  const { data: provider } = await supabase
+    .from("email_providers")
+    .select("consecutive_errors")
+    .eq("id", providerId)
+    .single();
+
+  const consecutiveErrors = (provider?.consecutive_errors || 0) + 1;
+  
+  // Auto-disable if 3 consecutive errors
+  const updates: any = {
+    last_error: errorMsg,
+    consecutive_errors: consecutiveErrors,
+    health_status: consecutiveErrors >= 3 ? "unhealthy" : "degraded",
+  };
+
+  if (consecutiveErrors >= 3) {
+    updates.is_active = false;
+    updates.auto_disabled_at = new Date().toISOString();
+    console.log(`[send-email] Auto-disabled provider ${providerId} after 3 consecutive errors`);
+  }
+
+  await supabase
+    .from("email_providers")
+    .update(updates)
+    .eq("id", providerId);
 }
 
 serve(async (req) => {
@@ -322,20 +370,24 @@ serve(async (req) => {
       }
     }
 
-    // Multi-Provider Email Sending with Fallback
+    // Smart Multi-Provider Email Sending with Fallback
     let lastError: Error | null = null;
     let fallbackAttempts = 0;
     let usedProvider: EmailProvider | null = null;
     let emailId: string | null = null;
+    const failedProviders: string[] = [];
 
-    // Try to send with available providers
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // Try to send with available providers (up to 4 attempts for 4 providers)
+    for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        const provider = await selectBestProvider(supabase, provider_id);
+        const provider = await selectBestProvider(supabase, failedProviders, provider_id);
 
         if (!provider) {
-          throw new Error("No available email providers with remaining quota");
+          console.log(`[send-email] No more available providers after ${attempt} attempts`);
+          break;
         }
+
+        console.log(`[send-email] Attempt ${attempt + 1}: Using ${provider.provider_name} (ID: ${provider.id})`);
 
         // Attempt to send
         const result = await sendWithProvider(
@@ -350,15 +402,16 @@ serve(async (req) => {
         await updateProviderSuccess(supabase, provider.id);
         usedProvider = provider;
         emailId = result.id || result.messageId || null;
-        console.log(`[send-email] Successfully sent via ${provider.provider_name}`);
+        console.log(`[send-email] ✅ Successfully sent via ${provider.provider_name}`);
         break;
       } catch (error: any) {
         lastError = error;
         fallbackAttempts++;
-        console.error(`[send-email] Attempt ${attempt + 1} failed:`, error.message);
+        console.error(`[send-email] ❌ Attempt ${attempt + 1} failed:`, error.message);
 
         if (usedProvider) {
           await updateProviderError(supabase, usedProvider.id, error.message);
+          failedProviders.push(usedProvider.id);
         }
 
         // Continue to next provider
@@ -366,10 +419,68 @@ serve(async (req) => {
       }
     }
 
-    // If all attempts failed
+    // If all email providers failed, try WhatsApp fallback
     if (!usedProvider || lastError) {
+      console.log("[send-email] 📱 All email providers failed, attempting WhatsApp fallback...");
+
+      try {
+        // Try to find WhatsApp number from client_groups
+        const { data: clients } = await supabase
+          .from("client_groups")
+          .select("nomor_telepon, nama")
+          .or(`nama.ilike.%${to.split("@")[0]}%`)
+          .limit(1);
+
+        if (clients && clients.length > 0 && clients[0].nomor_telepon) {
+          const client = clients[0];
+          console.log(`[send-email] Found WhatsApp for ${client.nama}: ${client.nomor_telepon}`);
+
+          const whatsappMessage = `⚠️ *Email Gagal Terkirim*\n\nHalo ${client.nama},\n\nKami tidak dapat mengirim email ke ${to}.\n\n*Subject:* ${subject}\n\nSilakan hubungi admin untuk info lebih lanjut.\n\n_Pesan otomatis - Email Fallback System_`;
+
+          const { error: whatsappError } = await supabase.functions.invoke("send-whatsapp", {
+            body: {
+              phone: client.nomor_telepon,
+              message: whatsappMessage,
+              notificationType: "email_fallback",
+            },
+          });
+
+          if (!whatsappError) {
+            console.log("[send-email] ✅ WhatsApp fallback successful");
+
+            // Log fallback
+            await supabase.from("email_logs").insert({
+              recipient_email: to,
+              subject: subject,
+              template_type: template_type,
+              status: "fallback_whatsapp",
+              fallback_attempts: fallbackAttempts,
+              metadata: { ...metadata, fallback_reason: "all_email_providers_failed" },
+              sent_at: new Date().toISOString(),
+            });
+
+            return new Response(
+              JSON.stringify({
+                success: true,
+                fallback: "whatsapp",
+                message: "Email failed but notification sent via WhatsApp",
+              }),
+              {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
+        }
+
+        console.log("[send-email] ❌ WhatsApp fallback also failed or no number found");
+      } catch (whatsappError: any) {
+        console.error("[send-email] WhatsApp fallback error:", whatsappError.message);
+      }
+
+      // Both email and WhatsApp failed
       throw new Error(
-        `All email providers failed. Last error: ${lastError?.message || "Unknown error"}`
+        `All email providers and WhatsApp fallback failed. Last error: ${lastError?.message || "Unknown error"}`
       );
     }
 
