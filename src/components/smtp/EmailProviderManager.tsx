@@ -86,16 +86,11 @@ const EmailProviderManager = () => {
 
   const handleAddProvider = async () => {
     try {
-      // For Mailjet, combine API key and secret
-      const finalApiKey = newProvider.provider_name === "mailjet" 
-        ? `${newProvider.api_key}:${newProvider.api_secret}` 
-        : newProvider.api_key;
-
       const { error } = await supabase.from("email_providers").insert({
         user_id: user?.id,
         provider_name: newProvider.provider_name,
         display_name: newProvider.display_name || `${newProvider.provider_name} Provider`,
-        api_key_encrypted: finalApiKey,
+        api_key_encrypted: newProvider.api_key,
         sender_email: newProvider.sender_email,
         sender_name: newProvider.sender_name,
         daily_limit: newProvider.daily_limit,
@@ -238,11 +233,7 @@ const EmailProviderManager = () => {
 
       // Only update API key if provided
       if (editForm.api_key) {
-        // For Mailjet, combine API key and secret
-        const finalApiKey = editingProvider.provider_name === "mailjet" 
-          ? `${editForm.api_key}:${editForm.api_secret}` 
-          : editForm.api_key;
-        updateData.api_key_encrypted = finalApiKey;
+        updateData.api_key_encrypted = editForm.api_key;
       }
 
       const { error } = await supabase
@@ -291,8 +282,6 @@ const EmailProviderManager = () => {
         return "✉️";
       case "mailgun":
         return "📮";
-      case "mailjet":
-        return "🚀";
       case "sendgrid":
         return "📤";
       default:
@@ -447,7 +436,6 @@ const EmailProviderManager = () => {
                 <SelectContent>
                   <SelectItem value="resend">📧 Resend (3,000/month free)</SelectItem>
                   <SelectItem value="brevo">✉️ Brevo (9,000/month free)</SelectItem>
-                  <SelectItem value="mailjet">🚀 Mailjet (6,000/month free)</SelectItem>
                   <SelectItem value="sendgrid">📤 SendGrid (3,000/month free)</SelectItem>
                 </SelectContent>
               </Select>
@@ -463,29 +451,14 @@ const EmailProviderManager = () => {
             </div>
 
             <div>
-              <Label>API Key {newProvider.provider_name === "mailjet" && "(Public Key)"}</Label>
+              <Label>API Key</Label>
               <Input
                 type="password"
-                placeholder={newProvider.provider_name === "mailjet" ? "Enter API Key (Public Key)" : "Enter API key"}
+                placeholder="Enter API key"
                 value={newProvider.api_key}
                 onChange={(e) => setNewProvider({ ...newProvider, api_key: e.target.value })}
               />
             </div>
-
-            {newProvider.provider_name === "mailjet" && (
-              <div>
-                <Label>Secret Key (Private Key)</Label>
-                <Input
-                  type="password"
-                  placeholder="Enter Secret Key (Private Key)"
-                  value={newProvider.api_secret}
-                  onChange={(e) => setNewProvider({ ...newProvider, api_secret: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Mailjet requires both API Key and Secret Key for authentication
-                </p>
-              </div>
-            )}
 
             <div>
               <Label>Sender Email</Label>
@@ -555,10 +528,10 @@ const EmailProviderManager = () => {
             </div>
 
             <div>
-              <Label>API Key {editingProvider?.provider_name === "mailjet" && "(Public Key)"} (leave empty to keep current)</Label>
+              <Label>API Key (leave empty to keep current)</Label>
               <Input
                 type="password"
-                placeholder={editingProvider?.provider_name === "mailjet" ? "Enter new API Key (Public Key) - optional" : "Enter new API key (optional)"}
+                placeholder="Enter new API key (optional)"
                 value={editForm.api_key}
                 onChange={(e) => setEditForm({ ...editForm, api_key: e.target.value })}
               />
@@ -566,21 +539,6 @@ const EmailProviderManager = () => {
                 Only fill this if you want to change the API key
               </p>
             </div>
-
-            {editingProvider?.provider_name === "mailjet" && (
-              <div>
-                <Label>Secret Key (Private Key) (leave empty to keep current)</Label>
-                <Input
-                  type="password"
-                  placeholder="Enter new Secret Key (Private Key) - optional"
-                  value={editForm.api_secret}
-                  onChange={(e) => setEditForm({ ...editForm, api_secret: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Mailjet requires both API Key and Secret Key for authentication
-                </p>
-              </div>
-            )}
 
             <div>
               <Label>Sender Email</Label>
