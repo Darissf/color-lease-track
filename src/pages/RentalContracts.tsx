@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/currency";
 import { cn } from "@/lib/utils";
+import { useAppTheme } from "@/contexts/AppThemeContext";
 
 interface ClientGroup {
   id: string;
@@ -67,6 +68,7 @@ interface BankAccount {
 
 const RentalContracts = () => {
   const { user } = useAuth();
+  const { activeTheme } = useAppTheme();
   const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
   const [rentalContracts, setRentalContracts] = useState<RentalContract[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -444,13 +446,21 @@ const RentalContracts = () => {
   const getStatusBadge = (status: string) => {
     const statusLower = status.toLowerCase();
     if (statusLower === 'masa sewa') {
-      return "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/50";
+      return activeTheme === 'japanese' 
+        ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/50"
+        : "bg-blue-600 text-white";
     } else if (statusLower === 'selesai') {
-      return "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/50";
+      return activeTheme === 'japanese'
+        ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/50"
+        : "bg-emerald-600 text-white";
     } else if (statusLower === 'pending') {
-      return "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg shadow-amber-500/50";
+      return activeTheme === 'japanese'
+        ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg shadow-amber-500/50"
+        : "bg-amber-600 text-white";
     } else if (statusLower === 'perpanjangan') {
-      return "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50";
+      return activeTheme === 'japanese'
+        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50"
+        : "bg-purple-600 text-white";
     } else if (statusLower === 'berulang') {
       return "bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg shadow-indigo-500/50";
     }

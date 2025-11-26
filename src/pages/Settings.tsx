@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Book, Settings as SettingsIcon, Wallet, PiggyBank, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 const learningResources = [
   {
@@ -25,6 +27,7 @@ const learningResources = [
 const Settings = () => {
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
+  const { activeTheme } = useAppTheme();
 
   const settingsMenu = [
     {
@@ -81,9 +84,15 @@ const Settings = () => {
       </div>
 
       {/* Learning Section */}
-      <Card className="p-6 gradient-card border-0 shadow-md mb-8">
+      <Card className={cn(
+        "p-6 border-0 shadow-md mb-8",
+        activeTheme === 'japanese' ? "gradient-card" : "bg-card border border-border"
+      )}>
         <div className="flex items-center gap-3 mb-6">
-          <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+          <div className={cn(
+            "h-12 w-12 rounded-lg flex items-center justify-center",
+            activeTheme === 'japanese' ? "gradient-primary" : "bg-primary"
+          )}>
             <Book className="h-6 w-6 text-white" />
           </div>
           <div>
@@ -106,16 +115,25 @@ const Settings = () => {
           ))}
         </div>
 
-        <Button className="w-full mt-6 gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
+        <Button className={cn(
+          "w-full mt-6 text-white border-0 shadow-lg hover:shadow-xl transition-all",
+          activeTheme === 'japanese' ? "gradient-primary" : "bg-primary hover:bg-primary/90"
+        )}>
           <Book className="mr-2 h-4 w-4" />
           Lihat Semua Tutorial
         </Button>
       </Card>
 
       {/* Welcome Card */}
-      <Card className="p-6 gradient-card border-0 shadow-md">
+      <Card className={cn(
+        "p-6 border-0 shadow-md",
+        activeTheme === 'japanese' ? "gradient-card" : "bg-card border border-border"
+      )}>
         <div className="text-center space-y-4">
-          <div className="inline-flex h-20 w-20 rounded-full gradient-success items-center justify-center shadow-lg mx-auto">
+          <div className={cn(
+            "inline-flex h-20 w-20 rounded-full items-center justify-center shadow-lg mx-auto",
+            activeTheme === 'japanese' ? "gradient-success" : "bg-emerald-600"
+          )}>
             <SettingsIcon className="h-10 w-10 text-white" />
           </div>
           <div>

@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flag, TrendingUp, TrendingDown, Download, FileText, BarChart3 } from "lucide-react";
 import { formatRupiah } from "@/lib/currency";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 const yearlyIncome = [
   { month: "Jan", amount: 125000000 },
@@ -51,6 +53,8 @@ const kakeiboReflections = [
 ];
 
 const Reports = () => {
+  const { activeTheme } = useAppTheme();
+  
   return (
     <div className="min-h-screen p-8">
       {/* Header */}
@@ -61,7 +65,10 @@ const Reports = () => {
           </h1>
           <p className="text-muted-foreground">Analisis mendalam kinerja keuangan Anda sepanjang tahun</p>
         </div>
-        <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
+        <Button className={cn(
+          "text-white border-0 shadow-lg hover:shadow-xl transition-all",
+          activeTheme === 'japanese' ? "gradient-primary" : "bg-primary hover:bg-primary/90"
+        )}>
           <Download className="mr-2 h-4 w-4" />
           Export Laporan
         </Button>
@@ -76,9 +83,15 @@ const Reports = () => {
 
         {/* Income Report */}
         <TabsContent value="income" className="space-y-6">
-          <Card className="p-6 gradient-card border-0 shadow-md">
+          <Card className={cn(
+            "p-6 border-0 shadow-md",
+            activeTheme === 'japanese' ? "gradient-card" : "bg-card border border-border"
+          )}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-12 w-12 rounded-lg gradient-success flex items-center justify-center">
+              <div className={cn(
+                "h-12 w-12 rounded-lg flex items-center justify-center",
+                activeTheme === 'japanese' ? "gradient-success" : "bg-emerald-600"
+              )}>
                 <TrendingUp className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -133,7 +146,10 @@ const Reports = () => {
             </ResponsiveContainer>
           </Card>
 
-          <Card className="p-6 gradient-card border-0 shadow-md">
+          <Card className={cn(
+            "p-6 border-0 shadow-md",
+            activeTheme === 'japanese' ? "gradient-card" : "bg-card border border-border"
+          )}>
             <h3 className="text-lg font-semibold text-foreground mb-4">Sumber Pemasukan</h3>
             <div className="space-y-3">
               {[
@@ -165,9 +181,15 @@ const Reports = () => {
 
         {/* Expenses Report */}
         <TabsContent value="expenses" className="space-y-6">
-          <Card className="p-6 gradient-card border-0 shadow-md">
+          <Card className={cn(
+            "p-6 border-0 shadow-md",
+            activeTheme === 'japanese' ? "gradient-card" : "bg-card border border-border"
+          )}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-12 w-12 rounded-lg gradient-secondary flex items-center justify-center">
+              <div className={cn(
+                "h-12 w-12 rounded-lg flex items-center justify-center",
+                activeTheme === 'japanese' ? "gradient-secondary" : "bg-rose-600"
+              )}>
                 <TrendingDown className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -218,9 +240,15 @@ const Reports = () => {
 
         {/* Kakeibo Evaluation */}
         <TabsContent value="kakeibo" className="space-y-6">
-          <Card className="p-6 gradient-card border-0 shadow-md">
+          <Card className={cn(
+            "p-6 border-0 shadow-md",
+            activeTheme === 'japanese' ? "gradient-card" : "bg-card border border-border"
+          )}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+              <div className={cn(
+                "h-12 w-12 rounded-lg flex items-center justify-center",
+                activeTheme === 'japanese' ? "gradient-primary" : "bg-primary"
+              )}>
                 <Flag className="h-6 w-6 text-white" />
               </div>
               <div>

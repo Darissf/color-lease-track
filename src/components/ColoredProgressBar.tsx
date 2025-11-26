@@ -1,4 +1,6 @@
 import { Progress } from "@/components/ui/progress";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface ColoredProgressBarProps {
   value: number;
@@ -13,6 +15,8 @@ export const ColoredProgressBar = ({
   height = "h-3",
   animated = true 
 }: ColoredProgressBarProps) => {
+  const { activeTheme } = useAppTheme();
+  
   const getGradient = (percentage: number) => {
     if (percentage < 50) return "from-emerald-500 via-green-500 to-teal-500";
     if (percentage < 75) return "from-yellow-500 via-amber-500 to-orange-400";
@@ -32,7 +36,12 @@ export const ColoredProgressBar = ({
       <div className="relative">
         <div className={`relative ${height} bg-muted rounded-full overflow-hidden`}>
           <div 
-            className={`absolute top-0 left-0 h-full bg-gradient-to-r ${getGradient(value)} rounded-full transition-all duration-500 ${animated ? 'animate-shimmer' : ''}`}
+            className={cn(
+              "absolute top-0 left-0 h-full rounded-full transition-all duration-500",
+              activeTheme === 'japanese' 
+                ? `bg-gradient-to-r ${getGradient(value)} ${animated ? 'animate-shimmer' : ''}`
+                : getColor(value).replace('text-', 'bg-')
+            )}
             style={{ width: `${Math.min(value, 100)}%` }}
           />
         </div>

@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatRupiah } from "@/lib/currency";
+import { useAppTheme } from "@/contexts/AppThemeContext";
 import { z } from "zod";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -63,6 +64,7 @@ const phoneSchema = z.string()
 
 const ClientGroups = () => {
   const { user } = useAuth();
+  const { activeTheme } = useAppTheme();
   const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);

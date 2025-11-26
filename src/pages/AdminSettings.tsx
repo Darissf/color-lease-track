@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, ArrowLeft, Pencil, MessageSquare, ChevronRight, FileText, Mail, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 import { UserRegistrationForm } from "@/components/UserRegistrationForm";
 import { UserEditForm } from "@/components/UserEditForm";
 import {
@@ -41,6 +43,7 @@ const AdminSettings = () => {
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { activeTheme } = useAppTheme();
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
 
@@ -171,7 +174,10 @@ const AdminSettings = () => {
           onClick={() => navigate("/vip/settings/whatsapp")}
         >
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg gradient-success flex items-center justify-center">
+            <div className={cn(
+              "h-10 w-10 rounded-lg flex items-center justify-center",
+              activeTheme === 'japanese' ? "gradient-success" : "bg-emerald-600"
+            )}>
               <MessageSquare className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1">
@@ -211,7 +217,10 @@ const AdminSettings = () => {
           onClick={() => navigate("/vip/audit-logs")}
         >
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center">
+            <div className={cn(
+              "h-10 w-10 rounded-lg flex items-center justify-center",
+              activeTheme === 'japanese' ? "gradient-primary" : "bg-primary"
+            )}>
               <FileText className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1">
@@ -250,7 +259,10 @@ const AdminSettings = () => {
       <Card className="p-3 sm:p-4 md:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg gradient-primary flex items-center justify-center shrink-0">
+            <div className={cn(
+              "h-10 w-10 sm:h-12 sm:w-12 rounded-lg flex items-center justify-center shrink-0",
+              activeTheme === 'japanese' ? "gradient-primary" : "bg-primary"
+            )}>
               <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             <div className="min-w-0 flex-1">

@@ -2,6 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, TrendingUp, TrendingDown } from "lucide-react";
 import { formatRupiah } from "@/lib/currency";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 const quarters = [
   {
@@ -43,6 +45,8 @@ const quarters = [
 ];
 
 const MonthlyDashboard = () => {
+  const { activeTheme } = useAppTheme();
+  
   return (
     <div className="min-h-screen p-8">
       {/* Header */}
@@ -58,7 +62,10 @@ const MonthlyDashboard = () => {
         {quarters.map((quarter) => (
           <div key={quarter.id}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center">
+              <div className={cn(
+                "h-10 w-10 rounded-lg flex items-center justify-center",
+                activeTheme === 'japanese' ? "gradient-primary" : "bg-primary"
+              )}>
                 <Calendar className="h-5 w-5 text-white" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">{quarter.name}</h2>
@@ -68,9 +75,12 @@ const MonthlyDashboard = () => {
               {quarter.months.map((month, index) => {
                 const savingsRate = ((month.savings / month.income) * 100).toFixed(1);
                 return (
-                  <Card 
+                <Card 
                     key={index} 
-                    className="p-6 gradient-card border-0 shadow-md card-hover cursor-pointer group"
+                    className={cn(
+                      "p-6 border-0 shadow-md card-hover cursor-pointer group",
+                      activeTheme === 'japanese' ? "gradient-card" : "bg-card border border-border"
+                    )}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -134,7 +144,10 @@ const MonthlyDashboard = () => {
       </div>
 
       {/* Summary Card */}
-      <Card className="mt-8 p-6 gradient-card border-0 shadow-md">
+      <Card className={cn(
+        "mt-8 p-6 border-0 shadow-md",
+        activeTheme === 'japanese' ? "gradient-card" : "bg-card border border-border"
+      )}>
         <h3 className="text-lg font-semibold text-foreground mb-4">Ringkasan Tahunan 2025</h3>
         <div className="grid gap-6 md:grid-cols-3">
           <div className="space-y-2">
