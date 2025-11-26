@@ -16,6 +16,7 @@ import { DashboardLoadingSkeleton } from "@/components/SkeletonLoader";
 import { GradientButton } from "@/components/GradientButton";
 import { ColoredProgressBar } from "@/components/ColoredProgressBar";
 import { useTheme } from "@/components/ui/theme-provider";
+import { cn } from "@/lib/utils";
 
 interface DashboardStats {
   totalIncome: number;
@@ -240,7 +241,12 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-background via-background to-muted/20">
+    <div className={cn(
+      "relative min-h-screen overflow-hidden",
+      activeTheme === 'japanese' 
+        ? "bg-gradient-to-b from-[#0D1829] via-[#1A2642] to-[#2A2857]" 
+        : "bg-gradient-to-b from-background via-background to-muted/20"
+    )}>
       {/* Professional Clean Background */}
       {activeTheme === 'professional' && (
         <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/10 z-0" />
@@ -453,14 +459,18 @@ export default function Dashboard() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
           <div>
-            <h1 className={`text-4xl font-bold ${
+            <h1 className={cn(
+              "text-4xl font-bold",
               activeTheme === 'japanese' 
-                ? 'bg-gradient-to-r from-[hsl(var(--torii-red))] via-[hsl(var(--sakura-pink))] to-[hsl(var(--gold-kin))] bg-clip-text text-transparent' 
+                ? 'text-[#F5E6A8]' 
                 : 'text-foreground'
-            }`}>
+            )}>
               {activeTheme === 'japanese' && '🏮 '}{getContent('dashboard.title', 'Dashboard Keuangan Nabila')}{activeTheme === 'japanese' && ' 🏮'}
             </h1>
-            <p className="text-muted-foreground mt-2">
+            <p className={cn(
+              "mt-2",
+              activeTheme === 'japanese' ? 'text-[#BDE0FE]' : 'text-muted-foreground'
+            )}>
               {activeTheme === 'japanese' 
                 ? getContent('dashboard.subtitle', 'Kelola finansial Anda dengan ketenangan malam Jepang')
                 : getContent('dashboard.subtitle.professional', 'Ringkasan keuangan profesional Anda')
@@ -519,7 +529,10 @@ export default function Dashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-[hsl(var(--gold-kin))]/20">
+          <Card className={cn(
+            "hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-[hsl(var(--gold-kin))]/20",
+            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+          )}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Pemasukan</CardTitle>
               <TrendingUp className="h-4 w-4 text-[hsl(var(--gold-kin))]" />
@@ -534,7 +547,10 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-[hsl(var(--sakura-pink))]/20">
+          <Card className={cn(
+            "hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-[hsl(var(--sakura-pink))]/20",
+            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+          )}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Pengeluaran</CardTitle>
               <TrendingDown className="h-4 w-4 text-[hsl(var(--sakura-pink))]" />
@@ -552,7 +568,10 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-[hsl(var(--matcha-green))]/20">
+          <Card className={cn(
+            "hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-[hsl(var(--matcha-green))]/20",
+            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+          )}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Tabungan</CardTitle>
               <PiggyBank className="h-4 w-4 text-[hsl(var(--matcha-green))]" />
@@ -567,7 +586,10 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-primary/20">
+          <Card className={cn(
+            "hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-primary/20",
+            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+          )}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Sisa Budget</CardTitle>
               <Wallet className="h-4 w-4 text-primary" />
@@ -586,7 +608,10 @@ export default function Dashboard() {
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Monthly Trend Chart */}
-          <Card className="hover:shadow-lg transition-all duration-300">
+          <Card className={cn(
+            "hover:shadow-lg transition-all duration-300",
+            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+          )}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
@@ -644,7 +669,10 @@ export default function Dashboard() {
           </Card>
 
           {/* Income by Client Chart */}
-          <Card className="hover:shadow-lg transition-all duration-300">
+          <Card className={cn(
+            "hover:shadow-lg transition-all duration-300",
+            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+          )}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-primary" />
@@ -683,7 +711,10 @@ export default function Dashboard() {
         {/* Charts Row 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Expenses by Category */}
-          <Card className="hover:shadow-lg transition-all duration-300">
+          <Card className={cn(
+            "hover:shadow-lg transition-all duration-300",
+            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+          )}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingDown className="h-5 w-5 text-primary" />
@@ -717,7 +748,10 @@ export default function Dashboard() {
           </Card>
 
           {/* Recent Expenses */}
-          <Card className="hover:shadow-lg transition-all duration-300">
+          <Card className={cn(
+            "hover:shadow-lg transition-all duration-300",
+            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+          )}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingDown className="h-5 w-5 text-primary" />
@@ -753,7 +787,10 @@ export default function Dashboard() {
 
         {/* Quick Actions & AI Advisor */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="hover:shadow-lg transition-all duration-300">
+          <Card className={cn(
+            "hover:shadow-lg transition-all duration-300",
+            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+          )}>
             <CardHeader>
               <CardTitle>Aksi Cepat</CardTitle>
             </CardHeader>
