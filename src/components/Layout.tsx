@@ -12,6 +12,8 @@ import { useLocation } from "react-router-dom";
 import { useContentAutoApply } from "@/hooks/useContentAutoApply";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AppThemeProvider } from "@/contexts/AppThemeContext";
+import { ThemeSelector } from "@/components/ThemeSelector";
 
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState, useEffect } from "react";
@@ -155,6 +157,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
+    <AppThemeProvider>
     <TooltipProvider delayDuration={300}>
       <div className="flex h-screen bg-background overflow-hidden">
       {/* Backdrop overlay for mobile */}
@@ -339,6 +342,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full"></span>
             </button>
 
+            {/* Theme Selector */}
+            <ThemeSelector />
+
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -384,5 +390,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
     </TooltipProvider>
+    </AppThemeProvider>
   );
 }

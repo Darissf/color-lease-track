@@ -14,6 +14,8 @@ import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
 import { PaginationControls } from "@/components/shared/PaginationControls";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface IncomeSource {
   id: string;
@@ -28,6 +30,7 @@ interface IncomeSource {
 export default function IncomeManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { activeTheme, themeColors } = useAppTheme();
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -249,9 +252,15 @@ export default function IncomeManagement() {
       />
 
       {/* Income Sources Table */}
-      <Card>
+      <Card className={cn(
+        activeTheme === 'japanese' 
+          ? "bg-slate-900/90 border-slate-700" 
+          : ""
+      )}>
         <CardHeader>
-          <CardTitle>Daftar Sumber Pemasukan</CardTitle>
+          <CardTitle className={activeTheme === 'japanese' ? 'text-white' : ''}>
+            Daftar Sumber Pemasukan
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (

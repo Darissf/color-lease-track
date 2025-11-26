@@ -24,6 +24,7 @@ import { GradientButton } from "@/components/GradientButton";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { cn } from "@/lib/utils";
 import { PaginationControls } from "@/components/shared/PaginationControls";
+import { useAppTheme } from "@/contexts/AppThemeContext";
 
 interface SavingsPlan {
   id: string;
@@ -61,6 +62,7 @@ interface RecurringTransaction {
 export default function SavingsPlans() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { activeTheme, themeColors } = useAppTheme();
   const [plans, setPlans] = useState<SavingsPlan[]>([]);
   const [transactions, setTransactions] = useState<SavingsTransaction[]>([]);
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
@@ -711,13 +713,19 @@ export default function SavingsPlans() {
 
       {/* Overall Progress Bar */}
       {plans.length > 0 && (
-        <Card className="border-2 border-blue-500/20 shadow-xl">
+        <Card className={cn(
+          "border-2 border-blue-500/20 shadow-xl",
+          activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
+        )}>
           <CardHeader className="bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-purple-500/10 border-b-2 border-blue-500/20">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg">
                 <TrendingUp className="h-5 w-5 text-white" />
               </div>
-              <CardTitle className="text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <CardTitle className={cn(
+                "text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent",
+                activeTheme === 'japanese' && 'text-white'
+              )}>
                 Progress Keseluruhan
               </CardTitle>
             </div>
@@ -736,10 +744,17 @@ export default function SavingsPlans() {
       {plans.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Bar Chart */}
-          <Card>
+          <Card className={cn(
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
+          )}>
             <CardHeader>
-              <CardTitle className="text-base">Progress Comparison</CardTitle>
-              <CardDescription>Current savings vs target for each plan</CardDescription>
+              <CardTitle className={cn(
+                "text-base",
+                activeTheme === 'japanese' && 'text-white'
+              )}>Progress Comparison</CardTitle>
+              <CardDescription className={activeTheme === 'japanese' ? 'text-slate-300' : ''}>
+                Current savings vs target for each plan
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -765,10 +780,17 @@ export default function SavingsPlans() {
           </Card>
 
           {/* Pie Chart */}
-          <Card>
+          <Card className={cn(
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
+          )}>
             <CardHeader>
-              <CardTitle className="text-base">Savings Distribution</CardTitle>
-              <CardDescription>How your savings are distributed across plans</CardDescription>
+              <CardTitle className={cn(
+                "text-base",
+                activeTheme === 'japanese' && 'text-white'
+              )}>Savings Distribution</CardTitle>
+              <CardDescription className={activeTheme === 'japanese' ? 'text-slate-300' : ''}>
+                How your savings are distributed across plans
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -837,7 +859,10 @@ export default function SavingsPlans() {
 
         <TabsContent value="plans" className="space-y-4">
           {plans.length === 0 ? (
-            <Card className="border-2 border-blue-500/20">
+            <Card className={cn(
+              "border-2 border-blue-500/20",
+              activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
+            )}>
               <CardContent className="py-12 text-center">
                 <div className="h-20 w-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 via-cyan-500 to-purple-600 flex items-center justify-center shadow-xl shadow-blue-500/50">
                   <Target className="h-10 w-10 text-white" />
@@ -845,7 +870,10 @@ export default function SavingsPlans() {
                 <p className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
                   Belum ada rencana tabungan
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className={cn(
+                  "text-sm mb-4",
+                  activeTheme === 'japanese' ? 'text-slate-300' : 'text-muted-foreground'
+                )}>
                   Mulai dengan menambahkan rencana tabungan pertama Anda
                 </p>
                 <GradientButton variant="savings" icon={Plus} onClick={() => setDialogOpen(true)}>
@@ -866,7 +894,8 @@ export default function SavingsPlans() {
                     key={plan.id}
                     className={cn(
                       "border-2 hover:scale-[1.02] transition-all duration-300",
-                      getCategoryInfo(plan.category).shadow
+                      getCategoryInfo(plan.category).shadow,
+                      activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
                     )}
                   >
                     <CardHeader className={cn("pb-3", getCategoryInfo(plan.category).gradient)}>
