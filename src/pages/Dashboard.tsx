@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEditableContent } from "@/contexts/EditableContentContext";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Moon, Sun, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Moon, Sun, Sparkles, Briefcase, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
@@ -28,6 +28,8 @@ interface DashboardStats {
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#f97316'];
 
+type DashboardTheme = "japanese" | "professional" | "auto";
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { getContent } = useEditableContent();
@@ -47,10 +49,23 @@ export default function Dashboard() {
   const [expensesByCategory, setExpensesByCategory] = useState<any[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
   const [incomeByClient, setIncomeByClient] = useState<any[]>([]);
+  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>(() => {
+    const saved = localStorage.getItem('dashboard_theme_preference');
+    return (saved as DashboardTheme) || 'japanese';
+  });
 
   useEffect(() => {
     fetchDashboardData();
   }, [user, period]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard_theme_preference', dashboardTheme);
+  }, [dashboardTheme]);
+
+  // Calculate active theme based on dashboardTheme and system theme
+  const activeTheme = dashboardTheme === 'auto' 
+    ? (theme === 'dark' ? 'japanese' : 'professional')
+    : dashboardTheme;
 
   const fetchDashboardData = async () => {
     if (!user) return;
@@ -212,6 +227,10 @@ export default function Dashboard() {
     }).format(value);
   };
 
+  const handleDashboardThemeChange = (value: string) => {
+    setDashboardTheme(value as DashboardTheme);
+  };
+
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
@@ -222,8 +241,14 @@ export default function Dashboard() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-background via-background to-muted/20">
-      {/* ===== ANIMATED BACKGROUND - LAYER 0 ===== */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+      {/* Professional Clean Background */}
+      {activeTheme === 'professional' && (
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/10 z-0" />
+      )}
+
+      {/* ===== ANIMATED BACKGROUND - LAYER 0 (Japanese Night) ===== */}
+      {activeTheme === 'japanese' && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         
         {/* Layer 1: Sky & Celestial */}
         {/* Stars - Reduced for cleaner look */}
@@ -419,7 +444,8 @@ export default function Dashboard() {
             }}
           />
         ))}
-      </div>
+        </div>
+      )}
 
       {/* ===== CONTENT - LAYER 10 ===== */}
       <div className="relative z-10 container mx-auto px-4 py-8">
@@ -427,23 +453,47 @@ export default function Dashboard() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-[hsl(var(--torii-red))] via-[hsl(var(--sakura-pink))] to-[hsl(var(--gold-kin))] bg-clip-text text-transparent">
-              🏮 {getContent('dashboard.title', 'Dashboard Keuangan Nabila')} 🏮
+            <h1 className={`text-4xl font-bold ${
+              activeTheme === 'japanese' 
+                ? 'bg-gradient-to-r from-[hsl(var(--torii-red))] via-[hsl(var(--sakura-pink))] to-[hsl(var(--gold-kin))] bg-clip-text text-transparent' 
+                : 'text-foreground'
+            }`}>
+              {activeTheme === 'japanese' && '🏮 '}{getContent('dashboard.title', 'Dashboard Keuangan Nabila')}{activeTheme === 'japanese' && ' 🏮'}
             </h1>
             <p className="text-muted-foreground mt-2">
-              {getContent('dashboard.subtitle', 'Kelola finansial Anda dengan ketenangan malam Jepang')}
+              {activeTheme === 'japanese' 
+                ? getContent('dashboard.subtitle', 'Kelola finansial Anda dengan ketenangan malam Jepang')
+                : getContent('dashboard.subtitle.professional', 'Ringkasan keuangan profesional Anda')
+              }
             </p>
           </div>
           
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={toggleTheme}
-              className="transition-all duration-300 hover:scale-105"
-            >
-              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
+            <Select value={dashboardTheme} onValueChange={handleDashboardThemeChange}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="japanese">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-4 w-4" />
+                    <span>Japanese Night</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="professional">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4" />
+                    <span>Professional Clean</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="auto">
+                  <div className="flex items-center gap-2">
+                    <Monitor className="h-4 w-4" />
+                    <span>Auto (System)</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
             
             <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
               <SelectTrigger className="w-[180px]">
