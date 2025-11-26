@@ -12,8 +12,6 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
   
   const themeColors = {
     income: {
-      bg: "from-emerald-50 via-green-50 to-teal-50",
-      bgDark: "from-slate-900 via-emerald-950 to-teal-950",
       shapes: [
         "from-emerald-400 to-green-500",
         "from-green-400 to-teal-500",
@@ -21,8 +19,6 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
       ]
     },
     expense: {
-      bg: "from-rose-50 via-red-50 to-orange-50",
-      bgDark: "from-slate-900 via-rose-950 to-red-950",
       shapes: [
         "from-rose-400 to-red-500",
         "from-red-400 to-orange-500",
@@ -30,8 +26,6 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
       ]
     },
     savings: {
-      bg: "from-blue-50 via-cyan-50 to-purple-50",
-      bgDark: "from-slate-900 via-blue-950 to-purple-950",
       shapes: [
         "from-blue-400 to-cyan-500",
         "from-cyan-400 to-purple-500",
@@ -39,8 +33,6 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
       ]
     },
     budget: {
-      bg: "from-purple-50 via-fuchsia-50 to-pink-50",
-      bgDark: "from-slate-900 via-purple-950 to-pink-950",
       shapes: [
         "from-purple-400 to-fuchsia-500",
         "from-fuchsia-400 to-pink-500",
@@ -48,8 +40,6 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
       ]
     },
     neutral: {
-      bg: "from-slate-50 via-blue-50 to-purple-50",
-      bgDark: "from-slate-900 via-slate-950 to-purple-950",
       shapes: [
         "from-blue-400 to-purple-500",
         "from-purple-400 to-pink-500",
@@ -61,12 +51,7 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
   const colors = themeColors[theme];
 
   return (
-    <div className={cn(
-      "min-h-screen relative overflow-hidden",
-      activeTheme === 'japanese' 
-        ? `bg-gradient-to-br ${colors.bgDark}` 
-        : `bg-gradient-to-br ${colors.bg}`
-    )}>
+    <div className="min-h-screen relative overflow-hidden">
       {/* Animated floating shapes - only show for Japanese theme */}
       {activeTheme === 'japanese' && (
         <>
