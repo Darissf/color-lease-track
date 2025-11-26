@@ -558,285 +558,288 @@ export default function ChatBotAI() {
         onOpenChange={setSearchDialogOpen}
         onSelectConversation={loadConversation}
       />
-      <AnimatedBackground theme="budget">
-        <div className="px-2 py-1 md:px-8 md:py-4 h-[calc(100vh-104px)] flex flex-col overflow-hidden">
-      <div className="mb-1 md:mb-4 shrink-0">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 bg-clip-text text-transparent truncate">
-              ✨ ChatBot AI
-            </h1>
-            <p className="text-xs md:text-lg bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent mt-1 truncate hidden xs:block">
-              {conversationTitle}
-            </p>
-          </div>
-          
-          {/* Desktop: Show all buttons */}
-          <div className="hidden md:flex gap-2">
-            <GradientButton
-              variant="budget"
-              size="sm"
-              onClick={() => setCommandPaletteOpen(true)}
-            >
-              <CommandIcon className="w-4 h-4 mr-2" />
-              Commands
-            </GradientButton>
-            <GradientButton
-              variant="primary"
-              size="sm"
-              onClick={() => setExportDialogOpen(true)}
-              disabled={!currentConversation}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </GradientButton>
-            <GradientButton
-              variant="income"
-              size="sm"
-              onClick={() => setSearchDialogOpen(true)}
-            >
-              <SearchIcon className="w-4 h-4 mr-2" />
-              Search
-            </GradientButton>
-            <GradientButton
-              variant="savings"
-              size="sm"
-              onClick={() => navigate("/ai-analytics")}
-            >
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Analytics
-            </GradientButton>
-            <Sheet>
-              <SheetTrigger asChild>
-                <GradientButton variant="budget" size="sm">
-                  <History className="w-4 h-4 mr-2" />
-                  History ({conversations.length})
-                </GradientButton>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 -m-6 mb-4 rounded-t-lg">
-                  <SheetTitle className="text-white flex items-center gap-2">
-                    <History className="w-5 h-5" />
-                    Chat History
-                  </SheetTitle>
-                  <SheetDescription className="text-white/90">
-                    Load atau hapus percakapan sebelumnya
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="mt-4">
-                  <GradientButton
-                    className="w-full mb-4"
-                    variant="income"
-                    onClick={() => {
-                      startNewConversation();
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    New Conversation
+      <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+        {/* Header Section - OUTSIDE AnimatedBackground for visibility */}
+        <div className="shrink-0 px-2 py-2 md:px-8 md:py-4 border-b">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 bg-clip-text text-transparent truncate">
+                ✨ ChatBot AI
+              </h1>
+              <p className="text-xs md:text-lg bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent mt-1 truncate hidden xs:block">
+                {conversationTitle}
+              </p>
+            </div>
+            
+            {/* Desktop: Show all buttons */}
+            <div className="hidden md:flex gap-2">
+              <GradientButton
+                variant="budget"
+                size="sm"
+                onClick={() => setCommandPaletteOpen(true)}
+              >
+                <CommandIcon className="w-4 h-4 mr-2" />
+                Commands
+              </GradientButton>
+              <GradientButton
+                variant="primary"
+                size="sm"
+                onClick={() => setExportDialogOpen(true)}
+                disabled={!currentConversation}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </GradientButton>
+              <GradientButton
+                variant="income"
+                size="sm"
+                onClick={() => setSearchDialogOpen(true)}
+              >
+                <SearchIcon className="w-4 h-4 mr-2" />
+                Search
+              </GradientButton>
+              <GradientButton
+                variant="savings"
+                size="sm"
+                onClick={() => navigate("/ai-analytics")}
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Analytics
+              </GradientButton>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <GradientButton variant="budget" size="sm">
+                    <History className="w-4 h-4 mr-2" />
+                    History ({conversations.length})
                   </GradientButton>
-                  <ScrollArea className="h-[calc(100vh-12rem)]">
-                    <div className="space-y-2">
-                      {conversations.map((conv) => (
-                        <div
-                          key={conv.id}
-                          className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                            currentConversation === conv.id 
-                              ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500 shadow-lg shadow-purple-500/30' 
-                              : 'border-transparent hover:border-purple-500/50 hover:bg-gradient-to-br hover:from-purple-500/5 hover:to-pink-500/5 hover:scale-[1.02]'
-                          }`}
-                          onClick={() => loadConversation(conv.id)}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{conv.title}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge className="text-xs bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0">
-                                  {conv.ai_provider}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {conv.message_count} messages
-                                </span>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 -m-6 mb-4 rounded-t-lg">
+                    <SheetTitle className="text-white flex items-center gap-2">
+                      <History className="w-5 h-5" />
+                      Chat History
+                    </SheetTitle>
+                    <SheetDescription className="text-white/90">
+                      Load atau hapus percakapan sebelumnya
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-4">
+                    <GradientButton
+                      className="w-full mb-4"
+                      variant="income"
+                      onClick={() => {
+                        startNewConversation();
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Conversation
+                    </GradientButton>
+                    <ScrollArea className="h-[calc(100vh-12rem)]">
+                      <div className="space-y-2">
+                        {conversations.map((conv) => (
+                          <div
+                            key={conv.id}
+                            className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
+                              currentConversation === conv.id 
+                                ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500 shadow-lg shadow-purple-500/30' 
+                                : 'border-transparent hover:border-purple-500/50 hover:bg-gradient-to-br hover:from-purple-500/5 hover:to-pink-500/5 hover:scale-[1.02]'
+                            }`}
+                            onClick={() => loadConversation(conv.id)}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{conv.title}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge className="text-xs bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0">
+                                    {conv.ai_provider}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {conv.message_count} messages
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(conv.updated_at).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {new Date(conv.updated_at).toLocaleDateString('id-ID', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 hover:bg-red-500/20 hover:text-red-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteConversation(conv.id);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0 hover:bg-red-500/20 hover:text-red-600"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteConversation(conv.id);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </SheetContent>
-            </Sheet>
-            <GradientButton
-              variant="budget"
-              size="sm"
-              onClick={startNewConversation}
-            >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              New Chat
-            </GradientButton>
-            <GradientButton
-              variant="primary"
-              size="sm"
-              onClick={() => navigate("/settings/ai")}
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </GradientButton>
-          </div>
-          
-          {/* Mobile: Show minimal buttons + dropdown */}
-          <div className="flex md:hidden gap-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <History className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 -m-6 mb-4 rounded-t-lg">
-                  <SheetTitle className="text-white flex items-center gap-2">
-                    <History className="w-5 h-5" />
-                    Chat History
-                  </SheetTitle>
-                  <SheetDescription className="text-white/90">
-                    Load atau hapus percakapan sebelumnya
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="mt-4">
-                  <GradientButton
-                    className="w-full mb-4"
-                    variant="income"
-                    onClick={() => startNewConversation()}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    New Conversation
-                  </GradientButton>
-                  <ScrollArea className="h-[calc(100vh-12rem)]">
-                    <div className="space-y-2">
-                      {conversations.map((conv) => (
-                        <div
-                          key={conv.id}
-                          className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                            currentConversation === conv.id 
-                              ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500 shadow-lg shadow-purple-500/30' 
-                              : 'border-transparent hover:border-purple-500/50 hover:bg-gradient-to-br hover:from-purple-500/5 hover:to-pink-500/5'
-                          }`}
-                          onClick={() => loadConversation(conv.id)}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{conv.title}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge className="text-xs bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0">
-                                  {conv.ai_provider}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {conv.message_count} messages
-                                </span>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <GradientButton
+                variant="budget"
+                size="sm"
+                onClick={startNewConversation}
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                New Chat
+              </GradientButton>
+              <GradientButton
+                variant="primary"
+                size="sm"
+                onClick={() => navigate("/settings/ai")}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </GradientButton>
+            </div>
+            
+            {/* Mobile: Show minimal buttons + dropdown */}
+            <div className="flex md:hidden gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <History className="w-4 h-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 -m-6 mb-4 rounded-t-lg">
+                    <SheetTitle className="text-white flex items-center gap-2">
+                      <History className="w-5 h-5" />
+                      Chat History
+                    </SheetTitle>
+                    <SheetDescription className="text-white/90">
+                      Load atau hapus percakapan sebelumnya
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-4">
+                    <GradientButton
+                      className="w-full mb-4"
+                      variant="income"
+                      onClick={() => startNewConversation()}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Conversation
+                    </GradientButton>
+                    <ScrollArea className="h-[calc(100vh-12rem)]">
+                      <div className="space-y-2">
+                        {conversations.map((conv) => (
+                          <div
+                            key={conv.id}
+                            className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
+                              currentConversation === conv.id 
+                                ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500 shadow-lg shadow-purple-500/30' 
+                                : 'border-transparent hover:border-purple-500/50 hover:bg-gradient-to-br hover:from-purple-500/5 hover:to-pink-500/5'
+                            }`}
+                            onClick={() => loadConversation(conv.id)}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{conv.title}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge className="text-xs bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0">
+                                    {conv.ai_provider}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {conv.message_count} messages
+                                  </span>
+                                </div>
                               </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 hover:bg-red-500/20 hover:text-red-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteConversation(conv.id);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0 hover:bg-red-500/20 hover:text-red-600"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteConversation(conv.id);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </SheetContent>
-            </Sheet>
-            <Button variant="outline" size="sm" onClick={startNewConversation}>
-              <Plus className="w-4 h-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setCommandPaletteOpen(true)}>
-                  <CommandIcon className="w-4 h-4 mr-2" />
-                  Commands
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setExportDialogOpen(true)} disabled={!currentConversation}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSearchDialogOpen(true)}>
-                  <SearchIcon className="w-4 h-4 mr-2" />
-                  Search
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/ai-analytics")}>
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Analytics
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/settings/ai")}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <Button variant="outline" size="sm" onClick={startNewConversation}>
+                <Plus className="w-4 h-4" />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setCommandPaletteOpen(true)}>
+                    <CommandIcon className="w-4 h-4 mr-2" />
+                    Commands
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setExportDialogOpen(true)} disabled={!currentConversation}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSearchDialogOpen(true)}>
+                    <SearchIcon className="w-4 h-4 mr-2" />
+                    Search
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/ai-analytics")}>
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Analytics
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/settings/ai")}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
+          <div className="mt-2 md:mt-3 flex items-center gap-2 flex-wrap">
+            <Badge className="gap-1 bg-gradient-to-r from-purple-500 to-pink-600 text-white border-0 shadow-lg shadow-purple-500/50">
+              <Sparkles className="w-3 h-3" />
+              {activeProvider}
+            </Badge>
+            <Select value={selectedModel} onValueChange={setSelectedModel}>
+              <SelectTrigger className="w-full md:w-[250px] h-8 border-purple-500/50 hover:border-purple-500 focus:ring-2 focus:ring-purple-500/50 transition-all">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {currentModels.map((model) => (
+                  <SelectItem key={model.value} value={model.value}>
+                    {model.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {!["openai", "claude", "deepseek", "gemini"].includes(activeProvider) && (
+            <Alert className="mt-2 md:mt-3 border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5 hidden md:flex">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              <AlertDescription className="text-foreground">
+                Provider {activeProvider} tidak mendukung akses database. Untuk pertanyaan yang membutuhkan data (invoice, pemasukan, pengeluaran, kontrak sewa), gunakan OpenAI, Claude, Gemini, atau DeepSeek.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
-        <div className="mt-2 md:mt-3 flex items-center gap-2 flex-wrap">
-          <Badge className="gap-1 bg-gradient-to-r from-purple-500 to-pink-600 text-white border-0 shadow-lg shadow-purple-500/50">
-            <Sparkles className="w-3 h-3" />
-            {activeProvider}
-          </Badge>
-          <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger className="w-full md:w-[250px] h-8 border-purple-500/50 hover:border-purple-500 focus:ring-2 focus:ring-purple-500/50 transition-all">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {currentModels.map((model) => (
-                <SelectItem key={model.value} value={model.value}>
-                  {model.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {!["openai", "claude", "deepseek", "gemini"].includes(activeProvider) && (
-          <Alert className="mt-2 md:mt-3 border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5 hidden md:flex">
-            <Sparkles className="h-4 w-4 text-purple-500" />
-            <AlertDescription className="text-foreground">
-              Provider {activeProvider} tidak mendukung akses database. Untuk pertanyaan yang membutuhkan data (invoice, pemasukan, pengeluaran, kontrak sewa), gunakan OpenAI, Claude, Gemini, atau DeepSeek.
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
 
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Chat Content - INSIDE AnimatedBackground */}
+        <AnimatedBackground theme="budget">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden px-2 md:px-4 py-2 md:py-4">
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <ScrollArea className="flex-1 min-h-0 p-4">
           {messages.length === 0 && (
             <>
@@ -1058,9 +1061,10 @@ export default function ChatBotAI() {
             </Button>
           </div>
         </div>
-       </Card>
-     </div>
-      </AnimatedBackground>
+            </Card>
+          </div>
+        </AnimatedBackground>
+      </div>
     </>
   );
 }
