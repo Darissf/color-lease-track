@@ -13,6 +13,7 @@ import EmailTester from "@/components/smtp/EmailTester";
 import EmailRotationTester from "@/components/smtp/EmailRotationTester";
 import UnifiedNotificationCenter from "@/components/smtp/UnifiedNotificationCenter";
 import EmailProviderManager from "@/components/smtp/EmailProviderManager";
+import EmailUsageDashboard from "@/components/smtp/EmailUsageDashboard";
 
 const SMTPSettings = () => {
   const navigate = useNavigate();
@@ -58,12 +59,13 @@ const SMTPSettings = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
               <TabsTrigger value="providers">Providers</TabsTrigger>
               <TabsTrigger value="config">Config</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="signatures">Signatures</TabsTrigger>
               <TabsTrigger value="unified">Unified</TabsTrigger>
+              <TabsTrigger value="usage">Usage</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
               <TabsTrigger value="test">Test</TabsTrigger>
             </TabsList>
@@ -86,6 +88,10 @@ const SMTPSettings = () => {
 
             <TabsContent value="unified" className="space-y-4">
               <UnifiedNotificationCenter />
+            </TabsContent>
+
+            <TabsContent value="usage" className="space-y-4">
+              <EmailUsageDashboard />
             </TabsContent>
 
             <TabsContent value="logs" className="space-y-4">
