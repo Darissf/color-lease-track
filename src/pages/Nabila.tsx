@@ -423,11 +423,11 @@ export default function Nabila() {
       )}
 
       {/* Content */}
-      <div className="relative z-10 space-y-4 px-2 py-2 md:px-8 md:py-4 flex-1 overflow-y-auto">
+      <div className="relative z-10 space-y-4 px-2 py-2 md:px-8 md:py-4 flex-1 overflow-y-auto overflow-x-hidden w-full">
         {/* Header with Gradient */}
         <div className="text-center space-y-2 md:space-y-4 py-6 md:py-12 shrink-0">
           <h1 className={cn(
-            "text-6xl md:text-8xl font-serif italic bg-clip-text text-transparent drop-shadow-2xl animate-fade-in",
+            "text-4xl sm:text-6xl md:text-8xl font-serif italic bg-clip-text text-transparent drop-shadow-2xl animate-fade-in",
             activeTheme === 'japanese'
               ? "bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300"
               : "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
@@ -435,7 +435,7 @@ export default function Nabila() {
             Financial Planner.
           </h1>
           <p className={cn(
-            "text-3xl md:text-4xl font-serif italic bg-clip-text text-transparent animate-fade-in",
+            "text-xl sm:text-3xl md:text-4xl font-serif italic bg-clip-text text-transparent animate-fade-in",
             activeTheme === 'japanese'
               ? "bg-gradient-to-r from-slate-300 to-slate-400"
               : "bg-gradient-to-r from-gray-700 to-gray-900"
