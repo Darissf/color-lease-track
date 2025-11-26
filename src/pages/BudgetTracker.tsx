@@ -746,7 +746,6 @@ const BudgetTracker = () => {
         onOpenChange={setTemplateDialogOpen}
         onApplyTemplate={handleApplyTemplate}
       />
-      </div>
     </div>
   );
 };
