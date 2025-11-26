@@ -26,6 +26,7 @@ import { CategoryBadge } from "@/components/CategoryBadge";
 import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
 import { PaginationControls } from "@/components/shared/PaginationControls";
+import { useAppTheme } from "@/contexts/AppThemeContext";
 
 // KATEGORI PENGELUARAN
 const EXPENSE_CATEGORIES = [
@@ -72,6 +73,7 @@ interface Expense {
 export default function ExpenseTracker() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { activeTheme, themeColors } = useAppTheme();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -543,10 +545,16 @@ export default function ExpenseTracker() {
       </div>
 
       {/* Filters */}
-      <Card className="border-2 border-rose-500/20 shadow-lg">
+      <Card className={cn(
+        "border-2 border-rose-500/20 shadow-lg",
+        activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
+      )}>
         <CardHeader className="bg-gradient-to-r from-rose-500/10 via-red-500/10 to-orange-500/10 border-b-2 border-rose-500/20">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <CardTitle className="flex items-center gap-3">
+            <CardTitle className={cn(
+              "flex items-center gap-3",
+              activeTheme === 'japanese' && 'text-white'
+            )}>
               <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500 to-red-600">
                 <Filter className="h-5 w-5 text-white" />
               </div>
