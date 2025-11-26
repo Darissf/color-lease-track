@@ -115,235 +115,260 @@ All colors MUST be HSL.
     --shadow-glow-torii: 0 0 40px hsl(var(--torii-red) / 0.6);
   }
 
-  /* ===== JAPANESE NIGHT THEME - Global Overrides ===== */
+  /* ===== JAPANESE NIGHT THEME ===== */
   [data-theme="japanese"],
   .theme-japanese {
-    /* Global Card Styling */
-    --card-bg: rgba(15, 23, 42, 0.9);
-    --card-border: rgb(51, 65, 85);
-    --text-primary: #FFFFFF;
-    --text-secondary: #E2E8F0;
-    --text-muted: #94A3B8;
+    --background: 240 10% 98%;
+    --foreground: 240 50% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 50% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 50% 15%;
+    --primary: 263 70% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 10% 95%;
+    --secondary-foreground: 240 50% 15%;
+    --muted: 240 10% 95%;
+    --muted-foreground: 240 20% 50%;
+    --accent: 263 50% 95%;
+    --accent-foreground: 263 70% 30%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 20% 90%;
+    --input: 0 0% 100%;
+    --ring: 263 70% 60%;
+    --sidebar-background: 263 50% 12%;
+    --sidebar-foreground: 45 90% 88%;
+    --sidebar-primary: 45 90% 60%;
+    --sidebar-primary-foreground: 263 50% 12%;
+    --sidebar-accent: 263 45% 18%;
+    --sidebar-accent-foreground: 45 90% 88%;
+    --sidebar-border: 263 40% 20%;
+    --sidebar-ring: 45 90% 60%;
+  }
 
-    /* Sidebar Variables - Light text on dark background */
-    --sidebar-background: 230 40% 15%;
-    --sidebar-foreground: 60 100% 97%;
-    --sidebar-border: 220 30% 25%;
-    --sidebar-accent: 230 45% 20%;
-    --sidebar-accent-foreground: 45 95% 85%;
-    --sidebar-primary: 263 70% 50%;
+  /* ===== PROFESSIONAL THEME ===== */
+  [data-theme="professional"],
+  .theme-professional {
+    --background: 0 0% 98%;
+    --foreground: 220 40% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 40% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 40% 20%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 95%;
+    --secondary-foreground: 220 40% 20%;
+    --muted: 210 20% 95%;
+    --muted-foreground: 220 20% 50%;
+    --accent: 210 20% 95%;
+    --accent-foreground: 221 83% 40%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 88%;
+    --input: 0 0% 100%;
+    --ring: 221 83% 53%;
+    --sidebar-background: 220 40% 96%;
+    --sidebar-foreground: 220 40% 20%;
+    --sidebar-primary: 221 83% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-ring: 263 70% 50%;
-  }
-
-  /* Override Card components for Japanese theme */
-  [data-theme="japanese"] .bg-card,
-  .theme-japanese .bg-card {
-    background: rgba(15, 23, 42, 0.9) !important;
-    border-color: rgb(51, 65, 85) !important;
-  }
-
-  /* Override text colors for Japanese theme */
-  [data-theme="japanese"] .text-card-foreground,
-  .theme-japanese .text-card-foreground {
-    color: #FFFFFF !important;
-  }
-
-  [data-theme="japanese"] .text-muted-foreground,
-  .theme-japanese .text-muted-foreground {
-    color: #94A3B8 !important;
+    --sidebar-accent: 210 30% 92%;
+    --sidebar-accent-foreground: 220 40% 20%;
+    --sidebar-border: 220 20% 88%;
+    --sidebar-ring: 221 83% 53%;
   }
 
   /* ===== OCEAN BALI THEME ===== */
-  [data-theme="ocean-bali"],
-  .theme-ocean-bali {
-    --background: 188 90% 12%;
-    --foreground: 180 30% 95%;
-    --card: 188 85% 15%;
-    --card-foreground: 180 30% 95%;
-    --popover: 188 85% 15%;
-    --popover-foreground: 180 30% 95%;
-    --primary: 188 94% 50%;
-    --primary-foreground: 188 90% 12%;
-    --secondary: 188 70% 20%;
-    --secondary-foreground: 180 30% 95%;
-    --muted: 188 60% 20%;
-    --muted-foreground: 188 30% 70%;
-    --accent: 188 75% 25%;
-    --accent-foreground: 180 30% 95%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 188 50% 25%;
-    --input: 188 70% 18%;
-    --ring: 188 94% 50%;
-    --sidebar-background: 188 85% 15%;
-    --sidebar-foreground: 180 30% 95%;
-    --sidebar-border: 188 50% 25%;
-    --sidebar-accent: 188 75% 20%;
-    --sidebar-accent-foreground: 180 30% 95%;
-    --sidebar-primary: 188 94% 50%;
-    --sidebar-primary-foreground: 188 90% 12%;
-    --sidebar-ring: 188 94% 50%;
-  }
+[data-theme="ocean-bali"],
+.theme-ocean-bali {
+  --background: 188 30% 98%;
+  --foreground: 188 50% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 188 50% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 188 50% 15%;
+  --primary: 188 85% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 188 20% 95%;
+  --secondary-foreground: 188 50% 15%;
+  --muted: 188 20% 95%;
+  --muted-foreground: 188 30% 50%;
+  --accent: 188 40% 95%;
+  --accent-foreground: 188 85% 30%;
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 188 25% 88%;
+  --input: 0 0% 100%;
+  --ring: 188 85% 45%;
+  --sidebar-background: 188 85% 15%;
+  --sidebar-foreground: 180 40% 95%;
+  --sidebar-primary: 188 85% 55%;
+  --sidebar-primary-foreground: 188 90% 12%;
+  --sidebar-accent: 188 75% 20%;
+  --sidebar-accent-foreground: 180 40% 95%;
+  --sidebar-border: 188 60% 22%;
+  --sidebar-ring: 188 85% 55%;
+}
 
   /* ===== SUNSET WARM THEME ===== */
   [data-theme="sunset-warm"],
   .theme-sunset-warm {
-    --background: 25 90% 12%;
-    --foreground: 30 30% 95%;
-    --card: 25 85% 15%;
-    --card-foreground: 30 30% 95%;
-    --popover: 25 85% 15%;
-    --popover-foreground: 30 30% 95%;
-    --primary: 25 90% 55%;
-    --primary-foreground: 25 90% 12%;
-    --secondary: 25 70% 20%;
-    --secondary-foreground: 30 30% 95%;
-    --muted: 25 60% 20%;
-    --muted-foreground: 25 30% 68%;
-    --accent: 25 75% 25%;
-    --accent-foreground: 30 30% 95%;
-    --destructive: 0 84% 60%;
+    --background: 25 25% 98%;
+    --foreground: 25 50% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 25 50% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 25 50% 15%;
+    --primary: 20 90% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 25 20% 95%;
+    --secondary-foreground: 25 50% 15%;
+    --muted: 25 20% 95%;
+    --muted-foreground: 25 30% 50%;
+    --accent: 25 40% 95%;
+    --accent-foreground: 20 90% 35%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 25 50% 25%;
-    --input: 25 70% 18%;
-    --ring: 25 90% 55%;
-    --sidebar-background: 25 85% 15%;
-    --sidebar-foreground: 30 30% 95%;
-    --sidebar-border: 25 50% 25%;
-    --sidebar-accent: 25 75% 20%;
-    --sidebar-accent-foreground: 30 30% 95%;
-    --sidebar-primary: 25 90% 55%;
-    --sidebar-primary-foreground: 25 90% 12%;
-    --sidebar-ring: 25 90% 55%;
+    --border: 25 20% 88%;
+    --input: 0 0% 100%;
+    --ring: 20 90% 55%;
+    --sidebar-background: 20 75% 18%;
+    --sidebar-foreground: 35 80% 95%;
+    --sidebar-primary: 35 90% 65%;
+    --sidebar-primary-foreground: 20 75% 15%;
+    --sidebar-accent: 20 70% 25%;
+    --sidebar-accent-foreground: 35 80% 95%;
+    --sidebar-border: 20 60% 28%;
+    --sidebar-ring: 35 90% 65%;
   }
 
   /* ===== BAMBOO ZEN THEME ===== */
   [data-theme="bamboo-zen"],
   .theme-bamboo-zen {
-    --background: 140 90% 12%;
-    --foreground: 140 30% 95%;
-    --card: 140 85% 15%;
-    --card-foreground: 140 30% 95%;
-    --popover: 140 85% 15%;
-    --popover-foreground: 140 30% 95%;
-    --primary: 140 70% 45%;
-    --primary-foreground: 140 90% 12%;
-    --secondary: 140 65% 20%;
-    --secondary-foreground: 140 30% 95%;
-    --muted: 140 60% 20%;
-    --muted-foreground: 140 30% 68%;
-    --accent: 140 70% 25%;
-    --accent-foreground: 140 30% 95%;
-    --destructive: 0 84% 60%;
+    --background: 140 15% 98%;
+    --foreground: 140 50% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 140 50% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 140 50% 15%;
+    --primary: 140 60% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 140 15% 95%;
+    --secondary-foreground: 140 50% 15%;
+    --muted: 140 15% 95%;
+    --muted-foreground: 140 25% 50%;
+    --accent: 140 30% 95%;
+    --accent-foreground: 140 60% 30%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 140 50% 25%;
-    --input: 140 70% 18%;
-    --ring: 140 70% 45%;
-    --sidebar-background: 140 85% 15%;
-    --sidebar-foreground: 140 30% 95%;
-    --sidebar-border: 140 50% 25%;
-    --sidebar-accent: 140 75% 20%;
-    --sidebar-accent-foreground: 140 30% 95%;
-    --sidebar-primary: 140 70% 45%;
-    --sidebar-primary-foreground: 140 90% 12%;
-    --sidebar-ring: 140 70% 45%;
+    --border: 140 20% 88%;
+    --input: 0 0% 100%;
+    --ring: 140 60% 45%;
+    --sidebar-background: 140 55% 15%;
+    --sidebar-foreground: 140 40% 95%;
+    --sidebar-primary: 140 65% 55%;
+    --sidebar-primary-foreground: 140 60% 12%;
+    --sidebar-accent: 140 50% 20%;
+    --sidebar-accent-foreground: 140 40% 95%;
+    --sidebar-border: 140 45% 22%;
+    --sidebar-ring: 140 65% 55%;
   }
 
   /* ===== SAKURA BLOOM THEME ===== */
   [data-theme="sakura-bloom"],
   .theme-sakura-bloom {
-    --background: 330 90% 12%;
-    --foreground: 330 30% 95%;
-    --card: 330 85% 15%;
-    --card-foreground: 330 30% 95%;
-    --popover: 330 85% 15%;
-    --popover-foreground: 330 30% 95%;
-    --primary: 330 75% 55%;
-    --primary-foreground: 330 90% 12%;
-    --secondary: 330 65% 22%;
-    --secondary-foreground: 330 30% 95%;
-    --muted: 330 60% 22%;
-    --muted-foreground: 330 30% 68%;
-    --accent: 330 70% 26%;
-    --accent-foreground: 330 30% 95%;
-    --destructive: 0 84% 60%;
+    --background: 330 25% 98%;
+    --foreground: 330 50% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 330 50% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 330 50% 15%;
+    --primary: 330 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 330 20% 95%;
+    --secondary-foreground: 330 50% 15%;
+    --muted: 330 20% 95%;
+    --muted-foreground: 330 30% 50%;
+    --accent: 330 35% 95%;
+    --accent-foreground: 330 70% 35%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 330 50% 25%;
-    --input: 330 70% 19%;
-    --ring: 330 75% 55%;
-    --sidebar-background: 330 85% 15%;
-    --sidebar-foreground: 330 30% 95%;
-    --sidebar-border: 330 50% 25%;
-    --sidebar-accent: 330 75% 20%;
-    --sidebar-accent-foreground: 330 30% 95%;
-    --sidebar-primary: 330 75% 55%;
-    --sidebar-primary-foreground: 330 90% 12%;
-    --sidebar-ring: 330 75% 55%;
+    --border: 330 20% 88%;
+    --input: 0 0% 100%;
+    --ring: 330 70% 55%;
+    --sidebar-background: 330 60% 18%;
+    --sidebar-foreground: 330 35% 95%;
+    --sidebar-primary: 330 75% 65%;
+    --sidebar-primary-foreground: 330 65% 12%;
+    --sidebar-accent: 330 55% 24%;
+    --sidebar-accent-foreground: 330 35% 95%;
+    --sidebar-border: 330 50% 28%;
+    --sidebar-ring: 330 75% 65%;
   }
 
   /* ===== NEON CYBER THEME ===== */
   [data-theme="neon-cyber"],
   .theme-neon-cyber {
-    --background: 260 90% 12%;
-    --foreground: 260 30% 95%;
-    --card: 260 85% 15%;
-    --card-foreground: 260 30% 95%;
-    --popover: 260 85% 15%;
-    --popover-foreground: 260 30% 95%;
-    --primary: 270 85% 60%;
-    --primary-foreground: 260 90% 12%;
-    --secondary: 260 70% 21%;
-    --secondary-foreground: 260 30% 95%;
-    --muted: 260 60% 21%;
-    --muted-foreground: 260 30% 68%;
-    --accent: 260 75% 26%;
-    --accent-foreground: 260 30% 95%;
-    --destructive: 0 84% 60%;
+    --background: 270 15% 98%;
+    --foreground: 270 50% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 270 50% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 270 50% 15%;
+    --primary: 280 75% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 270 15% 95%;
+    --secondary-foreground: 270 50% 15%;
+    --muted: 270 15% 95%;
+    --muted-foreground: 270 25% 50%;
+    --accent: 270 30% 95%;
+    --accent-foreground: 280 75% 35%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 260 50% 25%;
-    --input: 260 70% 18%;
-    --ring: 270 85% 60%;
-    --sidebar-background: 260 85% 15%;
-    --sidebar-foreground: 260 30% 95%;
-    --sidebar-border: 260 50% 25%;
-    --sidebar-accent: 260 75% 20%;
-    --sidebar-accent-foreground: 260 30% 95%;
-    --sidebar-primary: 270 85% 60%;
-    --sidebar-primary-foreground: 260 90% 12%;
-    --sidebar-ring: 270 85% 60%;
+    --border: 270 20% 88%;
+    --input: 0 0% 100%;
+    --ring: 280 75% 55%;
+    --sidebar-background: 270 70% 12%;
+    --sidebar-foreground: 320 70% 90%;
+    --sidebar-primary: 320 85% 65%;
+    --sidebar-primary-foreground: 270 75% 10%;
+    --sidebar-accent: 270 65% 18%;
+    --sidebar-accent-foreground: 320 70% 90%;
+    --sidebar-border: 270 60% 20%;
+    --sidebar-ring: 320 85% 65%;
   }
 
   /* ===== MOUNTAIN STONE THEME ===== */
   [data-theme="mountain-stone"],
   .theme-mountain-stone {
-    --background: 210 10% 12%;
-    --foreground: 210 10% 95%;
-    --card: 210 15% 15%;
-    --card-foreground: 210 10% 95%;
-    --popover: 210 15% 15%;
-    --popover-foreground: 210 10% 95%;
-    --primary: 210 20% 50%;
-    --primary-foreground: 210 10% 12%;
-    --secondary: 210 12% 20%;
-    --secondary-foreground: 210 10% 95%;
-    --muted: 210 10% 20%;
-    --muted-foreground: 210 10% 65%;
-    --accent: 210 15% 25%;
-    --accent-foreground: 210 10% 95%;
-    --destructive: 0 84% 60%;
+    --background: 200 10% 98%;
+    --foreground: 200 30% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 200 30% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 30% 20%;
+    --primary: 200 20% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 200 10% 95%;
+    --secondary-foreground: 200 30% 20%;
+    --muted: 200 10% 95%;
+    --muted-foreground: 200 15% 50%;
+    --accent: 200 15% 95%;
+    --accent-foreground: 200 20% 35%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 10% 22%;
-    --input: 210 12% 17%;
-    --ring: 210 20% 50%;
-    --sidebar-background: 210 15% 15%;
-    --sidebar-foreground: 210 10% 95%;
-    --sidebar-border: 210 10% 25%;
-    --sidebar-accent: 210 15% 20%;
-    --sidebar-accent-foreground: 210 10% 95%;
-    --sidebar-primary: 210 20% 50%;
-    --sidebar-primary-foreground: 210 10% 12%;
-    --sidebar-ring: 210 20% 50%;
+    --border: 200 15% 88%;
+    --input: 0 0% 100%;
+    --ring: 200 20% 40%;
+    --sidebar-background: 200 15% 20%;
+    --sidebar-foreground: 200 15% 92%;
+    --sidebar-primary: 200 25% 60%;
+    --sidebar-primary-foreground: 200 20% 15%;
+    --sidebar-accent: 200 15% 26%;
+    --sidebar-accent-foreground: 200 15% 92%;
+    --sidebar-border: 200 15% 30%;
+    --sidebar-ring: 200 25% 60%;
   }
 
   /* ===== DARK MODE - JAPANESE NIGHT THEME ===== */

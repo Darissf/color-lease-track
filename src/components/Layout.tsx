@@ -172,12 +172,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Notion-style Sidebar */}
       <aside
         className={cn(
-          "fixed lg:relative z-50 h-full transition-all duration-300 ease-in-out flex flex-col border-r bg-sidebar border-sidebar-border",
+          "fixed lg:relative z-50 h-full transition-all duration-300 ease-in-out flex flex-col border-r relative",
+          "bg-gradient-to-b from-sidebar via-sidebar to-sidebar-accent/50",
+          "shadow-[4px_0_24px_-2px_hsl(var(--sidebar-primary)/0.3)]",
+          "backdrop-blur-sm border-sidebar-border",
           sidebarOpen
             ? "translate-x-0 w-64"
             : "-translate-x-full lg:translate-x-0 w-0 lg:w-16"
         )}
       >
+        {/* Accent line */}
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-sidebar-primary via-sidebar-primary/50 to-transparent" />
         {/* Logo */}
         <div className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border">
           {sidebarOpen ? (
