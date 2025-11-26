@@ -560,7 +560,7 @@ export default function ChatBotAI() {
       />
       <AnimatedBackground theme="budget">
         <div className="container mx-auto px-2 py-2 md:p-4 h-full flex flex-col">
-      <div className="mb-4">
+      <div className="mb-2 md:mb-4 shrink-0">
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 bg-clip-text text-transparent truncate">
