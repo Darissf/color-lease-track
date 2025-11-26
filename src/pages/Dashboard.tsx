@@ -226,8 +226,8 @@ export default function Dashboard() {
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         
         {/* Layer 1: Sky & Celestial */}
-        {/* Stars - 100 particles */}
-        {Array.from({ length: 100 }).map((_, i) => (
+        {/* Stars - Reduced for cleaner look */}
+        {Array.from({ length: 30 }).map((_, i) => (
           <div
             key={`star-${i}`}
             className="absolute w-1 h-1 rounded-full bg-white animate-[star-twinkle_3s_ease-in-out_infinite]"
@@ -235,7 +235,7 @@ export default function Dashboard() {
               top: `${Math.random() * 100}%`,
               left: `${Math.random() * 100}%`,
               animationDelay: `${Math.random() * 3}s`,
-              opacity: 0.3 + Math.random() * 0.7,
+              opacity: 0.15 + Math.random() * 0.35,
             }}
           />
         ))}
@@ -253,18 +253,7 @@ export default function Dashboard() {
           }}
         />
 
-        {/* Meteor Shower */}
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={`meteor-${i}`}
-            className="absolute w-1 h-20 bg-gradient-to-b from-white to-transparent opacity-60 animate-[meteor-streak_3s_linear_infinite]"
-            style={{
-              top: `${Math.random() * 30}%`,
-              right: `${Math.random() * 30}%`,
-              animationDelay: `${i * 2}s`,
-            }}
-          />
-        ))}
+        {/* Meteor Shower - Removed for cleaner look */}
 
         {/* Layer 2: Atmospheric */}
         {/* Night Fog */}
@@ -330,11 +319,11 @@ export default function Dashboard() {
         </div>
 
         {/* Layer 4: Flora */}
-        {/* Sakura Petals */}
-        {Array.from({ length: 20 }).map((_, i) => (
+        {/* Sakura Petals - Further reduced */}
+        {Array.from({ length: 8 }).map((_, i) => (
           <svg
             key={`sakura-${i}`}
-            className="absolute opacity-60 animate-[sakura-fall_15s_linear_infinite]"
+            className="absolute opacity-30 animate-[sakura-fall_15s_linear_infinite]"
             width="20"
             height="20"
             viewBox="0 0 20 20"
@@ -366,94 +355,21 @@ export default function Dashboard() {
           <circle cx="50" cy="120" r="8" fill="hsl(var(--sakura-pink))" />
         </svg>
 
-        {/* Wisteria */}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={`wisteria-${i}`}
-            className="absolute top-0 w-2 h-32 bg-gradient-to-b from-purple-400 to-purple-600 rounded-full opacity-40 animate-[wisteria-sway_4s_ease-in-out_infinite]"
-            style={{
-              left: `${20 + i * 12}%`,
-              animationDelay: `${i * 0.5}s`,
-            }}
-          />
-        ))}
+        {/* Wisteria - Removed */}
 
-        {/* Maple Leaves */}
-        {Array.from({ length: 15 }).map((_, i) => (
-          <div
-            key={`maple-${i}`}
-            className="absolute w-6 h-6 opacity-50 animate-[maple-fall_18s_linear_infinite]"
-            style={{
-              top: '-50px',
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${i * 1.2}s`,
-              color: ['#ff6b6b', '#ffa500', '#ff8c00', '#dc143c'][Math.floor(Math.random() * 4)],
-            }}
-          >
-            🍁
-          </div>
-        ))}
+          {/* Maple Leaves - Removed */}
 
-        {/* Bamboo Leaves */}
-        {Array.from({ length: 28 }).map((_, i) => (
-          <div
-            key={`bamboo-${i}`}
-            className="absolute w-8 h-16 rounded-full bg-gradient-to-b from-[hsl(var(--bamboo-night-green))] to-emerald-800 opacity-40 animate-[bamboo-fall_12s_linear_infinite]"
-            style={{
-              top: '-100px',
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${i * 0.4}s`,
-              animation: `bamboo-fall 12s linear infinite ${i * 0.4}s, bamboo-sway 2s ease-in-out infinite`,
-            }}
-          />
-        ))}
+        {/* Bamboo Leaves - Removed */}
 
-        {/* Lotus Flowers */}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={`lotus-${i}`}
-            className="absolute bottom-20 w-12 h-12 opacity-30 animate-[lotus-float_5s_ease-in-out_infinite]"
-            style={{
-              left: `${10 + i * 15}%`,
-              animationDelay: `${i * 0.8}s`,
-            }}
-          >
-            🪷
-          </div>
-        ))}
+        {/* Lotus Flowers - Removed */}
 
         {/* Layer 5: Fauna */}
-        {/* Koi Fish */}
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div
-            key={`koi-${i}`}
-            className="absolute bottom-32 opacity-40 animate-[koi-swim_25s_linear_infinite]"
-            style={{
-              animationDelay: `${i * 2.5}s`,
-              fontSize: '32px',
-            }}
-          >
-            🐟
-          </div>
-        ))}
+        {/* Koi Fish - Removed */}
 
-        {/* Dragonfly */}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={`dragonfly-${i}`}
-            className="absolute opacity-50 animate-[dragonfly-flight_10s_ease-in-out_infinite]"
-            style={{
-              top: `${20 + Math.random() * 60}%`,
-              left: `${Math.random() * 90}%`,
-              animationDelay: `${i * 1.5}s`,
-            }}
-          >
-            🦗
-          </div>
-        ))}
+        {/* Dragonfly - Removed */}
 
-        {/* Fireflies */}
-        {Array.from({ length: 35 }).map((_, i) => (
+        {/* Fireflies - Reduced */}
+        {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={`firefly-${i}`}
             className="absolute w-2 h-2 rounded-full bg-[hsl(var(--firefly-glow-green))]"
@@ -461,90 +377,34 @@ export default function Dashboard() {
               top: `${Math.random() * 100}%`,
               left: `${Math.random() * 100}%`,
               animation: `firefly-glow 2s ease-in-out infinite ${Math.random() * 2}s, firefly-drift 8s ease-in-out infinite ${Math.random() * 2}s`,
-              boxShadow: '0 0 10px hsl(var(--firefly-glow-green))',
+              boxShadow: '0 0 6px hsl(var(--firefly-glow-green))',
+              opacity: 0.6,
             }}
           />
         ))}
 
         {/* Layer 6: Decorative */}
-        {/* Floating Lanterns */}
-        {Array.from({ length: 8 }).map((_, i) => (
+        {/* Floating Lanterns - Further reduced */}
+        {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={`lantern-${i}`}
-            className="absolute w-16 h-20 rounded-lg bg-gradient-to-b from-[hsl(var(--lantern-glow-orange))] to-red-600 opacity-40 animate-[lantern-float_20s_ease-in-out_infinite]"
+            className="absolute w-16 h-20 rounded-lg bg-gradient-to-b from-[hsl(var(--lantern-glow-orange))] to-red-600 opacity-20 animate-[lantern-float_20s_ease-in-out_infinite]"
             style={{
               top: `${Math.random() * 70}%`,
               left: `${Math.random() * 100}%`,
               animationDelay: `${i * 2.5}s`,
-              boxShadow: '0 0 30px hsl(var(--lantern-glow-orange))',
+              boxShadow: '0 0 15px hsl(var(--lantern-glow-orange))',
             }}
           />
         ))}
 
-        {/* Paper Cranes */}
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div
-            key={`crane-${i}`}
-            className="absolute opacity-50 animate-[crane-fly_30s_linear_infinite]"
-            style={{
-              animationDelay: `${i * 2}s`,
-              color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-              fontSize: '24px',
-            }}
-          >
-            🦢
-          </div>
-        ))}
+        {/* Paper Cranes - Removed */}
 
-        {/* Origami Triangles */}
-        {Array.from({ length: 18 }).map((_, i) => (
-          <svg
-            key={`origami-${i}`}
-            className="absolute opacity-30 animate-[origami-float_15s_ease-in-out_infinite]"
-            width="30"
-            height="30"
-            viewBox="0 0 30 30"
-            style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${i * 0.8}s`,
-              animationDuration: `${12 + Math.random() * 8}s`,
-            }}
-          >
-            <polygon
-              points="15,5 25,25 5,25"
-              fill={`hsl(${Math.random() * 360}, 70%, 60%)`}
-            />
-          </svg>
-        ))}
+          {/* Origami Triangles - Removed */}
 
-        {/* Koinobori Streamers */}
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={`koinobori-${i}`}
-            className="absolute top-10 w-32 h-12 rounded-r-full opacity-40 animate-[koinobori-wave_3s_ease-in-out_infinite]"
-            style={{
-              left: `${10 + i * 18}%`,
-              background: ['linear-gradient(90deg, #ef4444, #f97316)', 'linear-gradient(90deg, #3b82f6, #06b6d4)', 'linear-gradient(90deg, #10b981, #84cc16)', 'linear-gradient(90deg, #a855f7, #ec4899)', 'linear-gradient(90deg, #eab308, #f59e0b)'][i],
-              animationDelay: `${i * 0.3}s`,
-            }}
-          />
-        ))}
+        {/* Koinobori Streamers - Removed */}
 
-        {/* Haiku Scrolls */}
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={`scroll-${i}`}
-            className="absolute w-20 h-32 bg-amber-50 opacity-20 rounded-md border-2 border-amber-900 animate-[scroll-drift_25s_linear_infinite]"
-            style={{
-              animationDelay: `${i * 6}s`,
-            }}
-          >
-            <div className="text-xs text-amber-900 p-2 font-mono">
-              月光<br/>静寂<br/>和
-            </div>
-          </div>
-        ))}
+        {/* Haiku Scrolls - Removed */}
 
         {/* Layer 7: Ambience */}
         {/* Zen Sand Ripples */}
@@ -737,7 +597,15 @@ export default function Dashboard() {
                 <BarChart data={incomeByClient}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
+                  <YAxis 
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) return `${(value / 1000000).toFixed(1)}jt`;
+                      if (value >= 1000) return `${(value / 1000).toFixed(0)}rb`;
+                      return value;
+                    }}
+                    tick={{ fontSize: 12 }}
+                    width={70}
+                  />
                   <Tooltip 
                     formatter={(value: any) => formatCurrency(value)}
                     contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
