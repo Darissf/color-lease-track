@@ -107,7 +107,8 @@ export default function LandingSettings() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-[1600px]">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-y-auto px-2 py-2 md:px-8 md:py-4">
       <div className="mb-6">
         <h1 className={cn(
           "text-3xl font-bold flex items-center gap-3",
@@ -314,6 +315,7 @@ export default function LandingSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

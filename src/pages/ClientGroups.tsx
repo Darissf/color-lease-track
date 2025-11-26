@@ -652,7 +652,8 @@ const ClientGroups = () => {
 
   return (
     <AnimatedBackground theme="neutral">
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-y-auto px-2 py-2 md:px-8 md:py-4 space-y-6">
         {/* Header dengan Gradient */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
@@ -1291,6 +1292,7 @@ const ClientGroups = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
       </div>
     </AnimatedBackground>
   );

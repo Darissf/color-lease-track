@@ -559,7 +559,7 @@ export default function ChatBotAI() {
         onSelectConversation={loadConversation}
       />
       <AnimatedBackground theme="budget">
-        <div className="container mx-auto px-2 py-1 md:p-4 h-[calc(100vh-104px)] flex flex-col overflow-hidden">
+        <div className="px-2 py-1 md:px-8 md:py-4 h-[calc(100vh-104px)] flex flex-col overflow-hidden">
       <div className="mb-1 md:mb-4 shrink-0">
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
