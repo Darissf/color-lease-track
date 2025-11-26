@@ -79,6 +79,13 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
 
   const themeColors = activeTheme === 'japanese' ? japaneseColors : professionalColors;
 
+  // Set data-theme attribute on document for global CSS targeting
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', activeTheme);
+    document.body.classList.remove('theme-japanese', 'theme-professional');
+    document.body.classList.add(`theme-${activeTheme}`);
+  }, [activeTheme]);
+
   return (
     <AppThemeContext.Provider value={{ appTheme, setAppTheme, activeTheme, themeColors }}>
       {children}

@@ -105,6 +105,35 @@ All colors MUST be HSL.
     --shadow-glow-torii: 0 0 40px hsl(var(--torii-red) / 0.6);
   }
 
+  /* ===== JAPANESE NIGHT THEME - Global Overrides ===== */
+  [data-theme="japanese"],
+  .theme-japanese {
+    /* Global Card Styling */
+    --card-bg: rgba(15, 23, 42, 0.9);
+    --card-border: rgb(51, 65, 85);
+    --text-primary: #FFFFFF;
+    --text-secondary: #E2E8F0;
+    --text-muted: #94A3B8;
+  }
+
+  /* Override Card components for Japanese theme */
+  [data-theme="japanese"] .bg-card,
+  .theme-japanese .bg-card {
+    background: rgba(15, 23, 42, 0.9) !important;
+    border-color: rgb(51, 65, 85) !important;
+  }
+
+  /* Override text colors for Japanese theme */
+  [data-theme="japanese"] .text-card-foreground,
+  .theme-japanese .text-card-foreground {
+    color: #FFFFFF !important;
+  }
+
+  [data-theme="japanese"] .text-muted-foreground,
+  .theme-japanese .text-muted-foreground {
+    color: #94A3B8 !important;
+  }
+
   /* ===== DARK MODE - JAPANESE NIGHT THEME ===== */
   .dark {
     /* Background - Midnight Sky */

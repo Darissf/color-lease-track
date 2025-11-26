@@ -12,8 +12,9 @@ import { useLocation } from "react-router-dom";
 import { useContentAutoApply } from "@/hooks/useContentAutoApply";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AppThemeProvider } from "@/contexts/AppThemeContext";
+import { AppThemeProvider, useAppTheme } from "@/contexts/AppThemeContext";
 import { ThemeSelector } from "@/components/ThemeSelector";
+import { cn } from "@/lib/utils";
 
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState, useEffect } from "react";
@@ -41,6 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const notifications = useAdminNotifications(isAdmin || isSuperAdmin);
+  const { activeTheme, themeColors } = useAppTheme();
   
   // Close sidebar on mobile by default
   useEffect(() => {
@@ -159,7 +161,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <AppThemeProvider>
     <TooltipProvider delayDuration={300}>
-      <div className="flex h-screen bg-background overflow-hidden">
+      <div className={cn(
+        "flex h-screen overflow-hidden",
+        activeTheme === 'japanese' 
+          ? "bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950" 
+          : "bg-background"
+      )}>
       {/* Backdrop overlay for mobile */}
       {isMobile && sidebarOpen && (
         <div 
@@ -170,11 +177,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
       
       {/* Notion-style Sidebar */}
       <aside
-        className={`${
-          sidebarOpen ? "w-64" : "w-20"
-        } bg-sidebar-background border-r border-sidebar-border transition-all duration-300 flex flex-col
-        ${isMobile ? 'fixed inset-y-0 left-0 z-50 transform ' + (sidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'relative'}
-        lg:relative lg:translate-x-0`}
+        className={cn(
+          "fixed lg:relative z-50 h-full transition-all duration-300 ease-in-out flex flex-col border-r",
+          activeTheme === 'japanese' 
+            ? "bg-slate-900/50 border-slate-700" 
+            : "bg-sidebar border-border",
+          sidebarOpen
+            ? "translate-x-0 w-64"
+            : "-translate-x-full lg:translate-x-0 w-0 lg:w-16"
+        )}
       >
         {/* Logo */}
         <div className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border">
@@ -296,7 +307,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header - Notion Style */}
-        <header className="h-14 bg-card border-b border-border px-4 flex items-center justify-between">
+        <header className={cn(
+          "h-14 border-b px-4 flex items-center justify-between",
+          activeTheme === 'japanese'
+            ? "bg-slate-900/80 border-slate-700 backdrop-blur"
+            : "bg-card border-border"
+        )}>
           <div className="flex items-center gap-3 flex-1">
             {/* Hamburger Menu for Mobile */}
             {isMobile && (
@@ -384,7 +400,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto bg-background p-6">
+        <main className={cn(
+          "flex-1 overflow-auto p-6",
+          activeTheme === 'japanese' 
+            ? "bg-transparent" 
+            : "bg-background"
+        )}>
           {children}
         </main>
       </div>

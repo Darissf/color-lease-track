@@ -13,6 +13,9 @@ import { formatCurrency } from "@/lib/currency";
 import { toast } from "sonner";
 import { BankBalanceHistory } from "@/components/BankBalanceHistory";
 import { useTheme } from "@/components/ui/theme-provider";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { Palette } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const MONTHS = [
   { name: "Januari", quarter: 1, monthKey: "januari" },
@@ -87,6 +90,7 @@ export default function Nabila() {
   const { user, userRole } = useAuth();
   const { profile } = useProfile();
   const { theme, setTheme } = useTheme();
+  const { appTheme, setAppTheme, activeTheme } = useAppTheme();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [availableYears, setAvailableYears] = useState<number[]>([currentYear]);
@@ -424,6 +428,75 @@ export default function Nabila() {
             KAKEIBO PAGE
           </p>
         </div>
+
+        {/* Theme Selector Card */}
+        <Card className="p-8 bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 animate-scale-in">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <Palette className="h-6 w-6 text-purple-300" />
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent">
+                🎨 Pilih Tema Tampilan
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Japanese Night Theme */}
+              <button 
+                onClick={() => setAppTheme('japanese')}
+                className={cn(
+                  "p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105",
+                  "bg-gradient-to-br from-indigo-950/50 to-purple-950/50 backdrop-blur-sm",
+                  appTheme === 'japanese' 
+                    ? "border-purple-400 shadow-lg shadow-purple-500/50" 
+                    : "border-white/20 hover:border-purple-400/50"
+                )}
+              >
+                <Moon className="h-10 w-10 mx-auto mb-3 text-purple-300" />
+                <div className="text-lg font-bold text-white mb-1">Japanese Night</div>
+                <p className="text-xs text-slate-300">Malam Jepang dengan animasi sakura & bulan</p>
+              </button>
+              
+              {/* Professional Clean Theme */}
+              <button 
+                onClick={() => setAppTheme('professional')}
+                className={cn(
+                  "p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105",
+                  "bg-gradient-to-br from-white/10 to-slate-100/10 backdrop-blur-sm",
+                  appTheme === 'professional' 
+                    ? "border-sky-400 shadow-lg shadow-sky-500/50" 
+                    : "border-white/20 hover:border-sky-400/50"
+                )}
+              >
+                <Sun className="h-10 w-10 mx-auto mb-3 text-sky-300" />
+                <div className="text-lg font-bold text-white mb-1">Professional Clean</div>
+                <p className="text-xs text-slate-300">Tampilan minimal & profesional</p>
+              </button>
+              
+              {/* Auto Theme */}
+              <button 
+                onClick={() => setAppTheme('auto')}
+                className={cn(
+                  "p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105",
+                  "bg-gradient-to-br from-emerald-950/50 to-teal-950/50 backdrop-blur-sm",
+                  appTheme === 'auto' 
+                    ? "border-emerald-400 shadow-lg shadow-emerald-500/50" 
+                    : "border-white/20 hover:border-emerald-400/50"
+                )}
+              >
+                <Palette className="h-10 w-10 mx-auto mb-3 text-emerald-300" />
+                <div className="text-lg font-bold text-white mb-1">Auto</div>
+                <p className="text-xs text-slate-300">Ikuti sistem dark/light mode</p>
+              </button>
+            </div>
+
+            {/* Active Theme Indicator */}
+            <div className="pt-4 border-t border-white/10">
+              <div className="text-sm text-slate-300 text-center">
+                Tema aktif saat ini: <span className="font-bold text-purple-300">{activeTheme === 'japanese' ? 'Japanese Night 🌙' : 'Professional Clean ☀️'}</span>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {/* Info Card with Glass Effect */}
         <Card className="p-8 bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 animate-scale-in">
