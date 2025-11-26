@@ -1,12 +1,26 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StatCardSkeleton, ChartSkeleton, PieChartSkeleton, ExpenseItemSkeleton } from "./SkeletonLoader";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
-export const MonthlyViewLoadingSkeleton = () => (
-  <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-950 dark:to-purple-950">
-    {/* Animated Background Shapes */}
-    <div className="absolute top-20 right-20 w-96 h-96 bg-purple-300/30 dark:bg-purple-500/20 rounded-full blur-3xl animate-float" />
-    <div className="absolute bottom-20 left-20 w-96 h-96 bg-blue-300/30 dark:bg-blue-500/20 rounded-full blur-3xl animate-float-delayed" />
-    <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-300/20 dark:bg-pink-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '5s' }} />
+export const MonthlyViewLoadingSkeleton = () => {
+  const { activeTheme } = useAppTheme();
+  
+  return (
+    <div className={cn(
+      "min-h-screen relative overflow-hidden",
+      activeTheme === 'japanese'
+        ? "bg-gradient-to-br from-slate-900 via-slate-950 to-purple-950"
+        : "bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50"
+    )}>
+      {/* Animated Background Shapes - only for Japanese theme */}
+      {activeTheme === 'japanese' && (
+        <>
+          <div className="absolute top-20 right-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-20 left-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-float-delayed" />
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '5s' }} />
+        </>
+      )}
     
     <div className="relative z-10 max-w-7xl mx-auto space-y-6 p-6">
       {/* Header Skeleton */}
@@ -94,5 +108,6 @@ export const MonthlyViewLoadingSkeleton = () => (
         ))}
       </div>
     </div>
-  </div>
-);
+    </div>
+  );
+};
