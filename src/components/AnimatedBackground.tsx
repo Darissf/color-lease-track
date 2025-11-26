@@ -53,7 +53,7 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
   const colors = themeColors[theme];
 
   return (
-    <div className="h-full relative overflow-hidden">
+    <div className="h-full relative overflow-hidden flex flex-col">
       {/* Animated floating shapes - only show for Japanese theme and NOT on mobile */}
       {activeTheme === 'japanese' && !isMobile && (
         <>
@@ -64,7 +64,7 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
       )}
       
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 flex-1 flex flex-col min-h-0">
         {children}
       </div>
     </div>

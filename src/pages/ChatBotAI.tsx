@@ -837,9 +837,10 @@ export default function ChatBotAI() {
         </div>
 
         {/* Chat Content - INSIDE AnimatedBackground */}
-        <AnimatedBackground theme="budget">
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden px-2 md:px-4 py-2 md:py-4">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <AnimatedBackground theme="budget">
+            <div className="h-full flex flex-col px-2 md:px-4 py-2 md:py-4">
+              <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <ScrollArea className="flex-1 min-h-0 p-4">
           {messages.length === 0 && (
             <>
@@ -1061,10 +1062,11 @@ export default function ChatBotAI() {
             </Button>
           </div>
         </div>
-            </Card>
-          </div>
-        </AnimatedBackground>
+              </Card>
+            </div>
+          </AnimatedBackground>
+        </div>
       </div>
-    </>
+     </>
   );
 }
