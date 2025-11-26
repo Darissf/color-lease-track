@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { LucideIcon } from "lucide-react";
 import { ReactNode } from "react";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface GradientButtonProps {
   children: ReactNode;
@@ -23,6 +25,8 @@ export const GradientButton = ({
   disabled = false,
   className = ""
 }: GradientButtonProps) => {
+  const { activeTheme } = useAppTheme();
+  
   const gradientClasses = {
     income: "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700",
     expense: "bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700",
@@ -41,13 +45,28 @@ export const GradientButton = ({
     danger: "shadow-lg shadow-red-500/50 hover:shadow-xl hover:shadow-red-500/60"
   };
 
+  const solidClasses = {
+    income: "bg-emerald-600 hover:bg-emerald-700",
+    expense: "bg-rose-600 hover:bg-rose-700",
+    savings: "bg-blue-600 hover:bg-blue-700",
+    budget: "bg-purple-600 hover:bg-purple-700",
+    primary: "bg-primary hover:bg-primary/90",
+    danger: "bg-destructive hover:bg-destructive/90"
+  };
+
   return (
     <Button
       onClick={onClick}
       size={size}
       type={type}
       disabled={disabled}
-      className={`${gradientClasses[variant]} ${glowClasses[variant]} text-white border-0 transition-all duration-300 hover:scale-105 ${className}`}
+      className={cn(
+        "text-white border-0 transition-all duration-300",
+        activeTheme === 'japanese' 
+          ? `${gradientClasses[variant]} ${glowClasses[variant]} hover:scale-105` 
+          : solidClasses[variant],
+        className
+      )}
     >
       {Icon && <Icon className="mr-2 h-4 w-4" />}
       {children}

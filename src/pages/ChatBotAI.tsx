@@ -21,6 +21,8 @@ import { ExportDialog } from "@/components/ExportDialog";
 import { ConversationSearch } from "@/components/ConversationSearch";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { GradientButton } from "@/components/GradientButton";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface Message {
   id?: string;
@@ -90,6 +92,7 @@ export default function ChatBotAI() {
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [memories, setMemories] = useState<any[]>([]);
   
+  const { activeTheme } = useAppTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -737,8 +740,16 @@ export default function ChatBotAI() {
               </Alert>
               
               <div className="mb-6">
-                <h3 className="text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-500" />
+                <h3 className={cn(
+                  "text-sm font-medium mb-3 flex items-center gap-2",
+                  activeTheme === 'japanese'
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent"
+                    : "text-foreground"
+                )}>
+                  <Sparkles className={cn(
+                    "w-4 h-4",
+                    activeTheme === 'japanese' ? "text-purple-500" : "text-primary"
+                  )} />
                   Suggested Prompts
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -774,15 +785,29 @@ export default function ChatBotAI() {
                         setInput(suggestion.prompt);
                         setTimeout(() => handleSend(), 100);
                       }}
-                      className={`p-4 rounded-xl bg-gradient-to-br ${suggestion.gradient} cursor-pointer
-                        hover:scale-105 hover:shadow-xl transition-all duration-300
-                        shadow-lg hover:shadow-2xl group relative overflow-hidden`}
+                      className={cn(
+                        "p-4 rounded-xl cursor-pointer transition-all duration-300 shadow-lg hover:shadow-2xl group relative overflow-hidden",
+                        activeTheme === 'japanese'
+                          ? `bg-gradient-to-br ${suggestion.gradient} hover:scale-105`
+                          : "bg-card border border-border hover:border-primary"
+                      )}
                     >
-                      <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors"></div>
+                      <div className={cn(
+                        "absolute inset-0 transition-colors",
+                        activeTheme === 'japanese'
+                          ? "bg-white/10 group-hover:bg-white/20"
+                          : "bg-primary/5 group-hover:bg-primary/10"
+                      )}></div>
                       <div className="relative z-10">
                         <div className="text-3xl mb-2">{suggestion.icon}</div>
-                        <h4 className="text-white font-bold text-sm mb-1">{suggestion.title}</h4>
-                        <p className="text-white/90 text-xs">{suggestion.prompt}</p>
+                        <h4 className={cn(
+                          "font-bold text-sm mb-1",
+                          activeTheme === 'japanese' ? "text-white" : "text-foreground"
+                        )}>{suggestion.title}</h4>
+                        <p className={cn(
+                          "text-xs",
+                          activeTheme === 'japanese' ? "text-white/90" : "text-muted-foreground"
+                        )}>{suggestion.prompt}</p>
                       </div>
                     </div>
                   ))}
@@ -799,22 +824,35 @@ export default function ChatBotAI() {
                 }`}
               >
                 {message.role === "assistant" && (
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center ring-4 ring-purple-500/20 shadow-lg shadow-purple-500/50 animate-pulse-glow">
+                  <div className={cn(
+                    "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ring-4 shadow-lg",
+                    activeTheme === 'japanese'
+                      ? "bg-gradient-to-br from-purple-500 to-pink-600 ring-purple-500/20 shadow-purple-500/50 animate-pulse-glow"
+                      : "bg-primary ring-primary/20 shadow-primary/50"
+                  )}>
                     <Bot className="w-5 h-5 text-white" />
                   </div>
                 )}
                 <div className="flex-1 flex flex-col gap-2">
                   <div
-                    className={`max-w-[70%] rounded-2xl p-4 ${
+                    className={cn(
+                      "max-w-[70%] rounded-2xl p-4 shadow-xl transition-all duration-300",
                       message.role === "user"
-                        ? "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-600 text-white ml-auto rounded-br-sm shadow-xl shadow-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/60 transition-all duration-300 animate-slide-in-right"
-                        : "bg-gradient-to-br from-purple-500 via-pink-500 to-rose-600 text-white rounded-bl-sm shadow-xl shadow-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/60 transition-all duration-300 animate-slide-in-left"
-                    }`}
+                        ? activeTheme === 'japanese'
+                          ? "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-600 text-white ml-auto rounded-br-sm shadow-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/60 animate-slide-in-right"
+                          : "bg-primary text-primary-foreground ml-auto rounded-br-sm"
+                        : activeTheme === 'japanese'
+                          ? "bg-gradient-to-br from-purple-500 via-pink-500 to-rose-600 text-white rounded-bl-sm shadow-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/60 animate-slide-in-left"
+                          : "bg-card text-card-foreground border border-border rounded-bl-sm"
+                    )}
                   >
                     {message.image_url && (
                       <img src={message.image_url} alt="Uploaded" className="max-w-full rounded mb-2" />
                     )}
-                    <div className="prose prose-sm prose-invert max-w-none">
+                    <div className={cn(
+                      "prose prose-sm max-w-none",
+                      activeTheme === 'japanese' ? "prose-invert" : ""
+                    )}>
                       <ReactMarkdown>
                         {message.content}
                       </ReactMarkdown>
