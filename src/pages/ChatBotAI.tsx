@@ -559,7 +559,7 @@ export default function ChatBotAI() {
         onSelectConversation={loadConversation}
       />
       <AnimatedBackground theme="budget">
-        <div className="container mx-auto p-4 h-[calc(100vh-4rem)] flex flex-col">
+        <div className="container mx-auto px-2 py-2 md:p-4 h-full flex flex-col">
       <div className="mb-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -836,8 +836,8 @@ export default function ChatBotAI() {
         )}
       </div>
 
-      <Card className="flex-1 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 p-4">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <ScrollArea className="flex-1 min-h-0 p-4">
           {messages.length === 0 && (
             <>
               <Alert className="mb-4 border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
@@ -1005,7 +1005,7 @@ export default function ChatBotAI() {
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-blue-500/5">
+        <div className="p-2 md:p-4 border-t shrink-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-blue-500/5">
           {currentImage && (
             <div className="mb-3 relative inline-block">
               <div className="p-1 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg">
