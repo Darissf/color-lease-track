@@ -338,9 +338,10 @@ export default function ExpenseTracker() {
   const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage);
 
   return (
-    <AnimatedBackground theme="expense">
-      <div className="max-w-7xl mx-auto space-y-4 px-2 py-2 md:p-6 h-[calc(100vh-104px)] flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between shrink-0 mb-2 md:mb-4">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+      {/* Header */}
+      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
+      <div className="flex items-center justify-between mb-2 md:mb-4">
         <div className="flex items-center gap-2 md:gap-4">
           <div className="p-2 md:p-3 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 shadow-lg">
             <TrendingDown className="h-6 w-6 md:h-8 md:w-8 text-white" />
@@ -487,9 +488,10 @@ export default function ExpenseTracker() {
           </DialogContent>
         </Dialog>
       </div>
+      </div>
 
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto space-y-4">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4 space-y-4">
       
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -695,21 +697,18 @@ export default function ExpenseTracker() {
                 itemsPerPage={itemsPerPage}
                 onPageChange={setCurrentPage}
                 onItemsPerPageChange={(items) => {
-                  setItemsPerPage(items);
-                  localStorage.setItem('expenseTracker_itemsPerPage', items.toString());
-                }}
-                storageKey="expenseTracker"
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      </div>
-      {/* End Scrollable Content Area */}
-      </div>
+                   setItemsPerPage(items);
+                   localStorage.setItem('expenseTracker_itemsPerPage', items.toString());
+                 }}
+                 storageKey="expenseTracker"
+               />
+             </div>
+           )}
+         </CardContent>
+       </Card>
 
-      {/* Alert Dialog untuk konfirmasi checklist */}
-      <AlertDialog open={checkConfirmId !== null} onOpenChange={() => setCheckConfirmId(null)}>
+       {/* Alert Dialog untuk konfirmasi checklist */}
+       <AlertDialog open={checkConfirmId !== null} onOpenChange={() => setCheckConfirmId(null)}>
         <AlertDialogContent className="border-2 border-rose-500/20">
           <AlertDialogHeader className="bg-gradient-to-r from-rose-500/10 to-orange-500/10 -m-6 mb-6 p-6 rounded-t-lg border-b-2 border-rose-500/20">
             <div className="flex items-center gap-3">
@@ -727,9 +726,10 @@ export default function ExpenseTracker() {
             <GradientButton onClick={confirmCheckToggle} variant="income">
               Ya, Ubah
             </GradientButton>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </AnimatedBackground>
-  );
-}
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
+       </div>
+     </div>
+   );
+ }

@@ -221,23 +221,9 @@ export default function MonthlyView() {
   }
 
   return (
-    <div className={cn(
-      "min-h-screen relative overflow-hidden",
-      activeTheme === 'japanese'
-        ? "bg-gradient-to-br from-slate-900 via-blue-950 to-purple-950"
-        : "bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50"
-    )}>
-      {/* Animated Background Shapes - Only for Japanese Theme */}
-      {activeTheme === 'japanese' && (
-        <>
-          <div className="absolute top-20 right-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-20 left-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-float-delayed" />
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '5s' }} />
-        </>
-      )}
-      
-      <div className="relative z-10 max-w-7xl mx-auto space-y-6 p-6">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
       {/* Header */}
+      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -251,7 +237,10 @@ export default function MonthlyView() {
           </div>
         </div>
       </div>
+      </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4 space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Income */}
