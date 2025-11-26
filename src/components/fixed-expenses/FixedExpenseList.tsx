@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FixedExpense, FixedExpenseHistory } from "@/pages/FixedExpenses";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,9 @@ import { Edit, Trash2, CheckCircle, Calendar } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface FixedExpenseListProps {
@@ -18,7 +22,32 @@ interface FixedExpenseListProps {
 }
 
 export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete, onMarkAsPaid }: FixedExpenseListProps) => {
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<FixedExpense | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+
   const isPaid = (expenseId: string) => history.some(h => h.fixed_expense_id === expenseId && h.status === 'paid');
+  
+  const handlePayClick = (expense: FixedExpense) => {
+    const amount = expense.expense_type === 'fixed' ? expense.fixed_amount || 0 : expense.estimated_amount || 0;
+    
+    if (expense.expense_type === 'variable') {
+      setSelectedExpense(expense);
+      setPaymentAmount(amount.toString());
+      setPaymentDialogOpen(true);
+    } else {
+      onMarkAsPaid(expense, amount);
+    }
+  };
+
+  const handleConfirmPayment = () => {
+    if (selectedExpense && paymentAmount) {
+      onMarkAsPaid(selectedExpense, parseFloat(paymentAmount));
+      setPaymentDialogOpen(false);
+      setSelectedExpense(null);
+      setPaymentAmount("");
+    }
+  };
   
   const getStatus = (expense: FixedExpense) => {
     const today = new Date().getDate();
@@ -60,7 +89,8 @@ export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete,
   }
 
   return (
-    <Card>
+    <>
+      <Card>
       <Table>
         <TableHeader>
           <TableRow>
@@ -104,7 +134,7 @@ export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete,
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     {!paid && (
-                      <Button size="sm" variant="outline" onClick={() => onMarkAsPaid(expense, amount)}>
+                      <Button size="sm" variant="outline" onClick={() => handlePayClick(expense)}>
                         <CheckCircle className="mr-1 h-3 w-3" />
                         Bayar
                       </Button>
@@ -139,5 +169,36 @@ export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete,
         </TableBody>
       </Table>
     </Card>
+
+    <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Bayar {selectedExpense?.expense_name}</DialogTitle>
+          <DialogDescription>
+            Masukkan jumlah pembayaran aktual untuk pengeluaran variabel ini
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Estimasi: {formatCurrency(selectedExpense?.estimated_amount || 0)}</Label>
+            <Input 
+              type="number" 
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              placeholder="Masukkan jumlah pembayaran"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
+            Batal
+          </Button>
+          <Button onClick={handleConfirmPayment}>
+            Konfirmasi Pembayaran
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
