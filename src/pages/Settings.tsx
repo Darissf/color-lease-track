@@ -47,15 +47,19 @@ const Settings = () => {
   ];
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
       {/* Header */}
+      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-foreground mb-2">
           Mulai di sini! Pengaturan
         </h1>
         <p className="text-muted-foreground">Konfigurasikan akun dan preferensi keuangan Anda</p>
       </div>
+      </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4 space-y-8">
       {/* Settings Menu */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground mb-4">Pengaturan Akun</h2>
@@ -145,6 +149,7 @@ const Settings = () => {
           </div>
         </div>
       </Card>
+      </div>
     </div>
   );
 };

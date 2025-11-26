@@ -56,8 +56,9 @@ const Reports = () => {
   const { activeTheme } = useAppTheme();
   
   return (
-    <div className="min-h-screen p-8">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
       {/* Header */}
+      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold text-foreground mb-2">
@@ -73,7 +74,10 @@ const Reports = () => {
           Export Laporan
         </Button>
       </div>
+      </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4">
       <Tabs defaultValue="income" className="space-y-6">
         <TabsList className="grid w-full max-w-2xl grid-cols-3">
           <TabsTrigger value="income">Laporan Pemasukan</TabsTrigger>
@@ -327,6 +331,7 @@ const Reports = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 };

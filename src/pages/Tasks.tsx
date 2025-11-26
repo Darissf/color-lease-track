@@ -109,8 +109,9 @@ const Tasks = () => {
   };
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
       {/* Header */}
+      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold text-foreground mb-2">
@@ -126,7 +127,10 @@ const Tasks = () => {
           Tambah Tugas
         </Button>
       </div>
+      </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4 space-y-8">
       {/* Summary Cards */}
       <div className="grid gap-6 md:grid-cols-4 mb-8">
         <Card className={cn(
@@ -256,6 +260,7 @@ const Tasks = () => {
           ))}
         </div>
       </Card>
+      </div>
     </div>
   );
 };

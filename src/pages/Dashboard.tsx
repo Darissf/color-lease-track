@@ -219,13 +219,9 @@ export default function Dashboard() {
 
   return (
     <div className="relative h-[calc(100vh-104px)] overflow-hidden flex flex-col">
-      {/* Background dan animasi diatur oleh Layout.tsx */}
-      
-      {/* ===== CONTENT - LAYER 10 ===== */}
-      <div className="relative z-10 container mx-auto px-2 py-2 md:px-4 md:py-4 flex-1 overflow-y-auto">
-        
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 md:mb-8 gap-2 md:gap-4 shrink-0">
+      {/* Header Section */}
+      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
           <div>
             <h1 className={cn(
               "text-2xl md:text-4xl font-bold",
@@ -268,7 +264,10 @@ export default function Dashboard() {
             </GradientButton>
           </div>
         </div>
+      </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className={cn(
