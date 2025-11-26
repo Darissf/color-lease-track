@@ -56,15 +56,15 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        recipientEmail: email,
+        to: email,
         subject: 'Verifikasi Email Anda',
-        body: `
+        html: `
           <h2>Kode Verifikasi Email</h2>
           <p>Gunakan kode berikut untuk memverifikasi email Anda:</p>
           <h1 style="font-size: 32px; letter-spacing: 5px; font-weight: bold;">${otp}</h1>
           <p>Kode ini akan kadaluarsa dalam 15 menit.</p>
         `,
-        templateType: 'verification'
+        template_type: 'email_verification'
       })
     })
 

@@ -2881,6 +2881,32 @@ export type Database = {
         Args: { role_name: string; user_id: string }
         Returns: boolean
       }
+      get_email_daily_trends: {
+        Args: { days: number }
+        Returns: {
+          count: number
+          date: string
+          template_type: string
+        }[]
+      }
+      get_email_provider_distribution: {
+        Args: never
+        Returns: {
+          count: number
+          provider_name: string
+          template_type: string
+        }[]
+      }
+      get_email_usage_by_type: {
+        Args: { start_date: string }
+        Returns: {
+          failed: number
+          pending: number
+          sent: number
+          template_type: string
+          total: number
+        }[]
+      }
       get_table_sizes: {
         Args: never
         Returns: {
