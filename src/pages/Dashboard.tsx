@@ -34,30 +34,26 @@ type DashboardTheme = "japanese" | "professional" | "auto";
 // Theme color constants for consistent styling
 const themeColors = {
   japanese: {
-    text: '#F5E6A8',           // Gold text for titles
-    textSecondary: '#BDE0FE',  // Light blue for secondary text
-    textMuted: '#94A3B8',      // Muted gray for descriptions
-    cardBg: 'rgba(26, 38, 66, 0.8)',
-    cardBorder: '#2A2857',
+    text: '#FFFFFF',           // Putih solid untuk title
+    textSecondary: '#E2E8F0',  // Abu-abu terang untuk subtitle
+    textMuted: '#94A3B8',      // Abu-abu untuk deskripsi
+    cardBg: 'rgba(15, 23, 42, 0.9)',
+    cardBorder: '#334155',
     chartAxis: '#94A3B8',
-    chartGrid: '#374151',
-    chartLabel: '#E5E7EB',
-    tooltipBg: '#1F2937',
-    tooltipBorder: '#374151',
-    tooltipText: '#F5E6A8',
+    chartGrid: '#334155',
+    tooltipBg: '#1E293B',
+    tooltipBorder: '#334155',
   },
   professional: {
     text: 'hsl(var(--foreground))',
-    textSecondary: 'hsl(var(--foreground))',
+    textSecondary: 'hsl(var(--muted-foreground))',
     textMuted: 'hsl(var(--muted-foreground))',
     cardBg: 'hsl(var(--card))',
     cardBorder: 'hsl(var(--border))',
     chartAxis: 'hsl(var(--muted-foreground))',
     chartGrid: 'hsl(var(--border))',
-    chartLabel: 'hsl(var(--foreground))',
     tooltipBg: 'hsl(var(--card))',
     tooltipBorder: 'hsl(var(--border))',
-    tooltipText: 'hsl(var(--foreground))',
   },
 };
 
@@ -492,14 +488,14 @@ export default function Dashboard() {
             <h1 className={cn(
               "text-4xl font-bold",
               activeTheme === 'japanese' 
-                ? 'text-[#F5E6A8]' 
+                ? 'text-white' 
                 : 'text-foreground'
             )}>
               {activeTheme === 'japanese' && '🏮 '}{getContent('dashboard.title', 'Dashboard Keuangan Nabila')}{activeTheme === 'japanese' && ' 🏮'}
             </h1>
             <p className={cn(
               "mt-2",
-              activeTheme === 'japanese' ? 'text-[#BDE0FE]' : 'text-muted-foreground'
+              activeTheme === 'japanese' ? 'text-slate-300' : 'text-muted-foreground'
             )}>
               {activeTheme === 'japanese' 
                 ? getContent('dashboard.subtitle', 'Kelola finansial Anda dengan ketenangan malam Jepang')
@@ -561,24 +557,27 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className={cn(
             "hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-[hsl(var(--gold-kin))]/20",
-            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
           )}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className={cn(
                 "text-sm font-medium",
-                activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                activeTheme === 'japanese' ? 'text-slate-200' : 'text-foreground'
               )}>
                 Total Pemasukan
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-[hsl(var(--gold-kin))]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--torii-red))] to-[hsl(var(--gold-kin))] bg-clip-text text-transparent">
+              <div className={cn(
+                "text-2xl font-bold",
+                activeTheme === 'japanese' ? "text-emerald-400" : "text-emerald-600"
+              )}>
                 {formatCurrency(stats.totalIncome)}
               </div>
               <p className={cn(
                 "text-xs mt-1",
-                activeTheme === 'japanese' ? 'text-[#94A3B8]' : 'text-muted-foreground'
+                activeTheme === 'japanese' ? 'text-slate-400' : 'text-muted-foreground'
               )}>
                 Periode: {period === 'week' ? 'Minggu' : period === 'month' ? 'Bulan' : 'Tahun'} ini
               </p>
@@ -587,24 +586,27 @@ export default function Dashboard() {
 
           <Card className={cn(
             "hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-[hsl(var(--sakura-pink))]/20",
-            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
           )}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className={cn(
                 "text-sm font-medium",
-                activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                activeTheme === 'japanese' ? 'text-slate-200' : 'text-foreground'
               )}>
                 Total Pengeluaran
               </CardTitle>
               <TrendingDown className="h-4 w-4 text-[hsl(var(--sakura-pink))]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--sakura-pink))] to-pink-400 bg-clip-text text-transparent">
+              <div className={cn(
+                "text-2xl font-bold",
+                activeTheme === 'japanese' ? "text-red-400" : "text-red-600"
+              )}>
                 {formatCurrency(stats.totalExpenses)}
               </div>
               <p className={cn(
                 "text-xs mt-1",
-                activeTheme === 'japanese' ? 'text-[#94A3B8]' : 'text-muted-foreground'
+                activeTheme === 'japanese' ? 'text-slate-400' : 'text-muted-foreground'
               )}>
                 {stats.monthlyBudget > 0 
                   ? `${((stats.totalExpenses / stats.monthlyBudget) * 100).toFixed(1)}% dari budget`
@@ -616,24 +618,27 @@ export default function Dashboard() {
 
           <Card className={cn(
             "hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-[hsl(var(--matcha-green))]/20",
-            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
           )}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className={cn(
                 "text-sm font-medium",
-                activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                activeTheme === 'japanese' ? 'text-slate-200' : 'text-foreground'
               )}>
                 Total Tabungan
               </CardTitle>
               <PiggyBank className="h-4 w-4 text-[hsl(var(--matcha-green))]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold bg-gradient-to-r from-[hsl(var(--matcha-green))] to-green-400 bg-clip-text text-transparent">
+              <div className={cn(
+                "text-2xl font-bold",
+                activeTheme === 'japanese' ? "text-blue-400" : "text-blue-600"
+              )}>
                 {formatCurrency(stats.totalSavings)}
               </div>
               <p className={cn(
                 "text-xs mt-1",
-                activeTheme === 'japanese' ? 'text-[#94A3B8]' : 'text-muted-foreground'
+                activeTheme === 'japanese' ? 'text-slate-400' : 'text-muted-foreground'
               )}>
                 Tingkat tabungan: {stats.savingsRate.toFixed(1)}%
               </p>
@@ -642,12 +647,12 @@ export default function Dashboard() {
 
           <Card className={cn(
             "hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-card to-card/50 border-primary/20",
-            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
           )}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className={cn(
                 "text-sm font-medium",
-                activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                activeTheme === 'japanese' ? 'text-slate-200' : 'text-foreground'
               )}>
                 Sisa Budget
               </CardTitle>
@@ -669,12 +674,12 @@ export default function Dashboard() {
           {/* Monthly Trend Chart */}
           <Card className={cn(
             "hover:shadow-lg transition-all duration-300",
-            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
           )}>
             <CardHeader>
               <CardTitle className={cn(
                 "flex items-center gap-2",
-                activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                activeTheme === 'japanese' ? 'text-white' : 'text-foreground'
               )}>
                 <TrendingUp className="h-5 w-5 text-primary" />
                 Tren Bulanan
@@ -683,16 +688,6 @@ export default function Dashboard() {
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={monthlyTrend}>
-                  <defs>
-                    <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--gold-kin))" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="hsl(var(--gold-kin))" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--sakura-pink))" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="hsl(var(--sakura-pink))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
                   <CartesianGrid 
                     strokeDasharray="3 3" 
                     stroke={activeTheme === 'japanese' ? themeColors.japanese.chartGrid : themeColors.professional.chartGrid}
@@ -719,23 +714,24 @@ export default function Dashboard() {
                     contentStyle={{ 
                       background: activeTheme === 'japanese' ? themeColors.japanese.tooltipBg : themeColors.professional.tooltipBg,
                       border: `1px solid ${activeTheme === 'japanese' ? themeColors.japanese.tooltipBorder : themeColors.professional.tooltipBorder}`,
-                      color: activeTheme === 'japanese' ? themeColors.japanese.tooltipText : themeColors.professional.tooltipText
+                      color: themeColors[activeTheme].text,
+                      borderRadius: '8px'
                     }}
                   />
                   <Area 
                     type="monotone" 
                     dataKey="income" 
-                    stroke="hsl(var(--gold-kin))" 
-                    fillOpacity={1} 
-                    fill="url(#incomeGradient)" 
+                    stroke="#10B981" 
+                    fill="#10B981" 
+                    fillOpacity={0.3}
                     name="Pemasukan"
                   />
                   <Area 
                     type="monotone" 
                     dataKey="expenses" 
-                    stroke="hsl(var(--sakura-pink))" 
-                    fillOpacity={1} 
-                    fill="url(#expenseGradient)" 
+                    stroke="#EF4444" 
+                    fill="#EF4444" 
+                    fillOpacity={0.3}
                     name="Pengeluaran"
                   />
                 </AreaChart>
@@ -746,12 +742,12 @@ export default function Dashboard() {
           {/* Income by Client Chart */}
           <Card className={cn(
             "hover:shadow-lg transition-all duration-300",
-            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
           )}>
             <CardHeader>
               <CardTitle className={cn(
                 "flex items-center gap-2",
-                activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                activeTheme === 'japanese' ? 'text-white' : 'text-foreground'
               )}>
                 <Wallet className="h-5 w-5 text-primary" />
                 Pemasukan per Klien
@@ -788,7 +784,8 @@ export default function Dashboard() {
                     contentStyle={{ 
                       background: activeTheme === 'japanese' ? themeColors.japanese.tooltipBg : themeColors.professional.tooltipBg,
                       border: `1px solid ${activeTheme === 'japanese' ? themeColors.japanese.tooltipBorder : themeColors.professional.tooltipBorder}`,
-                      color: activeTheme === 'japanese' ? themeColors.japanese.tooltipText : themeColors.professional.tooltipText
+                      color: themeColors[activeTheme].text,
+                      borderRadius: '8px'
                     }}
                   />
                   <Bar dataKey="value" name="Pemasukan">
@@ -807,12 +804,12 @@ export default function Dashboard() {
           {/* Expenses by Category */}
           <Card className={cn(
             "hover:shadow-lg transition-all duration-300",
-            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
           )}>
             <CardHeader>
               <CardTitle className={cn(
                 "flex items-center gap-2",
-                activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                activeTheme === 'japanese' ? 'text-white' : 'text-foreground'
               )}>
                 <TrendingDown className="h-5 w-5 text-primary" />
                 Pengeluaran per Kategori
@@ -840,7 +837,8 @@ export default function Dashboard() {
                     contentStyle={{ 
                       background: activeTheme === 'japanese' ? themeColors.japanese.tooltipBg : themeColors.professional.tooltipBg,
                       border: `1px solid ${activeTheme === 'japanese' ? themeColors.japanese.tooltipBorder : themeColors.professional.tooltipBorder}`,
-                      color: activeTheme === 'japanese' ? themeColors.japanese.tooltipText : themeColors.professional.tooltipText
+                      color: themeColors[activeTheme].text,
+                      borderRadius: '8px'
                     }}
                   />
                 </PieChart>
@@ -851,12 +849,12 @@ export default function Dashboard() {
           {/* Recent Expenses */}
           <Card className={cn(
             "hover:shadow-lg transition-all duration-300",
-            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
           )}>
             <CardHeader>
               <CardTitle className={cn(
                 "flex items-center gap-2",
-                activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                activeTheme === 'japanese' ? 'text-white' : 'text-foreground'
               )}>
                 <TrendingDown className="h-5 w-5 text-primary" />
                 Pengeluaran Terbaru
@@ -878,13 +876,13 @@ export default function Dashboard() {
                         <div>
                           <p className={cn(
                             "font-medium",
-                            activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                            activeTheme === 'japanese' ? 'text-slate-100' : 'text-foreground'
                           )}>
                             {expense.transaction_name || expense.category}
                           </p>
                           <p className={cn(
                             "text-xs",
-                            activeTheme === 'japanese' ? 'text-[#94A3B8]' : 'text-muted-foreground'
+                            activeTheme === 'japanese' ? 'text-slate-400' : 'text-muted-foreground'
                           )}>
                             {format(new Date(expense.date), 'dd MMM yyyy')}
                           </p>
@@ -898,7 +896,7 @@ export default function Dashboard() {
                 ) : (
                   <p className={cn(
                     "text-center py-8",
-                    activeTheme === 'japanese' ? 'text-[#94A3B8]' : 'text-muted-foreground'
+                    activeTheme === 'japanese' ? 'text-slate-400' : 'text-muted-foreground'
                   )}>
                     Belum ada pengeluaran
                   </p>
@@ -912,11 +910,11 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className={cn(
             "hover:shadow-lg transition-all duration-300",
-            activeTheme === 'japanese' && "bg-[#1A2642]/80 border-[#2A2857]"
+            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
           )}>
             <CardHeader>
               <CardTitle className={cn(
-                activeTheme === 'japanese' ? 'text-[#F5E6A8]' : 'text-foreground'
+                activeTheme === 'japanese' ? 'text-white' : 'text-foreground'
               )}>
                 Aksi Cepat
               </CardTitle>
