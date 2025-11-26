@@ -218,17 +218,17 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative h-[calc(100vh-104px)] overflow-hidden flex flex-col">
       {/* Background dan animasi diatur oleh Layout.tsx */}
       
       {/* ===== CONTENT - LAYER 10 ===== */}
-      <div className="relative z-10 container mx-auto px-4 py-8">
+      <div className="relative z-10 container mx-auto px-2 py-2 md:px-4 md:py-4 flex-1 overflow-y-auto">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 md:mb-8 gap-2 md:gap-4 shrink-0">
           <div>
             <h1 className={cn(
-              "text-4xl font-bold",
+              "text-2xl md:text-4xl font-bold",
               activeTheme === 'japanese' 
                 ? 'text-white' 
                 : 'text-foreground'
@@ -236,7 +236,7 @@ export default function Dashboard() {
               {activeTheme === 'japanese' && '🏮 '}{getContent('dashboard.title', 'Dashboard Keuangan Nabila')}{activeTheme === 'japanese' && ' 🏮'}
             </h1>
             <p className={cn(
-              "mt-2",
+              "mt-1 text-sm md:text-base",
               activeTheme === 'japanese' ? 'text-slate-300' : 'text-muted-foreground'
             )}>
               {activeTheme === 'japanese' 

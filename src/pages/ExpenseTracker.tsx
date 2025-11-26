@@ -339,17 +339,17 @@ export default function ExpenseTracker() {
 
   return (
     <AnimatedBackground theme="expense">
-      <div className="max-w-7xl mx-auto space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 shadow-lg">
-            <TrendingDown className="h-8 w-8 text-white" />
+      <div className="max-w-7xl mx-auto space-y-4 px-2 py-2 md:p-6 h-[calc(100vh-104px)] flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between shrink-0 mb-2 md:mb-4">
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="p-2 md:p-3 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 shadow-lg">
+            <TrendingDown className="h-6 w-6 md:h-8 md:w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 bg-clip-text text-transparent">
+            <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 bg-clip-text text-transparent">
               Tracking Pengeluaran
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">Monitor dan kelola semua pengeluaran Anda</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1 hidden md:block">Monitor dan kelola semua pengeluaran Anda</p>
           </div>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -488,30 +488,10 @@ export default function ExpenseTracker() {
         </Dialog>
       </div>
 
-      {/* Alert Dialog untuk konfirmasi checklist */}
-      <AlertDialog open={checkConfirmId !== null} onOpenChange={() => setCheckConfirmId(null)}>
-        <AlertDialogContent className="border-2 border-rose-500/20">
-          <AlertDialogHeader className="bg-gradient-to-r from-rose-500/10 to-orange-500/10 -m-6 mb-6 p-6 rounded-t-lg border-b-2 border-rose-500/20">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500 to-red-600">
-                <AlertCircle className="h-5 w-5 text-white" />
-              </div>
-              <AlertDialogTitle className="text-xl">Konfirmasi Perubahan</AlertDialogTitle>
-            </div>
-            <AlertDialogDescription className="mt-2">
-              Apakah Anda yakin ingin mengubah status checklist pengeluaran ini?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-2 border-rose-500/20">Batal</AlertDialogCancel>
-            <GradientButton onClick={confirmCheckToggle} variant="income">
-              Ya, Ubah
-            </GradientButton>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Stats Cards */}
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto space-y-4">
+      
+      {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <ColoredStatCard
           title="Total Pengeluaran"
@@ -725,6 +705,31 @@ export default function ExpenseTracker() {
         </CardContent>
       </Card>
       </div>
+      {/* End Scrollable Content Area */}
+      </div>
+
+      {/* Alert Dialog untuk konfirmasi checklist */}
+      <AlertDialog open={checkConfirmId !== null} onOpenChange={() => setCheckConfirmId(null)}>
+        <AlertDialogContent className="border-2 border-rose-500/20">
+          <AlertDialogHeader className="bg-gradient-to-r from-rose-500/10 to-orange-500/10 -m-6 mb-6 p-6 rounded-t-lg border-b-2 border-rose-500/20">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500 to-red-600">
+                <AlertCircle className="h-5 w-5 text-white" />
+              </div>
+              <AlertDialogTitle className="text-xl">Konfirmasi Perubahan</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="mt-2">
+              Apakah Anda yakin ingin mengubah status checklist pengeluaran ini?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-2 border-rose-500/20">Batal</AlertDialogCancel>
+            <GradientButton onClick={confirmCheckToggle} variant="income">
+              Ya, Ubah
+            </GradientButton>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AnimatedBackground>
   );
 }
