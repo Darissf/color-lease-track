@@ -154,33 +154,117 @@ All colors MUST be HSL.
     color: #94A3B8 !important;
   }
 
+  /* ===== OCEAN BALI THEME ===== */
+  [data-theme="ocean-bali"],
+  .theme-ocean-bali {
+    --background: 188 90% 12%;
+    --foreground: 180 30% 95%;
+    --card: 188 85% 15%;
+    --card-foreground: 180 30% 95%;
+    --sidebar-background: 188 85% 15%;
+    --sidebar-foreground: 180 30% 95%;
+    --sidebar-border: 188 50% 25%;
+    --sidebar-accent: 188 75% 20%;
+    --sidebar-accent-foreground: 180 30% 95%;
+  }
+
+  /* ===== SUNSET WARM THEME ===== */
+  [data-theme="sunset-warm"],
+  .theme-sunset-warm {
+    --background: 25 90% 12%;
+    --foreground: 30 30% 95%;
+    --card: 25 85% 15%;
+    --card-foreground: 30 30% 95%;
+    --sidebar-background: 25 85% 15%;
+    --sidebar-foreground: 30 30% 95%;
+    --sidebar-border: 25 50% 25%;
+    --sidebar-accent: 25 75% 20%;
+    --sidebar-accent-foreground: 30 30% 95%;
+  }
+
+  /* ===== BAMBOO ZEN THEME ===== */
+  [data-theme="bamboo-zen"],
+  .theme-bamboo-zen {
+    --background: 140 90% 12%;
+    --foreground: 140 30% 95%;
+    --card: 140 85% 15%;
+    --card-foreground: 140 30% 95%;
+    --sidebar-background: 140 85% 15%;
+    --sidebar-foreground: 140 30% 95%;
+    --sidebar-border: 140 50% 25%;
+    --sidebar-accent: 140 75% 20%;
+    --sidebar-accent-foreground: 140 30% 95%;
+  }
+
+  /* ===== SAKURA BLOOM THEME ===== */
+  [data-theme="sakura-bloom"],
+  .theme-sakura-bloom {
+    --background: 330 90% 12%;
+    --foreground: 330 30% 95%;
+    --card: 330 85% 15%;
+    --card-foreground: 330 30% 95%;
+    --sidebar-background: 330 85% 15%;
+    --sidebar-foreground: 330 30% 95%;
+    --sidebar-border: 330 50% 25%;
+    --sidebar-accent: 330 75% 20%;
+    --sidebar-accent-foreground: 330 30% 95%;
+  }
+
+  /* ===== NEON CYBER THEME ===== */
+  [data-theme="neon-cyber"],
+  .theme-neon-cyber {
+    --background: 260 90% 12%;
+    --foreground: 260 30% 95%;
+    --card: 260 85% 15%;
+    --card-foreground: 260 30% 95%;
+    --sidebar-background: 260 85% 15%;
+    --sidebar-foreground: 260 30% 95%;
+    --sidebar-border: 260 50% 25%;
+    --sidebar-accent: 260 75% 20%;
+    --sidebar-accent-foreground: 260 30% 95%;
+  }
+
+  /* ===== MOUNTAIN STONE THEME ===== */
+  [data-theme="mountain-stone"],
+  .theme-mountain-stone {
+    --background: 210 10% 12%;
+    --foreground: 210 10% 95%;
+    --card: 210 15% 15%;
+    --card-foreground: 210 10% 95%;
+    --sidebar-background: 210 15% 15%;
+    --sidebar-foreground: 210 10% 95%;
+    --sidebar-border: 210 10% 25%;
+    --sidebar-accent: 210 15% 20%;
+    --sidebar-accent-foreground: 210 10% 95%;
+  }
+
   /* ===== DARK MODE - JAPANESE NIGHT THEME ===== */
   .dark {
     /* Background - Midnight Sky */
-    --midnight-blue: 220 40% 12%;          /* #0D1829 */
-    --night-indigo: 230 45% 18%;           /* #1A2642 */
-    --twilight-purple: 250 35% 22%;        /* #2A2857 */
-    --deep-navy: 225 50% 10%;              /* #080E1F */
+    --midnight-blue: 220 40% 12%;
+    --night-indigo: 230 45% 18%;
+    --twilight-purple: 250 35% 22%;
+    --deep-navy: 225 50% 10%;
     
     /* Accent - Moon & Stars */
-    --moon-gold: 45 95% 65%;               /* #F5E6A8 */
-    --moonlight-silver: 200 20% 75%;       /* #B8C9D9 */
-    --star-white: 60 100% 97%;             /* #FFFEF5 */
-    --star-blue: 210 100% 70%;             /* #66B3FF */
-    --star-pink: 320 100% 75%;             /* #FF99DD */
+    --moon-gold: 45 95% 65%;
+    --moonlight-silver: 200 20% 75%;
+    --star-white: 60 100% 97%;
+    --star-blue: 210 100% 70%;
+    --star-pink: 320 100% 75%;
     
     /* Glow Effects */
-    --cherry-glow-pink: 330 100% 75%;      /* #FF99CC */
-    --lantern-glow-orange: 25 100% 60%;    /* #FF9933 */
-    --lantern-glow-red: 0 100% 60%;        /* #FF3333 */
-    --firefly-glow-green: 80 100% 65%;     /* #ADFF2F */
-    --firefly-glow-yellow: 55 100% 65%;    /* #FFE84D */
+    --cherry-glow-pink: 330 100% 75%;
+    --lantern-glow-orange: 25 100% 60%;
+    --lantern-glow-red: 0 100% 60%;
+    --firefly-glow-green: 80 100% 65%;
+    --firefly-glow-yellow: 55 100% 65%;
     
     /* Nature - Night Elements */
-    --bamboo-night-green: 140 30% 25%;     /* #2D4D3D */
-    --water-reflection: 200 40% 30%;       /* #2E4A5C */
-    --fog-mist: 210 15% 35%;               /* #4A5563 */
-    --mist-purple: 260 20% 40%;            /* #5C527A */
+    --bamboo-night-green: 140 30% 25%;
+    --water-reflection: 200 40% 30%;
+    --fog-mist: 210 15% 35%;
+    --mist-purple: 260 20% 40%;
     
     /* Base Overrides */
     --background: 220 40% 12%;
@@ -228,6 +312,70 @@ All colors MUST be HSL.
     --border: 214.3 31.8% 91.4%;
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
+  }
+
+  /* ===== ANIMATIONS ===== */
+
+  /* Fade In */
+  .animate-fade-in {
+    animation: fade-in 0.5s forwards;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Scale In */
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out forwards;
+  }
+
+  @keyframes scale-in {
+    0% {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Slide In From Bottom */
+  .animate-slide-in-bottom {
+    animation: slide-in-bottom 0.5s ease-out forwards;
+  }
+
+  @keyframes slide-in-bottom {
+    0% {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Slide In From Left */
+  .animate-slide-in-left {
+    animation: slide-in-left 0.5s ease-out forwards;
+  }
+
+  @keyframes slide-in-left {
+    0% {
+      transform: translateX(-20px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
 
   /* ===== JAPANESE ANIMATIONS ===== */
@@ -297,30 +445,8 @@ All colors MUST be HSL.
     }
   }
 
-  /* NEW: Firefly Drift Animation */
-  @keyframes firefly-drift {
-    0% {
-      transform: translate(0, 0);
-    }
-    20% {
-      transform: translate(50px, -60px);
-    }
-    40% {
-      transform: translate(-30px, -100px);
-    }
-    60% {
-      transform: translate(80px, -150px);
-    }
-    80% {
-      transform: translate(-20px, -200px);
-    }
-    100% {
-      transform: translate(0, -250px);
-    }
-  }
-
-  /* NEW: Bamboo Fall Animation */
-  @keyframes bamboo-fall {
+  /* Confetti Animation */
+  @keyframes confetti-fall {
     0% {
       transform: translateY(-100px) translateX(0) rotate(0deg);
       opacity: 0;
@@ -329,708 +455,26 @@ All colors MUST be HSL.
       opacity: 1;
     }
     90% {
-      opacity: 0.8;
+      opacity: 1;
     }
     100% {
-      transform: translateY(100vh) translateX(150px) rotate(1080deg);
+      transform: translateY(calc(100vh + 100px)) translateX(200px) rotate(720deg);
       opacity: 0;
     }
   }
 
-  /* NEW: Bamboo Sway Animation */
+  /* Starry Night Animation */
+  @keyframes twinkle {
+    0%, 100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  /* Bamboo Leaf Sway Animation */
   @keyframes bamboo-sway {
-    0%, 100% {
-      transform: translateX(0px);
-    }
-    25% {
-      transform: translateX(20px);
-    }
-    75% {
-      transform: translateX(-20px);
-    }
-  }
-
-  /* NEW: Torii Glow Animation */
-  @keyframes torii-glow {
-    0%, 100% {
-      filter: drop-shadow(0 0 30px rgba(230, 0, 18, 0.3));
-    }
-    50% {
-      filter: drop-shadow(0 0 50px rgba(230, 0, 18, 0.5));
-    }
-  }
-
-  /* NEW: Star Twinkle Animation */
-  @keyframes star-twinkle {
-    0%, 100% {
-      opacity: 0.3;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.2);
-    }
-  }
-
-  /* NEW: Moon Pulse Animation */
-  @keyframes moon-pulse {
-    0%, 100% {
-      transform: scale(1);
-      box-shadow: 
-        0 0 60px rgba(245, 230, 168, 0.4),
-        0 0 100px rgba(245, 230, 168, 0.2);
-    }
-    50% {
-      transform: scale(1.05);
-      box-shadow: 
-        0 0 80px rgba(245, 230, 168, 0.5),
-        0 0 120px rgba(245, 230, 168, 0.3);
-    }
-  }
-
-  /* NEW: Fog Drift Animation */
-  @keyframes fog-drift {
-    0%, 100% {
-      transform: translateX(0);
-    }
-    50% {
-      transform: translateX(50px);
-    }
-  }
-
-  /* Hanko Notification Animations */
-  @keyframes hanko-stamp-appear {
-    0% {
-      transform: rotate(-45deg) scale(0);
-      opacity: 0;
-    }
-    50% {
-      transform: rotate(-5deg) scale(1.2);
-      opacity: 0.8;
-    }
-    70% {
-      transform: rotate(5deg) scale(1.1);
-    }
-    100% {
-      transform: rotate(0deg) scale(1);
-      opacity: 1;
-    }
-  }
-
-  @keyframes ink-splatter {
-    0% {
-      transform: scale(0);
-      opacity: 0;
-    }
-    50% {
-      transform: scale(1.5);
-      opacity: 0.4;
-    }
-    100% {
-      transform: scale(2);
-      opacity: 0;
-    }
-  }
-
-  @keyframes notification-slide-in {
-    0% {
-      transform: translateX(400px) translateY(-20px);
-      opacity: 0;
-    }
-    100% {
-      transform: translateX(0) translateY(0);
-      opacity: 1;
-    }
-  }
-
-  @keyframes progress-countdown {
-    0% {
-      width: 100%;
-    }
-    100% {
-      width: 0%;
-    }
-  }
-
-  @keyframes urgent-shake {
-    0%, 100% { 
-      transform: translateX(0); 
-    }
-    25% { 
-      transform: translateX(-5px); 
-    }
-    75% { 
-      transform: translateX(5px); 
-    }
-  }
-
-  @keyframes swing {
-    0%, 100% {
-      transform: rotate(-10deg);
-    }
-    50% {
-      transform: rotate(10deg);
-    }
-  }
-
-  /* Sakura Confetti Animations */
-  @keyframes sakura-explode {
-    0% {
-      transform: 
-        translate(0, 0) 
-        rotate(0deg) 
-        scale(0.3);
-      opacity: 0;
-    }
-    10% {
-      opacity: 1;
-      transform: 
-        translate(calc(var(--velocity-x) * 0.1), calc(var(--velocity-y) * -0.1)) 
-        rotate(calc(var(--rotation-speed) * 0.1 * 1deg))
-        scale(1);
-    }
-    50% {
-      transform: 
-        translate(
-          calc(var(--velocity-x) * 0.8 + sin(var(--rotation-speed)) * 30px),
-          calc(var(--velocity-y) * -0.3 + 50vh)
-        )
-        rotate(calc(var(--rotation-speed) * 0.5 * 1deg))
-        scale(1);
-    }
-    100% {
-      transform: 
-        translate(
-          calc(var(--velocity-x) * 1.2 + sin(var(--rotation-speed) * 2) * 50px),
-          calc(100vh + 50px)
-        )
-        rotate(calc(var(--rotation-speed) * 1deg))
-        scale(0.8);
-      opacity: 0;
-    }
-  }
-
-  @keyframes fadeIn {
-    0% {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Wave Pattern Animation */
-  @keyframes wave-flow {
-    0% {
-      background-position: 0% 0%;
-    }
-    100% {
-      background-position: 100% 0%;
-    }
-  }
-
-  /* Lantern Float Animation */
-  @keyframes lantern-float {
-    0%, 100% {
-      transform: translateY(0px) rotate(-2deg);
-    }
-    50% {
-      transform: translateY(-30px) rotate(2deg);
-    }
-  }
-
-  /* NEW: Koi Fish Swim Animation */
-  @keyframes koi-swim {
-    0% {
-      transform: translateX(-100px) translateY(0);
-    }
-    25% {
-      transform: translateX(25vw) translateY(-20px);
-    }
-    50% {
-      transform: translateX(50vw) translateY(10px);
-    }
-    75% {
-      transform: translateX(75vw) translateY(-15px);
-    }
-    100% {
-      transform: translateX(calc(100vw + 100px)) translateY(0);
-    }
-  }
-
-  @keyframes tail-flick {
-    0%, 100% { transform: skewX(0deg); }
-    50% { transform: skewX(5deg); }
-  }
-
-  /* NEW: Paper Crane Fly Animation */
-  @keyframes crane-fly {
-    0% {
-      transform: translateX(-50px) translateY(100vh) rotate(0deg);
-    }
-    25% {
-      transform: translateX(20vw) translateY(70vh) rotate(15deg);
-    }
-    50% {
-      transform: translateX(50vw) translateY(40vh) rotate(-10deg);
-    }
-    75% {
-      transform: translateX(75vw) translateY(25vh) rotate(5deg);
-    }
-    100% {
-      transform: translateX(calc(100vw + 50px)) translateY(-50px) rotate(0deg);
-    }
-  }
-
-  @keyframes wing-flap {
-    0%, 100% { transform: scaleY(1); }
-    50% { transform: scaleY(0.8); }
-  }
-
-  /* NEW: Wisteria Sway Animation */
-  @keyframes wisteria-sway {
-    0%, 100% {
-      transform: rotate(-3deg) translateX(-5px);
-    }
-    50% {
-      transform: rotate(3deg) translateX(5px);
-    }
-  }
-
-  /* NEW: Maple Leaf Fall Animation */
-  @keyframes maple-fall {
-    0% {
-      transform: translateY(-50px) translateX(0) rotate(0deg);
-      opacity: 0;
-    }
-    10% {
-      opacity: 1;
-    }
-    90% {
-      opacity: 0.9;
-    }
-    100% {
-      transform: translateY(100vh) translateX(200px) rotate(360deg);
-      opacity: 0;
-    }
-  }
-
-  @keyframes maple-spin {
-    0%, 100% { transform: rotateZ(0deg); }
-    50% { transform: rotateZ(180deg); }
-  }
-
-  /* NEW: Dragonfly Flight Animation */
-  @keyframes dragonfly-flight {
-    0% {
-      transform: translate(0, 0) rotate(0deg);
-    }
-    15% {
-      transform: translate(80px, -40px) rotate(15deg);
-    }
-    30% {
-      transform: translate(120px, 20px) rotate(-20deg);
-    }
-    45% {
-      transform: translate(60px, -60px) rotate(10deg);
-    }
-    60% {
-      transform: translate(150px, -20px) rotate(-15deg);
-    }
-    75% {
-      transform: translate(90px, 40px) rotate(25deg);
-    }
-    100% {
-      transform: translate(0, 0) rotate(0deg);
-    }
-  }
-
-  @keyframes wing-flutter {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-  }
-
-  /* NEW: Lotus Float Animation */
-  @keyframes lotus-float {
-    0%, 100% {
-      transform: translateY(0) rotate(-1deg);
-    }
-    50% {
-      transform: translateY(-15px) rotate(1deg);
-    }
-  }
-
-  /* NEW: Mountain Parallax Animation */
-  @keyframes mountain-parallax {
-    0%, 100% {
-      transform: translateX(0);
-    }
-    50% {
-      transform: translateX(-20px);
-    }
-  }
-
-  /* NEW: Rainbow Shimmer Animation */
-  @keyframes rainbow-shimmer {
-    0% {
-      opacity: 0.3;
-      filter: hue-rotate(0deg) brightness(1);
-    }
-    50% {
-      opacity: 0.5;
-      filter: hue-rotate(30deg) brightness(1.2);
-    }
-    100% {
-      opacity: 0.3;
-      filter: hue-rotate(0deg) brightness(1);
-    }
-  }
-
-  /* NEW: Bell Ring Animation */
-  @keyframes bell-ring {
-    0%, 100% { transform: rotate(-5deg); }
-    25% { transform: rotate(5deg); }
-    50% { transform: rotate(-5deg); }
-    75% { transform: rotate(5deg); }
-  }
-
-  @keyframes sound-wave-expand {
-    0% {
-      transform: scale(0.8);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(3);
-      opacity: 0;
-    }
-  }
-
-  /* NEW: Tea Steam Animation */
-  @keyframes steam-rise {
-    0% {
-      transform: translateY(0) translateX(0) scale(1);
-      opacity: 0;
-    }
-    20% {
-      opacity: 0.6;
-    }
-    80% {
-      opacity: 0.4;
-    }
-    100% {
-      transform: translateY(-200px) translateX(30px) scale(1.5);
-      opacity: 0;
-    }
-  }
-
-  @keyframes spiral-twist {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  /* NEW: Koinobori Wave Animation */
-  @keyframes koinobori-wave {
-    0%, 100% {
-      transform: scaleX(1) translateX(0);
-    }
-    25% {
-      transform: scaleX(0.95) translateX(5px);
-    }
-    50% {
-      transform: scaleX(1.05) translateX(0);
-    }
-    75% {
-      transform: scaleX(0.95) translateX(-5px);
-    }
-  }
-
-  /* NEW: Haiku Scroll Drift Animation */
-  @keyframes scroll-drift {
-    0% {
-      transform: translateY(-50px) translateX(100vw) rotate(0deg);
-      opacity: 0;
-    }
-    10% {
-      opacity: 1;
-    }
-    90% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(100vh) translateX(-50px) rotate(360deg);
-      opacity: 0;
-    }
-  }
-
-  /* NEW: Zen Ripple Animation */
-  @keyframes ripple-expand {
-    0% {
-      transform: scale(0);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(4);
-      opacity: 0;
-    }
-  }
-
-  /* NEW: Meteor Streak Animation */
-  @keyframes meteor-streak {
-    0% {
-      transform: translate(0, 0) rotate(-45deg);
-      opacity: 1;
-    }
-    100% {
-      transform: translate(-300px, 300px) rotate(-45deg);
-      opacity: 0;
-    }
-  }
-
-  /* NEW: Cherry Branch Sway Animation */
-  @keyframes branch-sway {
-    0%, 100% {
-      transform: rotate(-2deg) translateX(-10px);
-    }
-    50% {
-      transform: rotate(2deg) translateX(10px);
-    }
-  }
-
-  /* Card Animations */
-  @keyframes glow-pulse {
-    0%, 100% {
-      box-shadow: 0 0 20px hsl(var(--gold-kin) / 0.4);
-    }
-    50% {
-      box-shadow: 0 0 40px hsl(var(--gold-kin) / 0.8);
-    }
-  }
-
-  @keyframes card-appear {
-    0% {
-      opacity: 0;
-      transform: scale(0.9) translateY(20px);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-
-  /* Text Animations */
-  @keyframes shimmer-text {
-    0% {
-      background-position: -200% center;
-    }
-    100% {
-      background-position: 200% center;
-    }
-  }
-
-  @keyframes count-up {
-    0% {
-      transform: translateY(20px);
-      opacity: 0;
-    }
-    100% {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  /* Icon Animations */
-  @keyframes icon-bounce {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-
-  @keyframes icon-rotate {
-    0% {
-      transform: rotate(0deg) scale(0);
-      opacity: 0;
-    }
-    50% {
-      transform: rotate(180deg) scale(1.2);
-    }
-    100% {
-      transform: rotate(360deg) scale(1);
-      opacity: 1;
-    }
-  }
-
-  @keyframes check-spin {
-    0% {
-      transform: rotate(-180deg) scale(0);
-    }
-    100% {
-      transform: rotate(0deg) scale(1);
-    }
-  }
-
-  @keyframes alert-blink {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.3;
-    }
-  }
-
-  @keyframes trending-up {
-    0%, 100% {
-      transform: translateY(0) rotate(0deg);
-    }
-    50% {
-      transform: translateY(-5px) rotate(10deg);
-    }
-  }
-
-  @keyframes trending-down {
-    0%, 100% {
-      transform: translateY(0) rotate(0deg);
-    }
-    50% {
-      transform: translateY(5px) rotate(-10deg);
-    }
-  }
-
-  /* Calendar Animations */
-  @keyframes cell-appear {
-    0% {
-      opacity: 0;
-      transform: scale(0.8);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes pill-slide-in {
-    0% {
-      opacity: 0;
-      transform: translateX(-20px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes urgent-shake {
-    0%, 100% {
-      transform: translateX(0);
-    }
-    10%, 30%, 50%, 70%, 90% {
-      transform: translateX(-3px);
-    }
-    20%, 40%, 60%, 80% {
-      transform: translateX(3px);
-    }
-  }
-
-  @keyframes today-glow {
-    0%, 100% {
-      box-shadow: 0 0 15px hsl(var(--sunrise-orange) / 0.5);
-    }
-    50% {
-      box-shadow: 0 0 30px hsl(var(--sunrise-orange) / 0.8);
-    }
-  }
-
-  @keyframes chevron-slide-left {
-    0%, 100% {
-      transform: translateX(0);
-    }
-    50% {
-      transform: translateX(-5px);
-    }
-  }
-
-  @keyframes chevron-slide-right {
-    0%, 100% {
-      transform: translateX(0);
-    }
-    50% {
-      transform: translateX(5px);
-    }
-  }
-
-  /* Row Animations */
-  @keyframes row-fade-in {
-    0% {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* ===== JAPANESE NIGHT DASHBOARD ANIMATIONS ===== */
-  
-  /* Star Animations */
-  @keyframes star-twinkle {
-    0%, 100% {
-      opacity: 0.3;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.5);
-    }
-  }
-
-  @keyframes shooting-star {
-    0% {
-      transform: translateX(0) translateY(0);
-      opacity: 1;
-    }
-    70% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateX(300px) translateY(300px);
-      opacity: 0;
-    }
-  }
-
-  /* Moon Animations */
-  @keyframes moon-pulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 0.8;
-      filter: blur(8px);
-    }
-    50% {
-      transform: scale(1.1);
-      opacity: 1;
-      filter: blur(12px);
-    }
-  }
-
-  @keyframes moon-glow {
-    0%, 100% {
-      box-shadow: 0 0 40px hsl(var(--moon-gold) / 0.6),
-                  0 0 80px hsl(var(--moon-gold) / 0.4),
-                  0 0 120px hsl(var(--moon-gold) / 0.2);
-    }
-    50% {
-      box-shadow: 0 0 60px hsl(var(--moon-gold) / 0.8),
-                  0 0 120px hsl(var(--moon-gold) / 0.6),
-                  0 0 180px hsl(var(--moon-gold) / 0.4);
-    }
-  }
-
-  /* Lantern Animations */
-  @keyframes lantern-swing {
     0%, 100% {
       transform: rotate(-5deg);
     }
@@ -1039,846 +483,57 @@ All colors MUST be HSL.
     }
   }
 
-  @keyframes lantern-glow {
+  /* Ocean Wave Animation */
+  @keyframes wave {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+
+  /* Sunset Cloud Animation */
+  @keyframes cloud-move {
+    0% {
+      transform: translateX(200%);
+    }
+    100% {
+      transform: translateX(-200%);
+    }
+  }
+
+  /* Neon Flicker Animation */
+  @keyframes neon-flicker {
     0%, 100% {
-      box-shadow: 0 0 20px hsl(var(--lantern-glow-orange) / 0.8),
-                  0 0 40px hsl(var(--lantern-glow-orange) / 0.6),
-                  inset 0 0 20px hsl(var(--lantern-glow-orange) / 0.4);
+      text-shadow:
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 15px #fff,
+        0 0 20px #e60073,
+        0 0 35px #e60073,
+        0 0 40px #e60073,
+        0 0 50px #e60073,
+        0 0 75px #e60073;
     }
     50% {
-      box-shadow: 0 0 30px hsl(var(--lantern-glow-orange)),
-                  0 0 60px hsl(var(--lantern-glow-orange) / 0.8),
-                  inset 0 0 30px hsl(var(--lantern-glow-orange) / 0.6);
+      text-shadow: none;
     }
   }
 
-  @keyframes lantern-float {
+  /* Mountain Mist Animation */
+  @keyframes mist-float {
     0% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-20px);
-    }
-    100% {
-      transform: translateY(0);
-    }
-  }
-
-  /* Water & Wave Animations */
-  @keyframes water-ripple {
-    0% {
-      transform: scale(0.8);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(2);
-      opacity: 0;
-    }
-  }
-
-  @keyframes wave-flow {
-    0% {
-      transform: translateX(-50%) translateY(0);
-    }
-    100% {
-      transform: translateX(50%) translateY(10px);
-    }
-  }
-
-  /* Fog & Mist Animations */
-  @keyframes fog-drift {
-    0% {
-      transform: translateX(0) translateY(0);
-      opacity: 0.1;
-    }
-    50% {
-      opacity: 0.2;
-    }
-    100% {
-      transform: translateX(100px) translateY(-50px);
-      opacity: 0.1;
-    }
-  }
-
-  @keyframes mist-rise {
-    0% {
-      transform: translateY(0) scale(1);
-      opacity: 0.3;
-    }
-    100% {
-      transform: translateY(-200px) scale(1.5);
-      opacity: 0;
-    }
-  }
-
-  /* Cloud Animations */
-  @keyframes cloud-drift {
-    0% {
-      transform: translateX(-100px);
-    }
-    100% {
-      transform: translateX(calc(100vw + 100px));
-    }
-  }
-
-  /* Light Ray Animations */
-  @keyframes light-beam {
-    0% {
-      opacity: 0.1;
-      transform: translateY(0) rotate(45deg);
-    }
-    50% {
-      opacity: 0.3;
-    }
-    100% {
-      opacity: 0.1;
-      transform: translateY(50px) rotate(45deg);
-    }
-  }
-
-  /* Meteor Animation */
-  @keyframes meteor-streak {
-    0% {
-      transform: translateX(0) translateY(0) rotate(45deg);
-      opacity: 1;
-    }
-    100% {
-      transform: translateX(-200px) translateY(200px) rotate(45deg);
-      opacity: 0;
-    }
-  }
-
-  /* Sparkle Animations */
-  @keyframes sparkle-twinkle {
-    0%, 100% {
-      opacity: 0;
-      transform: scale(0);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes sparkle-burst {
-    0% {
-      transform: scale(0) rotate(0deg);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(2) rotate(180deg);
-      opacity: 0;
-    }
-  }
-
-  /* Rainbow Animation */
-  @keyframes rainbow-shimmer {
-    0% {
-      opacity: 0.2;
-      filter: hue-rotate(0deg);
-    }
-    50% {
-      opacity: 0.4;
-    }
-    100% {
-      opacity: 0.2;
-      filter: hue-rotate(360deg);
-    }
-  }
-
-  /* Torii Gate Animation */
-  @keyframes torii-glow {
-    0%, 100% {
-      opacity: 0.2;
-      filter: drop-shadow(0 0 10px hsl(var(--torii-red)));
-    }
-    50% {
-      opacity: 0.4;
-      filter: drop-shadow(0 0 30px hsl(var(--torii-red)));
-    }
-  }
-
-  /* Steam Animation */
-  @keyframes steam-rise {
-    0% {
-      transform: translateY(0) scale(1);
-      opacity: 0.2;
-    }
-    100% {
-      transform: translateY(-150px) scale(2);
-      opacity: 0;
-    }
-  }
-
-  /* Particle Animations */
-  @keyframes particle-float {
-    0%, 100% {
-      transform: translateY(0) translateX(0);
+      transform: translateY(20px);
       opacity: 0.5;
     }
     50% {
-      transform: translateY(-50px) translateX(20px);
-      opacity: 1;
-    }
-  }
-
-  @keyframes particle-spin {
-    0% {
-      transform: rotate(0deg);
+      transform: translateY(-20px);
+      opacity: 0.8;
     }
     100% {
-      transform: rotate(360deg);
+      transform: translateY(20px);
+      opacity: 0.5;
     }
   }
-
-  /* Card Animations */
-  @keyframes card-glow-pulse {
-    0%, 100% {
-      box-shadow: 0 0 20px hsl(var(--moon-gold) / 0.2),
-                  0 4px 30px rgba(0, 0, 0, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 40px hsl(var(--moon-gold) / 0.4),
-                  0 8px 50px rgba(0, 0, 0, 0.5);
-    }
-  }
-
-  @keyframes border-flow {
-    0% {
-      border-color: hsl(var(--cherry-glow-pink) / 0.5);
-    }
-    33% {
-      border-color: hsl(var(--moon-gold) / 0.5);
-    }
-    66% {
-      border-color: hsl(var(--firefly-glow-green) / 0.5);
-    }
-    100% {
-      border-color: hsl(var(--cherry-glow-pink) / 0.5);
-    }
-  }
-
-  /* Gradient Animation */
-  @keyframes gradient-shift {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-
-  /* Base Styles */
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-    font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
 }
-
-@layer components {
-  /* ===== JAPANESE STYLED COMPONENTS ===== */
-  
-  /* Japanese Card */
-  .japanese-card {
-    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
-    @apply transition-all duration-300;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .japanese-card:hover {
-    @apply transform -translate-y-2 scale-105;
-    box-shadow: 
-      0 20px 40px rgba(0, 58, 112, 0.3),
-      0 0 60px hsl(var(--gold-kin) / 0.2);
-  }
-
-  .dark .japanese-card {
-    background: linear-gradient(135deg, hsl(var(--night-indigo) / 0.6) 0%, hsl(var(--twilight-purple) / 0.4) 100%);
-    border-color: hsl(var(--moon-gold) / 0.2);
-    box-shadow: 
-      0 4px 20px rgba(0, 0, 0, 0.5),
-      0 0 30px rgba(245, 230, 168, 0.1);
-  }
-
-  .dark .japanese-card:hover {
-    box-shadow: 
-      0 8px 40px rgba(0, 0, 0, 0.6),
-      0 0 50px rgba(245, 230, 168, 0.2);
-    border-color: hsl(var(--moon-gold) / 0.4);
-  }
-
-  /* Japanese Title */
-  .japanese-title {
-    font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
-    font-weight: 900;
-    letter-spacing: 0.05em;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .japanese-title {
-    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
-  }
-
-  /* Text Gradients */
-  .text-gradient-torii {
-    background: linear-gradient(135deg, hsl(var(--torii-red)), hsl(var(--gold-kin)));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .text-gradient-gold {
-    background: linear-gradient(135deg, hsl(var(--gold-kin)), hsl(45 90% 65%));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .text-gradient-indigo {
-    background: linear-gradient(135deg, hsl(var(--indigo-ai)), hsl(var(--ocean-teal)));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .dark .text-gradient-night-moon {
-    background: linear-gradient(135deg, hsl(var(--moon-gold)), hsl(var(--moonlight-silver)));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .dark .text-gradient-cherry-glow {
-    background: linear-gradient(135deg, hsl(var(--cherry-glow-pink)), hsl(330 90% 70%));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  /* ===== ANIMATED BACKGROUND ELEMENTS ===== */
-  
-  /* Sakura Petal */
-  .sakura-petal {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background: radial-gradient(circle, #FFB7C5 0%, #FF69B4 100%);
-    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    animation: sakura-fall linear infinite;
-    filter: blur(0.5px);
-    opacity: 0.8;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-  }
-
-  /* Origami Pieces */
-  .origami-piece {
-    position: absolute;
-    width: 30px;
-    height: 30px;
-    animation: origami-float ease-in-out infinite;
-    will-change: transform, opacity;
-    perspective: 1000px;
-  }
-
-  .origami-crane {
-    background: linear-gradient(135deg, #FFB7C5, #E60012);
-    clip-path: polygon(50% 0%, 0% 50%, 50% 100%, 100% 50%);
-  }
-
-  .origami-boat {
-    background: linear-gradient(135deg, #003A70, #33A1A1);
-    clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
-  }
-
-  .origami-butterfly {
-    background: linear-gradient(135deg, #4D2D52, #FFB7C5);
-    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 50% 90%, 18% 100%, 0% 38%);
-  }
-
-  .origami-star {
-    background: linear-gradient(135deg, #D4AF37, #FFD700);
-    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-  }
-
-  .origami-heart {
-    background: linear-gradient(135deg, #FFB7C5, #FF69B4);
-    clip-path: path('M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z');
-  }
-
-  /* Fireflies */
-  .firefly {
-    position: absolute;
-    width: 3px;
-    height: 3px;
-    background: #ADFF2F;
-    border-radius: 50%;
-    animation: firefly-glow 3s ease-in-out infinite, firefly-drift 8s ease-in-out infinite;
-    will-change: transform, box-shadow, opacity;
-  }
-
-  .firefly::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 2px;
-    background: var(--gradient-firefly-trail);
-    left: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0.6;
-  }
-
-  /* Bamboo Leaves */
-  .bamboo-leaf {
-    position: absolute;
-    width: 20px;
-    height: 8px;
-    background: linear-gradient(135deg, #2E7D32, #66BB6A, #A5D6A7);
-    border-radius: 50% 0 50% 0;
-    animation: bamboo-fall linear infinite, bamboo-sway 3s ease-in-out infinite;
-    will-change: transform, opacity;
-  }
-
-  /* Lantern */
-  .japanese-lantern {
-    width: 40px;
-    height: 60px;
-    background: linear-gradient(135deg, #E60012, #FF6B6B);
-    border-radius: 10px 10px 20px 20px;
-    box-shadow: 0 0 30px rgba(230, 0, 18, 0.6);
-    animation: lantern-float 20s ease-in-out infinite;
-    will-change: transform;
-  }
-
-  .dark .japanese-lantern {
-    box-shadow: 0 0 40px rgba(255, 153, 51, 0.8);
-  }
-
-  /* Torii Gate */
-  .torii-gate-silhouette {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80vw;
-    max-width: 1200px;
-    height: 60vh;
-    opacity: 0.06;
-    z-index: 0;
-    pointer-events: none;
-    animation: torii-glow 8s ease-in-out infinite;
-  }
-
-  .dark .torii-gate-silhouette {
-    opacity: 0.12;
-    filter: drop-shadow(0 0 50px rgba(230, 0, 18, 0.4));
-  }
-
-  /* Stars (Dark Mode Only) */
-  .star {
-    position: absolute;
-    background: hsl(var(--star-white));
-    border-radius: 50%;
-    box-shadow: 0 0 5px hsl(var(--star-white));
-    animation: star-twinkle ease-in-out infinite;
-  }
-
-  /* Moon (Dark Mode Only) */
-  .moon-element {
-    position: fixed;
-    top: 10%;
-    right: 10%;
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: var(--gradient-moon-glow);
-    box-shadow: 
-      0 0 60px rgba(245, 230, 168, 0.4),
-      0 0 100px rgba(245, 230, 168, 0.2),
-      inset -20px -20px 40px rgba(0, 0, 0, 0.2);
-    opacity: 0.9;
-    z-index: 1;
-    animation: moon-pulse 8s ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  /* Night Fog (Dark Mode Only) */
-  .night-fog {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 30vh;
-    background: linear-gradient(to top, hsl(var(--fog-mist)) 0%, transparent 100%);
-    opacity: 0.15;
-    z-index: 1;
-    animation: fog-drift 20s ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  /* ===== ANIMATION UTILITY CLASSES ===== */
-  .animate-sakura-fall {
-    animation: sakura-fall linear infinite;
-  }
-
-  .animate-origami-float {
-    animation: origami-float ease-in-out infinite;
-  }
-
-  .animate-firefly-glow {
-    animation: firefly-glow 3s ease-in-out infinite;
-  }
-
-  .animate-bamboo-fall {
-    animation: bamboo-fall linear infinite;
-  }
-
-  .animate-lantern-float {
-    animation: lantern-float 20s ease-in-out infinite;
-  }
-
-  .animate-star-twinkle {
-    animation: star-twinkle ease-in-out infinite;
-  }
-
-  .animate-moon-pulse {
-    animation: moon-pulse 8s ease-in-out infinite;
-  }
-
-  .animate-glow-pulse {
-    animation: glow-pulse 2s ease-in-out infinite;
-  }
-
-  .animate-card-appear {
-    animation: card-appear 0.5s ease-out;
-  }
-
-  .animate-shimmer-text {
-    background: linear-gradient(90deg, #E60012 0%, #D4AF37 25%, #E60012 50%, #D4AF37 75%, #E60012 100%);
-    background-size: 200% auto;
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: shimmer-text 3s linear infinite;
-  }
-
-  .animate-count-up {
-    animation: count-up 0.6s ease-out;
-  }
-
-  .animate-icon-bounce {
-    animation: icon-bounce 2s ease-in-out infinite;
-  }
-
-  .animate-icon-rotate {
-    animation: icon-rotate 0.6s ease-out;
-  }
-
-  .animate-check-spin {
-    animation: check-spin 0.5s ease-out;
-  }
-
-  .animate-alert-blink {
-    animation: alert-blink 1s ease-in-out infinite;
-  }
-
-  .animate-trending-up {
-    animation: trending-up 2s ease-in-out infinite;
-  }
-
-  .animate-trending-down {
-    animation: trending-down 2s ease-in-out infinite;
-  }
-
-  .animate-cell-appear {
-    animation: cell-appear 0.3s ease-out;
-  }
-
-  .animate-pill-slide-in {
-    animation: pill-slide-in 0.3s ease-out;
-  }
-
-  .animate-urgent-shake {
-    animation: urgent-shake 0.5s ease-in-out infinite;
-  }
-
-  .animate-today-glow {
-    animation: today-glow 2s ease-in-out infinite;
-  }
-
-  .animate-chevron-slide-left {
-    animation: chevron-slide-left 1s ease-in-out infinite;
-  }
-
-  .animate-chevron-slide-right {
-    animation: chevron-slide-right 1s ease-in-out infinite;
-  }
-
-  .animate-row-fade-in {
-    animation: row-fade-in 0.4s ease-out;
-  }
-
-  /* Gradient Utilities */
-  .gradient-torii-gold {
-    background: var(--gradient-torii-gold);
-  }
-
-  .gradient-indigo {
-    background: var(--gradient-indigo);
-  }
-
-  .gradient-sakura {
-    background: var(--gradient-sakura);
-  }
-
-  .gradient-matcha {
-    background: var(--gradient-matcha);
-  }
-
-  .gradient-sunrise {
-    background: var(--gradient-sunrise);
-  }
-
-  .gradient-murasaki {
-    background: var(--gradient-murasaki);
-  }
-}
-
-/* ===== PERFORMANCE OPTIMIZATION ===== */
-@media (max-width: 768px) {
-  .origami-piece {
-    display: none;
-  }
-  
-  .firefly:nth-child(n+16) {
-    display: none;
-  }
-  
-  .bamboo-leaf:nth-child(n+11) {
-    display: none;
-  }
-  
-  .sakura-petal:nth-child(n+11) {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .origami-piece,
-  .firefly,
-  .bamboo-leaf,
-  .sakura-petal,
-  .japanese-lantern,
-  .star,
-  .moon-element {
-    animation: none !important;
-  }
-}
-
-/* ===== PROFILE PAGE STYLES ===== */
-.profile-card {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--sakura-pink) / 0.05),
-    hsl(var(--matcha-green) / 0.03)
-  );
-  border: 2px solid hsl(var(--torii-red) / 0.2);
-  box-shadow: 
-    0 4px 20px rgba(230, 0, 18, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-}
-
-.profile-card:hover {
-  box-shadow: 
-    0 8px 30px rgba(230, 0, 18, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  border-color: hsl(var(--torii-red) / 0.4);
-}
-
-.dark .profile-card {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--night-indigo) / 0.5),
-    hsl(var(--twilight-purple) / 0.3)
-  );
-  border-color: hsl(var(--cherry-glow-pink) / 0.3);
-  box-shadow: 
-    0 4px 20px rgba(255, 153, 204, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.dark .profile-card:hover {
-  border-color: hsl(var(--cherry-glow-pink) / 0.5);
-  box-shadow: 
-    0 8px 30px rgba(255, 153, 204, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.avatar-frame {
-  position: relative;
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  padding: 8px;
-  background: linear-gradient(
-    135deg,
-    hsl(var(--torii-red)),
-    hsl(var(--matcha-green))
-  );
-  box-shadow: 
-    0 0 30px rgba(230, 0, 18, 0.3),
-    0 0 60px rgba(106, 168, 79, 0.2);
-  animation: avatar-glow 3s ease-in-out infinite;
-}
-
-.dark .avatar-frame {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--cherry-glow-pink)),
-    hsl(var(--bamboo-green))
-  );
-  box-shadow: 
-    0 0 30px rgba(255, 153, 204, 0.4),
-    0 0 60px rgba(136, 176, 75, 0.3);
-}
-
-@keyframes avatar-glow {
-  0%, 100% {
-    box-shadow: 
-      0 0 30px rgba(230, 0, 18, 0.3),
-      0 0 60px rgba(106, 168, 79, 0.2);
-  }
-  50% {
-    box-shadow: 
-      0 0 40px rgba(230, 0, 18, 0.5),
-      0 0 80px rgba(106, 168, 79, 0.3);
-  }
-}
-
-.dark @keyframes avatar-glow {
-  0%, 100% {
-    box-shadow: 
-      0 0 30px rgba(255, 153, 204, 0.4),
-      0 0 60px rgba(136, 176, 75, 0.3);
-  }
-  50% {
-    box-shadow: 
-      0 0 40px rgba(255, 153, 204, 0.6),
-      0 0 80px rgba(136, 176, 75, 0.4);
-  }
-}
-
-/* Avatar inner circle */
-.avatar-frame > * {
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-/* Profile form transitions */
-.profile-card input:not(:disabled) {
-  background: hsl(var(--background));
-  transition: all 0.2s ease;
-}
-
-.profile-card input:not(:disabled):focus {
-  border-color: hsl(var(--torii-red) / 0.5);
-  box-shadow: 0 0 0 3px hsl(var(--torii-red) / 0.1);
-}
-
-.dark .profile-card input:not(:disabled):focus {
-  border-color: hsl(var(--cherry-glow-pink) / 0.5);
-  box-shadow: 0 0 0 3px hsl(var(--cherry-glow-pink) / 0.1);
-}
-
-/* Switch styling for notifications */
-button[role="switch"][data-state="checked"] {
-  background: linear-gradient(
-    90deg,
-    hsl(var(--matcha-green)),
-    hsl(var(--bamboo-green))
-  );
-}
-
-.dark button[role="switch"][data-state="checked"] {
-  background: linear-gradient(
-    90deg,
-    hsl(var(--bamboo-green)),
-    hsl(var(--lantern-glow-orange))
-  );
-}
-
-/* Responsive avatar */
-@media (max-width: 768px) {
-  .avatar-frame {
-    width: 150px;
-    height: 150px;
-  }
-}
-
-@media (max-width: 480px) {
-  .avatar-frame {
-    width: 120px;
-    height: 120px;
-  }
-}
-
-/* ===== BASE GRADIENT CLASSES - Used for Japanese Night theme by default ===== */
-.gradient-card {
-  @apply bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 border border-slate-700 shadow-lg;
-}
-
-.gradient-primary {
-  @apply bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 hover:from-purple-500 hover:via-violet-500 hover:to-indigo-500 text-white shadow-lg;
-}
-
-.gradient-success {
-  @apply bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:from-emerald-500 hover:via-green-500 hover:to-teal-500 text-white shadow-lg;
-}
-
-.gradient-secondary {
-  @apply bg-gradient-to-r from-rose-600 via-pink-600 to-red-600 hover:from-rose-500 hover:via-pink-500 hover:to-red-500 text-white shadow-lg;
-}
-
-.text-gradient-budget {
-  @apply bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400 bg-clip-text text-transparent;
-}
-
-.text-gradient-purple {
-  @apply bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent;
-}
-
-/* ===== PROFESSIONAL THEME OVERRIDES - Solid colors replace gradients ===== */
-[data-theme="professional"] .gradient-card {
-  @apply bg-card border border-border;
-}
-
-[data-theme="professional"] .gradient-primary {
-  @apply bg-primary hover:bg-primary/90;
-}
-
-[data-theme="professional"] .gradient-success {
-  @apply bg-emerald-600 hover:bg-emerald-700;
-}
-
-[data-theme="professional"] .gradient-secondary {
-  @apply bg-rose-600 hover:bg-rose-700;
-}
-
-[data-theme="professional"] .text-gradient-budget {
-  @apply text-foreground;
-}
-
-[data-theme="professional"] .text-gradient-purple {
-  @apply text-foreground;
-}
-

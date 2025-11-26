@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf, Clock, Moon } from "lucide-react";
+import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf, Clock, Moon, Waves, Sunset, Sparkles, Box } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -344,9 +344,14 @@ export default function Nabila() {
     <div 
       className={cn(
         "min-h-screen relative overflow-hidden",
-        activeTheme === 'japanese'
-          ? "bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950"
-          : "bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50"
+        activeTheme === 'japanese' && "bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950",
+        activeTheme === 'professional' && "bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50",
+        activeTheme === 'ocean-bali' && "bg-gradient-to-br from-cyan-950 via-teal-900 to-blue-950",
+        activeTheme === 'sunset-warm' && "bg-gradient-to-br from-orange-950 via-red-900 to-amber-950",
+        activeTheme === 'bamboo-zen' && "bg-gradient-to-br from-green-950 via-emerald-900 to-teal-950",
+        activeTheme === 'sakura-bloom' && "bg-gradient-to-br from-pink-950 via-rose-900 to-purple-950",
+        activeTheme === 'neon-cyber' && "bg-gradient-to-br from-purple-950 via-indigo-900 to-violet-950",
+        activeTheme === 'mountain-stone' && "bg-gradient-to-br from-gray-950 via-slate-900 to-zinc-950"
       )}
       data-editable-ignore
     >
@@ -439,85 +444,103 @@ export default function Nabila() {
           </p>
         </div>
 
-        {/* Theme Selector Card */}
+        {/* Theme Selector Card - Compact Dropdown */}
         <Card className={cn(
-          "p-8 backdrop-blur-lg shadow-2xl transition-all duration-300 animate-scale-in",
+          "p-6 backdrop-blur-lg shadow-2xl transition-all duration-300 animate-scale-in",
           activeTheme === 'japanese'
             ? "bg-white/10 border-white/20 hover:shadow-purple-500/20"
-            : "bg-white border-gray-200 hover:shadow-blue-500/20"
+            : activeTheme === 'professional'
+            ? "bg-white border-gray-200 hover:shadow-blue-500/20"
+            : activeTheme === 'ocean-bali'
+            ? "bg-cyan-900/80 border-cyan-700 hover:shadow-cyan-500/20"
+            : activeTheme === 'sunset-warm'
+            ? "bg-orange-900/80 border-orange-700 hover:shadow-orange-500/20"
+            : activeTheme === 'bamboo-zen'
+            ? "bg-green-900/80 border-green-700 hover:shadow-green-500/20"
+            : activeTheme === 'sakura-bloom'
+            ? "bg-pink-900/80 border-pink-700 hover:shadow-pink-500/20"
+            : activeTheme === 'neon-cyber'
+            ? "bg-purple-900/80 border-purple-700 hover:shadow-purple-500/20"
+            : "bg-gray-800/80 border-gray-600 hover:shadow-gray-500/20"
         )}>
-          <div className="space-y-6">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Palette className={cn(
-                "h-6 w-6",
-                activeTheme === 'japanese' ? "text-purple-300" : "text-purple-600"
+                "h-5 w-5",
+                ['japanese', 'ocean-bali', 'sunset-warm', 'bamboo-zen', 'sakura-bloom', 'neon-cyber', 'mountain-stone'].includes(activeTheme)
+                  ? "text-white" 
+                  : "text-purple-600"
               )} />
-              <h3 className={cn(
-                "text-2xl font-bold bg-clip-text text-transparent",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300"
-                  : "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
+              <span className={cn(
+                "font-semibold",
+                ['japanese', 'ocean-bali', 'sunset-warm', 'bamboo-zen', 'sakura-bloom', 'neon-cyber', 'mountain-stone'].includes(activeTheme)
+                  ? "text-white" 
+                  : "text-gray-900"
               )}>
-                🎨 Pilih Tema Tampilan
-              </h3>
+                Tema
+              </span>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Japanese Night Theme */}
-              <button 
-                onClick={() => setAppTheme('japanese')}
-                className={cn(
-                  "p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105",
-                  "bg-gradient-to-br from-indigo-950/50 to-purple-950/50 backdrop-blur-sm",
-                  appTheme === 'japanese' 
-                    ? "border-purple-400 shadow-lg shadow-purple-500/50" 
-                    : "border-white/20 hover:border-purple-400/50"
-                )}
-              >
-                <Moon className="h-10 w-10 mx-auto mb-3 text-purple-300" />
-                <div className="text-lg font-bold text-white mb-1">Japanese Night</div>
-                <p className="text-xs text-slate-300">Malam Jepang dengan animasi sakura & bulan</p>
-              </button>
-              
-              {/* Professional Clean Theme */}
-              <button 
-                onClick={() => setAppTheme('professional')}
-                className={cn(
-                  "p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105",
-                  "bg-gradient-to-br from-white/10 to-slate-100/10 backdrop-blur-sm",
-                  appTheme === 'professional' 
-                    ? "border-sky-400 shadow-lg shadow-sky-500/50" 
-                    : "border-white/20 hover:border-sky-400/50"
-                )}
-              >
-                <Sun className="h-10 w-10 mx-auto mb-3 text-sky-300" />
-                <div className="text-lg font-bold text-white mb-1">Professional Clean</div>
-                <p className="text-xs text-slate-300">Tampilan minimal & profesional</p>
-              </button>
-              
-              {/* Auto Theme */}
-              <button 
-                onClick={() => setAppTheme('auto')}
-                className={cn(
-                  "p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105",
-                  "bg-gradient-to-br from-emerald-950/50 to-teal-950/50 backdrop-blur-sm",
-                  appTheme === 'auto' 
-                    ? "border-emerald-400 shadow-lg shadow-emerald-500/50" 
-                    : "border-white/20 hover:border-emerald-400/50"
-                )}
-              >
-                <Palette className="h-10 w-10 mx-auto mb-3 text-emerald-300" />
-                <div className="text-lg font-bold text-white mb-1">Auto</div>
-                <p className="text-xs text-slate-300">Ikuti sistem dark/light mode</p>
-              </button>
-            </div>
-
-            {/* Active Theme Indicator */}
-            <div className="pt-4 border-t border-white/10">
-              <div className="text-sm text-slate-300 text-center">
-                Tema aktif saat ini: <span className="font-bold text-purple-300">{activeTheme === 'japanese' ? 'Japanese Night 🌙' : 'Professional Clean ☀️'}</span>
-              </div>
-            </div>
+            <Select value={appTheme} onValueChange={setAppTheme}>
+              <SelectTrigger className={cn(
+                "w-[220px]",
+                ['japanese', 'ocean-bali', 'sunset-warm', 'bamboo-zen', 'sakura-bloom', 'neon-cyber', 'mountain-stone'].includes(activeTheme)
+                  ? "bg-white/10 border-white/20 text-white"
+                  : "bg-white border-gray-300"
+              )}>
+                <SelectValue placeholder="Pilih tema..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="japanese">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-4 w-4 text-purple-500" />
+                    <span>Japanese Night</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="professional">
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-4 w-4 text-blue-500" />
+                    <span>Professional Clean</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="ocean-bali">
+                  <div className="flex items-center gap-2">
+                    <Waves className="h-4 w-4 text-cyan-500" />
+                    <span>Ocean Bali</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="sunset-warm">
+                  <div className="flex items-center gap-2">
+                    <Sunset className="h-4 w-4 text-orange-500" />
+                    <span>Sunset Warm</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="bamboo-zen">
+                  <div className="flex items-center gap-2">
+                    <Leaf className="h-4 w-4 text-green-500" />
+                    <span>Bamboo Zen</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="sakura-bloom">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-pink-500" />
+                    <span>Sakura Bloom</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="neon-cyber">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    <span>Neon Cyber</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="mountain-stone">
+                  <div className="flex items-center gap-2">
+                    <Box className="h-4 w-4 text-gray-500" />
+                    <span>Mountain Stone</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </Card>
 
