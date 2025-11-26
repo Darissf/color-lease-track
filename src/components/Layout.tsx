@@ -12,7 +12,7 @@ import { useLocation } from "react-router-dom";
 import { useContentAutoApply } from "@/hooks/useContentAutoApply";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AppThemeProvider, useAppTheme } from "@/contexts/AppThemeContext";
+import { useAppTheme } from "@/contexts/AppThemeContext";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { cn } from "@/lib/utils";
 
@@ -159,7 +159,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <AppThemeProvider>
     <TooltipProvider delayDuration={300}>
       <div className={cn(
         "flex h-screen overflow-hidden",
@@ -411,6 +410,5 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
     </TooltipProvider>
-    </AppThemeProvider>
   );
 }
