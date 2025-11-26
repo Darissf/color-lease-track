@@ -558,7 +558,16 @@ export default function Dashboard() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
-                  <YAxis />
+                  <YAxis 
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) return `${(value / 1000000).toFixed(1)}jt`;
+                      if (value >= 1000) return `${(value / 1000).toFixed(0)}rb`;
+                      return value.toString();
+                    }}
+                    tick={{ fontSize: 12 }}
+                    width={70}
+                    tickCount={5}
+                  />
                   <Tooltip 
                     formatter={(value: any) => formatCurrency(value)}
                     contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
