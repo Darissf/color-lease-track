@@ -137,38 +137,6 @@ async function sendViaMailjet(provider: EmailProvider, to: string, subject: stri
   return data;
 }
 
-async function sendViaSendGrid(provider: EmailProvider, to: string, subject: string, html: string) {
-  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${provider.api_key_encrypted}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      personalizations: [{
-        to: [{ email: to }],
-      }],
-      from: {
-        email: provider.sender_email,
-        name: provider.sender_name || "No Reply",
-      },
-      subject: subject,
-      content: [{
-        type: "text/html",
-        value: html,
-      }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || "SendGrid API error");
-  }
-  
-  // SendGrid returns 202 with no body on success
-  return { id: response.headers.get("x-message-id") || "success" };
-}
-
 async function sendWithProvider(provider: EmailProvider, to: string, subject: string, html: string, replyTo?: string) {
   console.log(`[send-email] Attempting to send via ${provider.provider_name} (ID: ${provider.id})`);
 
@@ -181,8 +149,6 @@ async function sendWithProvider(provider: EmailProvider, to: string, subject: st
       return await sendViaMailgun(provider, to, subject, html);
     case "mailjet":
       return await sendViaMailjet(provider, to, subject, html);
-    case "sendgrid":
-      return await sendViaSendGrid(provider, to, subject, html);
     default:
       throw new Error(`Unknown provider: ${provider.provider_name}`);
   }

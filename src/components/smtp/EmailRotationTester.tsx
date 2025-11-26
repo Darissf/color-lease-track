@@ -98,7 +98,6 @@ const EmailRotationTester = () => {
     const colors: Record<string, string> = {
       "Resend": "bg-blue-500",
       "Brevo": "bg-green-500",
-      "SendGrid": "bg-orange-500",
     };
     return colors[provider] || "bg-gray-500";
   };
