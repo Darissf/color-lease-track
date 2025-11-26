@@ -226,16 +226,16 @@ const FixedExpensesContent = () => {
 
   return (
     <>
-      <div className="min-h-screen relative overflow-hidden">
+      <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
         {/* Main Content */}
-        <div className="relative z-10 container mx-auto px-4 py-8">
+        <div className="relative z-10 container mx-auto px-2 py-2 md:px-4 md:py-4 flex-1 overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-4 md:mb-8 shrink-0">
             <div>
-              <h1 className="text-4xl font-bold mb-2 text-foreground">
+              <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2 text-foreground">
                 🏮 Pengeluaran Tetap 🏮
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm md:text-base text-muted-foreground hidden md:block">
                 Kelola tagihan bulanan Anda
               </p>
             </div>

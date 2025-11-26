@@ -343,7 +343,7 @@ export default function Nabila() {
   return (
     <div 
       className={cn(
-        "min-h-screen relative overflow-hidden",
+        "h-[calc(100vh-104px)] relative overflow-hidden flex flex-col",
         activeTheme === 'japanese' && "bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950",
         activeTheme === 'professional' && "bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50",
         activeTheme === 'ocean-bali' && "bg-gradient-to-br from-cyan-950 via-teal-900 to-blue-950",
@@ -423,9 +423,9 @@ export default function Nabila() {
       )}
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto space-y-8 p-6">
+      <div className="relative z-10 max-w-7xl mx-auto space-y-4 px-4 py-4 md:p-6 flex-1 overflow-y-auto">
         {/* Header with Gradient */}
-        <div className="text-center space-y-4 py-12">
+        <div className="text-center space-y-2 md:space-y-4 py-6 md:py-12 shrink-0">
           <h1 className={cn(
             "text-6xl md:text-8xl font-serif italic bg-clip-text text-transparent drop-shadow-2xl animate-fade-in",
             activeTheme === 'japanese'
