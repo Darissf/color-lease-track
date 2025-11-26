@@ -9,6 +9,8 @@ import { Shield, Clock, User, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { PaginationControls } from "@/components/shared/PaginationControls";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface AuditLog {
   id: string;
@@ -25,6 +27,7 @@ interface AuditLog {
 }
 
 export default function AuditLogs() {
+  const { activeTheme } = useAppTheme();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const { isSuperAdmin } = useAuth();
@@ -111,7 +114,12 @@ export default function AuditLogs() {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className={cn(
+            "text-3xl font-bold",
+            activeTheme === 'japanese'
+              ? "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+              : "text-foreground"
+          )}>
             Audit Logs
           </h1>
           <p className="text-muted-foreground mt-2">

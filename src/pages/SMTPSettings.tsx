@@ -14,8 +14,11 @@ import EmailRotationTester from "@/components/smtp/EmailRotationTester";
 import UnifiedNotificationCenter from "@/components/smtp/UnifiedNotificationCenter";
 import EmailProviderManager from "@/components/smtp/EmailProviderManager";
 import EmailUsageDashboard from "@/components/smtp/EmailUsageDashboard";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 const SMTPSettings = () => {
+  const { activeTheme } = useAppTheme();
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("providers");
@@ -38,7 +41,12 @@ const SMTPSettings = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <h1 className={cn(
+            "text-3xl font-bold",
+            activeTheme === 'japanese'
+              ? "bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent"
+              : "text-foreground"
+          )}>
             SMTP Email Settings
           </h1>
           <p className="text-muted-foreground mt-1">

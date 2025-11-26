@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Upload, Trash2, Edit, Star, StarOff, GripVertical, Plus } from "lucide-react";
 import { motion, Reorder } from "framer-motion";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface PortfolioProject {
   id: string;
@@ -27,6 +29,7 @@ interface PortfolioProject {
 }
 
 export default function PortfolioManager() {
+  const { activeTheme } = useAppTheme();
   const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -176,7 +179,10 @@ export default function PortfolioManager() {
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Portfolio Manager</h1>
+          <h1 className={cn(
+            "text-3xl font-bold",
+            activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+          )}>Portfolio Manager</h1>
           <p className="text-muted-foreground">Manage project images and details</p>
         </div>
         <Button onClick={() => setIsAddDialogOpen(true)}>

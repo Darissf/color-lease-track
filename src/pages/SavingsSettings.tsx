@@ -10,6 +10,8 @@ import { Landmark, Save, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
 import { Switch } from "@/components/ui/switch";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface SavingsSettings {
   id?: string;
@@ -21,6 +23,7 @@ interface SavingsSettings {
 }
 
 const SavingsSettings = () => {
+  const { activeTheme } = useAppTheme();
   const [settings, setSettings] = useState<SavingsSettings>({
     default_allocation_percentage: 10,
     auto_save_enabled: false,
@@ -126,7 +129,12 @@ const SavingsSettings = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className={cn(
+            "text-3xl font-bold",
+            activeTheme === 'japanese'
+              ? "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+              : "text-foreground"
+          )}>
             Pengaturan Tabungan
           </h1>
           <p className="text-muted-foreground">Atur target dan alokasi tabungan Anda</p>
@@ -139,9 +147,15 @@ const SavingsSettings = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          <Card className="p-6 gradient-card border-0 shadow-lg">
+          <Card className={cn(
+            "p-6 shadow-lg",
+            activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+          )}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+              <div className={cn(
+                "h-12 w-12 rounded-lg flex items-center justify-center",
+                activeTheme === 'japanese' ? 'gradient-primary' : 'bg-primary'
+              )}>
                 <Landmark className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -155,7 +169,10 @@ const SavingsSettings = () => {
             <div className="space-y-4">
               <div className="w-full bg-muted rounded-full h-4 overflow-hidden">
                 <div
-                  className="h-full gradient-success transition-all"
+                  className={cn(
+                    "h-full transition-all",
+                    activeTheme === 'japanese' ? 'gradient-success' : 'bg-green-500'
+                  )}
                   style={{ width: `${Math.min(emergencyFundProgress, 100)}%` }}
                 />
               </div>
@@ -270,7 +287,10 @@ const SavingsSettings = () => {
               <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full gradient-primary"
+                className={cn(
+                  "w-full",
+                  activeTheme === 'japanese' ? 'gradient-primary' : ''
+                )}
               >
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? "Menyimpan..." : "Simpan Pengaturan"}

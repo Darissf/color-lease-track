@@ -9,6 +9,8 @@ import { Download, Database, AlertCircle, CheckCircle, Clock, ExternalLink } fro
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface BackupRecord {
   id: string;
@@ -22,6 +24,7 @@ interface BackupRecord {
 }
 
 export default function DatabaseBackup() {
+  const { activeTheme } = useAppTheme();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -124,7 +127,10 @@ export default function DatabaseBackup() {
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Database Backup</h1>
+          <h1 className={cn(
+            "text-3xl font-bold",
+            activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+          )}>Database Backup</h1>
           <p className="text-muted-foreground">Kelola backup database otomatis ke GitHub</p>
         </div>
         <Button

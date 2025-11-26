@@ -11,6 +11,8 @@ import { CostEstimator } from "@/components/cloud-usage/CostEstimator";
 import { EdgeFunctionTable } from "@/components/cloud-usage/EdgeFunctionTable";
 import { DatabaseSizeChart } from "@/components/cloud-usage/DatabaseSizeChart";
 import { StorageBucketList } from "@/components/cloud-usage/StorageBucketList";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface EdgeFunctionStats {
   functionName: string;
@@ -35,6 +37,7 @@ interface BucketStats {
 }
 
 export default function CloudUsageDashboard() {
+  const { activeTheme } = useAppTheme();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -241,7 +244,10 @@ export default function CloudUsageDashboard() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">☁️ Cloud Usage Dashboard</h1>
+          <h1 className={cn(
+            "text-3xl font-bold",
+            activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+          )}>☁️ Cloud Usage Dashboard</h1>
           <p className="text-muted-foreground">
             Monitor all your cloud resources, costs, and performance in one place
           </p>

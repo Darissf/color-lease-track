@@ -11,6 +11,8 @@ import { Key, Brain, Check, AlertCircle, ExternalLink, Loader2, Trash2 } from "l
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 const AI_PROVIDERS = {
   gemini: {
@@ -67,6 +69,7 @@ const apiKeySchema = z.object({
 });
 
 const AISettings = () => {
+  const { activeTheme } = useAppTheme();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState<AIProvider>("gemini");
@@ -263,7 +266,10 @@ const AISettings = () => {
   return (
     <div className="container mx-auto p-6 max-w-4xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
+        <h1 className={cn(
+          "text-3xl font-bold flex items-center gap-2",
+          activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+        )}>
           <Brain className="w-8 h-8" />
           AI Settings
         </h1>

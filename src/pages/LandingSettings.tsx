@@ -13,6 +13,8 @@ import PortfolioManager from "./PortfolioManager";
 import EditPage from "./EditPage";
 import ContentStudio from "./ContentStudio";
 import MetaAdsDashboard from "./MetaAdsDashboard";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface StatsCardProps {
   title: string;
@@ -37,6 +39,7 @@ const StatsCard = ({ title, value, icon, description }: StatsCardProps) => (
 );
 
 export default function LandingSettings() {
+  const { activeTheme } = useAppTheme();
   const { isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -106,7 +109,10 @@ export default function LandingSettings() {
   return (
     <div className="container mx-auto p-6 max-w-[1600px]">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
+        <h1 className={cn(
+          "text-3xl font-bold flex items-center gap-3",
+          activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+        )}>
           <LayoutDashboard className="h-8 w-8 text-primary" />
           Setting Landing Page
         </h1>
