@@ -169,7 +169,14 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
   // Set data-theme attribute on document for global CSS targeting
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', activeTheme);
-    document.body.classList.remove('theme-japanese', 'theme-professional');
+    
+    // Remove all possible theme classes
+    const allThemes: AppTheme[] = ['japanese', 'professional', 'ocean-bali', 'sunset-warm', 'bamboo-zen', 'sakura-bloom', 'neon-cyber', 'mountain-stone'];
+    allThemes.forEach(theme => {
+      document.body.classList.remove(`theme-${theme}`);
+    });
+    
+    // Add the active theme class
     document.body.classList.add(`theme-${activeTheme}`);
   }, [activeTheme]);
 

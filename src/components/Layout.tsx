@@ -160,12 +160,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className={cn(
-        "flex h-screen overflow-hidden",
-        activeTheme === 'japanese' 
-          ? "bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950" 
-          : "bg-background"
-      )}>
+      <div className="flex h-screen overflow-hidden bg-background">
       {/* Backdrop overlay for mobile */}
       {isMobile && sidebarOpen && (
         <div 
@@ -177,10 +172,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Notion-style Sidebar */}
       <aside
         className={cn(
-          "fixed lg:relative z-50 h-full transition-all duration-300 ease-in-out flex flex-col border-r",
-          activeTheme === 'japanese' 
-            ? "bg-slate-900/50 border-slate-700" 
-            : "bg-sidebar border-border",
+          "fixed lg:relative z-50 h-full transition-all duration-300 ease-in-out flex flex-col border-r bg-sidebar border-sidebar-border",
           sidebarOpen
             ? "translate-x-0 w-64"
             : "-translate-x-full lg:translate-x-0 w-0 lg:w-16"
@@ -306,12 +298,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header - Notion Style */}
-        <header className={cn(
-          "h-14 border-b px-4 flex items-center justify-between",
-          activeTheme === 'japanese'
-            ? "bg-slate-900/80 border-slate-700 backdrop-blur"
-            : "bg-card border-border"
-        )}>
+        <header className="h-14 border-b border-border px-4 flex items-center justify-between bg-card">
           <div className="flex items-center gap-3 flex-1">
             {/* Hamburger Menu for Mobile */}
             {isMobile && (
