@@ -9,8 +9,11 @@ import { WhatsAppConfigForm } from '@/components/whatsapp/WhatsAppConfigForm';
 import { MessageTemplates } from '@/components/whatsapp/MessageTemplates';
 import { NotificationHistory } from '@/components/whatsapp/NotificationHistory';
 import { WhatsAppTester } from '@/components/whatsapp/WhatsAppTester';
+import { useAppTheme } from '@/contexts/AppThemeContext';
+import { cn } from '@/lib/utils';
 
 const WhatsAppSettings = () => {
+  const { activeTheme } = useAppTheme();
   const { isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -37,7 +40,10 @@ const WhatsAppSettings = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">WhatsApp Settings</h1>
+            <h1 className={cn(
+              "text-3xl font-bold",
+              activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+            )}>WhatsApp Settings</h1>
             <p className="text-muted-foreground mt-1">
               Kelola konfigurasi, template, dan monitoring WhatsApp notifications
             </p>

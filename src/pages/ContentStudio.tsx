@@ -19,8 +19,11 @@ import AutoDiscoveryPanel from "@/components/content-studio/AutoDiscoveryPanel";
 import { useContentStore } from "@/stores/contentStore";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 export default function ContentStudio() {
+  const { activeTheme } = useAppTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -86,7 +89,10 @@ export default function ContentStudio() {
       <div className="border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Content Studio</h1>
+            <h1 className={cn(
+              "text-2xl font-bold",
+              activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+            )}>Content Studio</h1>
             <p className="text-sm text-muted-foreground">
               Advanced content management system
             </p>

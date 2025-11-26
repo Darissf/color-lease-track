@@ -1,6 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowUpRight, ArrowDownRight, Repeat, PiggyBank, CreditCard, Receipt, Wallet } from "lucide-react";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 const quickActions = [
   { 
@@ -62,6 +64,7 @@ const quickActions = [
 ];
 
 const QuickActions = () => {
+  const { activeTheme } = useAppTheme();
   return (
     <div className="min-h-screen p-8">
       {/* Header */}
@@ -77,10 +80,16 @@ const QuickActions = () => {
         {quickActions.map((action) => (
           <Card 
             key={action.id} 
-            className="p-6 gradient-card border-0 shadow-md card-hover cursor-pointer group"
+            className={cn(
+              "p-6 shadow-md card-hover cursor-pointer group",
+              activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+            )}
           >
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className={`h-20 w-20 rounded-2xl ${action.color} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all group-hover:scale-110`}>
+              <div className={cn(
+                "h-20 w-20 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all group-hover:scale-110",
+                activeTheme === 'japanese' ? action.color : 'bg-primary'
+              )}>
                 <action.icon className="h-10 w-10 text-white" />
               </div>
               <div>
@@ -101,7 +110,10 @@ const QuickActions = () => {
       </div>
 
       {/* Info Card */}
-      <Card className="mt-8 p-6 gradient-card border-0 shadow-md">
+      <Card className={cn(
+        "mt-8 p-6 shadow-md",
+        activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+      )}>
         <div className="flex items-start gap-4">
           <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
             <Plus className="h-6 w-6 text-primary" />

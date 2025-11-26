@@ -9,7 +9,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatRupiah } from "@/lib/currency";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { 
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
+import {
   ArrowLeft, 
   FileText, 
   Calendar, 
@@ -61,6 +63,7 @@ interface PaymentHistory {
 }
 
 export default function ContractDetail() {
+  const { activeTheme } = useAppTheme();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();

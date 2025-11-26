@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, Clock, CheckCircle2, Plus } from "lucide-react";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 const tasks = [
   {
@@ -68,6 +70,7 @@ const tasks = [
 ];
 
 const Tasks = () => {
+  const { activeTheme } = useAppTheme();
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "High":
@@ -115,7 +118,10 @@ const Tasks = () => {
           </h1>
           <p className="text-muted-foreground">Lacak dan kelola pemeliharaan dan perbaikan properti</p>
         </div>
-        <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
+        <Button className={cn(
+          activeTheme === 'japanese' ? 'gradient-primary text-white border-0' : '',
+          "shadow-lg hover:shadow-xl transition-all"
+        )}>
           <Plus className="mr-2 h-4 w-4" />
           Tambah Tugas
         </Button>
@@ -123,19 +129,28 @@ const Tasks = () => {
 
       {/* Summary Cards */}
       <div className="grid gap-6 md:grid-cols-4 mb-8">
-        <Card className="p-6 gradient-card border-0 shadow-md">
+        <Card className={cn(
+          "p-6 shadow-md",
+          activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+        )}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Tugas</p>
               <p className="text-3xl font-bold text-foreground mt-1">{tasks.length}</p>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center",
+              activeTheme === 'japanese' ? 'bg-gradient-to-br from-primary to-accent' : 'bg-primary'
+            )}>
               <AlertCircle className="h-6 w-6 text-white" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6 gradient-card border-0 shadow-md">
+        <Card className={cn(
+          "p-6 shadow-md",
+          activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+        )}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Dalam Proses</p>
@@ -143,13 +158,19 @@ const Tasks = () => {
                 {tasks.filter(t => t.status === "In Progress").length}
               </p>
             </div>
-            <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center">
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center",
+              activeTheme === 'japanese' ? 'gradient-primary' : 'bg-primary'
+            )}>
               <Clock className="h-6 w-6 text-white" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6 gradient-card border-0 shadow-md">
+        <Card className={cn(
+          "p-6 shadow-md",
+          activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+        )}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Selesai</p>
@@ -157,13 +178,19 @@ const Tasks = () => {
                 {tasks.filter(t => t.completed).length}
               </p>
             </div>
-            <div className="h-12 w-12 rounded-xl gradient-success flex items-center justify-center">
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center",
+              activeTheme === 'japanese' ? 'gradient-success' : 'bg-green-500'
+            )}>
               <CheckCircle2 className="h-6 w-6 text-white" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6 gradient-card border-0 shadow-md">
+        <Card className={cn(
+          "p-6 shadow-md",
+          activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+        )}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Prioritas Tinggi</p>
@@ -171,7 +198,10 @@ const Tasks = () => {
                 {tasks.filter(t => t.priority === "High" && !t.completed).length}
               </p>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-destructive to-secondary flex items-center justify-center">
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center",
+              activeTheme === 'japanese' ? 'bg-gradient-to-br from-destructive to-secondary' : 'bg-red-500'
+            )}>
               <AlertCircle className="h-6 w-6 text-white" />
             </div>
           </div>
@@ -179,7 +209,10 @@ const Tasks = () => {
       </div>
 
       {/* Tasks List */}
-      <Card className="p-6 gradient-card border-0 shadow-md">
+      <Card className={cn(
+        "p-6 shadow-md",
+        activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+      )}>
         <h3 className="text-lg font-semibold mb-4 text-foreground">Semua Tugas</h3>
         <div className="space-y-3">
           {tasks.map((task) => (

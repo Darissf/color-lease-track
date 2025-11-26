@@ -10,8 +10,11 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Activity, TrendingUp, Users, Eye, Phone, Send } from "lucide-react";
 import { format } from "date-fns";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 export default function MetaAdsDashboard() {
+  const { activeTheme } = useAppTheme();
   const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -112,7 +115,10 @@ export default function MetaAdsDashboard() {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Meta Ads Dashboard</h1>
+        <h1 className={cn(
+          "text-3xl font-bold",
+          activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+        )}>Meta Ads Dashboard</h1>
         <p className="text-muted-foreground">
           Configure and monitor Meta Pixel tracking
         </p>

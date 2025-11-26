@@ -32,6 +32,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface RecurringIncome {
   id: string;
@@ -52,6 +54,7 @@ interface BankAccount {
 }
 
 const IncomeSettings = () => {
+  const { activeTheme } = useAppTheme();
   const [incomes, setIncomes] = useState<RecurringIncome[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,14 +223,22 @@ const IncomeSettings = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className={cn(
+            "text-3xl font-bold",
+            activeTheme === 'japanese'
+              ? "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+              : "text-foreground"
+          )}>
             Pengaturan Pemasukan
           </h1>
           <p className="text-muted-foreground">Atur sumber pemasukan tetap Anda</p>
         </div>
       </div>
 
-      <Card className="p-6 mb-6 gradient-card border-0 shadow-lg">
+      <Card className={cn(
+        "p-6 mb-6 shadow-lg",
+        activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+      )}>
         <div className="text-center">
           <p className="text-sm text-muted-foreground mb-2">Total Pemasukan Bulanan</p>
           <p className="text-3xl font-bold text-foreground">{formatCurrency(totalMonthlyIncome)}</p>
@@ -237,7 +248,10 @@ const IncomeSettings = () => {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg gradient-success flex items-center justify-center">
+            <div className={cn(
+              "h-12 w-12 rounded-lg flex items-center justify-center",
+              activeTheme === 'japanese' ? 'gradient-success' : 'bg-green-500'
+            )}>
               <LogIn className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -246,7 +260,9 @@ const IncomeSettings = () => {
             </div>
           </div>
 
-          <Button onClick={() => setIsOpen(true)} className="gradient-primary">
+          <Button onClick={() => setIsOpen(true)} className={cn(
+            activeTheme === 'japanese' ? 'gradient-primary' : ''
+          )}>
             <Plus className="mr-2 h-4 w-4" />
             Tambah Pemasukan
           </Button>

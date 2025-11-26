@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, BedDouble, Bath, Home, Plus } from "lucide-react";
 import { formatRupiah } from "@/lib/currency";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 const properties = [
   {
@@ -80,6 +82,7 @@ const properties = [
 ];
 
 const Properties = () => {
+  const { activeTheme } = useAppTheme();
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Dihuni":
@@ -103,7 +106,10 @@ const Properties = () => {
           </h1>
           <p className="text-muted-foreground">Kelola dan lacak semua properti sewaan Anda</p>
         </div>
-        <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
+        <Button className={cn(
+          activeTheme === 'japanese' ? 'gradient-primary text-white border-0' : '',
+          "shadow-lg hover:shadow-xl transition-all"
+        )}>
           <Plus className="mr-2 h-4 w-4" />
           Tambah Properti
         </Button>
@@ -112,7 +118,10 @@ const Properties = () => {
       {/* Properties Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {properties.map((property) => (
-          <Card key={property.id} className="overflow-hidden gradient-card border-0 shadow-md card-hover">
+          <Card key={property.id} className={cn(
+            "overflow-hidden shadow-md card-hover",
+            activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+          )}>
             <div className="relative h-48 overflow-hidden">
               <img 
                 src={property.image} 

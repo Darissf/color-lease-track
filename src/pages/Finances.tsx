@@ -10,6 +10,8 @@ import { useState } from "react";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { ColoredProgressBar } from "@/components/ColoredProgressBar";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 const monthlyData = [
   { month: "Jan", income: 125000000, expenses: 85000000, profit: 40000000 },
@@ -55,6 +57,7 @@ const budgetCategories = [
 ];
 
 const Finances = () => {
+  const { activeTheme } = useAppTheme();
   const [timeFilter, setTimeFilter] = useState("month");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -68,7 +71,10 @@ const Finances = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gradient-purple mb-2">
+            <h1 className={cn(
+              "text-4xl font-bold mb-2",
+              activeTheme === 'japanese' ? "text-gradient-purple" : "text-foreground"
+            )}>
               Analisis Keuangan
             </h1>
             <p className="text-muted-foreground">Lacak pendapatan, pengeluaran, dan profitabilitas secara real-time</p>
@@ -89,7 +95,10 @@ const Finances = () => {
             <Filter className="mr-2 h-4 w-4" />
             Filter
           </Button>
-          <Button className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-all">
+          <Button className={cn(
+            activeTheme === 'japanese' ? 'gradient-primary text-white border-0' : '',
+            "shadow-lg hover:shadow-xl transition-all"
+          )}>
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
@@ -98,13 +107,19 @@ const Finances = () => {
 
       {/* Summary Cards */}
       <div className="grid gap-6 md:grid-cols-3 mb-8">
-        <Card className="p-6 gradient-card border-0 shadow-md card-hover">
+        <Card className={cn(
+          "p-6 shadow-md card-hover",
+          activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+        )}>
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Pendapatan</p>
               <p className="text-3xl font-bold text-foreground mt-2">{formatRupiah(totalIncome)}</p>
             </div>
-            <div className="h-12 w-12 rounded-xl gradient-success flex items-center justify-center shadow-lg">
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center shadow-lg",
+              activeTheme === 'japanese' ? 'gradient-success' : 'bg-green-500'
+            )}>
               <ArrowUpRight className="h-6 w-6 text-white" />
             </div>
           </div>
@@ -115,13 +130,19 @@ const Finances = () => {
           </div>
         </Card>
 
-        <Card className="p-6 gradient-card border-0 shadow-md card-hover">
+        <Card className={cn(
+          "p-6 shadow-md card-hover",
+          activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+        )}>
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Pengeluaran</p>
               <p className="text-3xl font-bold text-foreground mt-2">{formatRupiah(totalExpenses)}</p>
             </div>
-            <div className="h-12 w-12 rounded-xl gradient-secondary flex items-center justify-center shadow-lg">
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center shadow-lg",
+              activeTheme === 'japanese' ? 'gradient-secondary' : 'bg-orange-500'
+            )}>
               <ArrowDownRight className="h-6 w-6 text-white" />
             </div>
           </div>
@@ -132,13 +153,19 @@ const Finances = () => {
           </div>
         </Card>
 
-        <Card className="p-6 gradient-card border-0 shadow-md card-hover">
+        <Card className={cn(
+          "p-6 shadow-md card-hover",
+          activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+        )}>
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Laba Bersih</p>
               <p className="text-3xl font-bold text-foreground mt-2">{formatRupiah(netProfit)}</p>
             </div>
-            <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center shadow-lg",
+              activeTheme === 'japanese' ? 'gradient-primary' : 'bg-primary'
+            )}>
               <Wallet className="h-6 w-6 text-white" />
             </div>
           </div>
@@ -160,7 +187,10 @@ const Finances = () => {
         <TabsContent value="overview" className="space-y-6">
           {/* Charts */}
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="p-6 gradient-card border-0 shadow-md">
+            <Card className={cn(
+              "p-6 shadow-md",
+              activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+            )}>
               <h3 className="text-lg font-semibold mb-4 text-foreground">Tren Pendapatan vs Pengeluaran</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={monthlyData}>
@@ -192,7 +222,10 @@ const Finances = () => {
               </ResponsiveContainer>
             </Card>
 
-            <Card className="p-6 gradient-card border-0 shadow-md">
+            <Card className={cn(
+              "p-6 shadow-md",
+              activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+            )}>
               <h3 className="text-lg font-semibold mb-4 text-foreground">Tren Profit</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={monthlyData}>
@@ -222,7 +255,10 @@ const Finances = () => {
 
           {/* Category Breakdown */}
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="p-6 gradient-card border-0 shadow-md">
+            <Card className={cn(
+              "p-6 shadow-md",
+              activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+            )}>
               <h3 className="text-lg font-semibold mb-4 text-foreground">Kategori Pendapatan</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -252,7 +288,10 @@ const Finances = () => {
               </ResponsiveContainer>
             </Card>
 
-            <Card className="p-6 gradient-card border-0 shadow-md">
+            <Card className={cn(
+              "p-6 shadow-md",
+              activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+            )}>
               <h3 className="text-lg font-semibold mb-4 text-foreground">Kategori Pengeluaran</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -285,10 +324,16 @@ const Finances = () => {
         </TabsContent>
 
         <TabsContent value="budget" className="space-y-6">
-          <Card className="p-6 gradient-card border-0 shadow-md">
+          <Card className={cn(
+            "p-6 shadow-md",
+            activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+          )}>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-foreground">Tracking Budget per Kategori</h3>
-              <Button className="gradient-primary text-white border-0 shadow-md">
+              <Button className={cn(
+                activeTheme === 'japanese' ? 'gradient-primary text-white border-0' : '',
+                "shadow-md"
+              )}>
                 Atur Budget
               </Button>
             </div>
@@ -333,7 +378,10 @@ const Finances = () => {
             </div>
           </Card>
 
-          <Card className="p-6 gradient-card border-0 shadow-md">
+          <Card className={cn(
+            "p-6 shadow-md",
+            activeTheme === 'japanese' ? 'gradient-card border-0' : ''
+          )}>
             <h3 className="text-lg font-semibold mb-4 text-foreground">Perbandingan Budget vs Realisasi</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={budgetCategories}>

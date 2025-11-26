@@ -10,6 +10,8 @@ import { formatRupiah } from "@/lib/currency";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { FileText, AlertCircle, CheckCircle, Clock, Eye } from "lucide-react";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface RentalContract {
   id: string;
@@ -28,6 +30,7 @@ interface RentalContract {
 }
 
 export default function ClientDashboard() {
+  const { activeTheme } = useAppTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [contracts, setContracts] = useState<RentalContract[]>([]);
@@ -118,7 +121,10 @@ export default function ClientDashboard() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard Saya</h1>
+          <h1 className={cn(
+            "text-3xl font-bold",
+            activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+          )}>Dashboard Saya</h1>
           <p className="text-muted-foreground mt-1">Ringkasan orderan dan status pembayaran Anda</p>
         </div>
       </div>

@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import BankLogo from "@/components/BankLogo";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/currency";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -47,6 +49,7 @@ interface BankAccount {
 }
 
 const AccountSettings = () => {
+  const { activeTheme } = useAppTheme();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
@@ -231,7 +234,12 @@ const AccountSettings = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className={cn(
+            "text-3xl font-bold",
+            activeTheme === 'japanese'
+              ? "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+              : "text-foreground"
+          )}>
             Pengaturan Akun Rekening
           </h1>
           <p className="text-muted-foreground">Kelola akun dan rekening bank Anda</p>
@@ -239,10 +247,13 @@ const AccountSettings = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3 mb-6">
-        <Card className="gradient-card border-0 shadow-lg">
+        <Card className={cn(activeTheme === 'japanese' ? 'gradient-card border-0' : '', 'shadow-lg')}>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+              <div className={cn(
+                "h-12 w-12 rounded-lg flex items-center justify-center",
+                activeTheme === 'japanese' ? 'gradient-primary' : 'bg-primary'
+              )}>
                 <Wallet className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -253,7 +264,7 @@ const AccountSettings = () => {
           </CardContent>
         </Card>
 
-        <Card className="gradient-card border-0 shadow-lg">
+        <Card className={cn(activeTheme === 'japanese' ? 'gradient-card border-0' : '', 'shadow-lg')}>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
@@ -267,7 +278,7 @@ const AccountSettings = () => {
           </CardContent>
         </Card>
 
-        <Card className="gradient-card border-0 shadow-lg">
+        <Card className={cn(activeTheme === 'japanese' ? 'gradient-card border-0' : '', 'shadow-lg')}>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-lg bg-gray-500/10 flex items-center justify-center">
@@ -285,7 +296,10 @@ const AccountSettings = () => {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+            <div className={cn(
+              "h-12 w-12 rounded-lg flex items-center justify-center",
+              activeTheme === 'japanese' ? 'gradient-primary' : 'bg-primary'
+            )}>
               <Library className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -294,7 +308,9 @@ const AccountSettings = () => {
             </div>
           </div>
 
-          <Button onClick={() => setIsOpen(true)} className="gradient-primary">
+          <Button onClick={() => setIsOpen(true)} className={cn(
+            activeTheme === 'japanese' ? 'gradient-primary' : ''
+          )}>
             <Plus className="mr-2 h-4 w-4" />
             Tambah Rekening
           </Button>
