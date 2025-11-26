@@ -9,11 +9,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Edit, Wallet, TrendingUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 
 interface IncomeSource {
   id: string;
@@ -33,7 +33,10 @@ export default function IncomeManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('incomeManagement_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
   const [formData, setFormData] = useState({
     source_name: "",
     bank_name: "",
@@ -303,55 +306,18 @@ export default function IncomeManagement() {
                 </TableBody>
               </Table>
               
-              {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Data per halaman:</span>
-                    <div className="flex gap-1">
-                      {[10, 20, 30, 40, 50].map((size) => (
-                        <Button
-                          key={size}
-                          variant={itemsPerPage === size ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => {
-                            setItemsPerPage(size);
-                            setCurrentPage(1);
-                          }}
-                        >
-                          {size}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            onClick={() => setCurrentPage(page)}
-                            isActive={currentPage === page}
-                            className="cursor-pointer"
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={incomeSources.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(items) => {
+                  setItemsPerPage(items);
+                  localStorage.setItem('incomeManagement_itemsPerPage', items.toString());
+                }}
+                storageKey="incomeManagement"
+              />
             </>
           ) : (
             <div className="text-center py-8 text-muted-foreground">

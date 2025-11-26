@@ -163,6 +163,7 @@ export default function ExpenseTracker() {
     }
 
     setFilteredExpenses(filtered);
+    setCurrentPage(1); // Reset to page 1 on filter change
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -327,6 +328,12 @@ export default function ExpenseTracker() {
   const getCheckedCount = () => filteredExpenses.filter(exp => exp.checked).length;
   const getCheckedPercentage = () => 
     filteredExpenses.length > 0 ? ((getCheckedCount() / filteredExpenses.length) * 100).toFixed(0) : "0";
+
+  // Pagination logic
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedExpenses = filteredExpenses.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage);
 
   return (
     <AnimatedBackground theme="expense">
@@ -629,13 +636,13 @@ export default function ExpenseTracker() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredExpenses.map((expense, index) => (
+                  {paginatedExpenses.map((expense, index) => (
                     <TableRow 
                       key={expense.id}
                       className="hover:bg-gradient-to-r hover:from-rose-500/5 hover:to-orange-500/5 transition-all duration-300 hover:shadow-md"
                     >
                       <TableCell className="text-center font-medium text-muted-foreground">
-                        {index + 1}
+                        {startIndex + index + 1}
                       </TableCell>
                       <TableCell>{format(new Date(expense.date), "dd MMM yyyy")}</TableCell>
                       <TableCell className="font-medium">{expense.transaction_name || "-"}</TableCell>
@@ -692,6 +699,19 @@ export default function ExpenseTracker() {
                   ))}
                 </TableBody>
               </Table>
+              
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredExpenses.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(items) => {
+                  setItemsPerPage(items);
+                  localStorage.setItem('expenseTracker_itemsPerPage', items.toString());
+                }}
+                storageKey="expenseTracker"
+              />
             </div>
           )}
         </CardContent>
