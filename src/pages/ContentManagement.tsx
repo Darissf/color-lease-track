@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Trash2, Search, FileText, History, Undo2, Redo2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
@@ -51,6 +52,11 @@ export default function ContentManagement() {
   const [selectedKey, setSelectedKey] = useState<string>("");
   const [history, setHistory] = useState<ContentHistory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('contentManagement_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
 
   useEffect(() => {
     fetchContents();

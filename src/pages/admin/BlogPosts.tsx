@@ -29,6 +29,7 @@ import { Plus, MoreVertical, Eye, Pencil, Trash2, Search } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +50,11 @@ export default function BlogPosts() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('blogPosts_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
 
   useEffect(() => {
     fetchPosts();

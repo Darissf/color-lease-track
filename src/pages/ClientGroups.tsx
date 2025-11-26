@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText, ChevronDown, ChevronRight, Calendar, Wallet, Sparkles } from "lucide-react";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
@@ -72,7 +72,10 @@ const ClientGroups = () => {
   const [sortBy, setSortBy] = useState<'number' | 'nama' | 'telepon' | 'whatsapp' | 'created' | 'none'>('none');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('clientGroups_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
   const [searchQuery, setSearchQuery] = useState("");
   
   // Expandable client states
@@ -1257,37 +1260,15 @@ const ClientGroups = () => {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="p-4 border-t">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(page)}
-                      isActive={currentPage === page}
-                      className="cursor-pointer"
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={sortedGroups.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+          storageKey="clientGroups"
+        />
       </Card>
 
       {/* Alert Dialog for Delete KTP File Confirmation */}

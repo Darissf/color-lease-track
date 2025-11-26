@@ -25,6 +25,7 @@ import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 
 // KATEGORI PENGELUARAN
 const EXPENSE_CATEGORIES = [
@@ -81,6 +82,11 @@ export default function ExpenseTracker() {
   const [filterMonth, setFilterMonth] = useState<string>(getJakartaDateString().slice(0, 7));
   const [checkConfirmId, setCheckConfirmId] = useState<string | null>(null);
   const [checkConfirmValue, setCheckConfirmValue] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('expenseTracker_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
   const [formData, setFormData] = useState({
     transaction_name: "",
     category: "",

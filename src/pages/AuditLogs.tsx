@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Shield, Clock, User, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 
 interface AuditLog {
   id: string;
@@ -27,6 +28,11 @@ export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const { isSuperAdmin } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('auditLogs_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
 
   useEffect(() => {
     fetchLogs();

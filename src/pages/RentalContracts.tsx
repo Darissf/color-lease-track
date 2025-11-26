@@ -11,7 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
@@ -79,7 +79,10 @@ const RentalContracts = () => {
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('rentalContracts_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
   const [isCompactMode, setIsCompactMode] = useState(false);
   const [isProcessingRecurring, setIsProcessingRecurring] = useState(false);
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
@@ -1486,52 +1489,15 @@ const RentalContracts = () => {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="p-4 border-t">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    className={cn(
-                      "cursor-pointer transition-all duration-200",
-                      currentPage === 1 
-                        ? "pointer-events-none opacity-50" 
-                        : "hover:bg-gradient-to-r hover:from-rose-500 hover:to-orange-600 hover:text-white hover:shadow-lg"
-                    )}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(page)}
-                      isActive={currentPage === page}
-                      className={cn(
-                        "cursor-pointer transition-all duration-200",
-                        currentPage === page
-                          ? "bg-gradient-to-r from-rose-500 to-orange-600 text-white shadow-lg"
-                          : "hover:bg-gradient-to-r hover:from-rose-500/20 hover:to-orange-600/20 hover:border-rose-500"
-                      )}
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    className={cn(
-                      "cursor-pointer transition-all duration-200",
-                      currentPage === totalPages 
-                        ? "pointer-events-none opacity-50" 
-                        : "hover:bg-gradient-to-r hover:from-rose-500 hover:to-orange-600 hover:text-white hover:shadow-lg"
-                    )}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={sortedContracts.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+          storageKey="rentalContracts"
+        />
       </Card>
       </div>
     </AnimatedBackground>
