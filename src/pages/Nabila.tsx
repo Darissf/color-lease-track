@@ -423,7 +423,7 @@ export default function Nabila() {
       )}
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto space-y-4 px-4 py-4 md:p-6 flex-1 overflow-y-auto">
+      <div className="relative z-10 space-y-4 px-2 py-2 md:px-8 md:py-4 flex-1 overflow-y-auto">
         {/* Header with Gradient */}
         <div className="text-center space-y-2 md:space-y-4 py-6 md:py-12 shrink-0">
           <h1 className={cn(

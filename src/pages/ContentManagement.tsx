@@ -155,7 +155,8 @@ export default function ContentManagement() {
   );
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-y-auto px-2 py-2 md:px-8 md:py-4">
       <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -259,5 +260,6 @@ export default function ContentManagement() {
           </CardContent>
         </Card>
       </div>
+    </div>
   );
 }

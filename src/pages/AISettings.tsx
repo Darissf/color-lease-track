@@ -264,7 +264,8 @@ const AISettings = () => {
   const currentProvider = AI_PROVIDERS[provider];
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl space-y-6">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-y-auto px-2 py-2 md:px-8 md:py-4 space-y-6">
       <div>
         <h1 className={cn(
           "text-3xl font-bold flex items-center gap-2",
@@ -470,6 +471,7 @@ const AISettings = () => {
           Jangan share API key dengan orang lain.
         </AlertDescription>
       </Alert>
+      </div>
     </div>
   );
 };
