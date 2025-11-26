@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 
 interface FixedExpenseListProps {
   expenses: FixedExpense[];
@@ -19,9 +20,24 @@ interface FixedExpenseListProps {
   onEdit: (expense: FixedExpense) => void;
   onDelete: (expenseId: string) => void;
   onMarkAsPaid: (expense: FixedExpense, amount: number) => void;
+  currentPage: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (items: number) => void;
 }
 
-export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete, onMarkAsPaid }: FixedExpenseListProps) => {
+export const FixedExpenseList = ({ 
+  expenses, 
+  history, 
+  loading, 
+  onEdit, 
+  onDelete, 
+  onMarkAsPaid,
+  currentPage,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange
+}: FixedExpenseListProps) => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<FixedExpense | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -88,6 +104,11 @@ export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete,
     );
   }
 
+  // Calculate pagination
+  const totalPages = Math.ceil(expenses.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedExpenses = expenses.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <>
       <Card>
@@ -106,7 +127,7 @@ export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete,
           </TableRow>
         </TableHeader>
         <TableBody>
-          {expenses.map((expense, index) => {
+          {paginatedExpenses.map((expense, index) => {
             const status = getStatus(expense);
             const paid = isPaid(expense.id);
             const amount = expense.expense_type === 'fixed' ? expense.fixed_amount || 0 : expense.estimated_amount || 0;
@@ -114,7 +135,7 @@ export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete,
             return (
               <TableRow key={expense.id}>
                 <TableCell className="text-center font-medium text-muted-foreground">
-                  {index + 1}
+                  {startIndex + index + 1}
                 </TableCell>
                 <TableCell className="font-medium">{expense.expense_name}</TableCell>
                 <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
@@ -168,6 +189,16 @@ export const FixedExpenseList = ({ expenses, history, loading, onEdit, onDelete,
           })}
         </TableBody>
       </Table>
+
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={expenses.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={onPageChange}
+        onItemsPerPageChange={onItemsPerPageChange}
+        storageKey="fixedExpenses"
+      />
     </Card>
 
     <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>

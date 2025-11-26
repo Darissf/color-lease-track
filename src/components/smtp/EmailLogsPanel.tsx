@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Search, RefreshCw, Download } from "lucide-react";
 import { format } from "date-fns";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 
 interface EmailLog {
   id: string;
@@ -48,6 +49,11 @@ const EmailLogsPanel = () => {
     successRate: 0,
     failedCount: 0,
     avgResponseTime: 0,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('emailLogs_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
   });
 
   useEffect(() => {

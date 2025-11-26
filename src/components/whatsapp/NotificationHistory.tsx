@@ -10,6 +10,7 @@ import { useNotificationLogs } from '@/hooks/useNotificationLogs';
 import { NotificationDetailDialog } from './NotificationDetailDialog';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { PaginationControls } from "@/components/shared/PaginationControls";
 
 export const NotificationHistory = () => {
   const [filters, setFilters] = useState({
@@ -20,6 +21,11 @@ export const NotificationHistory = () => {
   });
   const { logs, stats, loading, fetchLogs } = useNotificationLogs(filters);
   const [selectedLog, setSelectedLog] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('notificationHistory_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {

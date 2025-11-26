@@ -23,6 +23,7 @@ import { ColoredProgressBar } from "@/components/ColoredProgressBar";
 import { GradientButton } from "@/components/GradientButton";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { cn } from "@/lib/utils";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 
 interface SavingsPlan {
   id: string;
@@ -69,6 +70,11 @@ export default function SavingsPlans() {
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SavingsPlan | null>(null);
   const [editingPlan, setEditingPlan] = useState<SavingsPlan | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('savingsPlans_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
 
   const getCategoryInfo = (category: string) => {
     const categories = {

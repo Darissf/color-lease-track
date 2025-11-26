@@ -61,6 +61,12 @@ const FixedExpensesContent = () => {
   const [currentView, setCurrentView] = useState<'list' | 'calendar'>('list');
   const [showConfetti, setShowConfetti] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('fixedExpenses_itemsPerPage');
+    return saved ? parseInt(saved) : 10;
+  });
+
   // Auto-check for due dates and trigger notifications
   useExpenseNotifications(expenses, history);
 
@@ -405,6 +411,10 @@ const FixedExpensesContent = () => {
                 onEdit={handleEditExpense}
                 onDelete={handleDeleteExpense}
                 onMarkAsPaid={handleMarkAsPaid}
+                currentPage={currentPage}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
               />
             </TabsContent>
 
