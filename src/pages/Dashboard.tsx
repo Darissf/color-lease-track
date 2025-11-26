@@ -15,7 +15,7 @@ import { getCategoryStyle } from "@/lib/categoryColors";
 import { DashboardLoadingSkeleton } from "@/components/SkeletonLoader";
 import { GradientButton } from "@/components/GradientButton";
 import { ColoredProgressBar } from "@/components/ColoredProgressBar";
-import { useTheme } from "@/components/ui/theme-provider";
+import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
 
 interface DashboardStats {
@@ -29,39 +29,11 @@ interface DashboardStats {
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#f97316'];
 
-type DashboardTheme = "japanese" | "professional" | "auto";
-
-// Theme color constants for consistent styling
-const themeColors = {
-  japanese: {
-    text: '#FFFFFF',           // Putih solid untuk title
-    textSecondary: '#E2E8F0',  // Abu-abu terang untuk subtitle
-    textMuted: '#94A3B8',      // Abu-abu untuk deskripsi
-    cardBg: 'rgba(15, 23, 42, 0.9)',
-    cardBorder: '#334155',
-    chartAxis: '#94A3B8',
-    chartGrid: '#334155',
-    tooltipBg: '#1E293B',
-    tooltipBorder: '#334155',
-  },
-  professional: {
-    text: 'hsl(var(--foreground))',
-    textSecondary: 'hsl(var(--muted-foreground))',
-    textMuted: 'hsl(var(--muted-foreground))',
-    cardBg: 'hsl(var(--card))',
-    cardBorder: 'hsl(var(--border))',
-    chartAxis: 'hsl(var(--muted-foreground))',
-    chartGrid: 'hsl(var(--border))',
-    tooltipBg: 'hsl(var(--card))',
-    tooltipBorder: 'hsl(var(--border))',
-  },
-};
-
 export default function Dashboard() {
   const { user } = useAuth();
   const { getContent } = useEditableContent();
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
+  const { activeTheme } = useAppTheme();
   const [period, setPeriod] = useState<"week" | "month" | "year">("month");
   const [stats, setStats] = useState<DashboardStats>({
     totalIncome: 0,

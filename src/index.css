@@ -216,6 +216,20 @@ All colors MUST be HSL.
     --shadow-lantern-glow: 0 0 35px rgba(255, 153, 51, 0.25);
   }
 
+  /* ===== PROFESSIONAL CLEAN THEME OVERRIDE ===== */
+  [data-theme="professional"] {
+    /* Use standard light mode colors - clean and minimal */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --border: 214.3 31.8% 91.4%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+  }
+
   /* ===== JAPANESE ANIMATIONS ===== */
   
   /* Sakura Petals Animation */

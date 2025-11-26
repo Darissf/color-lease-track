@@ -1,4 +1,6 @@
 import { ReactNode } from "react";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 interface AnimatedBackgroundProps {
   children: ReactNode;
@@ -6,6 +8,8 @@ interface AnimatedBackgroundProps {
 }
 
 export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBackgroundProps) => {
+  const { activeTheme } = useAppTheme();
+  
   const themeColors = {
     income: {
       bg: "from-emerald-50 via-green-50 to-teal-50",
@@ -52,11 +56,20 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
   const colors = themeColors[theme];
 
   return (
-    <div className={`min-h-screen relative overflow-hidden bg-gradient-to-br ${colors.bg} dark:from-slate-900 dark:via-slate-800 dark:to-slate-900`}>
-      {/* Animated floating shapes */}
-      <div className={`absolute top-20 left-10 w-72 h-72 bg-gradient-to-br ${colors.shapes[0]} rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-20 dark:opacity-10 animate-float`}></div>
-      <div className={`absolute top-40 right-10 w-96 h-96 bg-gradient-to-br ${colors.shapes[1]} rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-20 dark:opacity-10 animate-float-delayed`}></div>
-      <div className={`absolute -bottom-32 left-1/3 w-80 h-80 bg-gradient-to-br ${colors.shapes[2]} rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-20 dark:opacity-10 animate-float`}></div>
+    <div className={cn(
+      "min-h-screen relative overflow-hidden",
+      activeTheme === 'japanese' 
+        ? `bg-gradient-to-br ${colors.bg}` 
+        : "bg-gradient-to-br from-background via-background to-muted/10"
+    )}>
+      {/* Animated floating shapes - only show for Japanese theme */}
+      {activeTheme === 'japanese' && (
+        <>
+          <div className={`absolute top-20 left-10 w-72 h-72 bg-gradient-to-br ${colors.shapes[0]} rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-20 dark:opacity-10 animate-float`}></div>
+          <div className={`absolute top-40 right-10 w-96 h-96 bg-gradient-to-br ${colors.shapes[1]} rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-20 dark:opacity-10 animate-float-delayed`}></div>
+          <div className={`absolute -bottom-32 left-1/3 w-80 h-80 bg-gradient-to-br ${colors.shapes[2]} rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-20 dark:opacity-10 animate-float`}></div>
+        </>
+      )}
       
       {/* Content */}
       <div className="relative z-10">
