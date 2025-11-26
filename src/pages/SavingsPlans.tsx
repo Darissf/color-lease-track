@@ -529,22 +529,21 @@ export default function SavingsPlans() {
 
   if (loading) {
     return (
-      <AnimatedBackground theme="savings">
-        <div className="p-6 flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <Target className="h-12 w-12 mx-auto mb-4 animate-spin bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600 bg-clip-text text-transparent" />
-            <p className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Memuat rencana tabungan...
-            </p>
-          </div>
+      <div className="h-[calc(100vh-104px)] p-6 flex items-center justify-center">
+        <div className="text-center">
+          <Target className="h-12 w-12 mx-auto mb-4 animate-spin bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600 bg-clip-text text-transparent" />
+          <p className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Memuat rencana tabungan...
+          </p>
         </div>
-      </AnimatedBackground>
+      </div>
     );
   }
 
   return (
-    <AnimatedBackground theme="savings">
-      <div className="p-6 space-y-6">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+      {/* Header - shrink-0 */}
+      <div className="shrink-0 px-2 py-2 md:px-6 md:py-4 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 via-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/50">
@@ -1494,6 +1493,6 @@ export default function SavingsPlans() {
         </DialogContent>
       </Dialog>
       </div>
-    </AnimatedBackground>
+    </div>
   );
 }

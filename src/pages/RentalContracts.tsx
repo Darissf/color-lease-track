@@ -572,23 +572,22 @@ const RentalContracts = () => {
 
   if (loading) {
     return (
-      <AnimatedBackground theme="expense">
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin mx-auto bg-gradient-to-r from-rose-500 to-orange-600 bg-clip-text text-transparent" />
-            <p className="mt-4 text-lg bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent font-semibold">
-              Memuat data kontrak...
-            </p>
-          </div>
+      <div className="h-[calc(100vh-104px)] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto bg-gradient-to-r from-rose-500 to-orange-600 bg-clip-text text-transparent" />
+          <p className="mt-4 text-lg bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent font-semibold">
+            Memuat data kontrak...
+          </p>
         </div>
-      </AnimatedBackground>
+      </div>
     );
   }
 
   return (
-    <AnimatedBackground theme="expense">
-      <div className="min-h-screen p-8">
-        <div className="flex items-center justify-between mb-8">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+      {/* Header - shrink-0 */}
+      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-3 rounded-xl bg-gradient-to-r from-rose-500 to-orange-600 shadow-lg">
@@ -600,7 +599,7 @@ const RentalContracts = () => {
             </div>
             <p className="text-muted-foreground">Kelola semua kontrak sewa peralatan dengan mudah</p>
           </div>
-        <Dialog open={isContractDialogOpen} onOpenChange={(open) => {
+          <Dialog open={isContractDialogOpen} onOpenChange={(open) => {
           setIsContractDialogOpen(open);
           if (!open) resetContractForm();
         }}>
@@ -1101,10 +1100,13 @@ const RentalContracts = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      {/* Content - flex-1 overflow-y-auto */}
+      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4 space-y-6">
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <ColoredStatCard 
           title="Total Kontrak"
           value={rentalContracts.length.toString()}
@@ -1510,7 +1512,7 @@ const RentalContracts = () => {
         />
       </Card>
       </div>
-    </AnimatedBackground>
+    </div>
   );
 };
 
