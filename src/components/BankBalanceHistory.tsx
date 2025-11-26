@@ -4,8 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatCurrency } from "@/lib/currency";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import { formatInJakarta } from "@/lib/timezone";
 import { TrendingUp, TrendingDown, Clock, Building2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -146,7 +145,7 @@ export const BankBalanceHistory = () => {
 
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  {format(new Date(entry.created_at), 'dd MMM yyyy, HH:mm', { locale: id })}
+                  {formatInJakarta(entry.created_at, 'dd MMM yyyy, HH:mm')}
                 </div>
               </div>
             </div>

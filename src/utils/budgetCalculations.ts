@@ -1,13 +1,14 @@
 import { CategoryBudget, CategoryProgress } from "@/types/budgetTypes";
+import { getNowInJakarta, getJakartaDay, getJakartaMonth, getJakartaYear } from "@/lib/timezone";
 
 export const getCurrentDayForMonth = (selectedYear: number, selectedMonth: number): number => {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const now = getNowInJakarta();
+  const currentYear = getJakartaYear();
+  const currentMonth = getJakartaMonth();
   
   // Jika melihat bulan yang sama dengan bulan sekarang
   if (selectedYear === currentYear && selectedMonth === currentMonth) {
-    return now.getDate(); // Tanggal hari ini
+    return getJakartaDay(); // Tanggal hari ini
   }
   
   // Jika melihat bulan lalu

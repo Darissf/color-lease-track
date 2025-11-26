@@ -18,6 +18,18 @@ interface RecurringTransaction {
   notes: string | null;
 }
 
+// Jakarta Timezone Helper Functions
+const JAKARTA_OFFSET_HOURS = 7; // UTC+7
+
+const getNowInJakarta = (): Date => {
+  const now = new Date();
+  return new Date(now.getTime() + (JAKARTA_OFFSET_HOURS * 60 * 60 * 1000));
+};
+
+const formatJakartaDate = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -31,7 +43,7 @@ Deno.serve(async (req) => {
 
     console.log('Starting recurring transactions processing...');
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatJakartaDate(getNowInJakarta());
 
     // Fetch all active recurring transactions that are due today
     const { data: recurringTransactions, error: fetchError } = await supabase
@@ -134,22 +146,24 @@ Deno.serve(async (req) => {
 });
 
 function calculateNextExecutionDate(currentDate: string, frequency: string): string {
-  const date = new Date(currentDate);
+  const date = new Date(currentDate + 'T00:00:00Z'); // Parse as UTC
+  const JAKARTA_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const jakartaDate = new Date(date.getTime() + JAKARTA_OFFSET_MS);
   
   switch (frequency) {
     case 'daily':
-      date.setDate(date.getDate() + 1);
+      jakartaDate.setDate(jakartaDate.getDate() + 1);
       break;
     case 'weekly':
-      date.setDate(date.getDate() + 7);
+      jakartaDate.setDate(jakartaDate.getDate() + 7);
       break;
     case 'monthly':
-      date.setMonth(date.getMonth() + 1);
+      jakartaDate.setMonth(jakartaDate.getMonth() + 1);
       break;
     case 'yearly':
-      date.setFullYear(date.getFullYear() + 1);
+      jakartaDate.setFullYear(jakartaDate.getFullYear() + 1);
       break;
   }
   
-  return date.toISOString().split('T')[0];
+  return jakartaDate.toISOString().split('T')[0];
 }

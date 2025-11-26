@@ -6,6 +6,7 @@ import { FixedExpense, FixedExpenseHistory } from "@/pages/FixedExpenses";
 import { formatCurrency } from "@/lib/currency";
 import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getNowInJakarta, getJakartaDay, getJakartaMonth, getJakartaYear, toJakartaTime } from "@/lib/timezone";
 
 interface FixedExpenseCalendarProps {
   expenses: FixedExpense[];
@@ -14,7 +15,7 @@ interface FixedExpenseCalendarProps {
 }
 
 export const FixedExpenseCalendar = ({ expenses, history, onMarkAsPaid }: FixedExpenseCalendarProps) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(getNowInJakarta());
 
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
@@ -22,7 +23,7 @@ export const FixedExpenseCalendar = ({ expenses, history, onMarkAsPaid }: FixedE
 
   const isPaid = (expenseId: string, day: number) => {
     return history.some(h => {
-      const paidDate = new Date(h.paid_date);
+      const paidDate = toJakartaTime(h.paid_date);
       return h.fixed_expense_id === expenseId && h.status === 'paid' && paidDate.getDate() === day && paidDate.getMonth() === currentDate.getMonth() && paidDate.getFullYear() === currentDate.getFullYear();
     });
   };
@@ -34,8 +35,8 @@ export const FixedExpenseCalendar = ({ expenses, history, onMarkAsPaid }: FixedE
     if (dayExpenses.length === 0) return null;
 
     const allPaid = dayExpenses.every(e => isPaid(e.id, day));
-    const today = new Date().getDate();
-    const isToday = day === today && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
+    const today = getJakartaDay();
+    const isToday = day === today && currentDate.getMonth() === getJakartaMonth() && currentDate.getFullYear() === getJakartaYear();
 
     if (allPaid) return 'paid';
     if (day < today && !allPaid) return 'overdue';

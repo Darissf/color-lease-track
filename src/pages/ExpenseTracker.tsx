@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
+import { getNowInJakarta, formatInJakarta, getJakartaDateString } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
@@ -77,7 +78,7 @@ export default function ExpenseTracker() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [filterMonth, setFilterMonth] = useState<string>(getJakartaDateString().slice(0, 7));
   const [checkConfirmId, setCheckConfirmId] = useState<string | null>(null);
   const [checkConfirmValue, setCheckConfirmValue] = useState<boolean>(false);
   const [formData, setFormData] = useState({
@@ -86,7 +87,7 @@ export default function ExpenseTracker() {
     amount: "",
     bank_account_id: "",
     description: "",
-    date: new Date(),
+    date: getNowInJakarta(),
     checked: false,
   });
 
@@ -169,7 +170,7 @@ export default function ExpenseTracker() {
       amount: parseFloat(formData.amount),
       bank_account_id: formData.bank_account_id || null,
       description: formData.description || null,
-      date: format(formData.date, "yyyy-MM-dd"),
+      date: getJakartaDateString(formData.date),
       checked: formData.checked,
       sub_category: null,
       is_fixed: false,
@@ -211,7 +212,7 @@ export default function ExpenseTracker() {
       amount: expense.amount.toString(),
       bank_account_id: expense.bank_account_id || "",
       description: expense.description || "",
-      date: new Date(expense.date),
+      date: getNowInJakarta(), // Use current Jakarta time for edit
       checked: expense.checked,
     });
     setIsDialogOpen(true);
@@ -240,7 +241,7 @@ export default function ExpenseTracker() {
       amount: "",
       bank_account_id: "",
       description: "",
-      date: new Date(),
+      date: getNowInJakarta(),
       checked: false,
     });
     setEditingId(null);
@@ -298,7 +299,7 @@ export default function ExpenseTracker() {
   };
 
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const avgDaily = filteredExpenses.length > 0 ? totalExpenses / new Date(filterMonth + "-01").getDate() : 0;
+  const avgDaily = filteredExpenses.length > 0 ? totalExpenses / getNowInJakarta().getDate() : 0;
 
   // Helper functions for stats
   const getMostExpensiveCategory = () => {

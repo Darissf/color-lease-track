@@ -284,8 +284,15 @@ serve(async (req) => {
       finalHtml = html + signature.signature_html;
     }
 
+    // Jakarta timezone helper
+    const JAKARTA_OFFSET_HOURS = 7;
+    const getNowInJakarta = () => {
+      const now = new Date();
+      return new Date(now.getTime() + (JAKARTA_OFFSET_HOURS * 60 * 60 * 1000));
+    };
+
     // Check smart scheduling preferences
-    const now = new Date();
+    const now = getNowInJakarta();
     const currentHour = now.getHours();
     let scheduledFor = now.toISOString();
 
