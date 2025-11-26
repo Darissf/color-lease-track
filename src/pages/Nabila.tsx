@@ -376,13 +376,13 @@ export default function Nabila() {
             ))}
           </div>
 
-          {/* Moon */}
-          <div className="absolute top-20 right-20 pointer-events-none">
-            <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-yellow-200 to-orange-200 shadow-2xl shadow-yellow-500/30 animate-float">
+          {/* Moon - Responsive positioning to prevent overflow */}
+          <div className="absolute top-20 right-4 md:right-20 pointer-events-none hidden md:block">
+            <div className="relative w-24 md:w-32 h-24 md:h-32 rounded-full bg-gradient-to-br from-yellow-200 to-orange-200 shadow-2xl shadow-yellow-500/30 animate-float">
               <div className="absolute inset-2 rounded-full bg-gradient-to-br from-yellow-100 to-orange-100 opacity-80"></div>
               {/* Crater details */}
-              <div className="absolute top-8 left-8 w-6 h-6 rounded-full bg-yellow-300/30"></div>
-              <div className="absolute bottom-10 right-12 w-4 h-4 rounded-full bg-orange-300/20"></div>
+              <div className="absolute top-6 md:top-8 left-6 md:left-8 w-4 md:w-6 h-4 md:h-6 rounded-full bg-yellow-300/30"></div>
+              <div className="absolute bottom-8 md:bottom-10 right-8 md:right-12 w-3 md:w-4 h-3 md:h-4 rounded-full bg-orange-300/20"></div>
             </div>
           </div>
 

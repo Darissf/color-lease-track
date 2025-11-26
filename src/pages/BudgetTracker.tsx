@@ -359,21 +359,29 @@ const BudgetTracker = () => {
 
   if (loading) {
     return (
-      <AnimatedBackground theme="budget">
-        <div className="p-8 space-y-6">
+      <div className="h-[calc(100vh-104px)] flex items-center justify-center">
+        <div className="space-y-6 text-center">
           <Skeleton className="h-24 w-full" />
           <div className="grid gap-6 md:grid-cols-4">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32" />)}
           </div>
           <Skeleton className="h-96 w-full" />
         </div>
-      </AnimatedBackground>
+      </div>
     );
   }
 
   return (
-    <AnimatedBackground theme="budget">
-      <div className="p-8 space-y-8">
+    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+      {/* Command Palette */}
+      <BudgetCommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        commands={commands}
+      />
+
+      {/* Header - shrink-0 agar tidak ikut scroll */}
+      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4 space-y-4">
         {/* Alert Banner for Critical Alerts */}
         {alerts.length > 0 && alerts.some(a => a.severity === 'danger') && (
           <AlertBanner alerts={alerts.filter(a => a.severity === 'danger')} />
@@ -385,13 +393,6 @@ const BudgetTracker = () => {
           onEditBudget={() => setDialogOpen(true)}
           onExport={() => toast({ title: "Export feature coming soon!" })}
           onApplyTemplate={() => setTemplateDialogOpen(true)}
-        />
-
-        {/* Command Palette */}
-        <BudgetCommandPalette
-          open={commandPaletteOpen}
-          onOpenChange={setCommandPaletteOpen}
-          commands={commands}
         />
 
         {/* Header */}
@@ -491,7 +492,10 @@ const BudgetTracker = () => {
             </Select>
           </div>
         </Card>
+      </div>
 
+      {/* Content - flex-1 overflow-y-auto agar bisa scroll */}
+      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4 space-y-6">
         {!currentBudget ? (
           <Card className="p-12 text-center">
             <div className="flex flex-col items-center gap-4">
@@ -742,7 +746,8 @@ const BudgetTracker = () => {
         onOpenChange={setTemplateDialogOpen}
         onApplyTemplate={handleApplyTemplate}
       />
-    </AnimatedBackground>
+      </div>
+    </div>
   );
 };
 
