@@ -319,12 +319,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className={cn(
-          "flex-1 overflow-auto p-6",
-          activeTheme === 'japanese' 
-            ? "bg-transparent" 
-            : "bg-background"
-        )}>
+      <main className={cn(
+        "flex-1 overflow-auto p-0 md:p-6",
+        activeTheme === 'japanese' 
+          ? "bg-transparent" 
+          : "bg-background"
+      )}>
           {children}
         </main>
       </div>
