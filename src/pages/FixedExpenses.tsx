@@ -17,7 +17,6 @@ import { SakuraConfetti } from "@/components/SakuraConfetti";
 import { useNotificationContext } from "@/contexts/NotificationContext";
 import { useExpenseNotifications } from "@/hooks/useExpenseNotifications";
 import { getNowInJakarta, getJakartaDateString, getJakartaMonth, getJakartaYear } from "@/lib/timezone";
-import { useAppTheme } from "@/contexts/AppThemeContext";
 
 export interface FixedExpense {
   id: string;
@@ -52,7 +51,6 @@ export interface FixedExpenseHistory {
 const FixedExpensesContent = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { activeTheme } = useAppTheme();
   const { addNotification } = useNotificationContext();
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<FixedExpense[]>([]);
@@ -228,157 +226,13 @@ const FixedExpensesContent = () => {
 
   return (
     <>
-      <div className={cn(
-        "min-h-screen relative overflow-hidden",
-        activeTheme === 'japanese' 
-          ? "bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" 
-          : "bg-background"
-      )}>
-        {/* Animated Background Elements - Only for Japanese Theme */}
-        {activeTheme === 'japanese' && (
-          <>
-            {/* Stars */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {[...Array(100)].map((_, i) => (
-            <div
-              key={`star-${i}`}
-              className="absolute w-1 h-1 bg-white rounded-full animate-[star-twinkle_3s_ease-in-out_infinite]"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                opacity: Math.random() * 0.7 + 0.3,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Moon */}
-        <div className="absolute top-20 right-20 w-32 h-32 rounded-full bg-gradient-to-br from-[hsl(var(--moon-gold))] to-yellow-200 opacity-80 blur-sm animate-[moon-pulse_6s_ease-in-out_infinite] pointer-events-none" />
-
-        {/* Night Fog */}
-        <div className="absolute inset-0 pointer-events-none">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={`fog-${i}`}
-              className="absolute w-96 h-96 rounded-full bg-[hsl(var(--fog-mist))] opacity-10 blur-3xl animate-[fog-drift_20s_ease-in-out_infinite]"
-              style={{
-                left: `${Math.random() * 80}%`,
-                top: `${Math.random() * 80}%`,
-                animationDelay: `${i * 4}s`,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Torii Gate Silhouette */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-64 opacity-20 pointer-events-none">
-          <svg viewBox="0 0 200 200" className="w-full h-full animate-[torii-glow_4s_ease-in-out_infinite]">
-            <rect x="40" y="40" width="12" height="140" fill="currentColor" className="text-[hsl(var(--torii-red))]" />
-            <rect x="148" y="40" width="12" height="140" fill="currentColor" className="text-[hsl(var(--torii-red))]" />
-            <rect x="20" y="50" width="160" height="16" rx="4" fill="currentColor" className="text-[hsl(var(--torii-red))]" />
-            <rect x="30" y="80" width="140" height="12" rx="3" fill="currentColor" className="text-[hsl(var(--torii-red))]" />
-          </svg>
-        </div>
-
-        {/* Floating Origami */}
-        {[...Array(18)].map((_, i) => (
-          <div
-            key={`origami-${i}`}
-            className="absolute animate-[origami-float_15s_ease-in-out_infinite] opacity-30"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${i * 0.8}s`,
-              animationDuration: `${12 + Math.random() * 8}s`,
-            }}
-          >
-            <svg width="30" height="30" viewBox="0 0 50 50">
-              <polygon points="25,5 45,45 5,45" fill={`hsl(${Math.random() * 360}, 70%, 60%)`} opacity="0.6" />
-            </svg>
-          </div>
-        ))}
-
-        {/* Fireflies */}
-        {[...Array(35)].map((_, i) => (
-          <div
-            key={`firefly-${i}`}
-            className="absolute w-2 h-2 rounded-full bg-[hsl(var(--firefly-glow-green))] animate-[firefly-glow_2s_ease-in-out_infinite] pointer-events-none"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 2}s`,
-              boxShadow: '0 0 10px hsl(var(--firefly-glow-green))',
-            }}
-          >
-            <div className="animate-[firefly-drift_8s_ease-in-out_infinite]" />
-          </div>
-        ))}
-
-        {/* Falling Bamboo Leaves */}
-        {[...Array(28)].map((_, i) => (
-          <div
-            key={`bamboo-${i}`}
-            className="absolute animate-[bamboo-fall_12s_linear_infinite] opacity-40"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `-10%`,
-              animationDelay: `${i * 0.4}s`,
-            }}
-          >
-            <div className="w-8 h-16 bg-gradient-to-b from-[hsl(var(--bamboo-night-green))] to-emerald-800 rounded-full animate-[bamboo-sway_2s_ease-in-out_infinite]" />
-          </div>
-        ))}
-
-        {/* Sakura Petals */}
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={`petal-${i}`}
-            className="absolute animate-[sakura-fall_15s_linear_infinite] opacity-60"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `-10%`,
-              animationDelay: `${i * 0.7}s`,
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 50 50">
-              <circle cx="25" cy="25" r="8" fill="hsl(var(--sakura-pink))" opacity="0.8" />
-              <ellipse cx="25" cy="15" rx="5" ry="10" fill="hsl(var(--cherry-glow-pink))" opacity="0.6" />
-              <ellipse cx="35" cy="25" rx="10" ry="5" fill="hsl(var(--cherry-glow-pink))" opacity="0.6" />
-              <ellipse cx="25" cy="35" rx="5" ry="10" fill="hsl(var(--cherry-glow-pink))" opacity="0.6" />
-              <ellipse cx="15" cy="25" rx="10" ry="5" fill="hsl(var(--cherry-glow-pink))" opacity="0.6" />
-            </svg>
-          </div>
-        ))}
-
-        {/* Floating Lanterns */}
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={`lantern-${i}`}
-            className="absolute animate-[lantern-float_20s_ease-in-out_infinite]"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 80}%`,
-              animationDelay: `${i * 2.5}s`,
-            }}
-          >
-            <div className="w-16 h-20 bg-gradient-to-b from-[hsl(var(--lantern-glow-orange))] to-red-600 rounded-lg opacity-40 shadow-[0_0_30px_hsl(var(--lantern-glow-orange))]" />
-          </div>
-        ))}
-          </>
-        )}
-
+      <div className="min-h-screen relative overflow-hidden">
         {/* Main Content */}
         <div className="relative z-10 container mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className={cn(
-                "text-4xl font-bold mb-2",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-r from-[hsl(var(--torii-red))] via-[hsl(var(--sakura-pink))] to-[hsl(var(--gold-kin))] bg-clip-text text-transparent"
-                  : "text-foreground"
-              )}>
+              <h1 className="text-4xl font-bold mb-2 text-foreground">
                 🏮 Pengeluaran Tetap 🏮
               </h1>
               <p className="text-muted-foreground">
