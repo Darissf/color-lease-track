@@ -5,6 +5,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Jakarta Timezone Helper Functions
+const JAKARTA_OFFSET_HOURS = 7; // UTC+7
+
+const getNowInJakarta = (): Date => {
+  const now = new Date();
+  return new Date(now.getTime() + (JAKARTA_OFFSET_HOURS * 60 * 60 * 1000));
+};
+
+const toJakartaTime = (dateStr: string): Date => {
+  const date = new Date(dateStr);
+  return new Date(date.getTime() + (JAKARTA_OFFSET_HOURS * 60 * 60 * 1000));
+};
+
+const formatJakartaDate = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -15,7 +32,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const today = new Date();
+    const today = getNowInJakarta();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
@@ -33,7 +50,7 @@ Deno.serve(async (req) => {
     const processedIds = [];
 
     for (const contract of unpaidContracts || []) {
-      const contractDate = new Date(contract.tanggal);
+      const contractDate = toJakartaTime(contract.tanggal);
       const contractMonth = contractDate.getMonth();
       const contractYear = contractDate.getFullYear();
 
@@ -47,7 +64,7 @@ Deno.serve(async (req) => {
           .select('id')
           .eq('user_id', contract.user_id)
           .eq('client_group_id', contract.client_group_id)
-          .eq('tanggal', nextMonthDate.toISOString().split('T')[0])
+          .eq('tanggal', formatJakartaDate(nextMonthDate))
           .single();
 
         if (!existingContract) {
@@ -57,7 +74,7 @@ Deno.serve(async (req) => {
             client_group_id: contract.client_group_id,
             start_date: contract.start_date,
             end_date: contract.end_date,
-            tanggal: nextMonthDate.toISOString().split('T')[0],
+            tanggal: formatJakartaDate(nextMonthDate),
             tagihan_belum_bayar: contract.tagihan_belum_bayar,
             jumlah_lunas: 0,
             status: 'masa sewa',

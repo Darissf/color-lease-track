@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 import { formatRupiah } from "@/lib/currency";
+import { getJakartaDay, toJakartaTime } from "@/lib/timezone";
 
 interface BudgetForecastChartProps {
   expenses: any[];
@@ -13,7 +14,7 @@ export const BudgetForecastChart = ({ expenses, targetBudget, daysInMonth }: Bud
     const dailyExpenses: Record<number, number> = {};
     
     expenses.forEach(expense => {
-      const day = new Date(expense.date).getDate();
+      const day = toJakartaTime(expense.date).getDate();
       dailyExpenses[day] = (dailyExpenses[day] || 0) + Number(expense.amount);
     });
 
@@ -29,11 +30,12 @@ export const BudgetForecastChart = ({ expenses, targetBudget, daysInMonth }: Bud
       const avgDailySpending = cumulative / day;
       const projected = avgDailySpending * daysInMonth;
       
+      const currentDay = getJakartaDay();
       data.push({
         day,
-        actual: day <= new Date().getDate() ? cumulative : null,
+        actual: day <= currentDay ? cumulative : null,
         ideal: idealSpending,
-        forecast: day > new Date().getDate() ? (cumulative + avgDailySpending * (day - new Date().getDate())) : null,
+        forecast: day > currentDay ? (cumulative + avgDailySpending * (day - currentDay)) : null,
       });
     }
 

@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Monitor, Smartphone, Tablet, LogOut } from "lucide-react";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import { formatInJakarta } from "@/lib/timezone";
 
 interface Session {
   id: string;
@@ -131,7 +130,7 @@ export function SessionManagement() {
                     IP: {session.ip_address || "Unknown"}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Terakhir aktif: {format(new Date(session.last_active), "PPp", { locale: id })}
+                    Terakhir aktif: {formatInJakarta(session.last_active, "PPp")}
                   </div>
                   {session.id === currentSessionId && (
                     <div className="text-xs text-primary font-medium">

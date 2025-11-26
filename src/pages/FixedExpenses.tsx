@@ -16,6 +16,7 @@ import { HankoNotificationContainer } from "@/components/HankoNotificationContai
 import { SakuraConfetti } from "@/components/SakuraConfetti";
 import { useNotificationContext } from "@/contexts/NotificationContext";
 import { useExpenseNotifications } from "@/hooks/useExpenseNotifications";
+import { getNowInJakarta, getJakartaDateString, getJakartaMonth, getJakartaYear } from "@/lib/timezone";
 
 export interface FixedExpense {
   id: string;
@@ -94,10 +95,10 @@ const FixedExpensesContent = () => {
 
   const fetchHistory = async () => {
     try {
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const startDate = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
-      const endDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
+      const currentMonth = getJakartaMonth();
+      const currentYear = getJakartaYear();
+      const startDate = getJakartaDateString(new Date(currentYear, currentMonth, 1));
+      const endDate = getJakartaDateString(new Date(currentYear, currentMonth + 1, 0));
 
       const { data, error } = await supabase
         .from('fixed_expense_history')
@@ -158,7 +159,7 @@ const FixedExpensesContent = () => {
         .insert({
           fixed_expense_id: expense.id,
           user_id: user.id,
-          paid_date: new Date().toISOString().split('T')[0],
+          paid_date: getJakartaDateString(),
           paid_amount: amount,
           status: 'paid',
         });
@@ -173,7 +174,7 @@ const FixedExpensesContent = () => {
           transaction_name: expense.expense_name,
           category: 'Pengeluaran Tetap',
           amount: amount,
-          date: new Date().toISOString().split('T')[0],
+          date: getJakartaDateString(),
           description: `Pembayaran ${expense.expense_name} - Jatuh tempo tanggal ${expense.due_date_day}`,
           bank_account_id: expense.bank_account_id || null,
           is_fixed: true,

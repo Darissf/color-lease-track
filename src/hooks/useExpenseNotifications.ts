@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNotificationContext } from '@/contexts/NotificationContext';
+import { getNowInJakarta, getJakartaDay, getJakartaDateString } from '@/lib/timezone';
 
 interface FixedExpense {
   id: string;
@@ -27,9 +28,9 @@ export const useExpenseNotifications = (
     if (!expenses || expenses.length === 0) return;
 
     const checkDueDates = () => {
-      const today = new Date();
-      const todayDay = today.getDate();
-      const todayKey = today.toISOString().split('T')[0];
+      const today = getNowInJakarta();
+      const todayDay = getJakartaDay();
+      const todayKey = getJakartaDateString();
 
       // Only check once per day
       if (lastCheckRef.current === todayKey) return;
@@ -39,7 +40,7 @@ export const useExpenseNotifications = (
         if (!expense.is_active) return;
 
         // Check if already paid this month
-        const currentMonth = today.toISOString().slice(0, 7); // YYYY-MM
+        const currentMonth = getJakartaDateString().slice(0, 7); // YYYY-MM
         const isPaidThisMonth = history.some(h => 
           h.fixed_expense_id === expense.id &&
           h.paid_date.startsWith(currentMonth)
@@ -87,8 +88,8 @@ export const useExpenseNotifications = (
     // Check immediately
     checkDueDates();
 
-    // Check daily at midnight
-    const now = new Date();
+    // Check daily at midnight Jakarta time
+    const now = getNowInJakarta();
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);

@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { formatRupiah } from "@/lib/currency";
 import { TrendingUp, Info } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { toJakartaTime } from "@/lib/timezone";
 
 interface DailyTrendChartProps {
   expenses: any[];
@@ -25,7 +26,7 @@ export const DailyTrendChart = ({
   const dailyExpenses = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
     const dayExpenses = expenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
+      const expenseDate = toJakartaTime(expense.date);
       return expenseDate.getDate() === day;
     });
     
