@@ -1,4 +1,4 @@
-import { Moon, Sun, Palette } from 'lucide-react';
+import { Moon, Sun, Palette, Waves, Sunset, Leaf, Sparkles, Box } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,22 +24,57 @@ export function ThemeSelector() {
           onClick={() => setAppTheme('japanese')}
           className={appTheme === 'japanese' ? 'bg-accent' : ''}
         >
-          <Moon className="mr-2 h-4 w-4" />
+          <Moon className="mr-2 h-4 w-4 text-purple-400" />
           <span>Japanese Night</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setAppTheme('professional')}
           className={appTheme === 'professional' ? 'bg-accent' : ''}
         >
-          <Sun className="mr-2 h-4 w-4" />
+          <Sun className="mr-2 h-4 w-4 text-blue-500" />
           <span>Professional Clean</span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => setAppTheme('auto')}
-          className={appTheme === 'auto' ? 'bg-accent' : ''}
+          onClick={() => setAppTheme('ocean-bali')}
+          className={appTheme === 'ocean-bali' ? 'bg-accent' : ''}
         >
-          <Palette className="mr-2 h-4 w-4" />
-          <span>Auto (System)</span>
+          <Waves className="mr-2 h-4 w-4 text-cyan-500" />
+          <span>Ocean Bali</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setAppTheme('sunset-warm')}
+          className={appTheme === 'sunset-warm' ? 'bg-accent' : ''}
+        >
+          <Sunset className="mr-2 h-4 w-4 text-orange-500" />
+          <span>Sunset Warm</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setAppTheme('bamboo-zen')}
+          className={appTheme === 'bamboo-zen' ? 'bg-accent' : ''}
+        >
+          <Leaf className="mr-2 h-4 w-4 text-green-500" />
+          <span>Bamboo Zen</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setAppTheme('sakura-bloom')}
+          className={appTheme === 'sakura-bloom' ? 'bg-accent' : ''}
+        >
+          <Sparkles className="mr-2 h-4 w-4 text-pink-500" />
+          <span>Sakura Bloom</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setAppTheme('neon-cyber')}
+          className={appTheme === 'neon-cyber' ? 'bg-accent' : ''}
+        >
+          <Sparkles className="mr-2 h-4 w-4 text-purple-500" />
+          <span>Neon Cyber</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setAppTheme('mountain-stone')}
+          className={appTheme === 'mountain-stone' ? 'bg-accent' : ''}
+        >
+          <Box className="mr-2 h-4 w-4 text-gray-500" />
+          <span>Mountain Stone</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
