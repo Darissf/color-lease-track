@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEditableContent } from "@/contexts/EditableContentContext";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Moon, Sun, Sparkles, Briefcase, Monitor } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
@@ -48,23 +48,10 @@ export default function Dashboard() {
   const [expensesByCategory, setExpensesByCategory] = useState<any[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
   const [incomeByClient, setIncomeByClient] = useState<any[]>([]);
-  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>(() => {
-    const saved = localStorage.getItem('dashboard_theme_preference');
-    return (saved as DashboardTheme) || 'japanese';
-  });
 
   useEffect(() => {
     fetchDashboardData();
   }, [user, period]);
-
-  useEffect(() => {
-    localStorage.setItem('dashboard_theme_preference', dashboardTheme);
-  }, [dashboardTheme]);
-
-  // Calculate active theme based on dashboardTheme and system theme
-  const activeTheme = dashboardTheme === 'auto' 
-    ? (theme === 'dark' ? 'japanese' : 'professional')
-    : dashboardTheme;
 
   const fetchDashboardData = async () => {
     if (!user) return;
@@ -224,14 +211,6 @@ export default function Dashboard() {
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(value);
-  };
-
-  const handleDashboardThemeChange = (value: string) => {
-    setDashboardTheme(value as DashboardTheme);
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   if (loading) {
@@ -477,32 +456,6 @@ export default function Dashboard() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Select value={dashboardTheme} onValueChange={handleDashboardThemeChange}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="japanese">
-                  <div className="flex items-center gap-2">
-                    <Moon className="h-4 w-4" />
-                    <span>Japanese Night</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="professional">
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" />
-                    <span>Professional Clean</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="auto">
-                  <div className="flex items-center gap-2">
-                    <Monitor className="h-4 w-4" />
-                    <span>Auto (System)</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            
             <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
@@ -682,11 +635,11 @@ export default function Dashboard() {
                 <AreaChart data={monthlyTrend}>
                   <CartesianGrid 
                     strokeDasharray="3 3" 
-                    stroke={activeTheme === 'japanese' ? themeColors.japanese.chartGrid : themeColors.professional.chartGrid}
+                    stroke={activeTheme === 'japanese' ? '#334155' : '#e2e8f0'}
                   />
                   <XAxis 
                     dataKey="month"
-                    tick={{ fill: activeTheme === 'japanese' ? themeColors.japanese.chartAxis : themeColors.professional.chartAxis }}
+                    tick={{ fill: activeTheme === 'japanese' ? '#94a3b8' : '#64748b' }}
                   />
                   <YAxis 
                     tickFormatter={(value) => {
@@ -696,7 +649,7 @@ export default function Dashboard() {
                     }}
                     tick={{ 
                       fontSize: 12,
-                      fill: activeTheme === 'japanese' ? themeColors.japanese.chartAxis : themeColors.professional.chartAxis
+                      fill: activeTheme === 'japanese' ? '#94a3b8' : '#64748b'
                     }}
                     width={70}
                     tickCount={5}
@@ -704,9 +657,9 @@ export default function Dashboard() {
                   <Tooltip 
                     formatter={(value: any) => formatCurrency(value)}
                     contentStyle={{ 
-                      background: activeTheme === 'japanese' ? themeColors.japanese.tooltipBg : themeColors.professional.tooltipBg,
-                      border: `1px solid ${activeTheme === 'japanese' ? themeColors.japanese.tooltipBorder : themeColors.professional.tooltipBorder}`,
-                      color: themeColors[activeTheme].text,
+                      background: activeTheme === 'japanese' ? '#1e293b' : '#ffffff',
+                      border: `1px solid ${activeTheme === 'japanese' ? '#334155' : '#e2e8f0'}`,
+                      color: activeTheme === 'japanese' ? '#f1f5f9' : '#1e293b',
                       borderRadius: '8px'
                     }}
                   />
@@ -750,14 +703,14 @@ export default function Dashboard() {
                 <BarChart data={incomeByClient}>
                   <CartesianGrid 
                     strokeDasharray="3 3" 
-                    stroke={activeTheme === 'japanese' ? themeColors.japanese.chartGrid : themeColors.professional.chartGrid}
+                    stroke={activeTheme === 'japanese' ? '#334155' : '#e2e8f0'}
                   />
                   <XAxis 
                     dataKey="name" 
                     angle={-45} 
                     textAnchor="end" 
                     height={80}
-                    tick={{ fill: activeTheme === 'japanese' ? themeColors.japanese.chartAxis : themeColors.professional.chartAxis }}
+                    tick={{ fill: activeTheme === 'japanese' ? '#94a3b8' : '#64748b' }}
                   />
                   <YAxis 
                     tickFormatter={(value) => {
@@ -767,16 +720,16 @@ export default function Dashboard() {
                     }}
                     tick={{ 
                       fontSize: 12,
-                      fill: activeTheme === 'japanese' ? themeColors.japanese.chartAxis : themeColors.professional.chartAxis
+                      fill: activeTheme === 'japanese' ? '#94a3b8' : '#64748b'
                     }}
                     width={70}
                   />
                   <Tooltip 
                     formatter={(value: any) => formatCurrency(value)}
                     contentStyle={{ 
-                      background: activeTheme === 'japanese' ? themeColors.japanese.tooltipBg : themeColors.professional.tooltipBg,
-                      border: `1px solid ${activeTheme === 'japanese' ? themeColors.japanese.tooltipBorder : themeColors.professional.tooltipBorder}`,
-                      color: themeColors[activeTheme].text,
+                      background: activeTheme === 'japanese' ? '#1e293b' : '#ffffff',
+                      border: `1px solid ${activeTheme === 'japanese' ? '#334155' : '#e2e8f0'}`,
+                      color: activeTheme === 'japanese' ? '#f1f5f9' : '#1e293b',
                       borderRadius: '8px'
                     }}
                   />
@@ -814,7 +767,7 @@ export default function Dashboard() {
                     data={expensesByCategory}
                     cx="50%"
                     cy="50%"
-                    labelLine={{ stroke: activeTheme === 'japanese' ? themeColors.japanese.chartAxis : themeColors.professional.chartAxis }}
+                    labelLine={{ stroke: activeTheme === 'japanese' ? '#94a3b8' : '#64748b' }}
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
@@ -827,9 +780,9 @@ export default function Dashboard() {
                   <Tooltip 
                     formatter={(value: any) => formatCurrency(value)}
                     contentStyle={{ 
-                      background: activeTheme === 'japanese' ? themeColors.japanese.tooltipBg : themeColors.professional.tooltipBg,
-                      border: `1px solid ${activeTheme === 'japanese' ? themeColors.japanese.tooltipBorder : themeColors.professional.tooltipBorder}`,
-                      color: themeColors[activeTheme].text,
+                      background: activeTheme === 'japanese' ? '#1e293b' : '#ffffff',
+                      border: `1px solid ${activeTheme === 'japanese' ? '#334155' : '#e2e8f0'}`,
+                      color: activeTheme === 'japanese' ? '#f1f5f9' : '#1e293b',
                       borderRadius: '8px'
                     }}
                   />
