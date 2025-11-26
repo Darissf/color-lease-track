@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Power, TestTube, GripVertical, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Power, TestTube, GripVertical, AlertCircle, Pencil } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,8 @@ const EmailProviderManager = () => {
   const [providers, setProviders] = useState<EmailProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<EmailProvider | null>(null);
   const [newProvider, setNewProvider] = useState({
     provider_name: "resend",
     display_name: "",
@@ -43,6 +45,15 @@ const EmailProviderManager = () => {
     sender_name: "",
     daily_limit: 100,
     monthly_limit: 3000,
+  });
+  const [editForm, setEditForm] = useState({
+    display_name: "",
+    api_key: "",
+    sender_email: "",
+    sender_name: "",
+    daily_limit: 100,
+    monthly_limit: 3000,
+    priority: 1,
   });
 
   useEffect(() => {
@@ -189,6 +200,63 @@ const EmailProviderManager = () => {
     }
   };
 
+  const handleOpenEdit = (provider: EmailProvider) => {
+    setEditingProvider(provider);
+    setEditForm({
+      display_name: provider.display_name || "",
+      api_key: "",
+      sender_email: provider.sender_email,
+      sender_name: provider.sender_name || "",
+      daily_limit: provider.daily_limit,
+      monthly_limit: provider.monthly_limit,
+      priority: provider.priority,
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateProvider = async () => {
+    if (!editingProvider) return;
+
+    try {
+      const updateData: any = {
+        display_name: editForm.display_name,
+        sender_email: editForm.sender_email,
+        sender_name: editForm.sender_name,
+        daily_limit: editForm.daily_limit,
+        monthly_limit: editForm.monthly_limit,
+        priority: editForm.priority,
+      };
+
+      // Only update API key if provided
+      if (editForm.api_key) {
+        updateData.api_key_encrypted = editForm.api_key;
+      }
+
+      const { error } = await supabase
+        .from("email_providers")
+        .update(updateData)
+        .eq("id", editingProvider.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Provider updated successfully",
+      });
+
+      setShowEditDialog(false);
+      setEditingProvider(null);
+      fetchProviders();
+    } catch (error: any) {
+      console.error("Error updating provider:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update provider",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getHealthBadge = (status: string) => {
     switch (status) {
       case "healthy":
@@ -326,6 +394,9 @@ const EmailProviderManager = () => {
                         <Button size="sm" variant="outline" onClick={() => handleTestProvider(provider)}>
                           <TestTube className="h-4 w-4" />
                         </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleOpenEdit(provider)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button
                           size="sm"
                           variant={provider.is_active ? "outline" : "default"}
@@ -432,6 +503,99 @@ const EmailProviderManager = () => {
               </Button>
               <Button onClick={handleAddProvider} className="flex-1">
                 Add Provider
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Provider Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Email Provider</DialogTitle>
+            <DialogDescription>Update provider configuration</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Display Name</Label>
+              <Input
+                placeholder="e.g., Primary Resend"
+                value={editForm.display_name}
+                onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label>API Key (leave empty to keep current)</Label>
+              <Input
+                type="password"
+                placeholder="Enter new API key (optional)"
+                value={editForm.api_key}
+                onChange={(e) => setEditForm({ ...editForm, api_key: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Only fill this if you want to change the API key
+              </p>
+            </div>
+
+            <div>
+              <Label>Sender Email</Label>
+              <Input
+                type="email"
+                placeholder="noreply@yourdomain.com"
+                value={editForm.sender_email}
+                onChange={(e) => setEditForm({ ...editForm, sender_email: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label>Sender Name</Label>
+              <Input
+                placeholder="Your Company"
+                value={editForm.sender_name}
+                onChange={(e) => setEditForm({ ...editForm, sender_name: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Daily Limit</Label>
+                <Input
+                  type="number"
+                  value={editForm.daily_limit}
+                  onChange={(e) => setEditForm({ ...editForm, daily_limit: parseInt(e.target.value) })}
+                />
+              </div>
+              <div>
+                <Label>Monthly Limit</Label>
+                <Input
+                  type="number"
+                  value={editForm.monthly_limit}
+                  onChange={(e) => setEditForm({ ...editForm, monthly_limit: parseInt(e.target.value) })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Priority (1 = highest)</Label>
+              <Input
+                type="number"
+                min="1"
+                value={editForm.priority}
+                onChange={(e) => setEditForm({ ...editForm, priority: parseInt(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Lower numbers are tried first in the rotation
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowEditDialog(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateProvider} className="flex-1">
+                Save Changes
               </Button>
             </div>
           </div>
