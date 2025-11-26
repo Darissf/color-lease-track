@@ -30,8 +30,6 @@ async function testProviderHealth(provider: EmailProvider): Promise<boolean> {
         return await testBrevoHealth(provider);
       case 'mailjet':
         return await testMailjetHealth(provider);
-      case 'sendgrid':
-        return await testSendGridHealth(provider);
       default:
         console.log(`[health-check] Unknown provider: ${provider.provider_name}`);
         return false;
@@ -71,16 +69,6 @@ async function testMailjetHealth(provider: EmailProvider): Promise<boolean> {
     method: "GET",
     headers: {
       Authorization: `Basic ${btoa(`${apiKey}:${secretKey}`)}`,
-    },
-  });
-  return response.ok;
-}
-
-async function testSendGridHealth(provider: EmailProvider): Promise<boolean> {
-  const response = await fetch("https://api.sendgrid.com/v3/user/profile", {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${provider.api_key_encrypted}`,
     },
   });
   return response.ok;
