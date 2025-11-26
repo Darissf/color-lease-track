@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
-import { useContentAutoApply } from "@/hooks/useContentAutoApply";
+
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAppTheme } from "@/contexts/AppThemeContext";
@@ -71,74 +71,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return 'U';
   };
   const location = useLocation();
-  const { applyForPage } = useContentAutoApply();
-  const [applying, setApplying] = useState(false);
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
   };
-
-  const handleAutoApply = async () => {
-    if (!isSuperAdmin) return;
-    setApplying(true);
-    try {
-      const res = await applyForPage(location.pathname);
-      if (!res) {
-        toast.message("Tidak ada konten untuk halaman ini");
-        return;
-      }
-      const { applied, skipped, notFound } = res;
-      if (applied > 0) {
-        toast.success(`Terapkan: ${applied} | Sama: ${skipped} | Tidak ditemukan: ${notFound}`);
-      } else if (skipped > 0 && notFound === 0) {
-        toast.success(`Semua sudah sesuai (${skipped})`);
-      } else {
-        toast.warning(`Tidak ditemukan: ${notFound}, sama: ${skipped}`);
-      }
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e?.message || "Gagal menerapkan konten");
-    } finally {
-      setApplying(false);
-    }
-  };
-
-  // Auto-apply on route change for super admin OR when autoApply param is present
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const shouldAutoApply = isSuperAdmin || params.get('autoApply') === 'true';
-    
-    if (!shouldAutoApply) return;
-    
-    // Run twice to catch late-mounted components
-    const t1 = setTimeout(() => {
-      applyForPage(location.pathname);
-    }, 60);
-    const t2 = setTimeout(() => {
-      applyForPage(location.pathname);
-    }, 900);
-    
-    // Show toast notification when triggered by URL param
-    if (params.get('autoApply') === 'true') {
-      setTimeout(async () => {
-        const res = await applyForPage(location.pathname);
-        if (res) {
-          const { applied, skipped, notFound } = res;
-          if (applied > 0) {
-            toast.success(`Auto-apply selesai! Terapkan: ${applied} | Sama: ${skipped} | Tidak ditemukan: ${notFound}`);
-          } else {
-            toast.info(`Semua sudah sesuai (${skipped})`);
-          }
-        }
-      }, 1200);
-    }
-    
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [isSuperAdmin, location.pathname, applyForPage]);
 
   // Different menu for regular users vs admins
   const pagesItems = (isUser && !isAdmin && !isSuperAdmin) ? [
@@ -178,13 +115,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
           "backdrop-blur-sm border-sidebar-border",
           sidebarOpen
             ? "translate-x-0 w-64"
-            : "-translate-x-full lg:translate-x-0 w-0 lg:w-16"
+            : "-translate-x-full lg:translate-x-0 w-0 lg:w-16 overflow-hidden"
         )}
       >
-        {/* Accent line */}
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-sidebar-primary via-sidebar-primary/50 to-transparent" />
-        {/* Logo */}
-        <div className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border">
+        {(sidebarOpen || !isMobile) && (
+          <>
+            {/* Accent line */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-sidebar-primary via-sidebar-primary/50 to-transparent" />
+            {/* Logo */}
+            <div className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border">
           {sidebarOpen ? (
             <h1 className="text-sm font-semibold text-sidebar-foreground">
               Financial Planner
@@ -298,6 +237,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             )}
           </button>
         </div>
+          </>
+        )}
       </aside>
 
       {/* Main Content */}
@@ -330,19 +271,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
-            {isSuperAdmin && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleAutoApply}
-                disabled={applying}
-                className="mr-1"
-                aria-label="Terapkan konten otomatis untuk halaman ini"
-                title="Terapkan konten otomatis untuk halaman ini"
-              >
-                {applying ? "Menerapkan..." : "Terapkan Otomatis"}
-              </Button>
-            )}
             {/* Notifications */}
             <button className="relative p-2 rounded hover:bg-accent transition-colors">
               <Bell className="h-4 w-4 text-foreground" />
