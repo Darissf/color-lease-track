@@ -80,6 +80,16 @@ All colors MUST be HSL.
     
     /* Radius */
     --radius: 0.375rem;
+
+    /* Sidebar Variables */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 15%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-primary: 0 0% 9%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-ring: 0 0% 9%;
     
     /* Light Blue Theme Gradients */
     --gradient-sky-cyan: linear-gradient(135deg, hsl(var(--sky-blue)), hsl(var(--cyan)));
@@ -114,6 +124,16 @@ All colors MUST be HSL.
     --text-primary: #FFFFFF;
     --text-secondary: #E2E8F0;
     --text-muted: #94A3B8;
+
+    /* Sidebar Variables - Light text on dark background */
+    --sidebar-background: 230 40% 15%;
+    --sidebar-foreground: 60 100% 97%;
+    --sidebar-border: 220 30% 25%;
+    --sidebar-accent: 230 45% 20%;
+    --sidebar-accent-foreground: 45 95% 85%;
+    --sidebar-primary: 263 70% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-ring: 263 70% 50%;
   }
 
   /* Override Card components for Japanese theme */
