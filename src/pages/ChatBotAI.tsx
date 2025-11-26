@@ -559,14 +559,14 @@ export default function ChatBotAI() {
         onSelectConversation={loadConversation}
       />
       <AnimatedBackground theme="budget">
-        <div className="container mx-auto px-2 py-2 md:p-4 h-full flex flex-col">
-      <div className="mb-2 md:mb-4 shrink-0">
+        <div className="container mx-auto px-2 py-1 md:p-4 h-[calc(100vh-104px)] flex flex-col overflow-hidden">
+      <div className="mb-1 md:mb-4 shrink-0">
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 bg-clip-text text-transparent truncate">
+            <h1 className="text-xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 bg-clip-text text-transparent truncate">
               ✨ ChatBot AI
             </h1>
-            <p className="text-sm md:text-lg bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent mt-1 truncate">
+            <p className="text-xs md:text-lg bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent mt-1 truncate hidden xs:block">
               {conversationTitle}
             </p>
           </div>
@@ -808,7 +808,7 @@ export default function ChatBotAI() {
             </DropdownMenu>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <div className="mt-2 md:mt-3 flex items-center gap-2 flex-wrap">
           <Badge className="gap-1 bg-gradient-to-r from-purple-500 to-pink-600 text-white border-0 shadow-lg shadow-purple-500/50">
             <Sparkles className="w-3 h-3" />
             {activeProvider}
@@ -827,7 +827,7 @@ export default function ChatBotAI() {
           </Select>
         </div>
         {!["openai", "claude", "deepseek", "gemini"].includes(activeProvider) && (
-          <Alert className="mt-3 border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
+          <Alert className="mt-2 md:mt-3 border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5 hidden md:flex">
             <Sparkles className="h-4 w-4 text-purple-500" />
             <AlertDescription className="text-foreground">
               Provider {activeProvider} tidak mendukung akses database. Untuk pertanyaan yang membutuhkan data (invoice, pemasukan, pengeluaran, kontrak sewa), gunakan OpenAI, Claude, Gemini, atau DeepSeek.
@@ -840,7 +840,7 @@ export default function ChatBotAI() {
         <ScrollArea className="flex-1 min-h-0 p-4">
           {messages.length === 0 && (
             <>
-              <Alert className="mb-4 border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
+              <Alert className="mb-4 border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5 hidden md:flex">
                 <Sparkles className="h-4 w-4 text-purple-500" />
                 <AlertDescription className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   Mulai percakapan baru atau load dari history. Model yang dipilih: <strong>{selectedModel}</strong>
