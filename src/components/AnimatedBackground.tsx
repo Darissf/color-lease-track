@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { useAppTheme } from "@/contexts/AppThemeContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 interface AnimatedBackgroundProps {
@@ -9,6 +10,7 @@ interface AnimatedBackgroundProps {
 
 export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBackgroundProps) => {
   const { activeTheme } = useAppTheme();
+  const isMobile = useIsMobile();
   
   const themeColors = {
     income: {
@@ -52,8 +54,8 @@ export const AnimatedBackground = ({ children, theme = "neutral" }: AnimatedBack
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Animated floating shapes - only show for Japanese theme */}
-      {activeTheme === 'japanese' && (
+      {/* Animated floating shapes - only show for Japanese theme and NOT on mobile */}
+      {activeTheme === 'japanese' && !isMobile && (
         <>
           <div className={`absolute top-20 left-10 w-72 h-72 bg-gradient-to-br ${colors.shapes[0]} rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-20 dark:opacity-10 animate-float`}></div>
           <div className={`absolute top-40 right-10 w-96 h-96 bg-gradient-to-br ${colors.shapes[1]} rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-20 dark:opacity-10 animate-float-delayed`}></div>
