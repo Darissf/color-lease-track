@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus, Calendar as CalendarIcon, LayoutGrid, Moon, Sun } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useTheme } from "@/components/ui/theme-provider";
 import { FixedExpenseSummary } from "@/components/fixed-expenses/FixedExpenseSummary";
+import { cn } from "@/lib/utils";
 import { FixedExpenseList } from "@/components/fixed-expenses/FixedExpenseList";
 import { FixedExpenseCalendar } from "@/components/fixed-expenses/FixedExpenseCalendar";
 import { FixedExpenseForm } from "@/components/fixed-expenses/FixedExpenseForm";
@@ -17,6 +17,7 @@ import { SakuraConfetti } from "@/components/SakuraConfetti";
 import { useNotificationContext } from "@/contexts/NotificationContext";
 import { useExpenseNotifications } from "@/hooks/useExpenseNotifications";
 import { getNowInJakarta, getJakartaDateString, getJakartaMonth, getJakartaYear } from "@/lib/timezone";
+import { useAppTheme } from "@/contexts/AppThemeContext";
 
 export interface FixedExpense {
   id: string;
@@ -51,7 +52,7 @@ export interface FixedExpenseHistory {
 const FixedExpensesContent = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
+  const { activeTheme } = useAppTheme();
   const { addNotification } = useNotificationContext();
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<FixedExpense[]>([]);
@@ -227,12 +228,18 @@ const FixedExpensesContent = () => {
 
   return (
     <>
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-background via-background to-muted/20">
-        {/* Animated Background Elements */}
-        
-        {/* Stars */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {[...Array(100)].map((_, i) => (
+      <div className={cn(
+        "min-h-screen relative overflow-hidden",
+        activeTheme === 'japanese' 
+          ? "bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" 
+          : "bg-background"
+      )}>
+        {/* Animated Background Elements - Only for Japanese Theme */}
+        {activeTheme === 'japanese' && (
+          <>
+            {/* Stars */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {[...Array(100)].map((_, i) => (
             <div
               key={`star-${i}`}
               className="absolute w-1 h-1 bg-white rounded-full animate-[star-twinkle_3s_ease-in-out_infinite]"
@@ -358,13 +365,20 @@ const FixedExpensesContent = () => {
             <div className="w-16 h-20 bg-gradient-to-b from-[hsl(var(--lantern-glow-orange))] to-red-600 rounded-lg opacity-40 shadow-[0_0_30px_hsl(var(--lantern-glow-orange))]" />
           </div>
         ))}
+          </>
+        )}
 
         {/* Main Content */}
         <div className="relative z-10 container mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-[hsl(var(--torii-red))] via-[hsl(var(--sakura-pink))] to-[hsl(var(--gold-kin))] bg-clip-text text-transparent">
+              <h1 className={cn(
+                "text-4xl font-bold mb-2",
+                activeTheme === 'japanese'
+                  ? "bg-gradient-to-r from-[hsl(var(--torii-red))] via-[hsl(var(--sakura-pink))] to-[hsl(var(--gold-kin))] bg-clip-text text-transparent"
+                  : "text-foreground"
+              )}>
                 🏮 Pengeluaran Tetap 🏮
               </h1>
               <p className="text-muted-foreground">
@@ -372,14 +386,6 @@ const FixedExpensesContent = () => {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="rounded-full"
-              >
-                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </Button>
               <Button onClick={handleAddExpense} className="gap-2">
                 <Plus className="w-5 h-5" />
                 Tambah Pengeluaran

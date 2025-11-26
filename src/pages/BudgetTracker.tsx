@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TrendingUp, Target, PiggyBank, Wallet, Calendar, Plus, AlertTriangle, CheckCircle2, ArrowUpDown, Settings } from "lucide-react";
 import { formatRupiah } from "@/lib/currency";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { cn } from "@/lib/utils";
 import { GradientButton } from "@/components/GradientButton";
 import { ColoredProgressBar } from "@/components/ColoredProgressBar";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
@@ -38,6 +39,7 @@ import { AIInsightsPanel } from "@/components/budget/AIInsightsPanel";
 import { calculateCategoryProgress, calculateDailyPace, getCurrentDayForMonth } from "@/utils/budgetCalculations";
 import { useAlertChecker } from "@/hooks/useAlertChecker";
 import { useBudgetKeyboardShortcuts } from "@/hooks/useBudgetKeyboardShortcuts";
+import { useAppTheme } from "@/contexts/AppThemeContext";
 
 interface MonthlyBudget {
   id: string;
@@ -72,6 +74,7 @@ const CATEGORY_COLORS = {
 
 const BudgetTracker = () => {
   const { user } = useAuth();
+  const { activeTheme } = useAppTheme();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [currentBudget, setCurrentBudget] = useState<MonthlyBudget | null>(null);
@@ -394,7 +397,10 @@ const BudgetTracker = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gradient-budget mb-2">
+            <h1 className={cn(
+              "text-4xl font-bold mb-2",
+              activeTheme === 'japanese' ? "text-gradient-budget" : "text-foreground"
+            )}>
               Pelacak Anggaran Bulanan
             </h1>
             <p className="text-muted-foreground">Monitor dan kelola anggaran bulanan Anda</p>

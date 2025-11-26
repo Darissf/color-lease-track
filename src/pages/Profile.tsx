@@ -13,10 +13,13 @@ import { Loader2, User, Bell, Shield, Mail, Phone } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { useNotificationContext } from "@/contexts/NotificationContext";
+import { useAppTheme } from "@/contexts/AppThemeContext";
+import { cn } from "@/lib/utils";
 
 export default function Profile() {
   const { user, isAdmin, isSuperAdmin } = useAuth();
   const { profile, loading, refetch } = useProfile();
+  const { activeTheme } = useAppTheme();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -224,7 +227,12 @@ export default function Profile() {
       <AnimatedBackground>
         <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-torii-red via-sakura-pink to-matcha-green bg-clip-text text-transparent">
+          <h1 className={cn(
+            "text-4xl font-bold",
+            activeTheme === 'japanese'
+              ? "bg-gradient-to-r from-torii-red via-sakura-pink to-matcha-green bg-clip-text text-transparent"
+              : "text-foreground"
+          )}>
             Profile 👤
           </h1>
           <p className="text-muted-foreground mt-2">Kelola informasi pribadi dan preferensi Anda</p>
@@ -232,7 +240,7 @@ export default function Profile() {
 
         <div className="space-y-6">
           {/* Avatar Section */}
-          <Card className="profile-card">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -250,7 +258,7 @@ export default function Profile() {
           </Card>
 
           {/* Personal Information */}
-          <Card className="profile-card">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -323,7 +331,7 @@ export default function Profile() {
           </Card>
 
           {/* Notification Preferences */}
-          <Card className="profile-card">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
@@ -399,7 +407,7 @@ export default function Profile() {
           </Card>
 
           {/* Account Actions */}
-          <Card className="profile-card">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />

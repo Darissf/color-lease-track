@@ -1832,3 +1832,53 @@ button[role="switch"][data-state="checked"] {
   }
 }
 
+/* Global Theme-Aware Classes */
+[data-theme="professional"] .gradient-card {
+  @apply bg-card border border-border;
+}
+
+[data-theme="professional"] .gradient-primary {
+  @apply bg-primary hover:bg-primary/90;
+}
+
+[data-theme="professional"] .gradient-success {
+  @apply bg-emerald-600 hover:bg-emerald-700;
+}
+
+[data-theme="professional"] .gradient-secondary {
+  @apply bg-rose-600 hover:bg-rose-700;
+}
+
+[data-theme="professional"] .text-gradient-budget {
+  @apply text-foreground;
+}
+
+[data-theme="professional"] .text-gradient-purple {
+  @apply text-foreground;
+}
+
+/* Global Theme-Aware Classes */
+[data-theme="professional"] .gradient-card {
+  @apply bg-card border border-border;
+}
+
+[data-theme="professional"] .gradient-primary {
+  @apply bg-primary hover:bg-primary/90;
+}
+
+[data-theme="professional"] .gradient-success {
+  @apply bg-emerald-600 hover:bg-emerald-700;
+}
+
+[data-theme="professional"] .gradient-secondary {
+  @apply bg-rose-600 hover:bg-rose-700;
+}
+
+[data-theme="professional"] .text-gradient-budget {
+  @apply text-foreground;
+}
+
+[data-theme="professional"] .text-gradient-purple {
+  @apply text-foreground;
+}
+
