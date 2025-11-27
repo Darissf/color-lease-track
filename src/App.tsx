@@ -32,6 +32,7 @@ import IncomeSettings from "./pages/IncomeSettings";
 import SavingsSettings from "./pages/SavingsSettings";
 import AuditLogs from "./pages/AuditLogs";
 import ContentStudio from "./pages/ContentStudio";
+import ContentEditorChooser from "./pages/ContentEditorChooser";
 import BlogPosts from "./pages/admin/BlogPosts";
 import BlogPostEditor from "./pages/admin/BlogPostEditor";
 import BlogCategories from "./pages/admin/BlogCategories";
@@ -109,6 +110,7 @@ const App = () => (
                               <Route path="/audit-logs" element={<AuditLogs />} />
                               <Route path="/edit-page" element={<EditPage />} />
                               <Route path="/content-studio" element={<ContentStudio />} />
+                              <Route path="/settings/content-editor" element={<ContentEditorChooser />} />
                               <Route path="/blog-posts" element={<BlogPosts />} />
                               <Route path="/blog-posts/new" element={<BlogPostEditor />} />
                               <Route path="/blog-posts/:id/edit" element={<BlogPostEditor />} />
