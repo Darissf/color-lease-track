@@ -5,6 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 export interface BrandSettings {
   id: string;
   brand_text: string;
+  display_mode: 'text' | 'image';
+  brand_image_url: string | null;
+  image_height: number;
+  image_max_width: number;
   font_family: string;
   font_weight: string;
   font_size: number;

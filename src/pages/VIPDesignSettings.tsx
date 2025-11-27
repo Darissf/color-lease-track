@@ -9,8 +9,9 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Save, RotateCcw, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, AlignLeft, AlignCenter, AlignRight, Type, Image as ImageIcon, Upload, X } from "lucide-react";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // 40+ Fonts categorized
@@ -111,7 +112,11 @@ const VIPDesignSettings = () => {
   const { settings, isLoading, updateSettings, isUpdating } = useBrandSettings();
 
   const [formData, setFormData] = useState({
+    display_mode: 'text' as 'text' | 'image',
     brand_text: "SewaScaffoldingBali.com",
+    brand_image_url: null as string | null,
+    image_height: 40,
+    image_max_width: 200,
     font_family: "Playfair Display",
     font_weight: "700",
     font_size: 24,
@@ -138,11 +143,17 @@ const VIPDesignSettings = () => {
   });
 
   const [previewBg, setPreviewBg] = useState<"light" | "dark">("dark");
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings) {
       setFormData({
+        display_mode: settings.display_mode,
         brand_text: settings.brand_text,
+        brand_image_url: settings.brand_image_url,
+        image_height: settings.image_height,
+        image_max_width: settings.image_max_width,
         font_family: settings.font_family,
         font_weight: settings.font_weight,
         font_size: settings.font_size,
@@ -167,6 +178,7 @@ const VIPDesignSettings = () => {
         outline_width: settings.outline_width,
         animation: settings.animation
       });
+      setImagePreview(settings.brand_image_url);
     }
   }, [settings]);
 
@@ -177,7 +189,11 @@ const VIPDesignSettings = () => {
 
   const handleReset = () => {
     setFormData({
+      display_mode: 'text',
       brand_text: "SewaScaffoldingBali.com",
+      brand_image_url: null,
+      image_height: 40,
+      image_max_width: 200,
       font_family: "Playfair Display",
       font_weight: "700",
       font_size: 24,
@@ -202,7 +218,86 @@ const VIPDesignSettings = () => {
       outline_width: 1,
       animation: "shimmer"
     });
+    setImagePreview(null);
     toast.info("Reset to default values");
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Format tidak didukung. Gunakan PNG, JPG, WebP, atau SVG");
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File terlalu besar. Maksimal 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Delete old image if exists
+      if (formData.brand_image_url) {
+        const oldPath = formData.brand_image_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage.from('brand-images').remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      // Upload new image
+      const fileExt = file.name.split('.').pop();
+      const fileName = `brand-logo-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('brand-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('brand-images')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, brand_image_url: publicUrl });
+      setImagePreview(publicUrl);
+      toast.success("Gambar berhasil diupload!");
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error(error.message || "Gagal upload gambar");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!formData.brand_image_url) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const oldPath = formData.brand_image_url.split('/').pop();
+      if (oldPath) {
+        await supabase.storage.from('brand-images').remove([`${user.id}/${oldPath}`]);
+      }
+
+      setFormData({ ...formData, brand_image_url: null });
+      setImagePreview(null);
+      toast.success("Gambar berhasil dihapus");
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      toast.error(error.message || "Gagal hapus gambar");
+    }
   };
 
   const getPreviewStyle = () => {
@@ -311,21 +406,187 @@ const VIPDesignSettings = () => {
                     : "bg-gradient-to-br from-gray-50 to-gray-100"
                 }`}
               >
-                <div
-                  className={`font-bold ${animationClass}`}
-                  style={getPreviewStyle()}
-                >
-                  {formData.brand_text}
-                </div>
+                {formData.display_mode === 'image' && imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Brand Logo Preview"
+                    style={{
+                      height: `${formData.image_height}px`,
+                      maxWidth: `${formData.image_max_width}px`,
+                      objectFit: 'contain'
+                    }}
+                    className="transition-all duration-300"
+                  />
+                ) : (
+                  <div
+                    className={`font-bold ${animationClass}`}
+                    style={getPreviewStyle()}
+                  >
+                    {formData.brand_text}
+                  </div>
+                )}
               </div>
             </Card>
 
             {/* Settings Form */}
             <div className="space-y-6">
-              {/* Text Settings */}
+              {/* Display Mode Toggle */}
               <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Text Settings</h3>
-                <div className="space-y-4">
+                <h3 className="text-lg font-semibold mb-4">Display Mode</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setFormData({ ...formData, display_mode: 'text' })}
+                    className={`p-4 rounded-lg border-2 transition-all hover:border-primary ${
+                      formData.display_mode === 'text' ? 'border-primary bg-primary/10' : 'border-border'
+                    }`}
+                  >
+                    <Type className="mx-auto h-8 w-8 mb-2" />
+                    <div className="text-sm font-semibold">📝 TEKS</div>
+                    <div className="text-xs text-muted-foreground">Customize text style</div>
+                  </button>
+                  <button
+                    onClick={() => setFormData({ ...formData, display_mode: 'image' })}
+                    className={`p-4 rounded-lg border-2 transition-all hover:border-primary ${
+                      formData.display_mode === 'image' ? 'border-primary bg-primary/10' : 'border-border'
+                    }`}
+                  >
+                    <ImageIcon className="mx-auto h-8 w-8 mb-2" />
+                    <div className="text-sm font-semibold">🖼️ GAMBAR</div>
+                    <div className="text-xs text-muted-foreground">Upload logo image</div>
+                  </button>
+                </div>
+              </Card>
+
+              {/* Image Upload (only visible when mode is 'image') */}
+              {formData.display_mode === 'image' && (
+                <>
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Upload Brand Image</h3>
+                    <div className="space-y-4">
+                      {!imagePreview ? (
+                        <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
+                          <input
+                            type="file"
+                            id="image-upload"
+                            accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                            disabled={uploading}
+                          />
+                          <label htmlFor="image-upload" className="cursor-pointer">
+                            <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                            <p className="text-sm font-medium mb-1">
+                              {uploading ? "Uploading..." : "Click to upload or drag and drop"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              PNG, JPG, WebP, SVG (Max 5MB)
+                            </p>
+                          </label>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="relative border-2 border-border rounded-lg p-4 bg-muted/50">
+                            <img
+                              src={imagePreview}
+                              alt="Brand Logo"
+                              style={{
+                                height: `${formData.image_height}px`,
+                                maxWidth: `${formData.image_max_width}px`,
+                                objectFit: 'contain'
+                              }}
+                              className="mx-auto"
+                            />
+                            <button
+                              onClick={handleDeleteImage}
+                              className="absolute top-2 right-2 p-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => document.getElementById('image-replace')?.click()}
+                            disabled={uploading}
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Replace Image
+                          </Button>
+                          <input
+                            type="file"
+                            id="image-replace"
+                            accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                            disabled={uploading}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Image Size Settings</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Height: {formData.image_height}px</Label>
+                        <Slider
+                          value={[formData.image_height]}
+                          onValueChange={(value) => setFormData({ ...formData, image_height: value[0] })}
+                          min={20}
+                          max={100}
+                          step={5}
+                        />
+                      </div>
+                      <div>
+                        <Label>Max Width: {formData.image_max_width}px</Label>
+                        <Slider
+                          value={[formData.image_max_width]}
+                          onValueChange={(value) => setFormData({ ...formData, image_max_width: value[0] })}
+                          min={100}
+                          max={400}
+                          step={10}
+                        />
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Alignment */}
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Alignment</h3>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={formData.text_align === 'left' ? 'default' : 'outline'}
+                        size="icon"
+                        onClick={() => setFormData({ ...formData, text_align: 'left' })}
+                      >
+                        <AlignLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={formData.text_align === 'center' ? 'default' : 'outline'}
+                        size="icon"
+                        onClick={() => setFormData({ ...formData, text_align: 'center' })}
+                      >
+                        <AlignCenter className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={formData.text_align === 'right' ? 'default' : 'outline'}
+                        size="icon"
+                        onClick={() => setFormData({ ...formData, text_align: 'right' })}
+                      >
+                        <AlignRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                </>
+              )}
+
+              {/* Text Settings (only visible when mode is 'text') */}
+              {formData.display_mode === 'text' && (
+                <>
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Text Settings</h3>
+                    <div className="space-y-4">
                   <div>
                     <Label htmlFor="brand_text">Brand Text</Label>
                     <Input
@@ -735,6 +996,8 @@ const VIPDesignSettings = () => {
                   ))}
                 </div>
               </Card>
+              </>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 sticky bottom-0 bg-background/95 backdrop-blur-sm py-4 border-t">
