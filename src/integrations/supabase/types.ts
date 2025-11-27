@@ -2634,9 +2634,11 @@ export type Database = {
       vip_design_settings: {
         Row: {
           animation: string
+          brand_image_url: string | null
           brand_text: string
           color_type: string
           created_at: string | null
+          display_mode: string | null
           font_family: string
           font_size: number
           font_weight: string
@@ -2647,6 +2649,8 @@ export type Database = {
           gradient_colors: Json
           gradient_type: string
           id: string
+          image_height: number | null
+          image_max_width: number | null
           letter_spacing: number
           outline_color: string
           outline_enabled: boolean
@@ -2664,9 +2668,11 @@ export type Database = {
         }
         Insert: {
           animation?: string
+          brand_image_url?: string | null
           brand_text?: string
           color_type?: string
           created_at?: string | null
+          display_mode?: string | null
           font_family?: string
           font_size?: number
           font_weight?: string
@@ -2677,6 +2683,8 @@ export type Database = {
           gradient_colors?: Json
           gradient_type?: string
           id?: string
+          image_height?: number | null
+          image_max_width?: number | null
           letter_spacing?: number
           outline_color?: string
           outline_enabled?: boolean
@@ -2694,9 +2702,11 @@ export type Database = {
         }
         Update: {
           animation?: string
+          brand_image_url?: string | null
           brand_text?: string
           color_type?: string
           created_at?: string | null
+          display_mode?: string | null
           font_family?: string
           font_size?: number
           font_weight?: string
@@ -2707,6 +2717,8 @@ export type Database = {
           gradient_colors?: Json
           gradient_type?: string
           id?: string
+          image_height?: number | null
+          image_max_width?: number | null
           letter_spacing?: number
           outline_color?: string
           outline_enabled?: boolean

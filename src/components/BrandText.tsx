@@ -12,6 +12,29 @@ export const BrandText = () => {
     );
   }
 
+  // Image mode
+  if (settings.display_mode === 'image' && settings.brand_image_url) {
+    const justifyClass = 
+      settings.text_align === 'left' ? 'justify-start' :
+      settings.text_align === 'right' ? 'justify-end' :
+      'justify-center';
+
+    return (
+      <div className={cn("w-full flex items-center", justifyClass)}>
+        <img 
+          src={settings.brand_image_url} 
+          alt="Brand Logo"
+          style={{
+            height: `${settings.image_height}px`,
+            maxWidth: `${settings.image_max_width}px`,
+            objectFit: 'contain'
+          }}
+          className="transition-all duration-300"
+        />
+      </div>
+    );
+  }
+
   const getTextStyle = () => {
     const styles: React.CSSProperties = {
       fontFamily: settings.font_family,
