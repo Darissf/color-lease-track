@@ -429,7 +429,10 @@ export default function MonthlyView() {
         {/* Income Sources */}
         <Card className="card-hover-effect">
           <CardHeader>
-            <CardTitle className="text-xl font-bold text-gradient-purple">Sumber Pemasukan</CardTitle>
+            <CardTitle className={cn(
+              "text-xl font-bold",
+              activeTheme === 'japanese' ? "text-gradient-purple" : "text-foreground"
+            )}>Sumber Pemasukan</CardTitle>
           </CardHeader>
           <CardContent>
             {incomeData.length > 0 ? (

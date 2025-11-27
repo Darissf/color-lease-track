@@ -178,7 +178,10 @@ export default function IncomeManagement() {
       <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gradient-income mb-2">Kelola Pemasukan</h1>
+            <h1 className={cn(
+              "text-4xl font-bold mb-2",
+              activeTheme === 'japanese' ? "text-gradient-income" : "text-foreground"
+            )}>Kelola Pemasukan</h1>
             <p className="text-muted-foreground">Rekedi Jelai - Akar Asal</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -297,7 +300,9 @@ export default function IncomeManagement() {
                       </TableCell>
                       <TableCell>{income.date ? new Date(income.date).toLocaleDateString('id-ID') : "-"}</TableCell>
                       <TableCell className="text-right font-semibold">
-                        <span className="text-gradient-income">{formatCurrency(income.amount)}</span>
+                        <span className={cn(
+                          activeTheme === 'japanese' ? "text-gradient-income" : "text-foreground"
+                        )}>{formatCurrency(income.amount)}</span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">

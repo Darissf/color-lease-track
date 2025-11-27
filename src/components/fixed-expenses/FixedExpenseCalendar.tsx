@@ -77,7 +77,7 @@ export const FixedExpenseCalendar = ({ expenses, history, onMarkAsPaid }: FixedE
                           </Button>
                         )}
                       </div>
-                      <div className="font-semibold text-gradient-gold">{formatCurrency(amount)}</div>
+                      <div className="font-semibold text-primary">{formatCurrency(amount)}</div>
                     </div>
                   );
                 })}
@@ -112,10 +112,10 @@ export const FixedExpenseCalendar = ({ expenses, history, onMarkAsPaid }: FixedE
         </div>
         <div className="grid grid-cols-7 gap-2">{renderCalendarDays()}</div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Badge variant="default" className="gradient-matcha">Sudah Dibayar</Badge>
+          <Badge variant="default" className="bg-green-500">Sudah Dibayar</Badge>
           <Badge variant="destructive">Terlambat</Badge>
-          <Badge variant="secondary" className="gradient-sunrise">Jatuh Tempo Hari Ini</Badge>
-          <Badge variant="outline" className="gradient-torii-gold">Segera Jatuh Tempo</Badge>
+          <Badge variant="secondary" className="bg-orange-500">Jatuh Tempo Hari Ini</Badge>
+          <Badge variant="outline" className="border-amber-500 text-amber-600">Segera Jatuh Tempo</Badge>
         </div>
       </CardContent>
     </Card>
