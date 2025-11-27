@@ -1,5 +1,11 @@
 project_id = "uqzzpxfmwhmhiqniiyjk"
 
+[functions.send-password-reset]
+verify_jwt = false
+
+[functions.verify-password-reset]
+verify_jwt = false
+
 [functions.database-backup]
 verify_jwt = true
 

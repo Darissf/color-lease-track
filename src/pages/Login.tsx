@@ -18,6 +18,15 @@ export default function Login() {
   const [show2FA, setShow2FA] = useState(false);
   const [twoFACode, setTwoFACode] = useState("");
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  
+  // Forgot Password states
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'email' | 'otp'>('email');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetOtp, setResetOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
@@ -164,6 +173,56 @@ export default function Login() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (forgotStep === 'email') {
+        // Send OTP to email
+        const { error } = await supabase.functions.invoke('send-password-reset', {
+          body: { email: forgotEmail }
+        });
+
+        if (error) throw error;
+
+        toast.success("Kode OTP telah dikirim ke email Anda");
+        setForgotStep('otp');
+      } else {
+        // Verify OTP and reset password
+        if (newPassword !== confirmPassword) {
+          throw new Error("Password baru dan konfirmasi tidak cocok");
+        }
+
+        if (newPassword.length < 6) {
+          throw new Error("Password minimal 6 karakter");
+        }
+
+        const { error } = await supabase.functions.invoke('verify-password-reset', {
+          body: {
+            email: forgotEmail,
+            otp: resetOtp,
+            new_password: newPassword
+          }
+        });
+
+        if (error) throw error;
+
+        toast.success("Password berhasil direset! Silakan login.");
+        setShowForgotPassword(false);
+        setForgotStep('email');
+        setForgotEmail('');
+        setResetOtp('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Terjadi kesalahan");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
       <Card className="w-full max-w-md mx-4">
@@ -178,6 +237,10 @@ export default function Login() {
             <CardDescription className="mt-2">
               {show2FA
                 ? "Masukkan kode 2FA yang dikirim ke WhatsApp Anda"
+                : showForgotPassword
+                ? forgotStep === 'email' 
+                  ? "Masukkan email Anda untuk menerima kode reset password"
+                  : "Masukkan kode OTP dan password baru Anda"
                 : showTempCodeInput
                 ? "Masukkan kode akses sementara dari administrator"
                 : "Masuk dengan email/nomor telepon Anda"
@@ -215,6 +278,100 @@ export default function Login() {
                 }}
               >
                 Kembali
+              </Button>
+            </form>
+          ) : showForgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-lg">
+                  {forgotStep === 'email' ? 'Reset Password' : 'Masukkan Kode OTP'}
+                </h3>
+                <span className="text-sm text-muted-foreground">
+                  Step {forgotStep === 'email' ? '1' : '2'} of 2
+                </span>
+              </div>
+
+              {forgotStep === 'email' ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="forgotEmail">Email Terdaftar</Label>
+                    <Input
+                      id="forgotEmail"
+                      type="email"
+                      placeholder="email@example.com"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Mengirim..." : "Kirim Kode OTP"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="resetOtp">Kode OTP (6 digit)</Label>
+                    <Input
+                      id="resetOtp"
+                      type="text"
+                      placeholder="000000"
+                      value={resetOtp}
+                      onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      maxLength={6}
+                      className="text-center text-2xl tracking-widest font-bold"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground text-center">
+                      Kode dikirim ke {forgotEmail}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">Password Baru</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      placeholder="Minimal 6 karakter"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Konfirmasi Password Baru</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="Ketik ulang password baru"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={loading || resetOtp.length !== 6 || newPassword.length < 6}
+                  >
+                    {loading ? "Memproses..." : "Reset Password"}
+                  </Button>
+                </>
+              )}
+
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setForgotStep('email');
+                  setForgotEmail('');
+                  setResetOtp('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+              >
+                Kembali ke Login
               </Button>
             </form>
           ) : showTempCodeInput ? (
@@ -280,12 +437,22 @@ export default function Login() {
               >
                 Login dengan Kode Akses
               </Button>
+              <Button
+                type="button"
+                variant="link"
+                className="w-full mt-2"
+                onClick={() => setShowForgotPassword(true)}
+              >
+                Lupa Password?
+              </Button>
             </form>
           )}
           
-          <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
-            Lupa password? Hubungi administrator
-          </div>
+          {!show2FA && !showForgotPassword && !showTempCodeInput && (
+            <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
+              Untuk bantuan lebih lanjut, hubungi administrator
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
