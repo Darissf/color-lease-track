@@ -2038,6 +2038,7 @@ export type Database = {
           email_verified: boolean | null
           full_name: string | null
           id: string
+          is_suspended: boolean | null
           nomor_telepon: string | null
           notification_budget_alert: boolean | null
           notification_due_date: boolean | null
@@ -2056,6 +2057,7 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string | null
           id: string
+          is_suspended?: boolean | null
           nomor_telepon?: string | null
           notification_budget_alert?: boolean | null
           notification_due_date?: boolean | null
@@ -2074,6 +2076,7 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string | null
           id?: string
+          is_suspended?: boolean | null
           nomor_telepon?: string | null
           notification_budget_alert?: boolean | null
           notification_due_date?: boolean | null

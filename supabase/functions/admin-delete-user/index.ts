@@ -39,45 +39,30 @@ Deno.serve(async (req) => {
       .single()
 
     if (!callerRole || callerRole.role !== 'super_admin') {
-      throw new Error('Only super admins can view users')
+      throw new Error('Only super admins can delete users')
     }
 
-    // Fetch all profiles
-    const { data: profiles, error: profilesError } = await supabaseClient
-      .from('profiles')
-      .select('id, full_name, username, nomor_telepon, created_at, email_verified, temp_email, is_suspended')
-      .order('created_at', { ascending: false })
+    const { user_id } = await req.json()
 
-    if (profilesError) throw profilesError
+    if (!user_id) {
+      throw new Error('user_id is required')
+    }
 
-    // Fetch roles and emails for each user
-    const usersWithData = await Promise.all(
-      (profiles || []).map(async (profile) => {
-        // Get role
-        const { data: roleData } = await supabaseClient
-          .from('user_roles')
-          .select('id, role')
-          .eq('user_id', profile.id)
-          .single()
+    // Prevent super admin from deleting themselves
+    if (user_id === caller.id) {
+      throw new Error('Cannot delete your own account')
+    }
 
-        // Get email and last_sign_in_at from auth using service role
-        const { data: authData } = await supabaseClient.auth.admin.getUserById(profile.id)
+    // Delete user via admin API (will cascade delete profiles and related data)
+    const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(user_id)
 
-        return {
-          ...profile,
-          email: authData.user?.email || '',
-          role: roleData?.role || null,
-          role_id: roleData?.id || null,
-          last_sign_in_at: authData.user?.last_sign_in_at || null,
-          email_verified: profile.email_verified || false,
-          temp_email: profile.temp_email || false,
-          is_suspended: profile.is_suspended || false,
-        }
-      })
-    )
+    if (deleteError) throw deleteError
 
     return new Response(
-      JSON.stringify({ users: usersWithData }),
+      JSON.stringify({ 
+        success: true,
+        message: 'User deleted successfully' 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 

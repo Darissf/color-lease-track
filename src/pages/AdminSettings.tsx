@@ -2,14 +2,18 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowLeft, Pencil, MessageSquare, ChevronRight, FileText, Mail, BarChart3, Palette, LayoutDashboard, Edit3 } from "lucide-react";
+import { Shield, ArrowLeft, Pencil, MessageSquare, ChevronRight, FileText, Mail, BarChart3, Palette, LayoutDashboard, Edit3, Ban, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
 import { UserRegistrationForm } from "@/components/UserRegistrationForm";
 import { UserEditForm } from "@/components/UserEditForm";
+import { DeleteUserDialog } from "@/components/DeleteUserDialog";
+import { formatDistanceToNow } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 import {
   Table,
   TableBody,
@@ -35,6 +39,10 @@ interface UserWithRole {
   role: string | null;
   role_id: string | null;
   created_at: string;
+  email_verified: boolean;
+  temp_email: boolean;
+  is_suspended: boolean;
+  last_sign_in_at: string | null;
 }
 
 const AdminSettings = () => {
@@ -42,10 +50,12 @@ const AdminSettings = () => {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<UserWithRole | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const { activeTheme } = useAppTheme();
   const navigate = useNavigate();
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, user: currentUser } = useAuth();
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -147,6 +157,69 @@ const AdminSettings = () => {
   const handleEditUser = (user: UserWithRole) => {
     setEditingUser(user);
     setEditDialogOpen(true);
+  };
+
+  const handleDeleteUser = (user: UserWithRole) => {
+    setDeletingUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleToggleSuspend = async (userId: string, currentStatus: boolean) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("No active session");
+      }
+
+      // Prevent suspending yourself
+      if (userId === currentUser?.id) {
+        toast({
+          title: "Error",
+          description: "Tidak dapat suspend akun Anda sendiri",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await supabase.functions.invoke("update-user", {
+        body: {
+          user_id: userId,
+          is_suspended: !currentStatus,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) throw response.error;
+
+      toast({
+        title: "Berhasil",
+        description: `User berhasil ${!currentStatus ? 'dinonaktifkan' : 'diaktifkan'}`,
+      });
+
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatLastSignIn = (lastSignIn: string | null) => {
+    if (!lastSignIn) return "Belum pernah login";
+    
+    try {
+      return formatDistanceToNow(new Date(lastSignIn), { 
+        addSuffix: true,
+        locale: localeId 
+      });
+    } catch {
+      return "Tidak valid";
+    }
   };
 
   if (!isSuperAdmin) {
@@ -346,139 +419,216 @@ const AdminSettings = () => {
         ) : (
           <>
             {/* Desktop Table View */}
-            <div className="hidden md:block">
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nama</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Status Email</TableHead>
                     <TableHead>Username</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Tanggal Dibuat</TableHead>
+                    <TableHead>Login Terakhir</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        {user.full_name || "Nama tidak tersedia"}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {user.email}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {user.username || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={user.role || "none"}
-                          onValueChange={(value) => handleRoleChange(user.id, value, user.role_id)}
-                        >
-                          <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Tidak ada role</SelectItem>
-                            <SelectItem value="user">User</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="super_admin">Super Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(user.created_at).toLocaleDateString("id-ID")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
+                  {users.map((user) => {
+                    const isEmailVerified = user.email_verified && !user.temp_email;
+                    return (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">
+                          {user.full_name || "Nama tidak tersedia"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {user.email}
+                        </TableCell>
+                        <TableCell>
+                          {isEmailVerified ? (
+                            <Badge variant="default" className="gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Verified
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1">
+                              <XCircle className="h-3 w-3" />
+                              Belum
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {user.username || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={user.role || "none"}
+                            onValueChange={(value) => handleRoleChange(user.id, value, user.role_id)}
                           >
-                            <Pencil className="h-4 w-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Edit</span>
-                          </Button>
-                          {user.role_id && (
+                            <SelectTrigger className="w-[150px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Tidak ada role</SelectItem>
+                              <SelectItem value="user">User</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="super_admin">Super Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {formatLastSignIn(user.last_sign_in_at)}
+                        </TableCell>
+                        <TableCell>
+                          {user.is_suspended ? (
+                            <Badge variant="destructive" className="gap-1">
+                              <Ban className="h-3 w-3" />
+                              Suspended
+                            </Badge>
+                          ) : (
+                            <Badge variant="default" className="gap-1 bg-green-600">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Aktif
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-1 justify-end">
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteRole(user.role_id!)}
+                              onClick={() => handleEditUser(user)}
                             >
-                              Hapus Role
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleSuspend(user.id, user.is_suspended)}
+                              disabled={user.id === currentUser?.id}
+                            >
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteUser(user)}
+                              disabled={user.id === currentUser?.id}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
-              {users.map((user) => (
-                <Card key={user.id} className="p-3 overflow-hidden">
-                  <div className="space-y-3">
-                    <div className="min-w-0">
-                      <p className="font-medium text-base sm:text-lg truncate">{user.full_name || "Nama tidak tersedia"}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground break-words overflow-wrap-anywhere">{user.email}</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+              {users.map((user) => {
+                const isEmailVerified = user.email_verified && !user.temp_email;
+                return (
+                  <Card key={user.id} className="p-3 overflow-hidden">
+                    <div className="space-y-3">
                       <div className="min-w-0">
-                        <span className="text-muted-foreground block mb-0.5">Username:</span>
-                        <p className="font-medium truncate">{user.username || "-"}</p>
+                        <p className="font-medium text-base sm:text-lg truncate">{user.full_name || "Nama tidak tersedia"}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground break-words overflow-wrap-anywhere">{user.email}</p>
                       </div>
-                      <div className="min-w-0">
-                        <span className="text-muted-foreground block mb-0.5">Dibuat:</span>
-                        <p className="font-medium truncate">{new Date(user.created_at).toLocaleDateString("id-ID")}</p>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {isEmailVerified ? (
+                          <Badge variant="default" className="gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Email Verified
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1">
+                            <XCircle className="h-3 w-3" />
+                            Email Belum Verified
+                          </Badge>
+                        )}
+                        {user.is_suspended ? (
+                          <Badge variant="destructive" className="gap-1">
+                            <Ban className="h-3 w-3" />
+                            Suspended
+                          </Badge>
+                        ) : (
+                          <Badge variant="default" className="gap-1 bg-green-600">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Aktif
+                          </Badge>
+                        )}
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="text-xs sm:text-sm text-muted-foreground mb-1.5 block">Role:</label>
-                      <Select
-                        value={user.role || "none"}
-                        onValueChange={(value) => handleRoleChange(user.id, value, user.role_id)}
-                      >
-                        <SelectTrigger className="w-full h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          <SelectItem value="none">Tidak ada role</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="super_admin">Super Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                        <div className="min-w-0">
+                          <span className="text-muted-foreground block mb-0.5">Username:</span>
+                          <p className="font-medium truncate">{user.username || "-"}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-muted-foreground block mb-0.5">Login Terakhir:</span>
+                          <p className="font-medium truncate text-xs">{formatLastSignIn(user.last_sign_in_at)}</p>
+                        </div>
+                      </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full sm:flex-1 h-9 text-xs sm:text-sm"
-                        onClick={() => handleEditUser(user)}
-                      >
-                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                        Edit
-                      </Button>
-                      {user.role_id && (
+                      <div>
+                        <label className="text-xs sm:text-sm text-muted-foreground mb-1.5 block">Role:</label>
+                        <Select
+                          value={user.role || "none"}
+                          onValueChange={(value) => handleRoleChange(user.id, value, user.role_id)}
+                        >
+                          <SelectTrigger className="w-full h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50">
+                            <SelectItem value="none">Tidak ada role</SelectItem>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="super_admin">Super Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex flex-col gap-2 pt-1">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-9 text-xs sm:text-sm"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant={user.is_suspended ? "default" : "secondary"}
+                            size="sm"
+                            className="flex-1 h-9 text-xs sm:text-sm"
+                            onClick={() => handleToggleSuspend(user.id, user.is_suspended)}
+                            disabled={user.id === currentUser?.id}
+                          >
+                            <Ban className="h-3.5 w-3.5 mr-1.5" />
+                            {user.is_suspended ? "Aktifkan" : "Suspend"}
+                          </Button>
+                        </div>
                         <Button
                           variant="destructive"
                           size="sm"
-                          className="w-full sm:flex-1 h-9 text-xs sm:text-sm"
-                          onClick={() => handleDeleteRole(user.role_id!)}
+                          className="w-full h-9 text-xs sm:text-sm"
+                          onClick={() => handleDeleteUser(user)}
+                          disabled={user.id === currentUser?.id}
                         >
-                          Hapus Role
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          Hapus User
                         </Button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           </>
         )}
@@ -493,9 +643,23 @@ const AdminSettings = () => {
             email: editingUser.email,
             nomor_telepon: editingUser.nomor_telepon,
             role: editingUser.role,
+            email_verified: editingUser.email_verified,
+            temp_email: editingUser.temp_email,
           }}
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
+          onSuccess={fetchUsers}
+        />
+      )}
+
+      {deletingUser && (
+        <DeleteUserDialog
+          userId={deletingUser.id}
+          userName={deletingUser.full_name || "Nama tidak tersedia"}
+          userEmail={deletingUser.email}
+          userRole={deletingUser.role || "user"}
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
           onSuccess={fetchUsers}
         />
       )}

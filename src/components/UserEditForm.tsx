@@ -5,6 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -20,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuditLog } from "@/hooks/useAuditLog";
+import { Eye, EyeOff, CheckCircle2, XCircle } from "lucide-react";
 
 interface UserEditData {
   full_name: string;
@@ -27,6 +31,7 @@ interface UserEditData {
   email: string;
   nomor_telepon?: string;
   role: string;
+  new_password?: string;
 }
 
 interface UserEditFormProps {
@@ -37,6 +42,8 @@ interface UserEditFormProps {
     email: string;
     nomor_telepon?: string | null;
     role: string | null;
+    email_verified?: boolean;
+    temp_email?: boolean;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,6 +52,9 @@ interface UserEditFormProps {
 
 export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSuccess }: UserEditFormProps) => {
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [forceVerifyEmail, setForceVerifyEmail] = useState(false);
+  const [sendPasswordEmail, setSendPasswordEmail] = useState(false);
   const { toast } = useToast();
   const { logAction } = useAuditLog();
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<UserEditData>({
@@ -54,10 +64,13 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
       email: currentData.email,
       nomor_telepon: currentData.nomor_telepon || "",
       role: currentData.role || "user",
+      new_password: "",
     }
   });
 
   const selectedRole = watch("role");
+  const newPassword = watch("new_password");
+  const isEmailVerified = currentData.email_verified && !currentData.temp_email;
 
   // Update form when currentData changes
   useEffect(() => {
@@ -77,11 +90,27 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
         throw new Error("No active session");
       }
 
+      const requestBody: any = {
+        user_id: userId,
+        full_name: data.full_name,
+        username: data.username,
+        email: data.email,
+        nomor_telepon: data.nomor_telepon,
+        role: data.role,
+      };
+
+      // Add optional fields
+      if (data.new_password) {
+        requestBody.new_password = data.new_password;
+        requestBody.send_password_email = sendPasswordEmail;
+      }
+
+      if (forceVerifyEmail) {
+        requestBody.force_verify_email = true;
+      }
+
       const response = await supabase.functions.invoke("update-user", {
-        body: {
-          user_id: userId,
-          ...data
-        },
+        body: requestBody,
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
@@ -94,7 +123,7 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
         "user",
         userId,
         currentData,
-        data
+        { ...data, new_password: data.new_password ? "[PASSWORD_CHANGED]" : undefined }
       );
 
       toast({
@@ -189,6 +218,74 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
                 <SelectItem value="super_admin">Super Admin</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Email Status & Force Verify */}
+          <div className="space-y-3 bg-muted/50 p-3 rounded-lg">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Status Email</Label>
+              {isEmailVerified ? (
+                <Badge variant="default" className="gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Verified
+                </Badge>
+              ) : (
+                <Badge variant="destructive" className="gap-1">
+                  <XCircle className="h-3 w-3" />
+                  Belum Verified
+                </Badge>
+              )}
+            </div>
+            {!isEmailVerified && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="force_verify"
+                  checked={forceVerifyEmail}
+                  onCheckedChange={(checked) => setForceVerifyEmail(checked as boolean)}
+                />
+                <Label htmlFor="force_verify" className="text-sm cursor-pointer">
+                  Verifikasi Email Langsung (tanpa OTP)
+                </Label>
+              </div>
+            )}
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Reset Password Section */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">🔐 Reset Password (Opsional)</Label>
+            <div className="space-y-2">
+              <div className="relative">
+                <Input
+                  id="new_password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("new_password")}
+                  placeholder="Password baru (kosongkan jika tidak ingin mengubah)"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {newPassword && (
+                <div className="flex items-center space-x-2 pt-1">
+                  <Checkbox
+                    id="send_password"
+                    checked={sendPasswordEmail}
+                    onCheckedChange={(checked) => setSendPasswordEmail(checked as boolean)}
+                  />
+                  <Label htmlFor="send_password" className="text-sm cursor-pointer">
+                    Kirim password baru ke email user
+                  </Label>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-2 pt-4">
