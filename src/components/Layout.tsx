@@ -32,7 +32,6 @@ const navItems = [
     { title: "Admin Settings", url: "/vip/settings/admin", icon: User2, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola pengguna dan hak akses sistem" },
     { title: "Edit Page", url: "/vip/edit-page", icon: Edit3, superAdminOnly: true, badge: "Quick", badgeVariant: "secondary" as const, description: "Edit konten cepat dengan UI sederhana" },
     { title: "Content Studio", url: "/vip/content-studio", icon: Sparkles, superAdminOnly: true, badge: "Pro", badgeVariant: "default" as const, description: "Professional content management dengan preview, bulk operations & analytics" },
-    { title: "Content Management", url: "/vip/content-management", icon: Edit3, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola konten editable di seluruh aplikasi" },
     { title: "Audit Logs", url: "/vip/audit-logs", icon: Shield, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Lihat log aktivitas dan perubahan sistem" },
   ];
 

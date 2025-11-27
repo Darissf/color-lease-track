@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Save, FileText, Loader2, RefreshCw, AlertTriangle, ExternalLink } from "lucide-react";
+import { Search, Save, FileText, Loader2, RefreshCw, AlertTriangle, ExternalLink, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ContentItem {
@@ -186,6 +186,26 @@ const EditPage = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus konten ini?")) return;
+
+    try {
+      const { error } = await supabase
+        .from('editable_content')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success("Konten berhasil dihapus");
+      setSelectedContent(null);
+      fetchContents();
+    } catch (error: any) {
+      toast.error("Gagal menghapus konten");
+      console.error(error);
+    }
+  };
+
   if (!isSuperAdmin) {
     return null;
   }
@@ -346,6 +366,14 @@ const EditPage = () => {
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Terapkan di Halaman Ini
+                    </Button>
+                    <Button 
+                      onClick={() => handleDelete(selectedContent.id)} 
+                      variant="destructive" 
+                      size="sm"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Hapus
                     </Button>
                     <Button onClick={handleSave} disabled={saving || !hasChanges} size="sm">
                       <Save className="h-4 w-4 mr-2" />
