@@ -2631,6 +2631,96 @@ export type Database = {
         }
         Relationships: []
       }
+      vip_design_settings: {
+        Row: {
+          animation: string
+          brand_text: string
+          color_type: string
+          created_at: string | null
+          font_family: string
+          font_size: number
+          font_weight: string
+          glow_blur: number
+          glow_color: string
+          glow_enabled: boolean
+          gradient_angle: number
+          gradient_colors: Json
+          gradient_type: string
+          id: string
+          letter_spacing: number
+          outline_color: string
+          outline_enabled: boolean
+          outline_width: number
+          shadow_blur: number
+          shadow_color: string
+          shadow_enabled: boolean
+          shadow_x: number
+          shadow_y: number
+          solid_color: string
+          text_transform: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          animation?: string
+          brand_text?: string
+          color_type?: string
+          created_at?: string | null
+          font_family?: string
+          font_size?: number
+          font_weight?: string
+          glow_blur?: number
+          glow_color?: string
+          glow_enabled?: boolean
+          gradient_angle?: number
+          gradient_colors?: Json
+          gradient_type?: string
+          id?: string
+          letter_spacing?: number
+          outline_color?: string
+          outline_enabled?: boolean
+          outline_width?: number
+          shadow_blur?: number
+          shadow_color?: string
+          shadow_enabled?: boolean
+          shadow_x?: number
+          shadow_y?: number
+          solid_color?: string
+          text_transform?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          animation?: string
+          brand_text?: string
+          color_type?: string
+          created_at?: string | null
+          font_family?: string
+          font_size?: number
+          font_weight?: string
+          glow_blur?: number
+          glow_color?: string
+          glow_enabled?: boolean
+          gradient_angle?: number
+          gradient_colors?: Json
+          gradient_type?: string
+          id?: string
+          letter_spacing?: number
+          outline_color?: string
+          outline_enabled?: boolean
+          outline_width?: number
+          shadow_blur?: number
+          shadow_color?: string
+          shadow_enabled?: boolean
+          shadow_x?: number
+          shadow_y?: number
+          solid_color?: string
+          text_transform?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_health_checks: {
         Row: {
           check_type: string

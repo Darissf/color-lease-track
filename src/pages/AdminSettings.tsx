@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowLeft, Pencil, MessageSquare, ChevronRight, FileText, Mail, BarChart3 } from "lucide-react";
+import { Shield, ArrowLeft, Pencil, MessageSquare, ChevronRight, FileText, Mail, BarChart3, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppTheme } from "@/contexts/AppThemeContext";
@@ -169,6 +169,26 @@ const AdminSettings = () => {
 
       {/* Quick Access Cards */}
       <div className="grid gap-4 md:grid-cols-2 mb-6">
+        <Card 
+          className="p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
+          onClick={() => navigate("/vip/settings/design")}
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-purple-600 flex items-center justify-center">
+              <Palette className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                Setting Design VIP
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Customize brand text, fonts, colors & effects
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground group-hover:text-primary" />
+          </div>
+        </Card>
+
         <Card 
           className="p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
           onClick={() => navigate("/vip/settings/whatsapp")}
