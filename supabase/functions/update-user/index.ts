@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       throw new Error('Only super admins can update users')
     }
 
-    const { user_id, email, full_name, username, nomor_telepon, role } = await req.json()
+    const { user_id, email, full_name, username, nomor_telepon, role, new_password, force_verify_email, is_suspended, send_password_email } = await req.json()
 
     if (!user_id) {
       throw new Error('user_id is required')
@@ -59,6 +59,49 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('id', user_id)
       .single()
+
+    // Reset password if provided
+    if (new_password) {
+      const { error: passwordError } = await supabaseClient.auth.admin.updateUserById(
+        user_id,
+        { password: new_password }
+      )
+      if (passwordError) throw passwordError
+
+      // Send password via email if requested
+      if (send_password_email && email) {
+        await supabaseClient.functions.invoke('send-email', {
+          body: {
+            to: email,
+            subject: 'Password Baru Anda',
+            html: `
+              <h2>Password Baru</h2>
+              <p>Password Anda telah direset oleh admin.</p>
+              <p><strong>Password baru:</strong> ${new_password}</p>
+              <p>Silakan login dengan password baru ini dan ubah password Anda segera.</p>
+            `,
+          }
+        })
+      }
+    }
+
+    // Force verify email if requested
+    if (force_verify_email) {
+      const { error: verifyError } = await supabaseClient.auth.admin.updateUserById(
+        user_id,
+        { email_confirm: true }
+      )
+      if (verifyError) throw verifyError
+
+      // Update profiles table
+      await supabaseClient
+        .from('profiles')
+        .update({ 
+          email_verified: true, 
+          temp_email: false 
+        })
+        .eq('id', user_id)
+    }
 
     // Update email in auth if changed
     if (email && currentProfile) {
@@ -78,6 +121,7 @@ Deno.serve(async (req) => {
     if (full_name !== undefined) profileUpdates.full_name = full_name
     if (username !== undefined) profileUpdates.username = username
     if (nomor_telepon !== undefined) profileUpdates.nomor_telepon = nomor_telepon
+    if (is_suspended !== undefined) profileUpdates.is_suspended = is_suspended
 
     if (Object.keys(profileUpdates).length > 0) {
       const { error: profileError } = await supabaseClient
