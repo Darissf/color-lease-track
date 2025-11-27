@@ -55,14 +55,14 @@ export const BrandText = () => {
 
   const animationClass = settings.animation !== 'none' ? `brand-text-${settings.animation}` : '';
 
-  const alignmentClass = 
-    settings.text_align === 'left' ? 'text-left' :
-    settings.text_align === 'right' ? 'text-right' :
-    'text-center';
+  const justifyClass = 
+    settings.text_align === 'left' ? 'justify-start' :
+    settings.text_align === 'right' ? 'justify-end' :
+    'justify-center';
 
   return (
     <div
-      className={cn("font-bold whitespace-nowrap", animationClass, alignmentClass)}
+      className={cn("font-bold whitespace-nowrap w-full flex", animationClass, justifyClass)}
       style={getTextStyle()}
     >
       {settings.brand_text}

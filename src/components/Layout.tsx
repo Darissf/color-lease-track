@@ -261,7 +261,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             )}
             
             {/* Brand Text */}
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center">
               <BrandText />
             </div>
           </div>
