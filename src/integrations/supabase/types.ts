@@ -1484,28 +1484,34 @@ export type Database = {
       }
       email_verification_tokens: {
         Row: {
+          change_type: string | null
           created_at: string | null
           email: string
           expires_at: string
           id: string
+          new_email: string | null
           token: string
           user_id: string
           verified: boolean | null
         }
         Insert: {
+          change_type?: string | null
           created_at?: string | null
           email: string
           expires_at: string
           id?: string
+          new_email?: string | null
           token: string
           user_id: string
           verified?: boolean | null
         }
         Update: {
+          change_type?: string | null
           created_at?: string | null
           email?: string
           expires_at?: string
           id?: string
+          new_email?: string | null
           token?: string
           user_id?: string
           verified?: boolean | null
