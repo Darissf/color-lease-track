@@ -64,6 +64,12 @@ export default function Profile() {
   const [emailOtp, setEmailOtp] = useState("");
   const [changingEmail, setChangingEmail] = useState(false);
 
+  // Username change states
+  const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
+  const [usernameForm, setUsernameForm] = useState({ newUsername: "", password: "" });
+  const [showUsernamePassword, setShowUsernamePassword] = useState(true);
+  const [changingUsername, setChangingUsername] = useState(false);
+
   // Initialize form data when profile loads
   useState(() => {
     if (profile) {
@@ -430,6 +436,98 @@ export default function Profile() {
     }
   };
 
+  const handleChangeUsername = async () => {
+    // Validate username format
+    if (!usernameForm.newUsername.trim()) {
+      toast({ title: "Username tidak boleh kosong", variant: "destructive" });
+      return;
+    }
+
+    if (usernameForm.newUsername.length < 3) {
+      toast({
+        title: "Username terlalu pendek",
+        description: "Username minimal 3 karakter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(usernameForm.newUsername)) {
+      toast({
+        title: "Format username tidak valid",
+        description: "Username hanya boleh berisi huruf, angka, dan underscore",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if username is already taken
+    const { data: existingUser } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username", usernameForm.newUsername.toLowerCase())
+      .neq("id", user?.id || "")
+      .maybeSingle();
+
+    if (existingUser) {
+      toast({
+        title: "Username sudah digunakan",
+        description: "Silakan pilih username lain",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setChangingUsername(true);
+
+    try {
+      // Verify password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || "",
+        password: usernameForm.password,
+      });
+
+      if (signInError) {
+        toast({
+          title: "Password salah",
+          description: "Silakan periksa kembali password Anda",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update username
+      const { error } = await supabase
+        .from("profiles")
+        .update({ username: usernameForm.newUsername.toLowerCase() })
+        .eq("id", user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berhasil!",
+        description: "Username berhasil diubah. Username dapat digunakan untuk login.",
+      });
+
+      // Reset form and close dialog
+      setUsernameForm({ newUsername: "", password: "" });
+      setIsUsernameDialogOpen(false);
+      
+      // Refresh profile
+      await refetch();
+
+    } catch (error) {
+      console.error("Error changing username:", error);
+      toast({
+        title: "Gagal mengubah username",
+        description: "Terjadi kesalahan, silakan coba lagi",
+        variant: "destructive",
+      });
+    } finally {
+      setChangingUsername(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -650,6 +748,14 @@ export default function Profile() {
                 <Mail className="h-4 w-4 mr-2" />
                 Ubah Email
               </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setIsUsernameDialogOpen(true)}
+              >
+                <User className="h-4 w-4 mr-2" />
+                Ubah Username
+              </Button>
             </CardContent>
           </Card>
 
@@ -861,6 +967,82 @@ export default function Profile() {
                   </div>
                 </div>
               )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Username Change Dialog */}
+          <Dialog open={isUsernameDialogOpen} onOpenChange={setIsUsernameDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Ubah Username
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Username Saat Ini</Label>
+                  <Input value={profile?.username || "-"} disabled className="bg-muted" />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Username Baru</Label>
+                  <Input
+                    type="text"
+                    value={usernameForm.newUsername}
+                    onChange={(e) => setUsernameForm({...usernameForm, newUsername: e.target.value})}
+                    placeholder="usernameanda"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    ℹ️ Huruf, angka, underscore. Min 3 karakter.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Konfirmasi Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showUsernamePassword ? "text" : "password"}
+                      value={usernameForm.password}
+                      onChange={(e) => setUsernameForm({...usernameForm, password: e.target.value})}
+                      placeholder="Masukkan password Anda"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setShowUsernamePassword(!showUsernamePassword)}
+                    >
+                      {showUsernamePassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <span className="text-blue-700 dark:text-blue-400">
+                    ⚠️ Username dapat digunakan untuk login
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsUsernameDialogOpen(false);
+                    setUsernameForm({ newUsername: "", password: "" });
+                  }}
+                >
+                  Batal
+                </Button>
+                <Button onClick={handleChangeUsername} disabled={changingUsername}>
+                  {changingUsername && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Simpan Username
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
