@@ -80,7 +80,7 @@ export default function Login() {
       }
 
       toast.success("Login berhasil!");
-      navigate('/vip/dashboard');
+      navigate('/vip/');
     } catch (error: any) {
       toast.error(error.message || "Login gagal");
     } finally {
@@ -131,7 +131,7 @@ export default function Login() {
         toast.info("Silakan ganti password Anda");
         navigate('/vip/settings/account');
       } else {
-        navigate('/vip/dashboard');
+        navigate('/vip/');
       }
 
       toast.success("Login berhasil!");
@@ -156,7 +156,7 @@ export default function Login() {
       }
 
       toast.success("Login berhasil!");
-      navigate('/vip/dashboard');
+      navigate('/vip/');
     } catch (error: any) {
       toast.error(error.message || "Verifikasi 2FA gagal");
     } finally {
