@@ -541,12 +541,7 @@ export default function Profile() {
       <AnimatedBackground>
         <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
         <div className="mb-8">
-          <h1 className={cn(
-            "text-4xl font-bold",
-            activeTheme === 'japanese'
-              ? "bg-gradient-to-r from-torii-red via-sakura-pink to-matcha-green bg-clip-text text-transparent"
-              : "text-foreground"
-          )}>
+          <h1 className="text-4xl font-bold text-foreground">
             Profile 👤
           </h1>
           <p className="text-muted-foreground mt-2">Kelola informasi pribadi dan preferensi Anda</p>

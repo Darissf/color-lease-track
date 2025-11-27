@@ -178,10 +178,7 @@ export default function IncomeManagement() {
       <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className={cn(
-              "text-4xl font-bold mb-2",
-              activeTheme === 'japanese' ? "text-gradient-income" : "text-foreground"
-            )}>Kelola Pemasukan</h1>
+            <h1 className="text-4xl font-bold mb-2 text-foreground">Kelola Pemasukan</h1>
             <p className="text-muted-foreground">Rekedi Jelai - Akar Asal</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

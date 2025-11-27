@@ -398,10 +398,7 @@ const BudgetTracker = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className={cn(
-              "text-4xl font-bold mb-2",
-              activeTheme === 'japanese' ? "text-gradient-budget" : "text-foreground"
-            )}>
+            <h1 className="text-4xl font-bold mb-2 text-foreground">
               Pelacak Anggaran Bulanan
             </h1>
             <p className="text-muted-foreground">Monitor dan kelola anggaran bulanan Anda</p>

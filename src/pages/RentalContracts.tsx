@@ -593,9 +593,9 @@ const RentalContracts = () => {
               <div className="p-3 rounded-xl bg-gradient-to-r from-rose-500 to-orange-600 shadow-lg">
                 <FileText className="w-8 h-8 text-white" />
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 bg-clip-text text-transparent">
-                List Kontrak Sewa
-              </h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground">
+            List Kontrak Sewa
+          </h1>
             </div>
             <p className="text-muted-foreground">Kelola semua kontrak sewa peralatan dengan mudah</p>
           </div>
