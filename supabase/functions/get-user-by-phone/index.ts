@@ -16,23 +16,51 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
-    const { phone } = await req.json()
+    const { identifier } = await req.json()
 
-    if (!phone) {
-      throw new Error('Phone number required')
+    if (!identifier) {
+      throw new Error('Identifier required (email, phone, or username)')
     }
 
-    // Normalize phone: remove spaces, dashes, etc
-    const normalizedPhone = phone.replace(/\D/g, '')
+    // If identifier contains @, it's an email - return directly
+    if (identifier.includes('@')) {
+      return new Response(
+        JSON.stringify({ email: identifier }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
-    // Find user by phone in profiles
-    const { data: profile, error } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('nomor_telepon', normalizedPhone)
-      .single()
+    // Check if it's a phone number (contains only digits, +, -, spaces, parentheses)
+    const isPhone = /^[0-9+\-\s()]+$/.test(identifier)
+    
+    let profile;
 
-    if (error || !profile) {
+    if (isPhone) {
+      // Normalize phone: remove spaces, dashes, etc
+      const normalizedPhone = identifier.replace(/\D/g, '')
+
+      // Find user by phone in profiles
+      const { data, error } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('nomor_telepon', normalizedPhone)
+        .maybeSingle()
+
+      if (error) throw error
+      profile = data
+    } else {
+      // Assume it's a username - case insensitive lookup
+      const { data, error } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .ilike('username', identifier)
+        .maybeSingle()
+
+      if (error) throw error
+      profile = data
+    }
+
+    if (!profile) {
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

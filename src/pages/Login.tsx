@@ -28,17 +28,19 @@ export default function Login() {
     try {
       let loginEmail = identifier;
       
-      // Check if identifier is phone number
-      const isPhone = /^[0-9+\-\s()]+$/.test(identifier);
-      
-      if (isPhone) {
-        // Get email by phone
+      // If not an email format, lookup by phone or username
+      if (!identifier.includes('@')) {
         const { data, error } = await supabase.functions.invoke('get-user-by-phone', {
-          body: { phone: identifier }
+          body: { identifier }
         });
         
         if (error || !data?.email) {
-          throw new Error("Nomor telepon tidak terdaftar");
+          const isPhone = /^[0-9+\-\s()]+$/.test(identifier);
+          throw new Error(
+            isPhone 
+              ? "Nomor telepon tidak terdaftar" 
+              : "Username tidak terdaftar"
+          );
         }
         
         loginEmail = data.email;
@@ -246,11 +248,11 @@ export default function Login() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="identifier">Email atau Nomor WhatsApp</Label>
+                <Label htmlFor="identifier">Email, Username, atau Nomor WhatsApp</Label>
                 <Input
                   id="identifier"
                   type="text"
-                  placeholder="email@example.com atau 08123456789"
+                  placeholder="email@example.com, username, atau 08123456789"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   required
