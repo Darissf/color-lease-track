@@ -124,11 +124,13 @@ const EmailTemplateEditor = () => {
         currentTemplate.subject_template + currentTemplate.body_template
       );
 
+      const templateLabel = TEMPLATE_TYPES[currentTemplate.template_type as keyof typeof TEMPLATE_TYPES]?.label || currentTemplate.template_type;
+      
       const { error } = await supabase.from("email_templates").upsert({
         id: selectedTemplate || undefined,
         user_id: user.id,
         template_type: currentTemplate.template_type,
-        template_name: currentTemplate.template_name,
+        template_name: templateLabel,
         subject_template: currentTemplate.subject_template,
         body_template: currentTemplate.body_template,
         variables: variables,
@@ -204,7 +206,9 @@ const EmailTemplateEditor = () => {
                 {templates.map((template) => (
                   <SelectItem key={template.id} value={template.id}>
                     <div className="flex items-center justify-between w-full">
-                      <span>{template.template_name}</span>
+                      <span>
+                        {TEMPLATE_TYPES[template.template_type as keyof typeof TEMPLATE_TYPES]?.label || template.template_name}
+                      </span>
                       <Badge variant="secondary" className="ml-2">
                         {template.usage_count} used
                       </Badge>
@@ -219,7 +223,14 @@ const EmailTemplateEditor = () => {
             <Label htmlFor="template_type">Template Type</Label>
             <Select 
               value={currentTemplate.template_type} 
-              onValueChange={(value) => setCurrentTemplate({ ...currentTemplate, template_type: value })}
+              onValueChange={(value) => {
+                const label = TEMPLATE_TYPES[value as keyof typeof TEMPLATE_TYPES]?.label || value;
+                setCurrentTemplate({ 
+                  ...currentTemplate, 
+                  template_type: value,
+                  template_name: label
+                });
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Pilih tipe template..." />
@@ -242,18 +253,6 @@ const EmailTemplateEditor = () => {
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="template_name">Template Name</Label>
-            <Input
-              id="template_name"
-              value={currentTemplate.template_name}
-              onChange={(e) =>
-                setCurrentTemplate({ ...currentTemplate, template_name: e.target.value })
-              }
-              placeholder="Reset Password Email"
-            />
           </div>
 
           <div className="space-y-2">
