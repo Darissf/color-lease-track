@@ -24,6 +24,7 @@ import MonthlyView from "./pages/MonthlyView";
 import Dashboard from "./pages/Dashboard";
 import IncomeManagement from "./pages/IncomeManagement";
 import ExpenseTracker from "./pages/ExpenseTracker";
+import RecurringIncome from "./pages/RecurringIncome";
 import SavingsPlans from "./pages/SavingsPlans";
 import Settings from "./pages/Settings";
 import AdminSettings from "./pages/AdminSettings";
@@ -94,6 +95,7 @@ const App = () => (
                               <Route path="/dashboard" element={<Dashboard />} />
                               <Route path="/income" element={<IncomeManagement />} />
                               <Route path="/expenses" element={<ExpenseTracker />} />
+                              <Route path="/recurring-income" element={<RecurringIncome />} />
                               <Route path="/fixed-expenses" element={<FixedExpenses />} />
                               <Route path="/savings" element={<SavingsPlans />} />
                               <Route path="/monthly-budget" element={<BudgetTracker />} />
