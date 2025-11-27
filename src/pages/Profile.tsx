@@ -57,6 +57,13 @@ export default function Profile() {
   });
   const [sendToEmail, setSendToEmail] = useState(false);
 
+  // Email change states
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [emailChangeStep, setEmailChangeStep] = useState<'input' | 'otp'>('input');
+  const [newEmail, setNewEmail] = useState("");
+  const [emailOtp, setEmailOtp] = useState("");
+  const [changingEmail, setChangingEmail] = useState(false);
+
   // Initialize form data when profile loads
   useState(() => {
     if (profile) {
@@ -328,6 +335,101 @@ export default function Profile() {
     }
   };
 
+  const handleRequestEmailChange = async () => {
+    if (!newEmail.trim()) {
+      toast({ title: "Email tidak boleh kosong", variant: "destructive" });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      toast({ title: "Format email tidak valid", variant: "destructive" });
+      return;
+    }
+
+    // Check if old email is verified
+    const isEmailVerified = profile?.email_verified === true && profile?.temp_email !== true;
+    if (!isEmailVerified || !user?.email || user.email.includes('@temp.local')) {
+      toast({ 
+        title: "Email belum diverifikasi",
+        description: "Silakan verifikasi email Anda terlebih dahulu sebelum mengubahnya",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setChangingEmail(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email-change-otp', {
+        body: { new_email: newEmail }
+      });
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Kode OTP terkirim!",
+        description: `Kode verifikasi telah dikirim ke ${user.email}. Berlaku selama 1 jam.`
+      });
+      
+      setEmailChangeStep('otp');
+    } catch (error: any) {
+      console.error("Error sending OTP:", error);
+      toast({ 
+        title: "Gagal mengirim kode OTP", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setChangingEmail(false);
+    }
+  };
+
+  const handleVerifyEmailChange = async () => {
+    if (!emailOtp.trim() || emailOtp.length !== 6) {
+      toast({ title: "Kode OTP harus 6 digit", variant: "destructive" });
+      return;
+    }
+
+    setChangingEmail(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-email-change-otp', {
+        body: { 
+          otp: emailOtp,
+          new_email: newEmail 
+        }
+      });
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Email berhasil diubah!",
+        description: "Email Anda telah diperbarui."
+      });
+      
+      // Reset form and close dialog
+      setNewEmail("");
+      setEmailOtp("");
+      setEmailChangeStep('input');
+      setIsEmailDialogOpen(false);
+      
+      // Refresh profile to show new email
+      refetch();
+      
+    } catch (error: any) {
+      console.error("Error verifying OTP:", error);
+      toast({ 
+        title: "Verifikasi gagal", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setChangingEmail(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -410,11 +512,14 @@ export default function Profile() {
                 </Label>
                 <Input
                   id="phone"
-                  value={editing ? formData.nomor_telepon : profile?.nomor_telepon || "-"}
-                  onChange={(e) => setFormData({ ...formData, nomor_telepon: e.target.value })}
-                  disabled={!editing}
-                  placeholder="081234567890"
+                  value={profile?.nomor_telepon || "-"}
+                  disabled
+                  className="bg-muted"
                 />
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  Nomor telepon tidak dapat diubah
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -423,7 +528,6 @@ export default function Profile() {
                   Email
                 </Label>
                 <Input id="email" value={user?.email || ""} disabled className="bg-muted" />
-                <p className="text-xs text-muted-foreground">Email tidak dapat diubah</p>
               </div>
 
               <Separator />
@@ -529,7 +633,7 @@ export default function Profile() {
               </CardTitle>
               <CardDescription>Kelola keamanan akun Anda</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
@@ -537,6 +641,14 @@ export default function Profile() {
               >
                 <Lock className="h-4 w-4 mr-2" />
                 Ubah Password
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setIsEmailDialogOpen(true)}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Ubah Email
               </Button>
             </CardContent>
           </Card>
@@ -653,6 +765,102 @@ export default function Profile() {
                   Simpan Password
                 </Button>
               </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Email Change Dialog */}
+          <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  {emailChangeStep === 'input' ? 'Ubah Email' : 'Verifikasi Kode OTP'}
+                </DialogTitle>
+              </DialogHeader>
+              
+              {emailChangeStep === 'input' ? (
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Email Saat Ini</Label>
+                    <Input value={user?.email || ""} disabled className="bg-muted" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Email Baru</Label>
+                    <Input
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="emailbaru@example.com"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+                    <AlertCircle className="h-4 w-4 text-blue-600" />
+                    <span className="text-blue-700 dark:text-blue-400">
+                      Kode verifikasi akan dikirim ke email LAMA Anda untuk konfirmasi perubahan.
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsEmailDialogOpen(false);
+                        setNewEmail("");
+                      }}
+                    >
+                      Batal
+                    </Button>
+                    <Button onClick={handleRequestEmailChange} disabled={changingEmail}>
+                      {changingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Kirim Kode OTP
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 py-4">
+                  <div className="text-sm text-muted-foreground text-center">
+                    <p>Kode verifikasi telah dikirim ke:</p>
+                    <p className="font-semibold text-foreground mt-1">{user?.email}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Masukkan Kode OTP (6 digit)</Label>
+                    <Input
+                      type="text"
+                      maxLength={6}
+                      value={emailOtp}
+                      onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="123456"
+                      className="text-center text-2xl tracking-widest"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-sm">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <span className="text-yellow-700 dark:text-yellow-400">
+                      Kode berlaku selama 1 jam
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setEmailChangeStep('input');
+                        setEmailOtp("");
+                      }}
+                    >
+                      Kembali
+                    </Button>
+                    <Button onClick={handleVerifyEmailChange} disabled={changingEmail}>
+                      {changingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Verifikasi
+                    </Button>
+                  </div>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         </div>
