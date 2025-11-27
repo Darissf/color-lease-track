@@ -14,6 +14,8 @@ interface Profile {
   notification_payment: boolean;
   notification_budget_alert: boolean;
   notification_monthly_report: boolean;
+  email_verified: boolean | null;
+  temp_email: boolean | null;
 }
 
 export function useProfile() {

@@ -9,7 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, User, Bell, Shield, Mail, Phone } from "lucide-react";
+import { Loader2, User, Bell, Shield, Mail, Phone, Eye, EyeOff, Lock, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { useNotificationContext } from "@/contexts/NotificationContext";
@@ -39,6 +41,21 @@ export default function Profile() {
     notification_budget_alert: true,
     notification_monthly_report: false,
   });
+
+  // Password change states
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    old: true,
+    new: true,
+    confirm: true,
+  });
+  const [sendToEmail, setSendToEmail] = useState(false);
 
   // Initialize form data when profile loads
   useState(() => {
@@ -212,6 +229,103 @@ export default function Profile() {
       expenseName: "Avatar Update",
       amount: 0,
     });
+  };
+
+  const handleChangePassword = async () => {
+    // Validate password match
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: "Password tidak cocok",
+        description: "Password baru dan konfirmasi harus sama",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate minimum length
+    if (passwordForm.newPassword.length < 6) {
+      toast({
+        title: "Password terlalu pendek",
+        description: "Password minimal 6 karakter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check email verification if sendToEmail is checked
+    if (sendToEmail) {
+      const isEmailVerified = profile?.email_verified === true && profile?.temp_email !== true;
+      
+      if (!isEmailVerified || !user?.email || user.email.includes('@temp.local')) {
+        toast({
+          title: "Email belum diverifikasi",
+          description: "Silakan verifikasi email Anda terlebih dahulu",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setChangingPassword(true);
+
+    try {
+      // Verify old password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || "",
+        password: passwordForm.oldPassword,
+      });
+
+      if (signInError) {
+        toast({
+          title: "Password lama salah",
+          description: "Silakan periksa kembali password lama Anda",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update to new password
+      const { error } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword,
+      });
+
+      if (error) throw error;
+
+      // Send email if checkbox is checked
+      if (sendToEmail) {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            to: user?.email,
+            subject: 'Password Anda Telah Diubah',
+            template_type: 'password_change',
+            variables: {
+              name: profile?.full_name || 'User',
+              new_password: passwordForm.newPassword,
+            }
+          }
+        });
+      }
+
+      toast({
+        title: "Berhasil!",
+        description: "Password berhasil diubah",
+      });
+
+      // Reset form and close dialog
+      setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      setSendToEmail(false);
+      setIsPasswordDialogOpen(false);
+
+    } catch (error) {
+      console.error("Error changing password:", error);
+      toast({
+        title: "Gagal mengubah password",
+        description: "Terjadi kesalahan, silakan coba lagi",
+        variant: "destructive",
+      });
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   if (loading) {
@@ -413,20 +527,134 @@ export default function Profile() {
                 <Shield className="h-5 w-5" />
                 Aksi Akun
               </CardTitle>
-              <CardDescription>Kelola keamanan dan data akun Anda</CardDescription>
+              <CardDescription>Kelola keamanan akun Anda</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
+            <CardContent>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setIsPasswordDialogOpen(true)}
+              >
+                <Lock className="h-4 w-4 mr-2" />
                 Ubah Password
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                Export Data Saya
-              </Button>
-              <Button variant="destructive" className="w-full justify-start">
-                Hapus Akun
               </Button>
             </CardContent>
           </Card>
+
+          {/* Password Change Dialog */}
+          <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Ubah Password
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                {/* Old Password */}
+                <div className="space-y-2">
+                  <Label>Password Lama</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPasswords.old ? "text" : "password"}
+                      value={passwordForm.oldPassword}
+                      onChange={(e) => setPasswordForm({...passwordForm, oldPassword: e.target.value})}
+                      placeholder="Masukkan password lama"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setShowPasswords({...showPasswords, old: !showPasswords.old})}
+                    >
+                      {showPasswords.old ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* New Password */}
+                <div className="space-y-2">
+                  <Label>Password Baru</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPasswords.new ? "text" : "password"}
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                      placeholder="Masukkan password baru"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
+                    >
+                      {showPasswords.new ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Confirm Password */}
+                <div className="space-y-2">
+                  <Label>Konfirmasi Password Baru</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPasswords.confirm ? "text" : "password"}
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                      placeholder="Ulangi password baru"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                      onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
+                    >
+                      {showPasswords.confirm ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Send to Email Checkbox */}
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox 
+                    id="sendToEmail" 
+                    checked={sendToEmail}
+                    onCheckedChange={(checked) => setSendToEmail(checked === true)}
+                  />
+                  <Label htmlFor="sendToEmail" className="text-sm cursor-pointer">
+                    Kirim password baru ke email terdaftar
+                  </Label>
+                </div>
+                
+                {/* Email Verification Warning */}
+                {sendToEmail && (!profile?.email_verified || profile?.temp_email) && (
+                  <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-sm">
+                    <AlertCircle className="h-4 w-4 text-yellow-600 shrink-0" />
+                    <span className="text-yellow-700 dark:text-yellow-400">
+                      Email belum diverifikasi. 
+                      <a href="/vip/verify-email" className="underline ml-1 font-medium">
+                        Verifikasi sekarang
+                      </a>
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                  Batal
+                </Button>
+                <Button onClick={handleChangePassword} disabled={changingPassword}>
+                  {changingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Simpan Password
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
         </div>
       </AnimatedBackground>
