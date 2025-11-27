@@ -2657,6 +2657,7 @@ export type Database = {
           shadow_x: number
           shadow_y: number
           solid_color: string
+          text_align: string
           text_transform: string
           updated_at: string | null
           user_id: string
@@ -2686,6 +2687,7 @@ export type Database = {
           shadow_x?: number
           shadow_y?: number
           solid_color?: string
+          text_align?: string
           text_transform?: string
           updated_at?: string | null
           user_id: string
@@ -2715,6 +2717,7 @@ export type Database = {
           shadow_x?: number
           shadow_y?: number
           solid_color?: string
+          text_align?: string
           text_transform?: string
           updated_at?: string | null
           user_id?: string

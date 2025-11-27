@@ -10,6 +10,7 @@ export interface BrandSettings {
   font_size: number;
   letter_spacing: number;
   text_transform: string;
+  text_align: string;
   color_type: string;
   solid_color: string;
   gradient_type: string;

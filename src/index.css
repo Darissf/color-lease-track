@@ -2,40 +2,165 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Brand Text Animations */
-@keyframes shimmer {
-  0% {
-    background-position: -100% center;
-  }
-  100% {
-    background-position: 200% center;
-  }
-}
+/* Brand Text Animations - 16 Total */
 
-@keyframes glow-pulse {
-  0%, 100% {
-    filter: drop-shadow(0 0 5px currentColor);
-  }
-  50% {
-    filter: drop-shadow(0 0 20px currentColor);
-  }
+/* 1. Shimmer */
+@keyframes brand-text-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
-
 .brand-text-shimmer {
+  background: linear-gradient(90deg, currentColor 0%, rgba(255,255,255,0.8) 50%, currentColor 100%);
   background-size: 200% auto;
-  animation: shimmer 3s linear infinite;
+  animation: brand-text-shimmer 3s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
+/* 2. Pulse */
+@keyframes brand-text-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
 .brand-text-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: brand-text-pulse 2s ease-in-out infinite;
 }
 
+/* 3. Glow Pulse */
+@keyframes brand-text-glow {
+  0%, 100% { filter: drop-shadow(0 0 2px currentColor); }
+  50% { filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 12px currentColor); }
+}
 .brand-text-glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
+  animation: brand-text-glow 2s ease-in-out infinite;
 }
 
+/* 4. Bounce */
+@keyframes brand-text-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
 .brand-text-bounce {
-  animation: bounce 1s infinite;
+  animation: brand-text-bounce 1s ease-in-out infinite;
+}
+
+/* 5. Float */
+@keyframes brand-text-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+.brand-text-float {
+  animation: brand-text-float 3s ease-in-out infinite;
+}
+
+/* 6. Swing */
+@keyframes brand-text-swing {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(5deg); }
+  75% { transform: rotate(-5deg); }
+}
+.brand-text-swing {
+  animation: brand-text-swing 2s ease-in-out infinite;
+  transform-origin: center top;
+}
+
+/* 7. Rubber Band */
+@keyframes brand-text-rubber-band {
+  0%, 100% { transform: scale(1, 1); }
+  30% { transform: scale(1.25, 0.75); }
+  40% { transform: scale(0.75, 1.25); }
+  50% { transform: scale(1.15, 0.85); }
+  65% { transform: scale(0.95, 1.05); }
+  75% { transform: scale(1.05, 0.95); }
+}
+.brand-text-rubber-band {
+  animation: brand-text-rubber-band 2s ease-in-out infinite;
+}
+
+/* 8. Jello */
+@keyframes brand-text-jello {
+  0%, 100% { transform: skewX(0deg) skewY(0deg); }
+  30% { transform: skewX(25deg) skewY(25deg); }
+  40% { transform: skewX(-15deg) skewY(-15deg); }
+  50% { transform: skewX(15deg) skewY(15deg); }
+  65% { transform: skewX(-5deg) skewY(-5deg); }
+  75% { transform: skewX(5deg) skewY(5deg); }
+}
+.brand-text-jello {
+  animation: brand-text-jello 2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* 9. Heartbeat */
+@keyframes brand-text-heartbeat {
+  0%, 40%, 80%, 100% { transform: scale(1); }
+  20%, 60% { transform: scale(1.1); }
+}
+.brand-text-heartbeat {
+  animation: brand-text-heartbeat 1.5s ease-in-out infinite;
+}
+
+/* 10. Fade In Out */
+@keyframes brand-text-fade-in-out {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.brand-text-fade-in-out {
+  animation: brand-text-fade-in-out 3s ease-in-out infinite;
+}
+
+/* 11. Typing (blinking cursor effect) */
+@keyframes brand-text-typing {
+  0%, 100% { border-right: 3px solid transparent; }
+  50% { border-right: 3px solid currentColor; }
+}
+.brand-text-typing {
+  border-right: 3px solid currentColor;
+  animation: brand-text-typing 1s step-end infinite;
+  padding-right: 5px;
+}
+
+/* 12. Wave */
+@keyframes brand-text-wave {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.brand-text-wave {
+  display: inline-block;
+  animation: brand-text-wave 1s ease-in-out infinite;
+}
+
+/* 13. Neon */
+@keyframes brand-text-neon {
+  0%, 100% { 
+    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+  50% { 
+    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+  }
+}
+.brand-text-neon {
+  animation: brand-text-neon 1.5s ease-in-out infinite;
+}
+
+/* 14. Rainbow */
+@keyframes brand-text-rainbow {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+.brand-text-rainbow {
+  animation: brand-text-rainbow 3s linear infinite;
+}
+
+/* 15. 3D Rotate */
+@keyframes brand-text-rotate-3d {
+  0% { transform: perspective(400px) rotateY(0deg); }
+  100% { transform: perspective(400px) rotateY(360deg); }
+}
+.brand-text-rotate-3d {
+  animation: brand-text-rotate-3d 4s linear infinite;
+  transform-style: preserve-3d;
 }
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
