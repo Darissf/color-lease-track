@@ -1687,6 +1687,78 @@ export type Database = {
           },
         ]
       }
+      fixed_monthly_income: {
+        Row: {
+          bank_account_id: string | null
+          catatan: string | null
+          client_group_id: string | null
+          created_at: string | null
+          id: string
+          invoice: string
+          is_paid: boolean | null
+          keterangan: string | null
+          nominal: number
+          paid_date: string | null
+          period_end_month: string
+          period_start_month: string
+          rental_date_end: string
+          rental_date_start: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bank_account_id?: string | null
+          catatan?: string | null
+          client_group_id?: string | null
+          created_at?: string | null
+          id?: string
+          invoice: string
+          is_paid?: boolean | null
+          keterangan?: string | null
+          nominal?: number
+          paid_date?: string | null
+          period_end_month: string
+          period_start_month: string
+          rental_date_end: string
+          rental_date_start: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bank_account_id?: string | null
+          catatan?: string | null
+          client_group_id?: string | null
+          created_at?: string | null
+          id?: string
+          invoice?: string
+          is_paid?: boolean | null
+          keterangan?: string | null
+          nominal?: number
+          paid_date?: string | null
+          period_end_month?: string
+          period_start_month?: string
+          rental_date_end?: string
+          rental_date_start?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_monthly_income_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_monthly_income_client_group_id_fkey"
+            columns: ["client_group_id"]
+            isOneToOne: false
+            referencedRelation: "client_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       income_sources: {
         Row: {
           amount: number | null
@@ -2125,7 +2197,7 @@ export type Database = {
         Row: {
           amount: number
           bank_account_id: string | null
-          created_at: string
+          created_at: string | null
           end_date: string | null
           frequency: string
           id: string
@@ -2133,13 +2205,13 @@ export type Database = {
           notes: string | null
           source_name: string
           start_date: string
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          amount: number
+          amount?: number
           bank_account_id?: string | null
-          created_at?: string
+          created_at?: string | null
           end_date?: string | null
           frequency?: string
           id?: string
@@ -2147,13 +2219,13 @@ export type Database = {
           notes?: string | null
           source_name: string
           start_date: string
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           bank_account_id?: string | null
-          created_at?: string
+          created_at?: string | null
           end_date?: string | null
           frequency?: string
           id?: string
@@ -2161,7 +2233,7 @@ export type Database = {
           notes?: string | null
           source_name?: string
           start_date?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
