@@ -69,21 +69,54 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError
 
-    // Send OTP to OLD email via send-email function
+    // Get email template from database
+    const { data: template } = await supabaseClient
+      .from('email_templates')
+      .select('subject_template, body_template')
+      .eq('template_type', 'email_change_otp')
+      .eq('is_active', true)
+      .maybeSingle()
+
+    // Get user profile for name
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const userName = profile?.full_name || currentEmail.split('@')[0]
+    const validUntil = expiresAt.toLocaleString('id-ID', { 
+      dateStyle: 'medium', 
+      timeStyle: 'short',
+      timeZone: 'Asia/Jakarta'
+    })
+
+    // Prepare variables
+    const variables = {
+      name: userName,
+      otp: otp,
+      new_email: new_email,
+      valid_until: validUntil,
+      app_name: 'Sewa Scaffolding Bali'
+    }
+
+    // Replace variables in template
+    let subject = template?.subject_template || 'Kode Verifikasi Perubahan Email'
+    let body = template?.body_template || `<h1>${otp}</h1>`
+
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g')
+      subject = subject.replace(regex, value)
+      body = body.replace(regex, value)
+    })
+
+    // Send email via send-email function
     const { error: emailError } = await supabaseClient.functions.invoke('send-email', {
       body: {
         to: currentEmail,
-        subject: 'Kode Verifikasi Perubahan Email',
-        template_type: 'email_change_otp',
-        variables: {
-          otp: otp,
-          new_email: new_email,
-          valid_until: expiresAt.toLocaleString('id-ID', { 
-            dateStyle: 'medium', 
-            timeStyle: 'short',
-            timeZone: 'Asia/Jakarta'
-          })
-        }
+        subject: subject,
+        html: body,
+        template_type: 'email_change_otp'
       }
     })
 

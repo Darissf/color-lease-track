@@ -33,6 +33,44 @@ interface EmailTemplate {
   usage_count: number;
 }
 
+const TEMPLATE_TYPES = {
+  password_reset_otp: {
+    label: 'Reset Password OTP',
+    requiredVars: ['name', 'otp', 'valid_minutes', 'app_name'],
+    sampleData: { name: 'John Doe', otp: '123456', valid_minutes: '30', app_name: 'Sewa Scaffolding Bali' }
+  },
+  email_verification: {
+    label: 'Verifikasi Email',
+    requiredVars: ['name', 'otp', 'valid_minutes', 'app_name'],
+    sampleData: { name: 'John Doe', otp: '654321', valid_minutes: '30', app_name: 'Sewa Scaffolding Bali' }
+  },
+  email_change_otp: {
+    label: 'Ganti Email OTP',
+    requiredVars: ['name', 'otp', 'new_email', 'valid_until', 'app_name'],
+    sampleData: { name: 'John', otp: '111222', new_email: 'new@email.com', valid_until: '27 Nov 2025, 14:30', app_name: 'Sewa Scaffolding Bali' }
+  },
+  admin_password_reset: {
+    label: 'Password Reset oleh Admin',
+    requiredVars: ['name', 'new_password', 'app_name'],
+    sampleData: { name: 'John', new_password: 'tempPass123', app_name: 'Sewa Scaffolding Bali' }
+  },
+  welcome: {
+    label: 'Welcome Email',
+    requiredVars: ['name', 'app_name', 'dashboard_link'],
+    sampleData: { name: 'John', app_name: 'Sewa Scaffolding Bali', dashboard_link: 'https://sewascaffoldingbali.com/vip/' }
+  },
+  invoice: {
+    label: 'Invoice',
+    requiredVars: ['customer_name', 'invoice_number', 'amount', 'due_date', 'company_name'],
+    sampleData: { customer_name: 'PT ABC', invoice_number: 'INV-001', amount: '5.000.000', due_date: '30 Nov 2025', company_name: 'Sewa Scaffolding Bali' }
+  },
+  custom: {
+    label: 'Custom Template',
+    requiredVars: [],
+    sampleData: {}
+  }
+} as const;
+
 const EmailTemplateEditor = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -132,13 +170,15 @@ const EmailTemplateEditor = () => {
 
   const renderPreview = () => {
     let preview = currentTemplate.body_template || "";
-    const variables = extractVariables(preview);
-    variables.forEach((v) => {
-      preview = preview.replace(
-        new RegExp(`\\{\\{${v}\\}\\}`, "g"),
-        `<span style="background-color: #fbbf24; padding: 2px 4px; border-radius: 2px;">${v}</span>`
-      );
+    const templateType = currentTemplate.template_type as keyof typeof TEMPLATE_TYPES;
+    const sampleData = TEMPLATE_TYPES[templateType]?.sampleData || {};
+    
+    // Replace variables with sample data
+    Object.entries(sampleData).forEach(([key, value]) => {
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+      preview = preview.replace(regex, String(value));
     });
+    
     return preview;
   };
 
@@ -177,14 +217,31 @@ const EmailTemplateEditor = () => {
 
           <div className="space-y-2">
             <Label htmlFor="template_type">Template Type</Label>
-            <Input
-              id="template_type"
-              value={currentTemplate.template_type}
-              onChange={(e) =>
-                setCurrentTemplate({ ...currentTemplate, template_type: e.target.value })
-              }
-              placeholder="reset_password, welcome, invoice..."
-            />
+            <Select 
+              value={currentTemplate.template_type} 
+              onValueChange={(value) => setCurrentTemplate({ ...currentTemplate, template_type: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih tipe template..." />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(TEMPLATE_TYPES).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>
+                    {config.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {currentTemplate.template_type && TEMPLATE_TYPES[currentTemplate.template_type as keyof typeof TEMPLATE_TYPES] && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                <span className="text-xs text-muted-foreground mr-1">Required variables:</span>
+                {TEMPLATE_TYPES[currentTemplate.template_type as keyof typeof TEMPLATE_TYPES].requiredVars.map((v) => (
+                  <Badge key={v} variant="outline" className="text-xs">
+                    {'{{'}{v}{'}}'}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -217,8 +274,9 @@ const EmailTemplateEditor = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="body">Body Template (HTML)</Label>
-              <div className="flex gap-2">
-                {["name", "link", "amount", "date"].map((v) => (
+              <div className="flex gap-2 flex-wrap">
+                {currentTemplate.template_type && 
+                 TEMPLATE_TYPES[currentTemplate.template_type as keyof typeof TEMPLATE_TYPES]?.requiredVars.map((v) => (
                   <Button
                     key={v}
                     size="sm"

@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
 
     // Save token
     await supabaseClient
@@ -48,24 +48,49 @@ Deno.serve(async (req) => {
         expires_at: expiresAt.toISOString()
       })
 
+    // Get email template from database
+    const { data: template } = await supabaseClient
+      .from('email_templates')
+      .select('subject_template, body_template')
+      .eq('template_type', 'email_verification')
+      .eq('is_active', true)
+      .maybeSingle()
+
+    // Get user profile for name
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const userName = profile?.full_name || email.split('@')[0]
+
+    // Prepare variables
+    const variables = {
+      name: userName,
+      otp: otp,
+      valid_minutes: '30',
+      app_name: 'Sewa Scaffolding Bali'
+    }
+
+    // Replace variables in template
+    let subject = template?.subject_template || 'Verifikasi Email Anda'
+    let body = template?.body_template || `<h1>${otp}</h1>`
+
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g')
+      subject = subject.replace(regex, value)
+      body = body.replace(regex, value)
+    })
+
     // Send email via send-email function
-    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    await supabaseClient.functions.invoke('send-email', {
+      body: {
         to: email,
-        subject: 'Verifikasi Email Anda',
-        html: `
-          <h2>Kode Verifikasi Email</h2>
-          <p>Gunakan kode berikut untuk memverifikasi email Anda:</p>
-          <h1 style="font-size: 32px; letter-spacing: 5px; font-weight: bold;">${otp}</h1>
-          <p>Kode ini akan kadaluarsa dalam 15 menit.</p>
-        `,
+        subject: subject,
+        html: body,
         template_type: 'email_verification'
-      })
+      }
     })
 
     return new Response(
