@@ -563,7 +563,7 @@ export default function ChatBotAI() {
         <div className="shrink-0 px-2 py-2 md:px-8 md:py-4 border-b">
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 bg-clip-text text-transparent truncate">
+              <h1 className="text-xl md:text-4xl lg:text-5xl font-bold text-foreground truncate">
                 ✨ ChatBot AI
               </h1>
               <p className="text-xs md:text-lg bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent mt-1 truncate hidden xs:block">

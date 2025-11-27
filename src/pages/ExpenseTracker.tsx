@@ -347,7 +347,7 @@ export default function ExpenseTracker() {
             <TrendingDown className="h-6 w-6 md:h-8 md:w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 bg-clip-text text-transparent">
+            <h1 className="text-xl md:text-4xl font-bold text-foreground">
               Tracking Pengeluaran
             </h1>
             <p className="text-xs md:text-sm text-muted-foreground mt-1 hidden md:block">Monitor dan kelola semua pengeluaran Anda</p>

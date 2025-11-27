@@ -354,7 +354,7 @@ export default function RecurringIncome() {
       <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-1 md:mb-4">
           <div>
-            <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <h1 className="text-xl md:text-4xl font-bold text-foreground">
               💰 Pemasukan Tetap
             </h1>
             <p className="text-xs md:text-sm text-muted-foreground mt-1">

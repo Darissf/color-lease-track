@@ -71,10 +71,7 @@ const Finances = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className={cn(
-              "text-4xl font-bold mb-2",
-              activeTheme === 'japanese' ? "text-gradient-purple" : "text-foreground"
-            )}>
+            <h1 className="text-4xl font-bold mb-2 text-foreground">
               Analisis Keuangan
             </h1>
             <p className="text-muted-foreground">Lacak pendapatan, pengeluaran, dan profitabilitas secara real-time</p>

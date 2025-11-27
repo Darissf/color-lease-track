@@ -664,7 +664,7 @@ const ClientGroups = () => {
                   <Users className="h-8 w-8 text-white" />
                 </div>
               </div>
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <span className="text-foreground">
                 Daftar Client
               </span>
             </h1>

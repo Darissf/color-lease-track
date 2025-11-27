@@ -429,10 +429,7 @@ export default function MonthlyView() {
         {/* Income Sources */}
         <Card className="card-hover-effect">
           <CardHeader>
-            <CardTitle className={cn(
-              "text-xl font-bold",
-              activeTheme === 'japanese' ? "text-gradient-purple" : "text-foreground"
-            )}>Sumber Pemasukan</CardTitle>
+            <CardTitle className="text-xl font-bold text-foreground">Sumber Pemasukan</CardTitle>
           </CardHeader>
           <CardContent>
             {incomeData.length > 0 ? (
@@ -487,7 +484,7 @@ export default function MonthlyView() {
         {/* Expenses by Category */}
         <Card className="card-hover-effect">
           <CardHeader>
-            <CardTitle className="text-xl font-bold text-gradient-purple">Pengeluaran per Kategori</CardTitle>
+            <CardTitle className="text-xl font-bold text-foreground">Pengeluaran per Kategori</CardTitle>
           </CardHeader>
           <CardContent>
             {expensesByCategory.length > 0 ? (
@@ -534,7 +531,7 @@ export default function MonthlyView() {
         {/* Budget Overview */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-bold text-gradient-purple flex items-center gap-2">
+            <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               Budget Overview
             </CardTitle>
@@ -577,7 +574,7 @@ export default function MonthlyView() {
         {/* Recent Expenses */}
         <Card className="card-hover-effect">
           <CardHeader>
-            <CardTitle className="text-xl font-bold text-gradient-purple flex items-center gap-2">
+            <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Pengeluaran Terbaru
             </CardTitle>
@@ -618,7 +615,7 @@ export default function MonthlyView() {
       {/* Income from Rental Contracts */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-bold text-gradient-purple flex items-center gap-2">
+          <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
             <Wallet className="h-4 w-4" />
             Pemasukan Bulan {month}
           </CardTitle>
