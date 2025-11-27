@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { RecurringIncomeSummary } from "@/components/recurring-income/RecurringIncomeSummary";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -351,8 +352,8 @@ export default function RecurringIncome() {
   return (
     <div className="h-[calc(100vh-104px)] overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-1 md:mb-4">
+      <div className="shrink-0 px-2 py-2 md:px-8 md:py-4 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
           <div>
             <h1 className="text-xl md:text-4xl font-bold text-foreground">
               💰 Pemasukan Tetap
@@ -546,6 +547,8 @@ export default function RecurringIncome() {
             </DialogContent>
           </Dialog>
         </div>
+
+        <RecurringIncomeSummary incomes={incomes} />
       </div>
 
       {/* Content */}
