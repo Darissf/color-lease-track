@@ -119,7 +119,7 @@ const App = () => (
                               <Route path="/rental-contracts" element={<RentalContracts />} />
                               <Route path="/client-dashboard" element={<ClientDashboard />} />
                               <Route path="/contract/:id" element={<ContractDetail />} />
-                              <Route path="/landing-settings" element={<LandingSettings />} />
+                              <Route path="/settings/landing" element={<LandingSettings />} />
                               <Route path="/portfolio-manager" element={<PortfolioManager />} />
                               <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
                               <Route path="/database-backup" element={<DatabaseBackup />} />
