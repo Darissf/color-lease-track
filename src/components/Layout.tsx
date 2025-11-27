@@ -1,4 +1,4 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, Search, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { ThemeSelector } from "@/components/ThemeSelector";
+import { BrandText } from "@/components/BrandText";
 import { cn } from "@/lib/utils";
 
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
@@ -259,14 +260,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </Button>
             )}
             
-            {/* Search Bar */}
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-ring transition-all"
-              />
+            {/* Brand Text */}
+            <div className="flex-1 flex items-center justify-center">
+              <BrandText />
             </div>
           </div>
 
