@@ -56,6 +56,7 @@ import LandingSettings from "./pages/LandingSettings";
 import WhatsAppSettings from "./pages/WhatsAppSettings";
 import SMTPSettings from "./pages/SMTPSettings";
 import VIPDesignSettings from "./pages/VIPDesignSettings";
+import AIChat from "./pages/AIChat";
 
 const queryClient = new QueryClient();
 
@@ -126,6 +127,7 @@ const App = () => (
                               <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
                               <Route path="/database-backup" element={<DatabaseBackup />} />
                               <Route path="/chatbot" element={<ChatBotAI />} />
+                              <Route path="/ai-chat" element={<AIChat />} />
                               <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
                               <Route path="*" element={<NotFound />} />
                             </Routes>

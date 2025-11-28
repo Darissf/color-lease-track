@@ -1,4 +1,4 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat, MessageSquare } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -28,6 +28,7 @@ const navItems = [
 // Moved pagesItems inside component to access user roles
 
   const adminNavItems = [
+    { title: "AI Chat", url: "/vip/ai-chat", icon: MessageSquare, badge: "New", badgeVariant: "default" as const, description: "Chat dengan berbagai AI provider (Admin Only)", adminOnly: true },
     { title: "Pengaturan", url: "/vip/settings", icon: Settings, description: "Konfigurasi pengaturan aplikasi" },
     { title: "AI Settings", url: "/vip/settings/ai", icon: Brain, badge: "AI", badgeVariant: "ai" as const, description: "Konfigurasi fitur AI dan model" },
     { title: "Admin Settings", url: "/vip/settings/admin", icon: User2, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola pengguna dan hak akses sistem" },
@@ -184,6 +185,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               )}
               {adminNavItems.map((item) => {
                 if (item.superAdminOnly && !isSuperAdmin) return null;
+                if (item.adminOnly && !isAdmin && !isSuperAdmin) return null;
                 return (
                   <Tooltip key={item.url}>
                     <TooltipTrigger asChild>
