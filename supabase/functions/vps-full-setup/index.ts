@@ -125,6 +125,7 @@ fi
     const { data: session, error: sessionError } = await supabase
       .from('vps_installation_sessions')
       .insert({
+        user_id: user.id,
         vps_credential_id: body.vps_credential_id,
         install_token: installToken,
         status: 'pending',
