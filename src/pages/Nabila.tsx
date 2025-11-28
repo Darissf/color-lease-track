@@ -174,8 +174,6 @@ export default function Nabila() {
   useEffect(() => {
     if (!user) return;
 
-    console.log('Setting up realtime subscription for bank accounts...');
-
     const channel = supabase
       .channel('bank-accounts-changes')
       .on(
@@ -187,7 +185,6 @@ export default function Nabila() {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('Bank account change detected:', payload);
           
           // Trigger animation sebelum fetch
           setIsBalanceAnimating(true);
@@ -242,7 +239,6 @@ export default function Nabila() {
       .subscribe();
 
     return () => {
-      console.log('Cleaning up realtime subscription...');
       supabase.removeChannel(channel);
     };
   }, [user]);

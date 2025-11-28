@@ -147,35 +147,19 @@ export default function Dashboard() {
     // Recent expenses
     setRecentExpenses(expensesData?.slice(0, 5) || []);
 
-    // Monthly trend (last 6 months)
-    const trendData = [];
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = subMonths(now, i);
-      const monthStart = format(startOfMonth(monthDate), 'yyyy-MM-dd');
-      const monthEnd = format(endOfMonth(monthDate), 'yyyy-MM-dd');
-
-      const { data: monthExpenses } = await supabase
-        .from("expenses")
-        .select("amount")
-        .eq("user_id", user.id)
-        .gte("date", monthStart)
-        .lte("date", monthEnd);
-
-      const { data: monthIncome } = await supabase
-        .from("rental_contracts")
-        .select("jumlah_lunas")
-        .eq("user_id", user.id)
-        .not("tanggal_lunas", "is", null)
-        .gte("tanggal_lunas", monthStart)
-        .lte("tanggal_lunas", monthEnd);
-
-      trendData.push({
-        month: format(monthDate, 'MMM'),
-        income: monthIncome?.reduce((sum, i) => sum + (i.jumlah_lunas || 0), 0) || 0,
-        expenses: monthExpenses?.reduce((sum, e) => sum + e.amount, 0) || 0,
+    // Monthly trend (last 6 months) - Optimized with single database function call
+    const { data: trendData, error: trendError } = await supabase
+      .rpc('get_monthly_trend', {
+        p_user_id: user.id,
+        p_months: 6
       });
+
+    if (trendError) {
+      console.error('Error fetching monthly trend:', trendError);
+      setMonthlyTrend([]);
+    } else {
+      setMonthlyTrend(trendData || []);
     }
-    setMonthlyTrend(trendData);
 
     // Income by client
     const { data: clientData } = await supabase
