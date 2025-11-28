@@ -38,6 +38,23 @@
   background-clip: text;
 }
 
+/* Background Gradient Classes - Theme Aware */
+.gradient-primary {
+  background: linear-gradient(135deg, hsl(263 70% 55%), hsl(283 60% 50%));
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, hsl(142 76% 36%), hsl(158 64% 52%));
+}
+
+.gradient-secondary {
+  background: linear-gradient(135deg, hsl(45 93% 47%), hsl(43 74% 49%));
+}
+
+.gradient-card {
+  background: linear-gradient(135deg, hsl(263 50% 20%), hsl(240 30% 15%));
+}
+
 /* Brand Text Animations - 16 Total */
 
 /* 1. Shimmer */
