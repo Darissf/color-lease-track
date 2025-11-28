@@ -16,6 +16,105 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const url = new URL(req.url);
+    
+    // Handle script download endpoint (no auth required for agent)
+    if (url.searchParams.get('script') === 'true') {
+      const token = url.searchParams.get('token');
+      
+      if (!token) {
+        return new Response('Error: Token required', {
+          status: 400,
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      }
+
+      const appUrl = Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.functions.supabase.co') || '';
+      
+      const installerScript = `#!/bin/bash
+# WAHA VPS Agent Installer
+# Generated: ${new Date().toISOString()}
+
+set -e
+
+echo "🚀 Installing WAHA VPS Agent..."
+
+# Install jq if not present (needed for JSON parsing)
+if ! command -v jq &> /dev/null; then
+  echo "📦 Installing jq for JSON parsing..."
+  apt-get update -qq && apt-get install -y -qq jq
+fi
+
+# Create agent directory
+mkdir -p /opt/waha-agent
+cd /opt/waha-agent
+
+# Create agent script
+cat > /opt/waha-agent/agent.sh << AGENT_SCRIPT
+#!/bin/bash
+TOKEN="${token}"
+API_URL="${appUrl}/vps-agent-controller"
+
+while true; do
+  # Send heartbeat and get commands
+  curl -s -X POST "\\$API_URL/heartbeat" \\\\
+    -H "Content-Type: application/json" \\\\
+    -d "{\\\\"token\\\\":\\\\"\\$TOKEN\\\\",\\\\"hostname\\\\":\\\\"\\$(hostname)\\\\",\\\\"uptime\\\\":\\\\"\\$(uptime -p)\\\\"}" > /dev/null 2>&1
+  
+  # Check for commands to execute
+  RESPONSE=\\$(curl -s "\\$API_URL/commands?token=\\$TOKEN" 2>&1)
+  COMMANDS=\\$(echo "\\$RESPONSE" | jq -r '.commands // empty' 2>/dev/null)
+  
+  if [ -n "\\$COMMANDS" ]; then
+    echo "Executing commands..."
+    OUTPUT=\\$(eval "\\$COMMANDS" 2>&1)
+    
+    # Send output back using jq for proper JSON encoding
+    curl -s -X POST "\\$API_URL/output" \\\\
+      -H "Content-Type: application/json" \\\\
+      -d "\\$(jq -n --arg t "\\$TOKEN" --arg o "\\$OUTPUT" '{token:\\$t,output:\\$o}')" > /dev/null 2>&1
+  fi
+  
+  sleep 5
+done
+AGENT_SCRIPT
+
+chmod +x /opt/waha-agent/agent.sh
+
+# Create systemd service
+cat > /etc/systemd/system/waha-agent.service << 'SERVICE'
+[Unit]
+Description=WAHA VPS Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/waha-agent
+ExecStart=/opt/waha-agent/agent.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+# Enable and start service
+systemctl daemon-reload
+systemctl enable waha-agent
+systemctl start waha-agent
+
+echo "✅ WAHA Agent installed and running!"
+echo "🔗 Agent Token: ${token}"
+echo "📊 Check status: systemctl status waha-agent"
+`;
+
+      return new Response(installerScript, {
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
+
+    // Handle agent creation (requires auth)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -69,84 +168,13 @@ Deno.serve(async (req) => {
     }
 
     const appUrl = Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.functions.supabase.co') || '';
-    
-    // Generate agent installer script
-    const installerScript = `#!/bin/bash
-# WAHA VPS Agent Installer
-# Generated: ${new Date().toISOString()}
-
-set -e
-
-echo "🚀 Installing WAHA VPS Agent..."
-
-# Create agent directory
-mkdir -p /opt/waha-agent
-cd /opt/waha-agent
-
-# Create agent script
-cat > /opt/waha-agent/agent.sh << 'AGENT_SCRIPT'
-#!/bin/bash
-TOKEN="${agentToken}"
-API_URL="${appUrl}/vps-agent-controller"
-
-while true; do
-  # Send heartbeat and get commands
-  RESPONSE=$(curl -s -X POST "$API_URL/heartbeat" \\
-    -H "Content-Type: application/json" \\
-    -d "{\\"token\\":\\"$TOKEN\\",\\"hostname\\":\\"$(hostname)\\",\\"uptime\\":\\"$(uptime -p)\\"}" 2>&1)
-  
-  # Check for commands to execute
-  COMMANDS=$(curl -s "$API_URL/commands?token=$TOKEN" 2>&1)
-  
-  if [ ! -z "$COMMANDS" ] && [ "$COMMANDS" != "null" ] && [ "$COMMANDS" != "{}" ]; then
-    # Execute commands and send output
-    OUTPUT=$(eval "$COMMANDS" 2>&1)
-    curl -s -X POST "$API_URL/output" \\
-      -H "Content-Type: application/json" \\
-      -d "{\\"token\\":\\"$TOKEN\\",\\"output\\":\\"$(echo $OUTPUT | sed 's/"/\\\\"/g')\\"}" > /dev/null
-  fi
-  
-  sleep 5
-done
-AGENT_SCRIPT
-
-chmod +x /opt/waha-agent/agent.sh
-
-# Create systemd service
-cat > /etc/systemd/system/waha-agent.service << 'SERVICE'
-[Unit]
-Description=WAHA VPS Agent
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/waha-agent
-ExecStart=/opt/waha-agent/agent.sh
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-SERVICE
-
-# Enable and start service
-systemctl daemon-reload
-systemctl enable waha-agent
-systemctl start waha-agent
-
-echo "✅ WAHA Agent installed and running!"
-echo "🔗 Agent Token: ${agentToken}"
-echo "📊 Check status: systemctl status waha-agent"
-`;
 
     return new Response(
       JSON.stringify({
         success: true,
         agent_id: agent.id,
         agent_token: agentToken,
-        installer_script: installerScript,
-        one_line_command: `curl -sSL ${appUrl}/vps-agent-installer/script?token=${agentToken} | bash`,
+        one_line_command: `curl -sSL "${appUrl}/vps-agent-installer?script=true&token=${agentToken}" | bash`,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -92,3 +92,9 @@ verify_jwt = true
 
 [functions.install-progress-webhook]
 verify_jwt = false
+
+[functions.vps-agent-installer]
+verify_jwt = false
+
+[functions.vps-agent-controller]
+verify_jwt = false
