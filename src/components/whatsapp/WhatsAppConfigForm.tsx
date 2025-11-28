@@ -133,7 +133,7 @@ export const WhatsAppConfigForm = () => {
           commands: `
             docker stop waha 2>/dev/null || true
             docker rm waha 2>/dev/null || true
-            docker run -d --name waha --restart=always -p 3000:3000 -e WHATSAPP_API_KEY=${apiKey} devlikeapro/waha:latest
+            docker run -d --name waha --restart=always -p 3000:3000 -e WAHA_API_KEY=${apiKey} devlikeapro/waha:latest
             echo "WAHA reconfigured successfully with API key"
           `.trim(),
         },

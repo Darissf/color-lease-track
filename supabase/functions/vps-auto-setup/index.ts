@@ -229,7 +229,7 @@ services:
       - "${waha.port}:3000"
     environment:
       - WHATSAPP_HOOK_URL=
-      - WHATSAPP_API_KEY=${waha.apiKey}
+      - WAHA_API_KEY=${waha.apiKey}
       - WHATSAPP_API_PORT=3000
     volumes:
       - ./sessions:/app/sessions

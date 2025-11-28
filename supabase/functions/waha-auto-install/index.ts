@@ -56,7 +56,7 @@ const INSTALL_STEPS: InstallStep[] = [
   {
     step_number: 5,
     name: "start_waha",
-    command: "docker stop waha 2>/dev/null || true && docker rm waha 2>/dev/null || true && docker run -d --name waha --restart unless-stopped -p {WAHA_PORT}:3000 -e WHATSAPP_API_KEY={WAHA_API_KEY} -e WHATSAPP_SESSION_NAME={WAHA_SESSION_NAME} devlikeapro/waha:latest",
+    command: "docker stop waha 2>/dev/null || true && docker rm waha 2>/dev/null || true && docker run -d --name waha --restart unless-stopped -p {WAHA_PORT}:3000 -e WAHA_API_KEY={WAHA_API_KEY} -e WHATSAPP_SESSION_NAME={WAHA_SESSION_NAME} devlikeapro/waha:latest",
     timeout: 30000,
     description: "Starting WAHA container"
   },
