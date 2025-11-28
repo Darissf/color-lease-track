@@ -1,0 +1,174 @@
+import { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useWhatsAppSettings } from '@/hooks/useWhatsAppSettings';
+
+export const WAHAQRScanner = () => {
+  const { toast } = useToast();
+  const { settings } = useWhatsAppSettings();
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'connected' | 'error'>('loading');
+  const [error, setError] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+
+  const fetchQRCode = async () => {
+    if (!settings?.waha_api_url || !settings?.waha_session_name) {
+      setError('Konfigurasi WAHA belum lengkap. Silakan isi di tab Konfigurasi.');
+      setStatus('error');
+      return;
+    }
+
+    setStatus('loading');
+    setError(null);
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('waha-session-control', {
+        body: {
+          action: 'get-qr',
+          sessionName: settings.waha_session_name
+        }
+      });
+
+      if (invokeError) throw invokeError;
+
+      if (data.status === 'connected') {
+        setStatus('connected');
+        setQrCode(null);
+        setAutoRefresh(false);
+      } else if (data.qrCode) {
+        setQrCode(data.qrCode);
+        setStatus('ready');
+      } else if (data.error) {
+        throw new Error(data.error);
+      }
+    } catch (err: any) {
+      console.error('Error fetching QR:', err);
+      setError(err.message || 'Gagal mengambil QR code');
+      setStatus('error');
+      setAutoRefresh(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQRCode();
+  }, []);
+
+  useEffect(() => {
+    if (!autoRefresh || status === 'connected') return;
+
+    const interval = setInterval(() => {
+      fetchQRCode();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, status]);
+
+  const getStatusDisplay = () => {
+    switch (status) {
+      case 'loading':
+        return (
+          <Alert className="border-blue-500/20 bg-blue-500/5">
+            <Clock className="h-4 w-4 text-blue-500" />
+            <AlertDescription className="text-blue-500">
+              Memuat QR Code...
+            </AlertDescription>
+          </Alert>
+        );
+      case 'connected':
+        return (
+          <Alert className="border-green-500/20 bg-green-500/5">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <AlertDescription className="text-green-500">
+              WhatsApp sudah terhubung! Session aktif.
+            </AlertDescription>
+          </Alert>
+        );
+      case 'error':
+        return (
+          <Alert className="border-red-500/20 bg-red-500/5">
+            <XCircle className="h-4 w-4 text-red-500" />
+            <AlertDescription className="text-red-500">
+              {error}
+            </AlertDescription>
+          </Alert>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {getStatusDisplay()}
+
+      {status === 'ready' && qrCode && (
+        <Card className="p-6">
+          <div className="text-center space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Scan QR Code</h3>
+              <p className="text-sm text-muted-foreground">
+                Buka WhatsApp di ponsel Anda, lalu scan QR code di bawah ini
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <div className="bg-white p-4 rounded-lg border-4 border-primary/20">
+                <img 
+                  src={qrCode} 
+                  alt="WhatsApp QR Code" 
+                  className="w-64 h-64 md:w-80 md:h-80"
+                />
+              </div>
+            </div>
+
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>1. Buka WhatsApp di ponsel Anda</p>
+              <p>2. Tap Menu atau Settings {'>'} Linked Devices</p>
+              <p>3. Tap Link a Device</p>
+              <p>4. Arahkan kamera ke QR code ini</p>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span>QR code akan diperbarui otomatis setiap 5 detik</span>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      <div className="flex gap-2">
+        <Button 
+          onClick={fetchQRCode} 
+          disabled={status === 'loading'}
+          className="flex-1"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${status === 'loading' ? 'animate-spin' : ''}`} />
+          Refresh QR Code
+        </Button>
+        
+        {status !== 'connected' && (
+          <Button
+            variant={autoRefresh ? 'default' : 'outline'}
+            onClick={() => setAutoRefresh(!autoRefresh)}
+          >
+            {autoRefresh ? 'Stop' : 'Start'} Auto-Refresh
+          </Button>
+        )}
+      </div>
+
+      <Card className="p-4 bg-muted/50">
+        <p className="text-sm font-medium mb-2">💡 Tips</p>
+        <ul className="text-xs space-y-1 text-muted-foreground">
+          <li>• QR code berlaku selama 60 detik sebelum expire</li>
+          <li>• Pastikan WhatsApp di ponsel Anda terhubung ke internet</li>
+          <li>• Gunakan ponsel yang sama dengan nomor WhatsApp yang akan digunakan</li>
+          <li>• Setelah berhasil scan, status akan otomatis berubah menjadi "Connected"</li>
+        </ul>
+      </Card>
+    </div>
+  );
+};
