@@ -57,35 +57,43 @@ fi
 mkdir -p /opt/waha-agent
 cd /opt/waha-agent
 
-# Create agent script with simplified, robust logging
+# Create agent script with non-blocking execution and real-time streaming
 cat > /opt/waha-agent/agent.sh << 'AGENT_SCRIPT'
 #!/bin/bash
-set -e
 
 TOKEN="${token}"
 API_URL="${appUrl}/vps-agent-controller"
 LOG_FILE="/var/log/waha-agent.log"
+OUTPUT_FILE="/tmp/waha-output.log"
+CMD_FILE="/tmp/waha-cmd.sh"
+CMD_PID=""
+LAST_LINE=0
 
 # Logging function
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
+# Send output incrementally
+send_output() {
+  local output="$1"
+  if [ -n "$output" ]; then
+    curl -s -X POST "$API_URL/output" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg t "$TOKEN" --arg o "$output" '{token:$t,output:$o}')" > /dev/null 2>&1 || true
+  fi
+}
+
 log "🚀 WAHA Agent starting..."
 log "Token: $TOKEN"
 log "API URL: $API_URL"
 
-# Test connection with ping endpoint
+# Test connection
 log "🔗 Testing connection to server..."
-if ! TEST_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/ping" 2>&1); then
-  log "❌ Curl command failed: $TEST_RESPONSE"
-  exit 1
-fi
+TEST_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/ping" 2>&1) || TEST_RESPONSE="000"
 
 if [ "$TEST_RESPONSE" != "200" ]; then
   log "❌ Cannot connect to server! HTTP: $TEST_RESPONSE"
-  log "API_URL: $API_URL/ping"
-  log "Check: 1) Internet 2) Firewall 3) DNS resolution"
   exit 1
 fi
 log "✅ Connection test successful!"
@@ -97,45 +105,82 @@ HEARTBEAT_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/heartbeat" \
   -d "$(jq -n --arg t "$TOKEN" --arg h "$(hostname)" --arg u "initial" '{token:$t,hostname:$h,uptime:$u}')" 2>&1)
 
 HTTP_CODE=$(echo "$HEARTBEAT_RESPONSE" | tail -n1)
-BODY=$(echo "$HEARTBEAT_RESPONSE" | head -n -1)
-
 if [ "$HTTP_CODE" != "200" ]; then
   log "❌ Initial heartbeat failed: HTTP $HTTP_CODE"
-  log "Response: $BODY"
   exit 1
 fi
 log "✅ Initial heartbeat sent successfully"
 
-# Main agent loop
+# Main agent loop with non-blocking execution
 log "🔄 Starting main agent loop..."
 while true; do
-  # Send heartbeat
-  HEARTBEAT_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/heartbeat" \
+  # Send heartbeat (always runs, even during command execution)
+  curl -s -X POST "$API_URL/heartbeat" \
     -H "Content-Type: application/json" \
-    -d "$(jq -n --arg t "$TOKEN" --arg h "$(hostname)" --arg u "$(uptime -p)" '{token:$t,hostname:$h,uptime:$u}')" 2>&1)
+    -d "$(jq -n --arg t "$TOKEN" --arg h "$(hostname)" --arg u "$(uptime -p)" '{token:$t,hostname:$h,uptime:$u}')" > /dev/null 2>&1 || true
   
-  HTTP_CODE=$(echo "$HEARTBEAT_RESPONSE" | tail -n1)
-  
-  if [ "$HTTP_CODE" != "200" ]; then
-    log "⚠️ Heartbeat failed: HTTP $HTTP_CODE"
-  fi
-  
-  # Check for commands to execute
-  RESPONSE=$(curl -s "$API_URL/commands?token=$TOKEN" 2>&1)
-  COMMANDS=$(echo "$RESPONSE" | jq -r '.commands // empty' 2>/dev/null || echo "")
-  
-  if [ -n "$COMMANDS" ]; then
-    log "📝 Executing commands: $COMMANDS"
-    OUTPUT=$(eval "$COMMANDS" 2>&1 || echo "Command failed: $?")
-    log "📤 Command output: $OUTPUT"
+  # Check if there's a running command
+  if [ -n "$CMD_PID" ]; then
+    # Check if command is still running
+    if kill -0 "$CMD_PID" 2>/dev/null; then
+      # Command still running - stream new output lines
+      if [ -f "$OUTPUT_FILE" ]; then
+        TOTAL_LINES=$(wc -l < "$OUTPUT_FILE" 2>/dev/null || echo "0")
+        if [ "$TOTAL_LINES" -gt "$LAST_LINE" ]; then
+          # Get new lines since last check
+          NEW_OUTPUT=$(tail -n +$((LAST_LINE + 1)) "$OUTPUT_FILE" 2>/dev/null || echo "")
+          if [ -n "$NEW_OUTPUT" ]; then
+            log "📤 Streaming output ($TOTAL_LINES lines)"
+            send_output "$NEW_OUTPUT"
+            LAST_LINE=$TOTAL_LINES
+          fi
+        fi
+      fi
+    else
+      # Command finished
+      log "✅ Command completed (PID: $CMD_PID)"
+      
+      # Send any remaining output
+      if [ -f "$OUTPUT_FILE" ]; then
+        TOTAL_LINES=$(wc -l < "$OUTPUT_FILE" 2>/dev/null || echo "0")
+        if [ "$TOTAL_LINES" -gt "$LAST_LINE" ]; then
+          FINAL_OUTPUT=$(tail -n +$((LAST_LINE + 1)) "$OUTPUT_FILE" 2>/dev/null || echo "")
+          if [ -n "$FINAL_OUTPUT" ]; then
+            send_output "$FINAL_OUTPUT"
+          fi
+        fi
+      fi
+      
+      # Cleanup
+      CMD_PID=""
+      LAST_LINE=0
+      rm -f "$OUTPUT_FILE" "$CMD_FILE"
+    fi
+  else
+    # No running command - check for new commands
+    RESPONSE=$(curl -s "$API_URL/commands?token=$TOKEN" 2>&1)
+    COMMANDS=$(echo "$RESPONSE" | jq -r '.commands // empty' 2>/dev/null || echo "")
     
-    # Send output back using jq for proper JSON encoding
-    curl -s -X POST "$API_URL/output" \
-      -H "Content-Type: application/json" \
-      -d "$(jq -n --arg t "$TOKEN" --arg o "$OUTPUT" '{token:$t,output:$o}')" > /dev/null 2>&1 || true
+    if [ -n "$COMMANDS" ]; then
+      log "📝 Starting command execution in background"
+      
+      # Clear old output file
+      rm -f "$OUTPUT_FILE"
+      LAST_LINE=0
+      
+      # Write commands to script file
+      echo "$COMMANDS" > "$CMD_FILE"
+      
+      # Execute in background, output to file
+      bash "$CMD_FILE" > "$OUTPUT_FILE" 2>&1 &
+      CMD_PID=$!
+      
+      log "🔄 Command running (PID: $CMD_PID)"
+    fi
   fi
   
-  sleep 5
+  # Sleep 2 seconds (faster polling for better responsiveness)
+  sleep 2
 done
 AGENT_SCRIPT
 
