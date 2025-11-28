@@ -2945,6 +2945,45 @@ export type Database = {
         }
         Relationships: []
       }
+      vps_installation_progress: {
+        Row: {
+          created_at: string | null
+          current_step: number | null
+          error_message: string | null
+          id: string
+          status: string | null
+          step_outputs: Json | null
+          total_steps: number | null
+          updated_at: string | null
+          user_id: string
+          vps_host: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_step?: number | null
+          error_message?: string | null
+          id?: string
+          status?: string | null
+          step_outputs?: Json | null
+          total_steps?: number | null
+          updated_at?: string | null
+          user_id: string
+          vps_host: string
+        }
+        Update: {
+          created_at?: string | null
+          current_step?: number | null
+          error_message?: string | null
+          id?: string
+          status?: string | null
+          step_outputs?: Json | null
+          total_steps?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vps_host?: string
+        }
+        Relationships: []
+      }
       vps_installation_sessions: {
         Row: {
           command_log: Json | null
