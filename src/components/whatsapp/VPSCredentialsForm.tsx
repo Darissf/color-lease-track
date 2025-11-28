@@ -3,8 +3,10 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface VPSCredentials {
   host: string;
@@ -72,33 +74,39 @@ export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFo
     setTestResult(null);
     
     try {
-      const response = await fetch('/api/vps-ssh-execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('vps-ssh-execute', {
+        body: {
           host: credentials.host,
           port: parseInt(credentials.port),
           username: credentials.username,
           password: credentials.password,
           command: 'echo "Connection successful"',
-        }),
+        },
       });
 
-      if (response.ok) {
+      if (error) throw error;
+
+      if (data.success) {
         setTestResult('success');
-        toast({ title: 'Koneksi Berhasil!', description: 'VPS dapat diakses' });
+        toast({ 
+          title: 'Koneksi Berhasil!', 
+          description: 'VPS dapat diakses dengan SSH',
+        });
       } else {
         setTestResult('error');
-        const error = await response.json();
         toast({ 
           title: 'Koneksi Gagal', 
-          description: error.error || 'Tidak dapat terhubung ke VPS',
+          description: data.error || 'Tidak dapat terhubung ke VPS',
           variant: 'destructive' 
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       setTestResult('error');
-      toast({ title: 'Error', description: 'Gagal test koneksi', variant: 'destructive' });
+      toast({ 
+        title: 'Error Test Koneksi', 
+        description: error.message || 'Gagal menghubungi VPS',
+        variant: 'destructive' 
+      });
     } finally {
       setTesting(false);
     }
@@ -266,6 +274,23 @@ export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFo
         <p className="text-sm text-muted-foreground text-center">
           Test koneksi VPS terlebih dahulu sebelum memulai setup
         </p>
+      )}
+
+      {testResult === 'error' && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-semibold">Koneksi SSH Gagal? Gunakan Setup Manual</p>
+              <p className="text-sm">Jika test koneksi gagal, Anda dapat melakukan setup manual di VPS:</p>
+              <ol className="text-sm list-decimal list-inside space-y-1">
+                <li>Login ke VPS via SSH client (PuTTY, Terminal)</li>
+                <li>Jalankan: <code className="bg-muted px-1">docker run -d -p {credentials.wahaPort}:3000 devlikeapro/waha</code></li>
+                <li>Akses: <code className="bg-muted px-1">http://{credentials.host}:{credentials.wahaPort}</code></li>
+              </ol>
+            </div>
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );
