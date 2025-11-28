@@ -19,6 +19,8 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
   const showGalaxyAnimations = accentTheme === 'galaxy' && !isMobile;
   const showArtDecoAnimations = accentTheme === 'artdeco' && !isMobile;
   const showForestAnimations = accentTheme === 'forest' && !isMobile;
+  const showOceanAnimations = accentTheme === 'ocean' && !isMobile;
+  const showFireplaceAnimations = accentTheme === 'fireplace' && !isMobile;
 
   return (
     <div className="h-full relative overflow-hidden flex flex-col">
@@ -101,48 +103,108 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
         </>
       )}
 
-      {/* Galaxy Space Theme */}
+      {/* Galaxy Space Theme - ULTRA ADVANCED */}
       {showGalaxyAnimations && (
         <>
-          {/* Twinkling Stars */}
-          {[...Array(80)].map((_, i) => (
-            <div key={`star-${i}`}
-                 className="absolute rounded-full bg-white animate-twinkle"
+          {/* Star Parallax System - 3 Layers */}
+          {/* Layer 1: Background Stars (slow) */}
+          {[...Array(30)].map((_, i) => (
+            <div key={`star-bg-${i}`} className="absolute rounded-full bg-white/40"
                  style={{
-                   left: `${Math.random() * 100}%`,
-                   top: `${Math.random() * 100}%`,
-                   width: `${Math.random() * 3 + 1}px`,
-                   height: `${Math.random() * 3 + 1}px`,
+                   width: `${Math.random() * 2 + 1}px`, height: `${Math.random() * 2 + 1}px`,
+                   top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+                   animation: `parallaxStar1 ${Math.random() * 100 + 150}s linear infinite, twinkle ${Math.random() * 3 + 2}s ease-in-out infinite`,
+                   animationDelay: `${Math.random() * 10}s`,
+                 }} />
+          ))}
+          {/* Layer 2: Medium Stars (medium speed) */}
+          {[...Array(25)].map((_, i) => (
+            <div key={`star-mid-${i}`} className="absolute rounded-full bg-white/60"
+                 style={{
+                   width: `${Math.random() * 2.5 + 1.5}px`, height: `${Math.random() * 2.5 + 1.5}px`,
+                   top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+                   animation: `parallaxStar2 ${Math.random() * 60 + 100}s linear infinite, twinkle ${Math.random() * 2 + 1.5}s ease-in-out infinite`,
+                   animationDelay: `${Math.random() * 5}s`,
+                 }} />
+          ))}
+          {/* Layer 3: Foreground Stars (fast) */}
+          {[...Array(20)].map((_, i) => (
+            <div key={`star-fg-${i}`} className="absolute rounded-full bg-white"
+                 style={{
+                   width: `${Math.random() * 3 + 2}px`, height: `${Math.random() * 3 + 2}px`,
+                   top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+                   animation: `parallaxStar3 ${Math.random() * 40 + 60}s linear infinite, twinkle ${Math.random() * 2 + 1}s ease-in-out infinite`,
                    animationDelay: `${Math.random() * 3}s`,
-                   animationDuration: `${Math.random() * 2 + 2}s`
                  }} />
           ))}
-          
-          {/* Shooting Stars */}
-          {[...Array(3)].map((_, i) => (
-            <div key={`shooting-${i}`}
-                 className="absolute h-px w-20 bg-gradient-to-r from-transparent via-purple-300 to-transparent"
+
+          {/* Pulsar Stars */}
+          {[...Array(5)].map((_, i) => (
+            <div key={`pulsar-${i}`} className="absolute" style={{ top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%` }}>
+              <div className="rounded-full bg-purple-300"
+                   style={{
+                     width: '4px', height: '4px',
+                     boxShadow: '0 0 10px 2px rgba(168, 85, 247, 0.8)',
+                     animation: `pulse ${Math.random() * 1 + 0.8}s ease-in-out infinite`,
+                   }} />
+            </div>
+          ))}
+
+          {/* Rotating Galaxy Spiral */}
+          <div className="absolute" style={{ top: '10%', right: '15%', width: '300px', height: '300px', animation: 'galaxyRotate 60s linear infinite', opacity: 0.3 }}>
+            <div className="w-full h-full rounded-full"
                  style={{
-                   left: `${Math.random() * 100}%`,
-                   top: `${Math.random() * 50}%`,
-                   transform: 'rotate(-45deg)',
-                   animation: `shootingStar ${Math.random() * 3 + 4}s linear infinite`,
-                   animationDelay: `${Math.random() * 5}s`
+                   background: 'radial-gradient(ellipse at center, rgba(147, 51, 234, 0.4) 0%, rgba(79, 70, 229, 0.2) 30%, transparent 70%)',
+                   filter: 'blur(2px)',
                  }} />
+            {[...Array(8)].map((_, i) => (
+              <div key={`spiral-${i}`} className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full"
+                   style={{
+                     transform: `rotate(${i * 45}deg) translateX(${50 + i * 15}px)`,
+                     boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
+                   }} />
+            ))}
+          </div>
+
+          {/* Comet System */}
+          {[...Array(2)].map((_, i) => (
+            <div key={`comet-${i}`} className="absolute"
+                 style={{
+                   top: `${Math.random() * 40}%`, left: '-150px',
+                   animation: `cometTrail ${Math.random() * 4 + 5}s linear infinite`,
+                   animationDelay: `${Math.random() * 15}s`,
+                 }}>
+              <div className="w-3 h-3 bg-white rounded-full" style={{ boxShadow: '0 0 10px rgba(255, 255, 255, 0.9)' }} />
+              <div className="absolute top-0 left-0 h-1"
+                   style={{
+                     width: '150px',
+                     background: 'linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(147, 51, 234, 0.6), transparent)',
+                     transformOrigin: 'left center',
+                     transform: 'rotate(-30deg) translateY(1px)',
+                   }} />
+            </div>
           ))}
-          
+
+          {/* Constellation Lines */}
+          <svg className="absolute inset-0 w-full h-full opacity-20" style={{ pointerEvents: 'none' }}>
+            <line x1="20%" y1="30%" x2="35%" y2="25%" stroke="white" strokeWidth="1" opacity="0.6" />
+            <line x1="35%" y1="25%" x2="42%" y2="35%" stroke="white" strokeWidth="1" opacity="0.6" />
+            <line x1="42%" y1="35%" x2="30%" y2="42%" stroke="white" strokeWidth="1" opacity="0.6" />
+            <line x1="60%" y1="20%" x2="72%" y2="28%" stroke="white" strokeWidth="1" opacity="0.5" />
+            <line x1="72%" y1="28%" x2="78%" y2="22%" stroke="white" strokeWidth="1" opacity="0.5" />
+            <line x1="78%" y1="22%" x2="68%" y2="15%" stroke="white" strokeWidth="1" opacity="0.5" />
+          </svg>
+
           {/* Nebula Clouds */}
-          {[...Array(4)].map((_, i) => (
-            <div key={`nebula-${i}`}
-                 className="absolute rounded-full blur-3xl animate-pulse"
+          {[...Array(3)].map((_, i) => (
+            <div key={`nebula-${i}`} className="absolute rounded-full"
                  style={{
-                   left: `${Math.random() * 80}%`,
-                   top: `${Math.random() * 80}%`,
-                   width: `${200 + Math.random() * 300}px`,
-                   height: `${200 + Math.random() * 300}px`,
-                   background: i % 2 === 0 ? 'radial-gradient(circle, rgba(147, 51, 234, 0.2), transparent)' : 'radial-gradient(circle, rgba(79, 70, 229, 0.2), transparent)',
-                   animationDelay: `${i * 0.8}s`,
-                   animationDuration: `${6 + i * 2}s`
+                   width: `${Math.random() * 400 + 300}px`, height: `${Math.random() * 400 + 300}px`,
+                   top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+                   background: `radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, rgba(79, 70, 229, 0.15) 50%, transparent 70%)`,
+                   filter: 'blur(60px)',
+                   animation: `float ${Math.random() * 30 + 40}s ease-in-out infinite`,
+                   animationDelay: `${Math.random() * 10}s`,
                  }} />
           ))}
         </>
@@ -240,6 +302,152 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
                    background: 'rgba(255, 255, 255, 0.3)',
                    animationDelay: `${i * 1.5}s`,
                    animationDuration: `${8 + i * 2}s`
+                 }} />
+          ))}
+        </>
+      )}
+
+      {/* Deep Ocean Theme */}
+      {showOceanAnimations && (
+        <>
+          {/* Rising Bubbles */}
+          {[...Array(25)].map((_, i) => (
+            <div key={`bubble-${i}`} className="absolute rounded-full bg-white/20"
+                 style={{
+                   width: `${Math.random() * 12 + 4}px`, height: `${Math.random() * 12 + 4}px`,
+                   bottom: '-50px', left: `${Math.random() * 100}%`,
+                   animation: `bubbleRise ${Math.random() * 8 + 6}s linear infinite`,
+                   animationDelay: `${Math.random() * 5}s`,
+                   boxShadow: 'inset 0 -2px 4px rgba(255, 255, 255, 0.5)',
+                 }} />
+          ))}
+
+          {/* God Rays / Light Rays */}
+          {[...Array(5)].map((_, i) => (
+            <div key={`ray-${i}`} className="absolute"
+                 style={{
+                   top: '-10%', left: `${i * 20 + 10}%`,
+                   width: '80px', height: '120%',
+                   background: 'linear-gradient(to bottom, rgba(100, 200, 255, 0.15) 0%, transparent 60%)',
+                   transform: `rotate(${Math.random() * 10 - 5}deg)`,
+                   animation: `godRays ${Math.random() * 15 + 20}s ease-in-out infinite`,
+                   animationDelay: `${Math.random() * 5}s`,
+                   filter: 'blur(5px)',
+                 }} />
+          ))}
+
+          {/* Fish Silhouettes */}
+          {[...Array(4)].map((_, i) => (
+            <div key={`fish-${i}`} className="absolute"
+                 style={{
+                   top: `${Math.random() * 60 + 20}%`, left: '-100px',
+                   width: '60px', height: '20px',
+                   animation: `fishSwim ${Math.random() * 20 + 25}s linear infinite`,
+                   animationDelay: `${Math.random() * 10}s`,
+                 }}>
+              <svg viewBox="0 0 60 20" className="w-full h-full fill-cyan-900/30">
+                <ellipse cx="30" cy="10" rx="25" ry="8" />
+                <path d="M 5 10 L 0 5 L 0 15 Z" />
+              </svg>
+            </div>
+          ))}
+
+          {/* Bioluminescent Particles */}
+          {[...Array(30)].map((_, i) => (
+            <div key={`bio-${i}`} className="absolute rounded-full"
+                 style={{
+                   width: `${Math.random() * 4 + 2}px`, height: `${Math.random() * 4 + 2}px`,
+                   top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+                   backgroundColor: 'rgba(100, 255, 218, 0.6)',
+                   boxShadow: '0 0 8px rgba(100, 255, 218, 0.8)',
+                   animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out infinite, float ${Math.random() * 20 + 30}s ease-in-out infinite`,
+                   animationDelay: `${Math.random() * 3}s`,
+                 }} />
+          ))}
+
+          {/* Seaweed at Bottom */}
+          {[...Array(8)].map((_, i) => (
+            <div key={`seaweed-${i}`} className="absolute bottom-0"
+                 style={{
+                   left: `${i * 12 + 5}%`,
+                   width: '20px', height: `${Math.random() * 100 + 120}px`,
+                   background: 'linear-gradient(to top, rgba(34, 139, 34, 0.4), transparent)',
+                   transformOrigin: 'bottom center',
+                   animation: `seaweedSway ${Math.random() * 4 + 3}s ease-in-out infinite`,
+                   animationDelay: `${Math.random() * 2}s`,
+                   borderRadius: '50% 50% 0 0',
+                 }} />
+          ))}
+
+          {/* Water Caustics Effect */}
+          <div className="absolute inset-0"
+               style={{
+                 background: 'repeating-linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.03) 50px, transparent 100px)',
+                 animation: 'float 10s ease-in-out infinite',
+                 opacity: 0.5,
+               }} />
+        </>
+      )}
+
+      {/* Cozy Fireplace Theme */}
+      {showFireplaceAnimations && (
+        <>
+          {/* Floating Embers */}
+          {[...Array(20)].map((_, i) => (
+            <div key={`ember-${i}`} className="absolute rounded-full"
+                 style={{
+                   width: `${Math.random() * 6 + 3}px`, height: `${Math.random() * 6 + 3}px`,
+                   bottom: `${Math.random() * 20}%`, left: `${Math.random() * 100}%`,
+                   backgroundColor: `rgba(255, ${Math.random() * 100 + 80}, 0, ${Math.random() * 0.5 + 0.5})`,
+                   boxShadow: `0 0 ${Math.random() * 10 + 5}px rgba(255, 140, 0, 0.8)`,
+                   animation: `emberFloat ${Math.random() * 8 + 6}s ease-out infinite`,
+                   animationDelay: `${Math.random() * 5}s`,
+                 }} />
+          ))}
+
+          {/* Smoke Wisps */}
+          {[...Array(5)].map((_, i) => (
+            <div key={`smoke-${i}`} className="absolute rounded-full"
+                 style={{
+                   width: `${Math.random() * 80 + 60}px`, height: `${Math.random() * 80 + 60}px`,
+                   bottom: `${Math.random() * 30 + 20}%`, left: `${Math.random() * 80 + 10}%`,
+                   background: 'radial-gradient(circle, rgba(100, 100, 100, 0.15) 0%, transparent 70%)',
+                   filter: 'blur(20px)',
+                   animation: `smokeWisp ${Math.random() * 12 + 10}s ease-in-out infinite`,
+                   animationDelay: `${Math.random() * 5}s`,
+                 }} />
+          ))}
+
+          {/* Warm Particle Sparkles */}
+          {[...Array(25)].map((_, i) => (
+            <div key={`sparkle-${i}`} className="absolute rounded-full"
+                 style={{
+                   width: `${Math.random() * 3 + 1}px`, height: `${Math.random() * 3 + 1}px`,
+                   top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+                   backgroundColor: `rgba(255, ${Math.random() * 100 + 155}, ${Math.random() * 50}, 0.8)`,
+                   boxShadow: '0 0 4px rgba(255, 200, 100, 0.6)',
+                   animation: `twinkle ${Math.random() * 2 + 1}s ease-in-out infinite`,
+                   animationDelay: `${Math.random() * 2}s`,
+                 }} />
+          ))}
+
+          {/* Heat Shimmer Effect */}
+          <div className="absolute inset-0"
+               style={{
+                 background: 'repeating-linear-gradient(0deg, transparent, rgba(255, 150, 50, 0.02) 30px, transparent 60px)',
+                 animation: 'heatShimmer 3s ease-in-out infinite',
+               }} />
+
+          {/* Crackling Glow Areas */}
+          {[...Array(3)].map((_, i) => (
+            <div key={`glow-${i}`} className="absolute rounded-full"
+                 style={{
+                   width: `${Math.random() * 150 + 100}px`, height: `${Math.random() * 150 + 100}px`,
+                   bottom: `${Math.random() * 20}%`, left: `${Math.random() * 80 + 10}%`,
+                   background: 'radial-gradient(circle, rgba(255, 100, 0, 0.2) 0%, transparent 60%)',
+                   filter: 'blur(40px)',
+                   animation: `pulse ${Math.random() * 2 + 1.5}s ease-in-out infinite`,
+                   animationDelay: `${Math.random() * 1}s`,
                  }} />
           ))}
         </>

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useTheme } from '@/components/ui/theme-provider';
 
-type AccentTheme = 'blue' | 'green' | 'purple' | 'orange' | 'teal' | 'japanese' | 'aurora' | 'cyberpunk' | 'galaxy' | 'artdeco' | 'forest';
+type AccentTheme = 'blue' | 'green' | 'purple' | 'orange' | 'teal' | 'japanese' | 'aurora' | 'cyberpunk' | 'galaxy' | 'artdeco' | 'forest' | 'ocean' | 'fireplace';
 
 // Deprecated old theme types - kept for backward compatibility during migration
 type LegacyAppTheme = 'japanese' | 'professional' | 'ocean-bali' | 'sunset-warm' | 'bamboo-zen' | 'sakura-bloom' | 'neon-cyber' | 'mountain-stone';
