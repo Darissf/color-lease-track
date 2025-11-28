@@ -38,7 +38,11 @@ export const WhatsAppConfigForm = () => {
 
   const handleTest = async () => {
     setIsTesting(true);
-    await testConnection();
+    // Save first before testing to ensure latest config is in database
+    const saved = await saveSettings(formData);
+    if (saved) {
+      await testConnection();
+    }
     setIsTesting(false);
   };
 
