@@ -3,10 +3,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Copy, Download, CheckCircle2, XCircle, Loader2, Terminal, Zap } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Zap, Rocket, Terminal, Copy, Download } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { VPSCredentials } from '@/hooks/useVPSCredentials';
+import { LiveTerminalOutput } from './LiveTerminalOutput';
 
 interface OneClickInstallerProps {
   credentials: VPSCredentials;
@@ -21,6 +22,8 @@ interface InstallSession {
   steps_completed: Array<{ step: string; message: string; timestamp: string }>;
   total_steps: number;
   error_message?: string;
+  last_output?: string;
+  ssh_method?: string;
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -38,8 +41,8 @@ const STEP_LABELS: Record<string, string> = {
 };
 
 export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerProps) => {
-  const [loading, setLoading] = useState(false);
-  const [installCommand, setInstallCommand] = useState('');
+  const [installing, setInstalling] = useState(false);
+  const [installScript, setInstallScript] = useState('');
   const [session, setSession] = useState<InstallSession | null>(null);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
@@ -90,32 +93,38 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
     };
   }, [session, toast, onSuccess]);
 
-  const generateInstallCommand = async () => {
-    setLoading(true);
+  const startFullAutoInstall = async () => {
+    setInstalling(true);
     try {
-      const { data, error } = await supabase.functions.invoke('install-script-generator', {
+      const { data, error } = await supabase.functions.invoke('vps-full-setup', {
         body: {
           vps_credential_id: credentials.id,
           vps_host: credentials.host,
-          waha_port: credentials.waha_port || 3000
+          vps_port: credentials.port,
+          vps_username: credentials.username,
+          vps_password: credentials.password,
+          waha_port: credentials.waha_port || 3000,
+          waha_session_name: credentials.waha_session_name || 'default',
+          waha_api_key: credentials.waha_api_key
         }
       });
 
       if (error) throw error;
 
-      setInstallCommand(data.script);
+      setInstallScript(data.script);
       setSession({
         id: data.session_id,
         install_token: data.install_token,
         status: 'pending',
-        current_step: '',
+        current_step: 'pending',
         steps_completed: [],
-        total_steps: 6
+        total_steps: 8,
+        ssh_method: 'script'
       });
 
       toast({
-        title: 'Script Generated!',
-        description: 'Copy dan jalankan script di VPS Anda.',
+        title: '✅ Script Generated!',
+        description: 'Copy script dan jalankan di VPS untuk instalasi otomatis.',
       });
     } catch (error: any) {
       console.error('Error generating script:', error);
@@ -125,24 +134,24 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
         variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      setInstalling(false);
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(installCommand);
+  const copyScript = () => {
+    navigator.clipboard.writeText(installScript);
     toast({
       title: 'Copied!',
-      description: 'Script telah dicopy ke clipboard.',
+      description: 'Script berhasil dicopy ke clipboard.',
     });
   };
 
   const downloadScript = () => {
-    const blob = new Blob([installCommand], { type: 'text/plain' });
+    const blob = new Blob([installScript], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `waha-install-${credentials.host}.sh`;
+    a.download = `waha-auto-install-${credentials.host}.sh`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -150,9 +159,10 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
     
     toast({
       title: 'Downloaded!',
-      description: 'Script telah didownload.',
+      description: 'Script berhasil didownload.',
     });
   };
+
 
   const getStatusIcon = () => {
     if (!session) return null;
@@ -165,35 +175,63 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
   return (
     <Card className="p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <Zap className="w-6 h-6 text-yellow-500" />
+        <Rocket className="w-6 h-6 text-blue-500" />
         <div>
-          <h3 className="text-lg font-semibold">One-Click Installer</h3>
+          <h3 className="text-lg font-semibold">🚀 Full Auto Installer</h3>
           <p className="text-sm text-muted-foreground">
-            Install WAHA otomatis dengan satu command
+            Install WAHA sepenuhnya otomatis - tidak perlu copy-paste!
           </p>
         </div>
       </div>
 
-      {!installCommand ? (
+      {!installScript ? (
         <div className="text-center py-8 space-y-4">
-          <Terminal className="w-16 h-16 mx-auto text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            Generate install script untuk VPS: <strong>{credentials.host}</strong>
-          </p>
-          <Button onClick={generateInstallCommand} disabled={loading} className="gap-2">
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            <Zap className="w-4 h-4" />
-            Generate Install Command
+          <Rocket className="w-20 h-20 mx-auto text-blue-500 animate-bounce" />
+          <div className="space-y-2">
+            <p className="text-lg font-semibold">Ready to Install WAHA</p>
+            <p className="text-sm text-muted-foreground">
+              Target: <strong className="text-foreground">{credentials.host}:{credentials.port}</strong>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              User: <strong className="text-foreground">{credentials.username}</strong>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              WAHA Port: <strong className="text-foreground">{credentials.waha_port || 3000}</strong>
+            </p>
+          </div>
+          <Button 
+            onClick={startFullAutoInstall} 
+            disabled={installing} 
+            size="lg"
+            className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          >
+            {installing && <Loader2 className="w-5 h-5 animate-spin" />}
+            <Rocket className="w-5 h-5" />
+            Generate Auto-Install Script
           </Button>
+          <div className="max-w-md mx-auto space-y-2">
+            <p className="text-xs text-muted-foreground">
+              ⚡ <strong>Full Automation:</strong> Script akan otomatis install Docker, download WAHA, dan setup container
+            </p>
+            <p className="text-xs text-muted-foreground">
+              📊 <strong>Real-time Progress:</strong> Monitor instalasi langsung dari sini
+            </p>
+            <p className="text-xs text-muted-foreground">
+              ⏱️ <strong>Est. Time:</strong> 3-5 menit (tergantung kecepatan internet VPS)
+            </p>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Install Script */}
+          {/* Installation Script */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">Installation Script</label>
+              <label className="text-sm font-semibold flex items-center gap-2">
+                <Terminal className="w-4 h-4" />
+                Auto-Install Script
+              </label>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={copyToClipboard} className="gap-2">
+                <Button size="sm" variant="outline" onClick={copyScript} className="gap-2">
                   <Copy className="w-3 h-3" />
                   Copy
                 </Button>
@@ -203,27 +241,31 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
                 </Button>
               </div>
             </div>
-            <div className="bg-slate-950 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-64 overflow-y-auto">
-              <pre>{installCommand}</pre>
+            <div className="bg-slate-950 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-64 overflow-y-auto border-2 border-green-500/20">
+              <pre>{installScript}</pre>
             </div>
           </div>
 
-          {/* Instructions */}
-          <Alert>
-            <Terminal className="w-4 h-4" />
-            <AlertDescription>
-              <strong>Cara Install:</strong>
-              <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
-                <li>SSH ke VPS Anda: <code className="bg-muted px-1 rounded">ssh {credentials.username}@{credentials.host}</code></li>
-                <li>Copy script di atas dan paste ke terminal</li>
-                <li>Atau download script dan jalankan: <code className="bg-muted px-1 rounded">bash waha-install-*.sh</code></li>
-                <li>Progress akan muncul secara real-time di bawah</li>
+          {/* Quick Instructions */}
+          <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950">
+            <Zap className="w-4 h-4 text-blue-500" />
+            <AlertDescription className="text-sm space-y-2">
+              <p className="font-semibold text-blue-700 dark:text-blue-300">🚀 Cara Install (Super Simple!):</p>
+              <ol className="list-decimal list-inside space-y-1 text-blue-600 dark:text-blue-400">
+                <li>
+                  SSH ke VPS: <code className="bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded text-xs">
+                    ssh {credentials.username}@{credentials.host}
+                  </code>
+                </li>
+                <li>Copy script di atas (klik tombol Copy)</li>
+                <li>Paste di terminal VPS dan Enter</li>
+                <li>Script akan auto-install semua! Progress muncul di bawah ⬇️</li>
               </ol>
             </AlertDescription>
           </Alert>
 
           {/* Progress Tracking */}
-          {session && session.status !== 'pending' && (
+          {session.status !== 'pending' && (
             <Card className="p-4 space-y-4 border-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -280,7 +322,9 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
                 <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
                   <AlertDescription className="text-green-700 dark:text-green-300">
-                    <strong>WAHA berhasil terinstall!</strong> Anda dapat langsung menggunakan WhatsApp notification sekarang.
+                    <strong>🎉 WAHA berhasil terinstall!</strong>
+                    <br />
+                    WhatsApp notification system siap digunakan. Konfigurasi telah disimpan otomatis.
                   </AlertDescription>
                 </Alert>
               )}

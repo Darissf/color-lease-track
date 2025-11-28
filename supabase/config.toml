@@ -78,6 +78,12 @@ verify_jwt = false
 [functions.vps-credentials-manager]
 verify_jwt = true
 
+[functions.vps-ssh-execute]
+verify_jwt = false
+
+[functions.vps-full-setup]
+verify_jwt = true
+
 [functions.waha-docker-control]
 verify_jwt = true
 
