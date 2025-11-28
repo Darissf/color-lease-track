@@ -90,7 +90,7 @@ export default function Nabila() {
   const { user, userRole } = useAuth();
   const { profile } = useProfile();
   const { theme, setTheme } = useTheme();
-  const { appTheme, setAppTheme, activeTheme } = useAppTheme();
+  const { accentTheme, setAccentTheme } = useAppTheme();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [availableYears, setAvailableYears] = useState<number[]>([currentYear]);

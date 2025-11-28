@@ -221,277 +221,172 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  /* ===== LIGHT MODE - LIGHT BLUE THEME ===== */
+  /* ========== DUAL THEME SYSTEM ========== */
+  /* Light Mode (Default) */
   :root {
-    /* Light Blue Theme Colors */
-    --sky-blue: 199 89% 48%;        /* #0ea5e9 - Main brand color */
-    --light-blue: 199 95% 74%;      /* #38bdf8 - Light accent */
-    --deep-blue: 199 89% 35%;       /* #0284c7 - Dark variant */
-    --cyan: 188 94% 43%;            /* #06b6d4 - Modern tech */
-    
-    /* Accent Colors */
-    --accent-orange: 24 95% 61%;    /* #fb923c - CTA & urgency */
-    --accent-purple: 271 81% 63%;   /* #a855f7 - Premium features */
-    --accent-green: 160 84% 39%;    /* #10b981 - Success & certification */
-    --accent-yellow: 45 96% 56%;    /* #facc15 - Highlights */
-    
-    /* Legacy Colors (keep for compatibility) */
-    --torii-red: 0 100% 46%;
-    --indigo-ai: 210 100% 22%;
-    --gold-kin: 45 68% 53%;
-    --sakura-pink: 350 100% 87%;
-    --matcha-green: 84 37% 49%;
-    --murasaki-purple: 283 30% 26%;
-    --cream-kinari: 50 100% 97%;
-    --sumi-black: 0 0% 11%;
-    --sunrise-orange: 30 100% 50%;
-    --ocean-teal: 180 50% 40%;
-    
-    /* Base colors */
     --background: 0 0% 100%;
     --foreground: 0 0% 9%;
-    
-    /* Card colors */
     --card: 0 0% 100%;
     --card-foreground: 0 0% 9%;
-    
-    /* Popover colors */
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 9%;
-    
-    /* Primary */
-    --primary: 0 0% 9%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 0 0% 20%;
-    
-    /* Secondary colors */
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 9%;
-    
-    /* Muted colors */
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
-    
-    /* Accent colors */
     --accent: 0 0% 96%;
     --accent-foreground: 0 0% 9%;
-    
-    /* Destructive colors */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
-    /* Border colors */
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 0 0% 9%;
-    
-    /* Chart colors */
-    --chart-1: 0 0% 9%;
-    --chart-2: 220 90% 56%;
-    --chart-3: 142 76% 36%;
-    --chart-4: 43 96% 56%;
+    --ring: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 271 81% 63%;
     --chart-5: 0 84% 60%;
-    
-    /* Radius */
     --radius: 0.375rem;
-
-    /* Sidebar Variables */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 15%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-accent: 0 0% 95%;
-    --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-primary: 0 0% 9%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-ring: 0 0% 9%;
-    
-    /* Light Blue Theme Gradients */
-    --gradient-sky-cyan: linear-gradient(135deg, hsl(var(--sky-blue)), hsl(var(--cyan)));
-    --gradient-blue-purple: linear-gradient(135deg, hsl(var(--light-blue)), hsl(var(--accent-purple)));
-    --gradient-orange-yellow: linear-gradient(135deg, hsl(var(--accent-orange)), hsl(var(--accent-yellow)));
-    --gradient-green-emerald: linear-gradient(135deg, hsl(var(--accent-green)), hsl(160 84% 50%));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--sky-blue)) 0%, hsl(var(--cyan)) 50%, hsl(var(--deep-blue)) 100%);
-    
-    /* Legacy Gradients (keep for compatibility) */
-    --gradient-torii-gold: linear-gradient(135deg, hsl(var(--torii-red)), hsl(var(--gold-kin)));
-    --gradient-indigo: linear-gradient(135deg, hsl(var(--indigo-ai)), hsl(var(--ocean-teal)));
-    --gradient-sakura: linear-gradient(135deg, hsl(var(--sakura-pink)), hsl(350 90% 75%));
-    --gradient-matcha: linear-gradient(135deg, hsl(var(--matcha-green)), hsl(120 40% 55%));
-    --gradient-sunrise: linear-gradient(135deg, hsl(var(--sunrise-orange)), hsl(40 100% 55%));
-    --gradient-murasaki: linear-gradient(135deg, hsl(var(--murasaki-purple)), hsl(260 40% 35%));
-    
-    /* Enhanced Shadows */
-    --shadow-elegant: 0 10px 30px -10px rgb(0 0 0 / 0.1);
-    --shadow-glow-sky: 0 10px 40px -10px hsl(var(--sky-blue) / 0.5);
-    --shadow-glow-cyan: 0 0 40px hsl(var(--cyan) / 0.4);
-    --shadow-glow-orange: 0 0 40px hsl(var(--accent-orange) / 0.5);
-    --shadow-glow-gold: 0 10px 40px -10px hsl(var(--gold-kin) / 0.4);
-    --shadow-glow-torii: 0 0 40px hsl(var(--torii-red) / 0.6);
+    --sidebar-background: 217 91% 15%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 217 91% 70%;
+    --sidebar-primary-foreground: 217 91% 10%;
+    --sidebar-accent: 217 80% 20%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 217 70% 25%;
+    --sidebar-ring: 217 91% 70%;
   }
 
-  /* ===== JAPANESE NIGHT THEME ===== */
-  [data-theme="japanese"],
-  .theme-japanese {
-    --background: 240 10% 98%;
-    --foreground: 240 50% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 50% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 50% 15%;
-    --primary: 263 70% 60%;
+  /* Dark Mode Override */
+  .dark {
+    --background: 220 15% 10%;
+    --foreground: 0 0% 95%;
+    --card: 220 15% 13%;
+    --card-foreground: 0 0% 95%;
+    --popover: 220 15% 13%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 10% 95%;
-    --secondary-foreground: 240 50% 15%;
-    --muted: 240 10% 95%;
-    --muted-foreground: 240 20% 50%;
-    --accent: 263 50% 95%;
-    --accent-foreground: 263 70% 30%;
-    --destructive: 0 70% 50%;
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 220 15% 18%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 20% 90%;
-    --input: 0 0% 100%;
-    --ring: 263 70% 60%;
-    --sidebar-background: 263 50% 12%;
-    --sidebar-foreground: 45 90% 88%;
-    --sidebar-primary: 45 90% 60%;
-    --sidebar-primary-foreground: 263 50% 12%;
-    --sidebar-accent: 263 45% 18%;
-    --sidebar-accent-foreground: 45 90% 88%;
-    --sidebar-border: 263 40% 20%;
-    --sidebar-ring: 45 90% 60%;
+    --border: 220 15% 25%;
+    --input: 220 15% 25%;
+    --ring: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 271 81% 63%;
+    --chart-5: 0 84% 60%;
+    --sidebar-background: 217 91% 8%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 217 91% 70%;
+    --sidebar-primary-foreground: 217 91% 5%;
+    --sidebar-accent: 217 80% 12%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 217 70% 15%;
+    --sidebar-ring: 217 91% 70%;
   }
 
-  /* ===== PROFESSIONAL THEME ===== */
-  [data-theme="professional"],
-  .theme-professional {
-    --background: 0 0% 98%;
-    --foreground: 220 40% 20%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 40% 20%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 40% 20%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 20% 95%;
-    --secondary-foreground: 220 40% 20%;
-    --muted: 210 20% 95%;
-    --muted-foreground: 220 20% 50%;
-    --accent: 210 20% 95%;
-    --accent-foreground: 221 83% 40%;
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 88%;
-    --input: 0 0% 100%;
-    --ring: 221 83% 53%;
-    --sidebar-background: 220 40% 96%;
-    --sidebar-foreground: 220 40% 20%;
-    --sidebar-primary: 221 83% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 30% 92%;
-    --sidebar-accent-foreground: 220 40% 20%;
-    --sidebar-border: 220 20% 88%;
-    --sidebar-ring: 221 83% 53%;
+  /* ========== ACCENT THEMES ========== */
+  /* Blue (Default) - Already defined in :root and .dark */
+  
+  /* Green Accent */
+  [data-accent="green"] {
+    --primary: 142 76% 45%;
+    --ring: 142 76% 45%;
+    --chart-1: 142 76% 45%;
+    --sidebar-background: 142 70% 15%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 142 76% 55%;
+    --sidebar-primary-foreground: 142 80% 10%;
+    --sidebar-accent: 142 65% 20%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 142 60% 25%;
+    --sidebar-ring: 142 76% 55%;
   }
 
-  /* ===== OCEAN BALI THEME ===== */
-[data-theme="ocean-bali"],
-.theme-ocean-bali {
-  --background: 188 30% 98%;
-  --foreground: 188 50% 15%;
-  --card: 0 0% 100%;
-  --card-foreground: 188 50% 15%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 188 50% 15%;
-  --primary: 188 85% 45%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 188 20% 95%;
-  --secondary-foreground: 188 50% 15%;
-  --muted: 188 20% 95%;
-  --muted-foreground: 188 30% 50%;
-  --accent: 188 40% 95%;
-  --accent-foreground: 188 85% 30%;
-  --destructive: 0 70% 50%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 188 25% 88%;
-  --input: 0 0% 100%;
-  --ring: 188 85% 45%;
-  --sidebar-background: 188 85% 15%;
-  --sidebar-foreground: 180 40% 95%;
-  --sidebar-primary: 188 85% 55%;
-  --sidebar-primary-foreground: 188 90% 12%;
-  --sidebar-accent: 188 75% 20%;
-  --sidebar-accent-foreground: 180 40% 95%;
-  --sidebar-border: 188 60% 22%;
-  --sidebar-ring: 188 85% 55%;
-}
+  .dark[data-accent="green"] {
+    --sidebar-background: 142 70% 8%;
+    --sidebar-accent: 142 65% 12%;
+    --sidebar-border: 142 60% 15%;
+  }
 
-  /* ===== SUNSET WARM THEME ===== */
-  [data-theme="sunset-warm"],
-  .theme-sunset-warm {
-    --background: 25 25% 98%;
-    --foreground: 25 50% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 25 50% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 25 50% 15%;
+  /* Purple Accent */
+  [data-accent="purple"] {
+    --primary: 271 81% 55%;
+    --ring: 271 81% 55%;
+    --chart-1: 271 81% 55%;
+    --sidebar-background: 271 70% 15%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 271 81% 65%;
+    --sidebar-primary-foreground: 271 80% 10%;
+    --sidebar-accent: 271 65% 20%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 271 60% 25%;
+    --sidebar-ring: 271 81% 65%;
+  }
+
+  .dark[data-accent="purple"] {
+    --sidebar-background: 271 70% 8%;
+    --sidebar-accent: 271 65% 12%;
+    --sidebar-border: 271 60% 15%;
+  }
+
+  /* Orange Accent */
+  [data-accent="orange"] {
     --primary: 20 90% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 25 20% 95%;
-    --secondary-foreground: 25 50% 15%;
-    --muted: 25 20% 95%;
-    --muted-foreground: 25 30% 50%;
-    --accent: 25 40% 95%;
-    --accent-foreground: 20 90% 35%;
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 25 20% 88%;
-    --input: 0 0% 100%;
     --ring: 20 90% 55%;
+    --chart-1: 20 90% 55%;
     --sidebar-background: 20 75% 18%;
-    --sidebar-foreground: 35 80% 95%;
+    --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 35 90% 65%;
-    --sidebar-primary-foreground: 20 75% 15%;
+    --sidebar-primary-foreground: 20 75% 12%;
     --sidebar-accent: 20 70% 25%;
-    --sidebar-accent-foreground: 35 80% 95%;
-    --sidebar-border: 20 60% 28%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 20 60% 30%;
     --sidebar-ring: 35 90% 65%;
   }
 
-  /* ===== BAMBOO ZEN THEME ===== */
-  [data-theme="bamboo-zen"],
-  .theme-bamboo-zen {
-    --background: 140 15% 98%;
-    --foreground: 140 50% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 140 50% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 140 50% 15%;
-    --primary: 140 60% 45%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 140 15% 95%;
-    --secondary-foreground: 140 50% 15%;
-    --muted: 140 15% 95%;
-    --muted-foreground: 140 25% 50%;
-    --accent: 140 30% 95%;
-    --accent-foreground: 140 60% 30%;
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 140 20% 88%;
-    --input: 0 0% 100%;
-    --ring: 140 60% 45%;
-    --sidebar-background: 140 55% 15%;
-    --sidebar-foreground: 140 40% 95%;
-    --sidebar-primary: 140 65% 55%;
-    --sidebar-primary-foreground: 140 60% 12%;
-    --sidebar-accent: 140 50% 20%;
-    --sidebar-accent-foreground: 140 40% 95%;
-    --sidebar-border: 140 45% 22%;
-    --sidebar-ring: 140 65% 55%;
+  .dark[data-accent="orange"] {
+    --sidebar-background: 20 75% 10%;
+    --sidebar-accent: 20 70% 15%;
+    --sidebar-border: 20 60% 18%;
   }
 
-  /* ===== SAKURA BLOOM THEME ===== */
-  [data-theme="sakura-bloom"],
-  .theme-sakura-bloom {
+  /* Teal Accent */
+  [data-accent="teal"] {
+    --primary: 188 85% 45%;
+    --ring: 188 85% 45%;
+    --chart-1: 188 85% 45%;
+    --sidebar-background: 188 80% 15%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 188 85% 55%;
+    --sidebar-primary-foreground: 188 90% 10%;
+    --sidebar-accent: 188 70% 20%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 188 60% 25%;
+    --sidebar-ring: 188 85% 55%;
+  }
+
+  .dark[data-accent="teal"] {
+    --sidebar-background: 188 80% 8%;
+    --sidebar-accent: 188 70% 12%;
+    --sidebar-border: 188 60% 15%;
+  }
+
+
+
+
+
+
     --background: 330 25% 98%;
     --foreground: 330 50% 15%;
     --card: 0 0% 100%;
@@ -883,4 +778,3 @@ All colors MUST be HSL.
       opacity: 0.5;
     }
   }
-}

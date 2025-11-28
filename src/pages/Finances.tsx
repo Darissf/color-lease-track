@@ -57,7 +57,6 @@ const budgetCategories = [
 ];
 
 const Finances = () => {
-  const { activeTheme } = useAppTheme();
   const [timeFilter, setTimeFilter] = useState("month");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -66,7 +65,7 @@ const Finances = () => {
   const netProfit = 97000000;
 
   return (
-    <AnimatedBackground theme="neutral">
+    <AnimatedBackground>
       <div className="min-h-screen p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
