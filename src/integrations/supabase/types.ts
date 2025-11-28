@@ -2898,6 +2898,68 @@ export type Database = {
         }
         Relationships: []
       }
+      vps_installation_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          current_step: string | null
+          error_message: string | null
+          id: string
+          install_token: string
+          started_at: string | null
+          status: string
+          steps_completed: Json | null
+          total_steps: number | null
+          updated_at: string | null
+          user_id: string
+          vps_credential_id: string | null
+          vps_host: string
+          waha_port: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: string | null
+          error_message?: string | null
+          id?: string
+          install_token: string
+          started_at?: string | null
+          status?: string
+          steps_completed?: Json | null
+          total_steps?: number | null
+          updated_at?: string | null
+          user_id: string
+          vps_credential_id?: string | null
+          vps_host: string
+          waha_port?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: string | null
+          error_message?: string | null
+          id?: string
+          install_token?: string
+          started_at?: string | null
+          status?: string
+          steps_completed?: Json | null
+          total_steps?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vps_credential_id?: string | null
+          vps_host?: string
+          waha_port?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vps_installation_sessions_vps_credential_id_fkey"
+            columns: ["vps_credential_id"]
+            isOneToOne: false
+            referencedRelation: "vps_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_health_checks: {
         Row: {
           check_type: string
