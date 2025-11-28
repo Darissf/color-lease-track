@@ -146,7 +146,7 @@ export const WhatsAppConfigForm = () => {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            API key untuk autentikasi dengan WAHA
+            API key untuk autentikasi dengan WAHA (opsional, kosongkan jika tidak diset)
           </p>
         </div>
 
@@ -182,7 +182,7 @@ export const WhatsAppConfigForm = () => {
       <div className="flex gap-3">
         <Button
           onClick={handleTest}
-          disabled={isTesting || !formData.waha_api_url || !formData.waha_api_key}
+          disabled={isTesting || !formData.waha_api_url}
           variant="outline"
         >
           {isTesting ? (
@@ -199,7 +199,7 @@ export const WhatsAppConfigForm = () => {
         </Button>
         <Button
           onClick={handleSave}
-          disabled={isSaving || !formData.waha_api_url || !formData.waha_api_key}
+          disabled={isSaving || !formData.waha_api_url}
         >
           {isSaving ? (
             <>
