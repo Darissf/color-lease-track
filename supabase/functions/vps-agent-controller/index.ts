@@ -23,6 +23,17 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname.split('/').pop();
 
+    // Test endpoint - public connectivity check (no auth required)
+    if (path === 'test' && req.method === 'GET') {
+      return new Response(JSON.stringify({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        message: 'VPS Agent Controller is online'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Heartbeat endpoint - agent sends regular heartbeats
     if (path === 'heartbeat' && req.method === 'POST') {
       const { token, hostname, uptime } = await req.json();
