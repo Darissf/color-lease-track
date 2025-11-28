@@ -22,29 +22,29 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
   const showOceanAnimations = accentTheme === 'ocean';
   const showFireplaceAnimations = accentTheme === 'fireplace';
 
-  // Dynamic particle counts - reduce 50% on mobile for performance
-  const auroraStarCount = isMobile ? 10 : 20;
-  const galaxyStarBg = isMobile ? 15 : 30;
-  const galaxyStarMid = isMobile ? 12 : 25;
-  const galaxyStarFg = isMobile ? 10 : 20;
-  const galaxyPulsar = isMobile ? 2 : 5;
-  const galaxySpiral = isMobile ? 4 : 8;
-  const galaxyComet = isMobile ? 1 : 2;
-  const galaxyNebula = isMobile ? 1 : 3;
-  const artDecoSparkle = isMobile ? 15 : 30;
-  const artDecoShimmer = isMobile ? 2 : 5;
-  const forestFirefly = isMobile ? 12 : 25;
-  const forestLeaf = isMobile ? 7 : 15;
-  const forestMist = isMobile ? 4 : 8;
-  const oceanBubble = isMobile ? 12 : 25;
-  const oceanRay = isMobile ? 2 : 5;
-  const oceanFish = isMobile ? 2 : 4;
-  const oceanBio = isMobile ? 15 : 30;
-  const oceanSeaweed = isMobile ? 4 : 8;
-  const fireplaceEmber = isMobile ? 10 : 20;
-  const fireplaceSmoke = isMobile ? 2 : 5;
-  const fireplaceSparkle = isMobile ? 12 : 25;
-  const fireplaceGlow = isMobile ? 1 : 3;
+  // Dynamic particle counts - 3x busier animations (reduced by 50% on mobile for performance)
+  const auroraStarCount = isMobile ? 30 : 60;
+  const galaxyStarBg = isMobile ? 40 : 80;
+  const galaxyStarMid = isMobile ? 30 : 60;
+  const galaxyStarFg = isMobile ? 25 : 50;
+  const galaxyPulsar = isMobile ? 5 : 10;
+  const galaxySpiral = isMobile ? 8 : 15;
+  const galaxyComet = isMobile ? 2 : 4;
+  const galaxyNebula = isMobile ? 3 : 6;
+  const artDecoSparkle = isMobile ? 40 : 80;
+  const artDecoShimmer = isMobile ? 4 : 8;
+  const forestFirefly = isMobile ? 30 : 60;
+  const forestLeaf = isMobile ? 15 : 30;
+  const forestMist = isMobile ? 8 : 15;
+  const oceanBubble = isMobile ? 30 : 60;
+  const oceanRay = isMobile ? 4 : 8;
+  const oceanFish = isMobile ? 4 : 8;
+  const oceanBio = isMobile ? 40 : 80;
+  const oceanSeaweed = isMobile ? 8 : 15;
+  const fireplaceEmber = isMobile ? 25 : 50;
+  const fireplaceSmoke = isMobile ? 4 : 8;
+  const fireplaceSparkle = isMobile ? 30 : 60;
+  const fireplaceGlow = isMobile ? 2 : 5;
 
   return (
     <div className="h-full relative overflow-hidden flex flex-col">
