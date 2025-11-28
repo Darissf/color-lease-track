@@ -82,11 +82,14 @@ export const WhatsAppConfigForm = () => {
         return;
       }
 
-      // Cari agent yang terhubung ke kredensial VPS ini
+      // Cari agent yang terhubung ke kredensial VPS ini (hanya yang connected dan paling aktif)
       const { data: agent, error: agentError } = await supabase
         .from('vps_agents')
         .select('id, status')
         .eq('vps_credential_id', vpsData.id)
+        .eq('status', 'connected')
+        .order('last_heartbeat', { ascending: false })
+        .limit(1)
         .single();
 
       if (agentError || !agent) {
