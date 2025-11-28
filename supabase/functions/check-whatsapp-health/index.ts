@@ -31,11 +31,14 @@ serve(async (req) => {
     // Get all active settings (or specific user if authenticated)
     const settingsQuery = supabaseClient
       .from('whatsapp_settings')
-      .select('*')
-      .eq('is_active', true);
+      .select('*');
     
     if (userId) {
+      // When manually testing (authenticated), check user's settings regardless of is_active status
       settingsQuery.eq('user_id', userId);
+    } else {
+      // When running scheduled check, only check active configurations
+      settingsQuery.eq('is_active', true);
     }
 
     const { data: settingsList, error: settingsError } = await settingsQuery;
