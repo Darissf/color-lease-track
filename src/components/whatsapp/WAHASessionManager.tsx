@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -15,6 +15,7 @@ export const WAHASessionManager = () => {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('UNKNOWN');
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const previousStatusRef = useRef<SessionStatus>('UNKNOWN');
 
   const fetchSessionStatus = async () => {
     if (!settings?.waha_session_name) return;
@@ -29,7 +30,28 @@ export const WAHASessionManager = () => {
       });
 
       if (error) throw error;
-      setSessionStatus(data.status || 'UNKNOWN');
+      
+      const newStatus = (data.status || 'UNKNOWN') as SessionStatus;
+      const previousStatus = previousStatusRef.current;
+      setSessionStatus(newStatus);
+      
+      // Show notifications for status changes
+      if (previousStatus !== 'UNKNOWN' && previousStatus !== newStatus) {
+        if (newStatus === 'WORKING') {
+          toast({
+            title: "🎉 WhatsApp Terhubung!",
+            description: "Session WhatsApp berhasil aktif dan siap digunakan.",
+          });
+        } else if (newStatus === 'STOPPED' || newStatus === 'FAILED') {
+          toast({
+            title: "⚠️ WhatsApp Terputus",
+            description: `Session berubah menjadi ${newStatus}`,
+            variant: "destructive",
+          });
+        }
+      }
+      
+      previousStatusRef.current = newStatus;
     } catch (err: any) {
       console.error('Error fetching status:', err);
       toast({

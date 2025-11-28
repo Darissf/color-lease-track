@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -6,6 +6,7 @@ import { RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useWhatsAppSettings } from '@/hooks/useWhatsAppSettings';
+import { SakuraConfetti } from '@/components/SakuraConfetti';
 
 type SessionStatus = 'WORKING' | 'STOPPED' | 'STARTING' | 'SCAN_QR_CODE' | 'FAILED' | 'UNKNOWN';
 
@@ -17,6 +18,8 @@ export const WAHAQRScanner = () => {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('UNKNOWN');
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const previousStatusRef = useRef<SessionStatus>('UNKNOWN');
 
   const checkSessionStatus = async () => {
     if (!settings?.waha_api_url || !settings?.waha_session_name) {
@@ -36,6 +39,7 @@ export const WAHAQRScanner = () => {
       if (invokeError) throw invokeError;
       
       const currentStatus = data.status as SessionStatus;
+      const previousStatus = previousStatusRef.current;
       setSessionStatus(currentStatus);
 
       // If session is WORKING, already connected
@@ -43,8 +47,21 @@ export const WAHAQRScanner = () => {
         setStatus('connected');
         setQrCode(null);
         setAutoRefresh(false);
+        
+        // Show success notification only if status changed
+        if (previousStatus !== 'WORKING' && previousStatus !== 'UNKNOWN') {
+          toast({
+            title: "🎉 WhatsApp Berhasil Terhubung!",
+            description: "Session WhatsApp Anda sekarang aktif dan siap digunakan.",
+          });
+          setShowConfetti(true);
+        }
+        
+        previousStatusRef.current = currentStatus;
         return false;
       }
+      
+      previousStatusRef.current = currentStatus;
 
       // If session is STOPPED, need to start first
       if (currentStatus === 'STOPPED') {
@@ -159,6 +176,15 @@ export const WAHAQRScanner = () => {
 
   return (
     <div className="space-y-6">
+      {showConfetti && (
+        <SakuraConfetti 
+          trigger={showConfetti} 
+          onComplete={() => setShowConfetti(false)}
+          particleCount={50}
+          duration={3000}
+        />
+      )}
+      
       {getStatusDisplay()}
 
       {status === 'ready' && qrCode && (
