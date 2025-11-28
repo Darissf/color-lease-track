@@ -1,4 +1,4 @@
-import { Palette, Sun, Moon, Sparkles, Zap, Mountain } from 'lucide-react';
+import { Palette, Sun, Moon, Sparkles, Zap, Mountain, Waves, Flame } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,6 +92,22 @@ const accentThemes = [
     label: 'Enchanted Forest', 
     color: 'bg-gradient-to-r from-green-900 via-emerald-700 to-green-800',
     icon: Mountain,
+    category: 'Premium',
+    animated: true
+  },
+  { 
+    value: 'ocean' as const, 
+    label: 'Deep Ocean', 
+    color: 'bg-gradient-to-r from-blue-900 via-cyan-700 to-blue-800',
+    icon: Waves,
+    category: 'Premium',
+    animated: true
+  },
+  { 
+    value: 'fireplace' as const, 
+    label: 'Cozy Fireplace', 
+    color: 'bg-gradient-to-r from-orange-900 via-red-700 to-orange-800',
+    icon: Flame,
     category: 'Premium',
     animated: true
   },
