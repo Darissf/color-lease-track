@@ -78,11 +78,23 @@ export const WAHASessionManager = () => {
       setTimeout(fetchSessionStatus, 2000);
     } catch (err: any) {
       console.error(`Error ${action}:`, err);
-      toast({
-        title: 'Error',
-        description: err.message || `Gagal ${action} session`,
-        variant: 'destructive'
-      });
+      
+      // Handle "already started" error gracefully
+      const errorMsg = err.message || '';
+      if (errorMsg.includes('already started')) {
+        toast({
+          title: 'Info',
+          description: 'Session sudah berjalan. Gunakan Restart jika ingin memulai ulang.',
+          variant: 'default'
+        });
+        fetchSessionStatus(); // Refresh to show current status
+      } else {
+        toast({
+          title: 'Error',
+          description: errorMsg || `Gagal ${action} session`,
+          variant: 'destructive'
+        });
+      }
     } finally {
       setActionLoading(null);
     }
@@ -176,7 +188,7 @@ export const WAHASessionManager = () => {
         <div className="grid grid-cols-2 gap-3">
           <Button
             onClick={() => executeAction('start')}
-            disabled={!settings?.waha_session_name || actionLoading !== null || sessionStatus === 'WORKING'}
+            disabled={!settings?.waha_session_name || actionLoading !== null || ['WORKING', 'STARTING', 'SCAN_QR_CODE'].includes(sessionStatus)}
             className="w-full"
           >
             {actionLoading === 'start' ? (
