@@ -3,8 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, AlertTriangle, Save } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -27,12 +26,10 @@ interface VPSCredentialsFormProps {
 
 export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFormProps) => {
   const { toast } = useToast();
-  const { credentials: savedCredentials, saveCredentials } = useVPSCredentials();
+  const { credentials: savedCredentials, saveCredentials, updateCredentials, findByHost } = useVPSCredentials();
   const [showPassword, setShowPassword] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
-  const [shouldSave, setShouldSave] = useState(false);
-  const [credentialsName, setCredentialsName] = useState('VPS Production');
   
   const [credentials, setCredentials] = useState<VPSCredentials>({
     host: '',
@@ -57,7 +54,6 @@ export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFo
         wahaSessionName: defaultCred.waha_session_name,
         wahaApiKey: defaultCred.waha_api_key || generateApiKey(),
       });
-      setCredentialsName(defaultCred.name);
     }
   }, [savedCredentials]);
 
@@ -114,6 +110,48 @@ export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFo
           title: 'Koneksi Berhasil!', 
           description: 'VPS dapat diakses dengan SSH',
         });
+
+        // Auto-save credentials after successful test
+        try {
+          const existingCred = findByHost(credentials.host);
+          const vpsName = `VPS ${credentials.host}`;
+          
+          if (existingCred) {
+            // Update existing credentials
+            await updateCredentials(existingCred.id!, {
+              port: parseInt(credentials.port),
+              username: credentials.username,
+              password: credentials.password,
+              waha_port: parseInt(credentials.wahaPort),
+              waha_session_name: credentials.wahaSessionName,
+              waha_api_key: credentials.wahaApiKey,
+            });
+            toast({ 
+              title: 'VPS Diperbarui!', 
+              description: 'Kredensial VPS berhasil diperbarui',
+            });
+          } else {
+            // Save new credentials
+            await saveCredentials({
+              name: vpsName,
+              host: credentials.host,
+              port: parseInt(credentials.port),
+              username: credentials.username,
+              password: credentials.password,
+              waha_port: parseInt(credentials.wahaPort),
+              waha_session_name: credentials.wahaSessionName,
+              waha_api_key: credentials.wahaApiKey,
+              is_default: savedCredentials.length === 0, // Set as default if it's the first one
+            });
+            toast({ 
+              title: 'VPS Tersimpan!', 
+              description: 'Kredensial VPS berhasil disimpan',
+            });
+          }
+        } catch (saveError) {
+          console.error('Failed to save VPS credentials:', saveError);
+          // Don't block the flow if save fails
+        }
       } else {
         setTestResult('error');
         toast({ 
@@ -136,26 +174,6 @@ export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFo
 
   const handleStartSetup = async () => {
     if (!validateForm()) return;
-    
-    // Save credentials if checkbox is checked
-    if (shouldSave && testResult === 'success') {
-      try {
-        await saveCredentials({
-          name: credentialsName,
-          host: credentials.host,
-          port: parseInt(credentials.port),
-          username: credentials.username,
-          password: credentials.password,
-          waha_port: parseInt(credentials.wahaPort),
-          waha_session_name: credentials.wahaSessionName,
-          waha_api_key: credentials.wahaApiKey,
-          is_default: savedCredentials.length === 0, // Set as default if it's the first one
-        });
-      } catch (error) {
-        console.error('Failed to save credentials:', error);
-      }
-    }
-    
     onStartSetup(credentials);
   };
 
@@ -294,37 +312,6 @@ export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFo
           </div>
         </div>
       </Card>
-
-      {/* Save Credentials Option */}
-      {testResult === 'success' && (
-        <Card className="p-4 space-y-3">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="save-credentials"
-              checked={shouldSave}
-              onCheckedChange={(checked) => setShouldSave(checked as boolean)}
-            />
-            <Label 
-              htmlFor="save-credentials" 
-              className="text-sm font-medium cursor-pointer flex items-center gap-2"
-            >
-              <Save className="h-4 w-4" />
-              Simpan kredensial VPS ini
-            </Label>
-          </div>
-          {shouldSave && (
-            <div className="space-y-2">
-              <Label htmlFor="cred-name">Nama VPS</Label>
-              <Input
-                id="cred-name"
-                placeholder="VPS Production, VPS Backup, dll"
-                value={credentialsName}
-                onChange={(e) => setCredentialsName(e.target.value)}
-              />
-            </div>
-          )}
-        </Card>
-      )}
 
       {/* Start Setup Button */}
       <Button 

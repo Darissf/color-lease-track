@@ -176,6 +176,10 @@ export const useVPSCredentials = () => {
     }
   };
 
+  const findByHost = (host: string) => {
+    return credentials.find(cred => cred.host === host);
+  };
+
   useEffect(() => {
     loadCredentials();
   }, []);
@@ -188,5 +192,6 @@ export const useVPSCredentials = () => {
     updateCredentials,
     deleteCredentials,
     setAsDefault,
+    findByHost,
   };
 };
