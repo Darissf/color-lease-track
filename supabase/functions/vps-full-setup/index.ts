@@ -127,6 +127,7 @@ fi
       .insert({
         user_id: user.id,
         vps_credential_id: body.vps_credential_id,
+        vps_host: body.vps_host,
         install_token: installToken,
         status: 'pending',
         ssh_method: 'script',
