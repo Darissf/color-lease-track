@@ -2847,6 +2847,57 @@ export type Database = {
         }
         Relationships: []
       }
+      vps_credentials: {
+        Row: {
+          created_at: string | null
+          host: string
+          id: string
+          is_default: boolean | null
+          last_used_at: string | null
+          name: string
+          password_encrypted: string
+          port: number
+          updated_at: string | null
+          user_id: string
+          username: string
+          waha_api_key: string | null
+          waha_port: number
+          waha_session_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          host: string
+          id?: string
+          is_default?: boolean | null
+          last_used_at?: string | null
+          name?: string
+          password_encrypted: string
+          port?: number
+          updated_at?: string | null
+          user_id: string
+          username?: string
+          waha_api_key?: string | null
+          waha_port?: number
+          waha_session_name?: string
+        }
+        Update: {
+          created_at?: string | null
+          host?: string
+          id?: string
+          is_default?: boolean | null
+          last_used_at?: string | null
+          name?: string
+          password_encrypted?: string
+          port?: number
+          updated_at?: string | null
+          user_id?: string
+          username?: string
+          waha_api_key?: string | null
+          waha_port?: number
+          waha_session_name?: string
+        }
+        Relationships: []
+      }
       whatsapp_health_checks: {
         Row: {
           check_type: string

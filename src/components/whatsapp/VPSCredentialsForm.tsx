@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, AlertTriangle, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useVPSCredentials } from '@/hooks/useVPSCredentials';
 
 interface VPSCredentials {
   host: string;
@@ -25,9 +27,12 @@ interface VPSCredentialsFormProps {
 
 export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFormProps) => {
   const { toast } = useToast();
+  const { credentials: savedCredentials, saveCredentials } = useVPSCredentials();
   const [showPassword, setShowPassword] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
+  const [shouldSave, setShouldSave] = useState(false);
+  const [credentialsName, setCredentialsName] = useState('VPS Production');
   
   const [credentials, setCredentials] = useState<VPSCredentials>({
     host: '',
@@ -38,6 +43,23 @@ export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFo
     wahaSessionName: 'default',
     wahaApiKey: generateApiKey(),
   });
+
+  // Load default credentials on mount
+  useEffect(() => {
+    const defaultCred = savedCredentials.find(c => c.is_default);
+    if (defaultCred) {
+      setCredentials({
+        host: defaultCred.host,
+        port: defaultCred.port.toString(),
+        username: defaultCred.username,
+        password: defaultCred.password,
+        wahaPort: defaultCred.waha_port.toString(),
+        wahaSessionName: defaultCred.waha_session_name,
+        wahaApiKey: defaultCred.waha_api_key || generateApiKey(),
+      });
+      setCredentialsName(defaultCred.name);
+    }
+  }, [savedCredentials]);
 
   function generateApiKey() {
     return Array.from(crypto.getRandomValues(new Uint8Array(16)))
@@ -112,8 +134,28 @@ export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFo
     }
   };
 
-  const handleStartSetup = () => {
+  const handleStartSetup = async () => {
     if (!validateForm()) return;
+    
+    // Save credentials if checkbox is checked
+    if (shouldSave && testResult === 'success') {
+      try {
+        await saveCredentials({
+          name: credentialsName,
+          host: credentials.host,
+          port: parseInt(credentials.port),
+          username: credentials.username,
+          password: credentials.password,
+          waha_port: parseInt(credentials.wahaPort),
+          waha_session_name: credentials.wahaSessionName,
+          waha_api_key: credentials.wahaApiKey,
+          is_default: savedCredentials.length === 0, // Set as default if it's the first one
+        });
+      } catch (error) {
+        console.error('Failed to save credentials:', error);
+      }
+    }
+    
     onStartSetup(credentials);
   };
 
@@ -252,6 +294,37 @@ export const VPSCredentialsForm = ({ onStartSetup, isLoading }: VPSCredentialsFo
           </div>
         </div>
       </Card>
+
+      {/* Save Credentials Option */}
+      {testResult === 'success' && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="save-credentials"
+              checked={shouldSave}
+              onCheckedChange={(checked) => setShouldSave(checked as boolean)}
+            />
+            <Label 
+              htmlFor="save-credentials" 
+              className="text-sm font-medium cursor-pointer flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Simpan kredensial VPS ini
+            </Label>
+          </div>
+          {shouldSave && (
+            <div className="space-y-2">
+              <Label htmlFor="cred-name">Nama VPS</Label>
+              <Input
+                id="cred-name"
+                placeholder="VPS Production, VPS Backup, dll"
+                value={credentialsName}
+                onChange={(e) => setCredentialsName(e.target.value)}
+              />
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Start Setup Button */}
       <Button 
