@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_command_outputs: {
+        Row: {
+          agent_token: string
+          created_at: string | null
+          id: string
+          output: string
+        }
+        Insert: {
+          agent_token: string
+          created_at?: string | null
+          id?: string
+          output: string
+        }
+        Update: {
+          agent_token?: string
+          created_at?: string | null
+          id?: string
+          output?: string
+        }
+        Relationships: []
+      }
+      agent_commands: {
+        Row: {
+          agent_token: string
+          commands: string
+          completed_at: string | null
+          created_at: string | null
+          executed_at: string | null
+          id: string
+          status: string | null
+        }
+        Insert: {
+          agent_token: string
+          commands: string
+          completed_at?: string | null
+          created_at?: string | null
+          executed_at?: string | null
+          id?: string
+          status?: string | null
+        }
+        Update: {
+          agent_token?: string
+          commands?: string
+          completed_at?: string | null
+          created_at?: string | null
+          executed_at?: string | null
+          id?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       agent_logs: {
         Row: {
           agent_id: string | null
@@ -3343,6 +3394,7 @@ export type Database = {
         Args: { role_name: string; user_id: string }
         Returns: boolean
       }
+      cleanup_old_agent_outputs: { Args: never; Returns: undefined }
       get_email_daily_trends: {
         Args: { days: number }
         Returns: {

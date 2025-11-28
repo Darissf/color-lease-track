@@ -5,10 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Store pending commands and outputs in memory
-const pendingCommands = new Map<string, string>();
-const commandOutputs = new Map<string, string[]>();
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -118,12 +114,40 @@ Deno.serve(async (req) => {
         });
       }
 
-      const commands = pendingCommands.get(token) || '';
-      if (commands) {
-        pendingCommands.delete(token); // Clear after sending
+      // Get pending commands from database
+      const { data: pendingCommands, error } = await supabase
+        .from('agent_commands')
+        .select('id, commands')
+        .eq('agent_token', token)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      if (error) {
+        console.error('Error fetching commands:', error);
+        return new Response(JSON.stringify({ commands: '' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
-      return new Response(JSON.stringify({ commands }), {
+      if (pendingCommands && pendingCommands.length > 0) {
+        const command = pendingCommands[0];
+        
+        // Update status to executing
+        await supabase
+          .from('agent_commands')
+          .update({ 
+            status: 'executing',
+            executed_at: new Date().toISOString()
+          })
+          .eq('id', command.id);
+
+        return new Response(JSON.stringify({ commands: command.commands }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ commands: '' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -139,14 +163,32 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Store output
-      const outputs = commandOutputs.get(token) || [];
-      outputs.push(output);
-      commandOutputs.set(token, outputs);
+      // Store output in database
+      const { error } = await supabase
+        .from('agent_command_outputs')
+        .insert({
+          agent_token: token,
+          output: output
+        });
 
-      // Keep only last 100 outputs
-      if (outputs.length > 100) {
-        commandOutputs.set(token, outputs.slice(-100));
+      if (error) {
+        console.error('Error storing output:', error);
+        return new Response(JSON.stringify({ error: 'Failed to store output' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check if this is completion output, update command status
+      if (output.includes('WAHA Installation Complete!') || output.includes('Installation complete')) {
+        await supabase
+          .from('agent_commands')
+          .update({ 
+            status: 'completed',
+            completed_at: new Date().toISOString()
+          })
+          .eq('agent_token', token)
+          .eq('status', 'executing');
       }
 
       return new Response(JSON.stringify({ success: true }), {
@@ -206,8 +248,28 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Queue commands
-      pendingCommands.set(agent.agent_token, commands);
+      // Clear old outputs for this agent before new execution
+      await supabase
+        .from('agent_command_outputs')
+        .delete()
+        .eq('agent_token', agent.agent_token);
+
+      // Insert commands into database
+      const { error: insertError } = await supabase
+        .from('agent_commands')
+        .insert({
+          agent_token: agent.agent_token,
+          commands: commands,
+          status: 'pending'
+        });
+
+      if (insertError) {
+        console.error('Error inserting commands:', insertError);
+        return new Response(JSON.stringify({ error: 'Failed to queue commands' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       return new Response(JSON.stringify({ success: true, message: 'Commands queued' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -259,7 +321,21 @@ Deno.serve(async (req) => {
         });
       }
 
-      const outputs = commandOutputs.get(agent.agent_token) || [];
+      // Get outputs from database
+      const { data: outputRecords, error: outputError } = await supabase
+        .from('agent_command_outputs')
+        .select('output, created_at')
+        .eq('agent_token', agent.agent_token)
+        .order('created_at', { ascending: true });
+
+      if (outputError) {
+        console.error('Error fetching outputs:', outputError);
+        return new Response(JSON.stringify({ outputs: [] }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const outputs = outputRecords?.map(record => record.output) || [];
 
       return new Response(JSON.stringify({ outputs }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
