@@ -37,6 +37,59 @@ export const useWhatsAppSettings = () => {
         throw error;
       }
       
+      // If whatsapp_settings is empty or API key is missing, try to fetch from vps_credentials
+      if (!data || !data.waha_api_key) {
+        console.log('[WhatsApp Settings] No settings or API key found, checking VPS credentials...');
+        const { data: vpsData, error: vpsError } = await supabase
+          .from('vps_credentials')
+          .select('host, waha_port, waha_api_key, waha_session_name')
+          .eq('is_default', true)
+          .maybeSingle();
+
+        if (!vpsError && vpsData && vpsData.waha_api_key) {
+          console.log('[WhatsApp Settings] Found credentials in VPS, auto-syncing...');
+          
+          // Auto-sync to whatsapp_settings
+          const { data: user } = await supabase.auth.getUser();
+          if (user.user) {
+            const wahaUrl = `http://${vpsData.host}:${vpsData.waha_port || 3000}`;
+            const syncData = {
+              user_id: user.user.id,
+              waha_api_url: wahaUrl,
+              waha_api_key: vpsData.waha_api_key,
+              waha_session_name: vpsData.waha_session_name || 'default',
+              is_active: true,
+            };
+
+            if (data?.id) {
+              // Update existing
+              await supabase
+                .from('whatsapp_settings')
+                .update(syncData)
+                .eq('id', data.id);
+            } else {
+              // Insert new
+              await supabase
+                .from('whatsapp_settings')
+                .insert([syncData]);
+            }
+
+            // Refetch after sync
+            const { data: updatedData } = await supabase
+              .from('whatsapp_settings')
+              .select('*')
+              .maybeSingle();
+            
+            setSettings(updatedData as WhatsAppSettings | null);
+            toast({
+              title: 'Auto-Sync Berhasil',
+              description: 'Konfigurasi WAHA berhasil disinkronkan dari VPS Credentials',
+            });
+            return;
+          }
+        }
+      }
+      
       console.log('[WhatsApp Settings] Data fetched:', data ? 'Found' : 'Empty');
       setSettings(data as WhatsAppSettings | null);
     } catch (error) {
