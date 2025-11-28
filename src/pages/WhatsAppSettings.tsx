@@ -4,12 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Settings, FileText, History, TestTube, BookOpen } from 'lucide-react';
+import { ArrowLeft, Settings, FileText, History, TestTube, BookOpen, Smartphone } from 'lucide-react';
 import { WhatsAppConfigForm } from '@/components/whatsapp/WhatsAppConfigForm';
 import { MessageTemplates } from '@/components/whatsapp/MessageTemplates';
 import { NotificationHistory } from '@/components/whatsapp/NotificationHistory';
 import { WhatsAppTester } from '@/components/whatsapp/WhatsAppTester';
 import { WAHASetupGuide } from '@/components/whatsapp/WAHASetupGuide';
+import { WAHASessionManager } from '@/components/whatsapp/WAHASessionManager';
+import { WAHAQRScanner } from '@/components/whatsapp/WAHAQRScanner';
 import { useAppTheme } from '@/contexts/AppThemeContext';
 import { cn } from '@/lib/utils';
 
@@ -54,10 +56,14 @@ const WhatsAppSettings = () => {
         {/* Tabs */}
         <Card className="p-6">
           <Tabs defaultValue="setup" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsList className="grid w-full grid-cols-6 mb-6">
               <TabsTrigger value="setup" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
                 <span className="hidden md:inline">Setup</span>
+              </TabsTrigger>
+              <TabsTrigger value="session" className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                <span className="hidden md:inline">Session</span>
               </TabsTrigger>
               <TabsTrigger value="config" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
@@ -79,6 +85,11 @@ const WhatsAppSettings = () => {
 
             <TabsContent value="setup">
               <WAHASetupGuide />
+            </TabsContent>
+
+            <TabsContent value="session" className="space-y-6">
+              <WAHASessionManager />
+              <WAHAQRScanner />
             </TabsContent>
 
             <TabsContent value="config">
