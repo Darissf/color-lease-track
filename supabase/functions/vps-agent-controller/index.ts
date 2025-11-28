@@ -26,7 +26,22 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
       });
     }
+    
+    // Get path from URL
     const path = url.pathname.split('/').pop();
+    
+    // For POST requests, also check for action in body
+    let bodyAction = null;
+    let bodyData = null;
+    if (req.method === 'POST') {
+      try {
+        const clonedRequest = req.clone();
+        bodyData = await clonedRequest.json();
+        bodyAction = bodyData?.action;
+      } catch (e) {
+        // Not JSON body, continue with path-based routing
+      }
+    }
 
     // Test endpoint - public connectivity check (no auth required)
     if (path === 'test' && req.method === 'GET') {
@@ -197,7 +212,8 @@ Deno.serve(async (req) => {
     }
 
     // Execute endpoint - web app sends commands to execute
-    if (path === 'execute' && req.method === 'POST') {
+    // Support both path-based (/execute) and body-based (action: 'execute')
+    if ((path === 'execute' || bodyAction === 'execute') && req.method === 'POST') {
       const authHeader = req.headers.get('Authorization');
       if (!authHeader) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -217,7 +233,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { agent_id, commands } = await req.json();
+      // Get data from body (either already parsed or parse now)
+      const requestData = bodyData || await req.json();
+      const { agent_id, commands } = requestData;
 
       if (!agent_id || !commands) {
         return new Response(JSON.stringify({ error: 'Agent ID and commands required' }), {
