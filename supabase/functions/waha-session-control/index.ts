@@ -58,24 +58,20 @@ serve(async (req) => {
         endpoint = `/api/sessions/${sessionName}`;
         break;
       case 'start':
-        endpoint = `/api/sessions/start`;
+        endpoint = `/api/sessions/${sessionName}/start`;
         method = 'POST';
-        body = JSON.stringify({ name: sessionName });
         break;
       case 'stop':
-        endpoint = `/api/sessions/stop`;
+        endpoint = `/api/sessions/${sessionName}/stop`;
         method = 'POST';
-        body = JSON.stringify({ name: sessionName });
         break;
       case 'restart':
-        endpoint = `/api/sessions/restart`;
+        endpoint = `/api/sessions/${sessionName}/restart`;
         method = 'POST';
-        body = JSON.stringify({ name: sessionName });
         break;
       case 'logout':
-        endpoint = `/api/sessions/logout`;
+        endpoint = `/api/${sessionName}/logout`;
         method = 'POST';
-        body = JSON.stringify({ name: sessionName });
         break;
       default:
         throw new Error("Invalid action");
