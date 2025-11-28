@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Copy, CheckCircle2, AlertCircle, Server, Terminal } from "lucide-react";
+import { Loader2, Copy, CheckCircle2, AlertCircle, Server, Terminal, RefreshCw, Wifi } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface AgentSetupProps {
   vpsHost: string;
@@ -15,27 +16,27 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
   const [loading, setLoading] = useState(false);
   const [installerCommand, setInstallerCommand] = useState<string>("");
   const [agentId, setAgentId] = useState<string>("");
+  const [agentToken, setAgentToken] = useState<string>("");
   const [agentStatus, setAgentStatus] = useState<"disconnected" | "connected" | "installing">("disconnected");
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [lastSeen, setLastSeen] = useState<string | null>(null);
+  const [testingConnection, setTestingConnection] = useState(false);
   const { toast } = useToast();
 
-  // Show debug info after 60 seconds if still installing
-  useEffect(() => {
-    if (agentStatus === 'installing') {
-      const timer = setTimeout(() => {
-        setShowDebugInfo(true);
-      }, 60000); // 60 seconds
-      
-      return () => clearTimeout(timer);
-    } else {
-      setShowDebugInfo(false);
-    }
-  }, [agentStatus]);
-
-  // Check for existing agent
+  // Check for existing agent on mount
   useEffect(() => {
     checkExistingAgent();
   }, [vpsHost]);
+
+  // Poll agent status every 3 seconds when installing
+  useEffect(() => {
+    if (agentStatus === 'installing' && agentId) {
+      const interval = setInterval(() => {
+        checkAgentStatus();
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [agentStatus, agentId]);
 
   // Subscribe to agent status changes
   useEffect(() => {
@@ -53,7 +54,10 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
         },
         (payload) => {
           const newStatus = payload.new.status;
+          const newLastSeen = payload.new.last_heartbeat;
+          
           setAgentStatus(newStatus);
+          setLastSeen(newLastSeen);
           
           if (newStatus === 'connected') {
             toast({
@@ -87,7 +91,9 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
       if (agents && agents.length > 0) {
         const agent = agents[0];
         setAgentId(agent.id);
+        setAgentToken(agent.agent_token);
         setAgentStatus(agent.status as "connected" | "disconnected" | "installing");
+        setLastSeen(agent.last_heartbeat);
         
         if (agent.status === 'connected' && onAgentConnected) {
           onAgentConnected(agent.id);
@@ -95,6 +101,57 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
       }
     } catch (error) {
       console.error('Error checking existing agent:', error);
+    }
+  };
+
+  const checkAgentStatus = async () => {
+    if (!agentId) return;
+
+    try {
+      const { data: agent } = await supabase
+        .from('vps_agents')
+        .select('*')
+        .eq('id', agentId)
+        .single();
+
+      if (agent) {
+        setAgentStatus(agent.status as "connected" | "disconnected" | "installing");
+        setLastSeen(agent.last_heartbeat);
+        
+        if (agent.status === 'connected' && onAgentConnected) {
+          onAgentConnected(agent.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking agent status:', error);
+    }
+  };
+
+  const testConnection = async () => {
+    setTestingConnection(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      const projectRef = supabaseUrl.match(/https:\/\/([^.]+)/)?.[1] || '';
+      const testUrl = `https://${projectRef}.supabase.co/functions/v1/vps-agent-controller/ping`;
+
+      const response = await fetch(testUrl);
+      
+      if (response.ok && await response.text() === 'pong') {
+        toast({
+          title: "✅ Connection Test Passed",
+          description: "Agent controller endpoint is reachable",
+        });
+      } else {
+        throw new Error('Unexpected response from ping');
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Connection Test Failed",
+        description: "Cannot reach agent controller endpoint",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingConnection(false);
     }
   };
 
@@ -115,9 +172,10 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
 
       if (response.error) throw response.error;
 
-      const { one_line_command, agent_id } = response.data;
+      const { one_line_command, agent_id, agent_token } = response.data;
       setInstallerCommand(one_line_command);
       setAgentId(agent_id);
+      setAgentToken(agent_token);
       setAgentStatus('installing');
 
       toast({
@@ -134,6 +192,13 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
     } finally {
       setLoading(false);
     }
+  };
+
+  const reinstallAgent = async () => {
+    // Reset state and generate new installer
+    setInstallerCommand("");
+    setAgentStatus("disconnected");
+    await generateInstaller();
   };
 
   const copyCommand = () => {
@@ -182,6 +247,12 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
         </div>
       </div>
 
+      {lastSeen && (
+        <p className="text-xs text-muted-foreground">
+          Last seen: {formatDistanceToNow(new Date(lastSeen), { addSuffix: true })}
+        </p>
+      )}
+
       {agentStatus === 'connected' ? (
         <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
           <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
@@ -191,6 +262,11 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
           <p className="text-sm text-green-600 dark:text-green-400 mt-2">
             You can now install WAHA with one click.
           </p>
+          {agentToken && (
+            <p className="text-xs text-green-500 dark:text-green-500 mt-2 font-mono">
+              Token: {agentToken.substring(0, 8)}...
+            </p>
+          )}
         </div>
       ) : (
         <>
@@ -199,20 +275,35 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
               <p className="text-sm text-muted-foreground">
                 Install a lightweight agent on your VPS for true one-click automation.
               </p>
-              <Button
-                onClick={generateInstaller}
-                disabled={loading}
-                className="w-full"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  "Generate Agent Installer"
-                )}
-              </Button>
+              
+              <div className="flex gap-2">
+                <Button
+                  onClick={generateInstaller}
+                  disabled={loading}
+                  className="flex-1"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate Agent Installer"
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={testConnection}
+                  disabled={testingConnection}
+                  variant="outline"
+                >
+                  {testingConnection ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wifi className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -233,6 +324,14 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
                 </code>
               </div>
 
+              {agentToken && (
+                <div className="bg-muted/50 rounded p-2">
+                  <p className="text-xs text-muted-foreground">
+                    Agent Token: <code className="font-mono">{agentToken}</code>
+                  </p>
+                </div>
+              )}
+
               <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-2">
                   📋 Instructions:
@@ -246,42 +345,67 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
               </div>
 
               {agentStatus === 'installing' && (
-                <>
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <p className="text-sm">Waiting for agent to connect...</p>
                   </div>
 
-                  {showDebugInfo && (
-                    <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
-                        <Terminal className="w-5 h-5" />
-                        <p className="font-medium">🔍 Agent belum connect? Debug dengan command ini:</p>
-                      </div>
-                      <div className="space-y-2 text-sm text-yellow-600 dark:text-yellow-400">
-                        <p className="font-medium">1. Cek status agent:</p>
-                        <code className="block bg-yellow-100 dark:bg-yellow-900 p-2 rounded">
-                          systemctl status waha-agent
-                        </code>
-                        
-                        <p className="font-medium">2. Lihat logs agent:</p>
-                        <code className="block bg-yellow-100 dark:bg-yellow-900 p-2 rounded">
-                          tail -f /var/log/waha-agent.log
-                        </code>
-                        
-                        <p className="font-medium">3. Cek agent script:</p>
-                        <code className="block bg-yellow-100 dark:bg-yellow-900 p-2 rounded">
-                          cat /opt/waha-agent/agent.sh
-                        </code>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={checkAgentStatus}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      Refresh Status
+                    </Button>
+                    
+                    <Button
+                      onClick={reinstallAgent}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <Terminal className="w-4 h-4 mr-1" />
+                      Reinstall Agent
+                    </Button>
+                  </div>
 
-                        <p className="font-medium">4. Test koneksi manual:</p>
-                        <code className="block bg-yellow-100 dark:bg-yellow-900 p-2 rounded">
-                          curl -v {import.meta.env.VITE_SUPABASE_URL.replace('.supabase.co', '.functions.supabase.co')}/vps-agent-controller/test
-                        </code>
-                      </div>
+                  {/* Show debug info immediately when installing */}
+                  <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+                      <Terminal className="w-5 h-5" />
+                      <p className="font-medium">🔍 Debug Commands:</p>
                     </div>
-                  )}
-                </>
+                    <div className="space-y-2 text-sm text-yellow-600 dark:text-yellow-400">
+                      <p className="font-medium">1. Cek status agent:</p>
+                      <code className="block bg-yellow-100 dark:bg-yellow-900 p-2 rounded text-xs">
+                        systemctl status waha-agent
+                      </code>
+                      
+                      <p className="font-medium">2. Lihat logs agent:</p>
+                      <code className="block bg-yellow-100 dark:bg-yellow-900 p-2 rounded text-xs">
+                        tail -f /var/log/waha-agent.log
+                      </code>
+                      
+                      <p className="font-medium">3. Lihat logs systemd:</p>
+                      <code className="block bg-yellow-100 dark:bg-yellow-900 p-2 rounded text-xs">
+                        journalctl -u waha-agent -f
+                      </code>
+
+                      <p className="font-medium">4. Test koneksi manual:</p>
+                      <code className="block bg-yellow-100 dark:bg-yellow-900 p-2 rounded text-xs">
+                        {(() => {
+                          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+                          const projectRef = supabaseUrl.match(/https:\/\/([^.]+)/)?.[1] || '';
+                          return `curl -v https://${projectRef}.supabase.co/functions/v1/vps-agent-controller/ping`;
+                        })()}
+                      </code>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}

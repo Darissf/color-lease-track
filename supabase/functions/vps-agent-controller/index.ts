@@ -21,6 +21,15 @@ Deno.serve(async (req) => {
     );
 
     const url = new URL(req.url);
+    const pathname = url.pathname;
+
+    // Simple ping endpoint for connection testing
+    if (pathname.includes('/ping')) {
+      return new Response('pong', {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
     const path = url.pathname.split('/').pop();
 
     // Test endpoint - public connectivity check (no auth required)
@@ -45,6 +54,13 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Get agent info for logging
+      const { data: agent } = await supabase
+        .from('vps_agents')
+        .select('id, user_id')
+        .eq('agent_token', token)
+        .single();
+
       // Update agent status
       const { error } = await supabase
         .from('vps_agents')
@@ -57,6 +73,33 @@ Deno.serve(async (req) => {
 
       if (error) {
         console.error('Error updating agent heartbeat:', error);
+        
+        // Log error to agent_logs
+        if (agent) {
+          await supabase.from('agent_logs').insert({
+            agent_id: agent.id,
+            user_id: agent.user_id,
+            log_type: 'error',
+            message: 'Failed to update agent status',
+            metadata: { error: error.message },
+          });
+        }
+        
+        return new Response(JSON.stringify({ error: 'Failed to update status' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Log successful heartbeat
+      if (agent) {
+        await supabase.from('agent_logs').insert({
+          agent_id: agent.id,
+          user_id: agent.user_id,
+          log_type: 'heartbeat',
+          message: 'Agent heartbeat received',
+          metadata: { hostname, uptime },
+        });
       }
 
       return new Response(JSON.stringify({ success: true }), {
