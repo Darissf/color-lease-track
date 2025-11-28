@@ -12,15 +12,39 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
   const { accentTheme } = useAppTheme();
   const isMobile = useIsMobile();
   
-  // Show animations for atmospheric themes and not on mobile
-  const showJapaneseAnimations = accentTheme === 'japanese' && !isMobile;
-  const showAuroraAnimations = accentTheme === 'aurora' && !isMobile;
-  const showCyberpunkAnimations = accentTheme === 'cyberpunk' && !isMobile;
-  const showGalaxyAnimations = accentTheme === 'galaxy' && !isMobile;
-  const showArtDecoAnimations = accentTheme === 'artdeco' && !isMobile;
-  const showForestAnimations = accentTheme === 'forest' && !isMobile;
-  const showOceanAnimations = accentTheme === 'ocean' && !isMobile;
-  const showFireplaceAnimations = accentTheme === 'fireplace' && !isMobile;
+  // Show animations for atmospheric themes on all devices
+  const showJapaneseAnimations = accentTheme === 'japanese';
+  const showAuroraAnimations = accentTheme === 'aurora';
+  const showCyberpunkAnimations = accentTheme === 'cyberpunk';
+  const showGalaxyAnimations = accentTheme === 'galaxy';
+  const showArtDecoAnimations = accentTheme === 'artdeco';
+  const showForestAnimations = accentTheme === 'forest';
+  const showOceanAnimations = accentTheme === 'ocean';
+  const showFireplaceAnimations = accentTheme === 'fireplace';
+
+  // Dynamic particle counts - reduce 50% on mobile for performance
+  const auroraStarCount = isMobile ? 10 : 20;
+  const galaxyStarBg = isMobile ? 15 : 30;
+  const galaxyStarMid = isMobile ? 12 : 25;
+  const galaxyStarFg = isMobile ? 10 : 20;
+  const galaxyPulsar = isMobile ? 2 : 5;
+  const galaxySpiral = isMobile ? 4 : 8;
+  const galaxyComet = isMobile ? 1 : 2;
+  const galaxyNebula = isMobile ? 1 : 3;
+  const artDecoSparkle = isMobile ? 15 : 30;
+  const artDecoShimmer = isMobile ? 2 : 5;
+  const forestFirefly = isMobile ? 12 : 25;
+  const forestLeaf = isMobile ? 7 : 15;
+  const forestMist = isMobile ? 4 : 8;
+  const oceanBubble = isMobile ? 12 : 25;
+  const oceanRay = isMobile ? 2 : 5;
+  const oceanFish = isMobile ? 2 : 4;
+  const oceanBio = isMobile ? 15 : 30;
+  const oceanSeaweed = isMobile ? 4 : 8;
+  const fireplaceEmber = isMobile ? 10 : 20;
+  const fireplaceSmoke = isMobile ? 2 : 5;
+  const fireplaceSparkle = isMobile ? 12 : 25;
+  const fireplaceGlow = isMobile ? 1 : 3;
 
   return (
     <div className="h-full relative overflow-hidden flex flex-col">
@@ -61,7 +85,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           </div>
           
           {/* Twinkling stars */}
-          {[...Array(20)].map((_, i) => (
+          {[...Array(auroraStarCount)].map((_, i) => (
             <div
               key={i}
               className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
@@ -108,7 +132,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
         <>
           {/* Star Parallax System - 3 Layers */}
           {/* Layer 1: Background Stars (slow) */}
-          {[...Array(30)].map((_, i) => (
+          {[...Array(galaxyStarBg)].map((_, i) => (
             <div key={`star-bg-${i}`} className="absolute rounded-full bg-white/40"
                  style={{
                    width: `${Math.random() * 2 + 1}px`, height: `${Math.random() * 2 + 1}px`,
@@ -118,7 +142,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
                  }} />
           ))}
           {/* Layer 2: Medium Stars (medium speed) */}
-          {[...Array(25)].map((_, i) => (
+          {[...Array(galaxyStarMid)].map((_, i) => (
             <div key={`star-mid-${i}`} className="absolute rounded-full bg-white/60"
                  style={{
                    width: `${Math.random() * 2.5 + 1.5}px`, height: `${Math.random() * 2.5 + 1.5}px`,
@@ -128,7 +152,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
                  }} />
           ))}
           {/* Layer 3: Foreground Stars (fast) */}
-          {[...Array(20)].map((_, i) => (
+          {[...Array(galaxyStarFg)].map((_, i) => (
             <div key={`star-fg-${i}`} className="absolute rounded-full bg-white"
                  style={{
                    width: `${Math.random() * 3 + 2}px`, height: `${Math.random() * 3 + 2}px`,
@@ -139,7 +163,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           ))}
 
           {/* Pulsar Stars */}
-          {[...Array(5)].map((_, i) => (
+          {[...Array(galaxyPulsar)].map((_, i) => (
             <div key={`pulsar-${i}`} className="absolute" style={{ top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%` }}>
               <div className="rounded-full bg-purple-300"
                    style={{
@@ -157,7 +181,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
                    background: 'radial-gradient(ellipse at center, rgba(147, 51, 234, 0.4) 0%, rgba(79, 70, 229, 0.2) 30%, transparent 70%)',
                    filter: 'blur(2px)',
                  }} />
-            {[...Array(8)].map((_, i) => (
+            {[...Array(galaxySpiral)].map((_, i) => (
               <div key={`spiral-${i}`} className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full"
                    style={{
                      transform: `rotate(${i * 45}deg) translateX(${50 + i * 15}px)`,
@@ -167,7 +191,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           </div>
 
           {/* Comet System */}
-          {[...Array(2)].map((_, i) => (
+          {[...Array(galaxyComet)].map((_, i) => (
             <div key={`comet-${i}`} className="absolute"
                  style={{
                    top: `${Math.random() * 40}%`, left: '-150px',
@@ -196,7 +220,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           </svg>
 
           {/* Nebula Clouds */}
-          {[...Array(3)].map((_, i) => (
+          {[...Array(galaxyNebula)].map((_, i) => (
             <div key={`nebula-${i}`} className="absolute rounded-full"
                  style={{
                    width: `${Math.random() * 400 + 300}px`, height: `${Math.random() * 400 + 300}px`,
@@ -214,7 +238,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
       {showArtDecoAnimations && (
         <>
           {/* Gold Sparkle Particles */}
-          {[...Array(30)].map((_, i) => (
+          {[...Array(artDecoSparkle)].map((_, i) => (
             <div key={`sparkle-${i}`}
                  className="absolute animate-twinkle"
                  style={{
@@ -242,7 +266,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
                }} />
           
           {/* Elegant Shimmer Lines */}
-          {[...Array(5)].map((_, i) => (
+          {[...Array(artDecoShimmer)].map((_, i) => (
             <div key={`shimmer-${i}`}
                  className="absolute w-px h-full bg-gradient-to-b from-transparent via-yellow-500/30 to-transparent"
                  style={{
@@ -258,7 +282,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
       {showForestAnimations && (
         <>
           {/* Fireflies */}
-          {[...Array(25)].map((_, i) => (
+          {[...Array(forestFirefly)].map((_, i) => (
             <div key={`firefly-${i}`}
                  className="absolute rounded-full animate-firefly-glow"
                  style={{
@@ -274,7 +298,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           ))}
           
           {/* Falling Leaves */}
-          {[...Array(15)].map((_, i) => (
+          {[...Array(forestLeaf)].map((_, i) => (
             <div key={`leaf-${i}`}
                  className="absolute opacity-60"
                  style={{
@@ -291,7 +315,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           ))}
           
           {/* Mist Particles */}
-          {[...Array(8)].map((_, i) => (
+          {[...Array(forestMist)].map((_, i) => (
             <div key={`mist-${i}`}
                  className="absolute rounded-full blur-2xl opacity-20 animate-mist-float"
                  style={{
@@ -311,7 +335,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
       {showOceanAnimations && (
         <>
           {/* Rising Bubbles */}
-          {[...Array(25)].map((_, i) => (
+          {[...Array(oceanBubble)].map((_, i) => (
             <div key={`bubble-${i}`} className="absolute rounded-full bg-white/20"
                  style={{
                    width: `${Math.random() * 12 + 4}px`, height: `${Math.random() * 12 + 4}px`,
@@ -323,7 +347,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           ))}
 
           {/* God Rays / Light Rays */}
-          {[...Array(5)].map((_, i) => (
+          {[...Array(oceanRay)].map((_, i) => (
             <div key={`ray-${i}`} className="absolute"
                  style={{
                    top: '-10%', left: `${i * 20 + 10}%`,
@@ -337,7 +361,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           ))}
 
           {/* Fish Silhouettes */}
-          {[...Array(4)].map((_, i) => (
+          {[...Array(oceanFish)].map((_, i) => (
             <div key={`fish-${i}`} className="absolute"
                  style={{
                    top: `${Math.random() * 60 + 20}%`, left: '-100px',
@@ -353,7 +377,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           ))}
 
           {/* Bioluminescent Particles */}
-          {[...Array(30)].map((_, i) => (
+          {[...Array(oceanBio)].map((_, i) => (
             <div key={`bio-${i}`} className="absolute rounded-full"
                  style={{
                    width: `${Math.random() * 4 + 2}px`, height: `${Math.random() * 4 + 2}px`,
@@ -366,7 +390,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           ))}
 
           {/* Seaweed at Bottom */}
-          {[...Array(8)].map((_, i) => (
+          {[...Array(oceanSeaweed)].map((_, i) => (
             <div key={`seaweed-${i}`} className="absolute bottom-0"
                  style={{
                    left: `${i * 12 + 5}%`,
@@ -393,7 +417,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
       {showFireplaceAnimations && (
         <>
           {/* Floating Embers */}
-          {[...Array(20)].map((_, i) => (
+          {[...Array(fireplaceEmber)].map((_, i) => (
             <div key={`ember-${i}`} className="absolute rounded-full"
                  style={{
                    width: `${Math.random() * 6 + 3}px`, height: `${Math.random() * 6 + 3}px`,
@@ -406,7 +430,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           ))}
 
           {/* Smoke Wisps */}
-          {[...Array(5)].map((_, i) => (
+          {[...Array(fireplaceSmoke)].map((_, i) => (
             <div key={`smoke-${i}`} className="absolute rounded-full"
                  style={{
                    width: `${Math.random() * 80 + 60}px`, height: `${Math.random() * 80 + 60}px`,
@@ -419,7 +443,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
           ))}
 
           {/* Warm Particle Sparkles */}
-          {[...Array(25)].map((_, i) => (
+          {[...Array(fireplaceSparkle)].map((_, i) => (
             <div key={`sparkle-${i}`} className="absolute rounded-full"
                  style={{
                    width: `${Math.random() * 3 + 1}px`, height: `${Math.random() * 3 + 1}px`,
@@ -439,7 +463,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
                }} />
 
           {/* Crackling Glow Areas */}
-          {[...Array(3)].map((_, i) => (
+          {[...Array(fireplaceGlow)].map((_, i) => (
             <div key={`glow-${i}`} className="absolute rounded-full"
                  style={{
                    width: `${Math.random() * 150 + 100}px`, height: `${Math.random() * 150 + 100}px`,
