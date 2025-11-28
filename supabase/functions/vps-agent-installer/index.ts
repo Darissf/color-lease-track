@@ -29,7 +29,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      const appUrl = Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.functions.supabase.co') || '';
+      // Use direct SUPABASE_URL for correct endpoint construction
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+      const projectRef = supabaseUrl.match(/https:\/\/([^.]+)/)?.[1] || '';
+      const appUrl = `https://${projectRef}.supabase.co/functions/v1`;
       
       const installerScript = `#!/bin/bash
 # WAHA VPS Agent Installer
@@ -54,42 +57,51 @@ fi
 mkdir -p /opt/waha-agent
 cd /opt/waha-agent
 
-# Create agent script with robust logging
-cat > /opt/waha-agent/agent.sh << AGENT_SCRIPT
+# Create agent script with simplified, robust logging
+cat > /opt/waha-agent/agent.sh << 'AGENT_SCRIPT'
 #!/bin/bash
+set -e
+
 TOKEN="${token}"
 API_URL="${appUrl}/vps-agent-controller"
 LOG_FILE="/var/log/waha-agent.log"
 
 # Logging function
 log() {
-  echo "[\\$(date '+%Y-%m-%d %H:%M:%S')] \\$1" | tee -a \\$LOG_FILE
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
 log "🚀 WAHA Agent starting..."
-log "Token: \\$TOKEN"
-log "API URL: \\$API_URL"
+log "Token: $TOKEN"
+log "API URL: $API_URL"
 
-# Test connection before starting main loop
+# Test connection with ping endpoint
 log "🔗 Testing connection to server..."
-TEST_RESPONSE=\\$(curl -s -o /dev/null -w "%{http_code}" "\\$API_URL/test")
-if [ "\\$TEST_RESPONSE" != "200" ]; then
-  log "❌ Cannot connect to server! HTTP: \\$TEST_RESPONSE"
-  log "Check: 1) Internet connection 2) Firewall 3) Server availability"
+if ! TEST_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/ping" 2>&1); then
+  log "❌ Curl command failed: $TEST_RESPONSE"
+  exit 1
+fi
+
+if [ "$TEST_RESPONSE" != "200" ]; then
+  log "❌ Cannot connect to server! HTTP: $TEST_RESPONSE"
+  log "API_URL: $API_URL/ping"
+  log "Check: 1) Internet 2) Firewall 3) DNS resolution"
   exit 1
 fi
 log "✅ Connection test successful!"
 
-# Send initial heartbeat as test
+# Send initial heartbeat
 log "📡 Sending initial heartbeat..."
-HEARTBEAT_RESPONSE=\\$(curl -s -w "\\n%{http_code}" -X POST "\\$API_URL/heartbeat" \\\\
-  -H "Content-Type: application/json" \\\\
-  -d "{\\\\"token\\\\":\\\\"\\$TOKEN\\\\",\\\\"hostname\\\\":\\\\"\\$(hostname)\\\\",\\\\"uptime\\\\":\\\\"initial\\\\"}")
-HTTP_CODE=\\$(echo "\\$HEARTBEAT_RESPONSE" | tail -n1)
-BODY=\\$(echo "\\$HEARTBEAT_RESPONSE" | head -n -1)
+HEARTBEAT_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/heartbeat" \
+  -H "Content-Type: application/json" \
+  -d "{\"token\":\"$TOKEN\",\"hostname\":\"$(hostname)\",\"uptime\":\"initial\"}" 2>&1)
 
-if [ "\\$HTTP_CODE" != "200" ]; then
-  log "❌ Initial heartbeat failed: HTTP \\$HTTP_CODE - \\$BODY"
+HTTP_CODE=$(echo "$HEARTBEAT_RESPONSE" | tail -n1)
+BODY=$(echo "$HEARTBEAT_RESPONSE" | head -n -1)
+
+if [ "$HTTP_CODE" != "200" ]; then
+  log "❌ Initial heartbeat failed: HTTP $HTTP_CODE"
+  log "Response: $BODY"
   exit 1
 fi
 log "✅ Initial heartbeat sent successfully"
@@ -98,28 +110,29 @@ log "✅ Initial heartbeat sent successfully"
 log "🔄 Starting main agent loop..."
 while true; do
   # Send heartbeat
-  HEARTBEAT_RESPONSE=\\$(curl -s -w "\\n%{http_code}" -X POST "\\$API_URL/heartbeat" \\\\
-    -H "Content-Type: application/json" \\\\
-    -d "{\\\\"token\\\\":\\\\"\\$TOKEN\\\\",\\\\"hostname\\\\":\\\\"\\$(hostname)\\\\",\\\\"uptime\\\\":\\\\"\\$(uptime -p)\\\\"}")
-  HTTP_CODE=\\$(echo "\\$HEARTBEAT_RESPONSE" | tail -n1)
+  HEARTBEAT_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/heartbeat" \
+    -H "Content-Type: application/json" \
+    -d "{\"token\":\"$TOKEN\",\"hostname\":\"$(hostname)\",\"uptime\":\"$(uptime -p)\"}" 2>&1)
   
-  if [ "\\$HTTP_CODE" != "200" ]; then
-    log "⚠️ Heartbeat failed: HTTP \\$HTTP_CODE"
+  HTTP_CODE=$(echo "$HEARTBEAT_RESPONSE" | tail -n1)
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    log "⚠️ Heartbeat failed: HTTP $HTTP_CODE"
   fi
   
   # Check for commands to execute
-  RESPONSE=\\$(curl -s "\\$API_URL/commands?token=\\$TOKEN" 2>&1)
-  COMMANDS=\\$(echo "\\$RESPONSE" | jq -r '.commands // empty' 2>/dev/null)
+  RESPONSE=$(curl -s "$API_URL/commands?token=$TOKEN" 2>&1)
+  COMMANDS=$(echo "$RESPONSE" | jq -r '.commands // empty' 2>/dev/null || echo "")
   
-  if [ -n "\\$COMMANDS" ]; then
-    log "📝 Executing commands: \\$COMMANDS"
-    OUTPUT=\\$(eval "\\$COMMANDS" 2>&1)
-    log "📤 Command output: \\$OUTPUT"
+  if [ -n "$COMMANDS" ]; then
+    log "📝 Executing commands: $COMMANDS"
+    OUTPUT=$(eval "$COMMANDS" 2>&1 || echo "Command failed: $?")
+    log "📤 Command output: $OUTPUT"
     
     # Send output back using jq for proper JSON encoding
-    curl -s -X POST "\\$API_URL/output" \\\\
-      -H "Content-Type: application/json" \\\\
-      -d "\\$(jq -n --arg t "\\$TOKEN" --arg o "\\$OUTPUT" '{token:\\$t,output:\\$o}')" > /dev/null 2>&1
+    curl -s -X POST "$API_URL/output" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg t "$TOKEN" --arg o "$OUTPUT" '{token:$t,output:$o}')" > /dev/null 2>&1 || true
   fi
   
   sleep 5
@@ -230,7 +243,10 @@ echo "📋 View logs: tail -f /var/log/waha-agent.log"
       });
     }
 
-    const appUrl = Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.functions.supabase.co') || '';
+    // Use direct SUPABASE_URL for correct endpoint construction
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const projectRef = supabaseUrl.match(/https:\/\/([^.]+)/)?.[1] || '';
+    const appUrl = `https://${projectRef}.supabase.co/functions/v1`;
 
     return new Response(
       JSON.stringify({

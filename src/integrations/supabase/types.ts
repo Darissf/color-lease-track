@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_logs: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          id: string
+          log_type: string
+          message: string | null
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          id?: string
+          log_type: string
+          message?: string | null
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          id?: string
+          log_type?: string
+          message?: string | null
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_logs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "vps_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_content_suggestions: {
         Row: {
           applied: boolean | null
