@@ -3,9 +3,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VPSCredentialsForm } from './VPSCredentialsForm';
 import { SetupProgressLog, SetupStep } from './SetupProgressLog';
 import { WebTerminal } from './WebTerminal';
-import { Rocket, Terminal as TerminalIcon } from 'lucide-react';
+import { SavedVPSList } from './SavedVPSList';
+import { Rocket, Terminal as TerminalIcon, Server } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import type { VPSCredentials as SavedVPSType } from '@/hooks/useVPSCredentials';
 
 interface VPSCredentials {
   host: string;
@@ -23,6 +25,27 @@ export const WAHAVPSSetup = () => {
   const [setupStatus, setSetupStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
   const [steps, setSteps] = useState<SetupStep[]>([]);
   const [credentials, setCredentials] = useState<VPSCredentials | null>(null);
+  const [selectedTab, setSelectedTab] = useState('auto-setup');
+
+  const handleSelectSavedVPS = (savedCred: SavedVPSType) => {
+    // Convert saved credentials to form format and switch to auto-setup tab
+    const formCreds: VPSCredentials = {
+      host: savedCred.host,
+      port: savedCred.port.toString(),
+      username: savedCred.username,
+      password: savedCred.password,
+      wahaPort: savedCred.waha_port.toString(),
+      wahaSessionName: savedCred.waha_session_name,
+      wahaApiKey: savedCred.waha_api_key || '',
+    };
+    setCredentials(formCreds);
+    setSelectedTab('auto-setup');
+    
+    toast({
+      title: 'VPS Dipilih',
+      description: `${savedCred.name} siap digunakan`,
+    });
+  };
 
   const initializeSteps = (): SetupStep[] => [
     { id: 'connect', label: '🔌 Connecting to VPS', status: 'pending' },
@@ -142,8 +165,12 @@ export const WAHAVPSSetup = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="auto-setup" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="saved-vps" className="flex items-center gap-2">
+            <Server className="h-4 w-4" />
+            <span className="hidden md:inline">VPS Tersimpan</span>
+          </TabsTrigger>
           <TabsTrigger value="auto-setup" className="flex items-center gap-2">
             <Rocket className="h-4 w-4" />
             <span className="hidden md:inline">Auto Setup</span>
@@ -153,6 +180,10 @@ export const WAHAVPSSetup = () => {
             <span className="hidden md:inline">Web Terminal</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="saved-vps" className="mt-6">
+          <SavedVPSList onSelect={handleSelectSavedVPS} />
+        </TabsContent>
 
         <TabsContent value="auto-setup" className="mt-6 space-y-6">
           {setupStatus === 'idle' ? (
