@@ -230,9 +230,14 @@ export default function MonthlyView() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold capitalize">{month} {selectedYear}</h1>
-              <p className="text-sm text-muted-foreground">Dashboard Keuangan Bulanan</p>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/20">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold capitalize text-foreground">{month} {selectedYear}</h1>
+                <p className="text-sm text-muted-foreground">Dashboard Keuangan Bulanan</p>
+              </div>
             </div>
           </div>
         </div>

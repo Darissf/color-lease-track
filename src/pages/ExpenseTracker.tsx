@@ -343,7 +343,7 @@ export default function ExpenseTracker() {
       <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
       <div className="flex items-center justify-between mb-2 md:mb-4">
         <div className="flex items-center gap-2 md:gap-4">
-          <div className="p-2 md:p-3 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 shadow-lg">
+          <div className="p-2 md:p-3 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 shadow-lg shadow-rose-500/30">
             <TrendingDown className="h-6 w-6 md:h-8 md:w-8 text-white" />
           </div>
           <div>

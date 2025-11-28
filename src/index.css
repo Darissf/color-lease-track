@@ -224,7 +224,7 @@ All colors MUST be HSL.
   /* ========== DUAL THEME SYSTEM ========== */
   /* Light Mode (Default) */
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 98%;
     --foreground: 0 0% 9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 9%;
@@ -232,12 +232,12 @@ All colors MUST be HSL.
     --popover-foreground: 0 0% 9%;
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 217 80% 88%;
+    --secondary-foreground: 217 90% 20%;
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 217 70% 85%;
+    --accent-foreground: 217 90% 20%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 90%;

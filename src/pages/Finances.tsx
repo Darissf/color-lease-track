@@ -69,11 +69,16 @@ const Finances = () => {
       <div className="min-h-screen p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold mb-2 text-foreground">
-              Analisis Keuangan
-            </h1>
-            <p className="text-muted-foreground">Lacak pendapatan, pengeluaran, dan profitabilitas secara real-time</p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/30">
+              <TrendingUp className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-foreground">
+                Analisis Keuangan
+              </h1>
+              <p className="text-muted-foreground mt-1">Lacak pendapatan, pengeluaran, dan profitabilitas secara real-time</p>
+            </div>
           </div>
         <div className="flex gap-2">
           <Select value={timeFilter} onValueChange={setTimeFilter}>

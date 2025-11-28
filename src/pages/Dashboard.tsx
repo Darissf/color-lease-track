@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEditableContent } from "@/contexts/EditableContentContext";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
@@ -222,13 +222,18 @@ export default function Dashboard() {
       {/* Header Section */}
       <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
-          <div>
-            <h1 className="text-2xl md:text-4xl font-bold text-foreground">
-              {getContent('dashboard.title', 'Dashboard Keuangan Nabila')}
-            </h1>
-            <p className="mt-1 text-sm md:text-base text-muted-foreground">
-              {getContent('dashboard.subtitle', 'Ringkasan keuangan profesional Anda')}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/30">
+              <BarChart3 className="h-6 w-6 md:h-8 md:w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-4xl font-bold text-foreground">
+                {getContent('dashboard.title', 'Dashboard Keuangan Nabila')}
+              </h1>
+              <p className="mt-1 text-sm md:text-base text-muted-foreground">
+                {getContent('dashboard.subtitle', 'Ringkasan keuangan profesional Anda')}
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center gap-2">
@@ -259,7 +264,7 @@ export default function Dashboard() {
       <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+          <Card className="bg-gradient-to-br from-emerald-50/80 to-green-50/80 border-l-4 border-emerald-500 shadow-lg shadow-emerald-500/10 hover:shadow-xl hover:shadow-emerald-500/20 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-card-foreground">
                 Total Pemasukan
@@ -276,7 +281,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+          <Card className="bg-gradient-to-br from-rose-50/80 to-red-50/80 border-l-4 border-rose-500 shadow-lg shadow-rose-500/10 hover:shadow-xl hover:shadow-rose-500/20 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-card-foreground">
                 Total Pengeluaran
@@ -296,7 +301,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+          <Card className="bg-gradient-to-br from-blue-50/80 to-cyan-50/80 border-l-4 border-blue-500 shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-card-foreground">
                 Total Tabungan
@@ -313,7 +318,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+          <Card className="bg-gradient-to-br from-purple-50/80 to-fuchsia-50/80 border-l-4 border-purple-500 shadow-lg shadow-purple-500/10 hover:shadow-xl hover:shadow-purple-500/20 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-card-foreground">
                 Sisa Budget

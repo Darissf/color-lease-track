@@ -351,7 +351,7 @@ export default function Nabila() {
       <div className="relative z-10 space-y-4 px-2 py-2 md:px-8 md:py-4 flex-1 overflow-y-auto overflow-x-hidden w-full">
         {/* Header with Gradient */}
         <div className="text-center space-y-2 md:space-y-4 py-6 md:py-12 shrink-0">
-          <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif italic bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary drop-shadow-2xl animate-fade-in">
+          <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif italic text-primary drop-shadow-2xl animate-fade-in">
             Financial Planner.
           </h1>
           <p className="text-xl sm:text-3xl md:text-4xl font-serif italic text-muted-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
@@ -364,7 +364,7 @@ export default function Nabila() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary">
+                <h2 className="text-3xl font-bold text-primary">
                   {displayName}
                 </h2>
                 <div className="flex items-center gap-2">
@@ -389,7 +389,7 @@ export default function Nabila() {
                   ) : (
                     <>
                       <div className={cn(
-                        "text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent transition-all duration-500",
+                        "text-lg font-bold text-primary transition-all duration-500",
                         isBalanceAnimating && 'animate-counter-up'
                       )}>
                         {formatCurrency(totalBalance)}
@@ -410,42 +410,42 @@ export default function Nabila() {
               </div>
               
               {/* Bulan Card */}
-              <div className="p-4 rounded-lg backdrop-blur-sm bg-secondary/10 border-2 border-secondary/30">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 border-2 border-secondary/30">
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-secondary to-accent">
+                  <div className="text-2xl font-bold text-foreground">
                     12
                   </div>
-                  <div className="text-xs font-medium text-secondary">Bulan</div>
+                  <div className="text-xs font-medium text-muted-foreground">Bulan</div>
                 </div>
               </div>
               
               {/* Kuartal Card */}
-              <div className="p-4 rounded-lg backdrop-blur-sm bg-accent/10 border-2 border-accent/30">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 border-2 border-accent/30">
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
+                  <div className="text-2xl font-bold text-foreground">
                     4
                   </div>
-                  <div className="text-xs font-medium text-accent">Kuartal</div>
+                  <div className="text-xs font-medium text-muted-foreground">Kuartal</div>
                 </div>
               </div>
               
               {/* Data Years Card */}
-              <div className="p-4 rounded-lg backdrop-blur-sm bg-primary/10 border-2 border-primary/30">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border-2 border-primary/30">
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+                  <div className="text-2xl font-bold text-foreground">
                     {availableYears.length}
                   </div>
-                  <div className="text-xs font-medium text-primary">Data Years</div>
+                  <div className="text-xs font-medium text-muted-foreground">Data Years</div>
                 </div>
               </div>
               
               {/* Readiness Card */}
-              <div className="p-4 rounded-lg backdrop-blur-sm bg-green-500/10 border-2 border-green-500/30">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-green-500/20 to-teal-500/20 border-2 border-green-500/30">
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-600">
+                  <div className="text-2xl font-bold text-green-600">
                     95%
                   </div>
-                  <div className="text-xs font-medium text-green-600">Readiness</div>
+                  <div className="text-xs font-medium text-muted-foreground">Readiness</div>
                 </div>
               </div>
             </div>
@@ -483,7 +483,7 @@ export default function Nabila() {
                 <div className="p-2 rounded-lg backdrop-blur-sm bg-primary/30">
                   <Calendar className="h-6 w-6 text-primary-foreground" />
                 </div>
-                <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary">
+                <h3 className="text-2xl font-bold text-foreground">
                   Laporan Bulanan Finansial
                 </h3>
               </div>
@@ -527,7 +527,7 @@ export default function Nabila() {
                               <Icon className="h-6 w-6 text-white" />
                             </div>
                             <div>
-                              <h4 className={`text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r ${theme.textGradient}`}>
+                              <h4 className="text-xl font-bold text-foreground">
                                 Kuartal {quarter.number}
                               </h4>
                               <p className="text-sm text-muted-foreground">{theme.name} {theme.emoji}</p>
@@ -574,7 +574,7 @@ export default function Nabila() {
               <div className="p-2 rounded-lg backdrop-blur-sm bg-primary/30">
                 <Target className="h-6 w-6 text-primary-foreground" />
               </div>
-              <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary">
+              <h3 className="text-2xl font-bold text-foreground">
                 Rencana Anggaran & Tabungan Bulanan
               </h3>
             </div>
@@ -585,7 +585,7 @@ export default function Nabila() {
                   <Wallet className="h-4 w-4 text-green-600" />
                   <div className="text-xs font-semibold text-green-600">Target Budget</div>
                 </div>
-                <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-600">
+                <div className="text-lg font-bold text-green-600">
                   Rp 0
                 </div>
               </div>
@@ -595,7 +595,7 @@ export default function Nabila() {
                   <TrendingUp className="h-4 w-4 text-secondary" />
                   <div className="text-xs font-semibold text-secondary">Savings Goal</div>
                 </div>
-                <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-secondary to-accent">
+                <div className="text-lg font-bold text-secondary">
                   Rp 0
                 </div>
               </div>
@@ -605,7 +605,7 @@ export default function Nabila() {
                   <Target className="h-4 w-4 text-primary" />
                   <div className="text-xs font-semibold text-primary">Achievement</div>
                 </div>
-                <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+                <div className="text-lg font-bold text-primary">
                   0%
                 </div>
               </div>
@@ -615,7 +615,7 @@ export default function Nabila() {
                   <Calendar className="h-4 w-4 text-orange-600" />
                   <div className="text-xs font-semibold text-orange-600">Months</div>
                 </div>
-                <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-amber-600">
+                <div className="text-lg font-bold text-orange-600">
                   0/12
                 </div>
               </div>
