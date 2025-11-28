@@ -166,7 +166,14 @@ export const WhatsAppConfigForm = () => {
           )}
         </div>
         {settings?.error_message && (
-          <p className="text-xs text-red-500 mt-2">{settings.error_message}</p>
+          <div className="mt-3 space-y-1">
+            <p className="text-xs text-red-500">{settings.error_message}</p>
+            {settings.error_message.includes('401') && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 rounded">
+                💡 <strong>Solusi:</strong> WAHA berjalan tanpa API key. Buka tab <strong>Setup</strong> dan klik tombol <strong>🔄 Reconfigure</strong> untuk restart container dengan API key yang benar.
+              </p>
+            )}
+          </div>
         )}
       </Card>
 

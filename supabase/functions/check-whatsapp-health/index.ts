@@ -59,14 +59,22 @@ serve(async (req) => {
       try {
         const startTime = Date.now();
         
-        // Check WAHA status
+        // Check WAHA status - first try with API key
         const statusUrl = `${settings.waha_api_url}/api/sessions/${settings.waha_session_name}`;
-        const statusResponse = await fetch(statusUrl, {
+        let statusResponse = await fetch(statusUrl, {
           method: 'GET',
           headers: {
             'X-Api-Key': settings.waha_api_key,
           },
         });
+
+        // If 401 Unauthorized, try without API key (WAHA might be running without auth)
+        if (statusResponse.status === 401) {
+          console.log('Got 401 with API key, retrying without API key...');
+          statusResponse = await fetch(statusUrl, {
+            method: 'GET',
+          });
+        }
 
         const responseTime = Date.now() - startTime;
         const statusData = await statusResponse.json();

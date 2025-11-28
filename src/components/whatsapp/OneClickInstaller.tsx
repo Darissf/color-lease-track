@@ -111,6 +111,154 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
     });
   };
 
+  const reconfigureWaha = async () => {
+    if (!agentConnected || !agentId) {
+      toast({
+        title: "❌ Agent Not Connected",
+        description: "Please wait for agent to connect first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Fetch existing API key from database
+    const { data: vpsData } = await supabase
+      .from('vps_credentials')
+      .select('waha_api_key')
+      .eq('id', credentials.id)
+      .single();
+
+    const existingApiKey = vpsData?.waha_api_key;
+    if (!existingApiKey) {
+      toast({
+        title: "❌ No API Key Found",
+        description: "Please run full installation first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setInstalling(true);
+    setTerminalOutput("");
+    setInstallComplete(false);
+
+    try {
+      toast({
+        title: "🔄 Reconfiguring WAHA",
+        description: "Restarting container with correct API key...",
+      });
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
+
+      // Reconfigure script - restart container with API key
+      const reconfigureScript = `#!/bin/bash
+set -e
+
+echo "=== Stopping WAHA Container ==="
+docker stop waha 2>/dev/null || echo "Container not running"
+docker rm waha 2>/dev/null || echo "Container already removed"
+
+echo ""
+echo "=== Starting WAHA with API Key ==="
+docker run -d --name waha \\
+  --restart=always \\
+  -p 3000:3000 \\
+  -e WHATSAPP_HOOK_EVENTS=* \\
+  -e WHATSAPP_API_KEY=${existingApiKey} \\
+  devlikeapro/waha:latest
+
+echo "✅ WAHA restarted with API Key"
+
+echo ""
+echo "=== Verifying Container ==="
+sleep 5
+docker ps | grep waha
+
+echo ""
+echo "🎉 WAHA Reconfiguration Complete!"
+`;
+
+      // Send command to agent
+      const executeResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vps-agent-controller/execute`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+          },
+          body: JSON.stringify({
+            agent_id: agentId,
+            commands: reconfigureScript
+          })
+        }
+      );
+
+      if (!executeResponse.ok) {
+        throw new Error(`HTTP ${executeResponse.status}`);
+      }
+
+      setTerminalOutput(`📡 Reconfigure commands queued\n⏳ Waiting for agent...\n\n`);
+
+      // Poll for completion
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const outputResponse = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vps-agent-controller/get-output?agent_id=${agentId}`,
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+              }
+            }
+          );
+
+          if (outputResponse.ok) {
+            const outputData = await outputResponse.json();
+            if (outputData?.outputs && outputData.outputs.length > 0) {
+              const fullOutput = outputData.outputs.join('\n');
+              setTerminalOutput(prev => {
+                if (!prev.includes(fullOutput)) {
+                  return prev + fullOutput + '\n';
+                }
+                return prev;
+              });
+
+              if (fullOutput.includes("WAHA Reconfiguration Complete!")) {
+                if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+                setInstalling(false);
+                setInstallComplete(true);
+                setWahaApiKey(existingApiKey);
+                setWahaUrl(`http://${credentials.host}:3000`);
+                
+                toast({
+                  title: "✅ Reconfiguration Complete!",
+                  description: "WAHA is now running with the correct API key",
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Polling error:", error);
+        }
+      }, 2000);
+
+      setPollingInterval(pollingIntervalRef.current);
+
+    } catch (error: any) {
+      console.error('Error reconfiguring WAHA:', error);
+      toast({
+        title: "❌ Reconfiguration Failed",
+        description: error.message || "Failed to reconfigure",
+        variant: "destructive",
+      });
+      setInstalling(false);
+    }
+  };
+
   const startAgentInstall = async () => {
     if (!agentConnected || !agentId) {
       toast({
@@ -473,24 +621,35 @@ echo "Access WAHA at: http://${credentials.host}:3000"
               </p>
             </div>
 
-            <Button
-              onClick={startAgentInstall}
-              disabled={installing || !agentConnected}
-              className="w-full"
-              size="lg"
-            >
-              {installing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Installing WAHA via Agent...
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-4 h-4 mr-2" />
-                  🚀 Install WAHA Now (via Agent)
-                </>
-              )}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={startAgentInstall}
+                disabled={installing || !agentConnected}
+                className="flex-1"
+                size="lg"
+              >
+                {installing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Installing WAHA via Agent...
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="w-4 h-4 mr-2" />
+                    🚀 Install WAHA Now
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={reconfigureWaha}
+                disabled={installing || !agentConnected}
+                variant="outline"
+                size="lg"
+              >
+                🔄 Reconfigure
+              </Button>
+            </div>
           </>
         )}
 
