@@ -71,6 +71,30 @@ const accentThemes = [
     category: 'Atmospheric',
     animated: true
   },
+  { 
+    value: 'galaxy' as const, 
+    label: 'Galaxy Space', 
+    color: 'bg-gradient-to-r from-purple-900 via-purple-600 to-indigo-900',
+    icon: Sparkles,
+    category: 'Premium',
+    animated: true
+  },
+  { 
+    value: 'artdeco' as const, 
+    label: 'Art Deco Luxury', 
+    color: 'bg-gradient-to-r from-yellow-600 via-yellow-500 to-amber-600',
+    icon: Sparkles,
+    category: 'Premium',
+    animated: true
+  },
+  { 
+    value: 'forest' as const, 
+    label: 'Enchanted Forest', 
+    color: 'bg-gradient-to-r from-green-900 via-emerald-700 to-green-800',
+    icon: Mountain,
+    category: 'Premium',
+    animated: true
+  },
 ];
 
 export function ThemeSelector() {
@@ -79,6 +103,7 @@ export function ThemeSelector() {
 
   const modernThemes = accentThemes.filter(t => t.category === 'Modern');
   const atmosphericThemes = accentThemes.filter(t => t.category === 'Atmospheric');
+  const premiumThemes = accentThemes.filter(t => t.category === 'Premium');
 
   return (
     <DropdownMenu>
@@ -117,6 +142,36 @@ export function ThemeSelector() {
           Atmospheric (Animated)
         </DropdownMenuLabel>
         {atmosphericThemes.map((accentOption) => {
+          const Icon = accentOption.icon;
+          return (
+            <DropdownMenuItem
+              key={accentOption.value}
+              onClick={() => setAccentTheme(accentOption.value)}
+              className={accentTheme === accentOption.value ? 'bg-accent' : ''}
+            >
+              <div className="flex items-center gap-3 w-full">
+                <div className={`h-8 w-8 rounded-lg ${accentOption.color} flex items-center justify-center shadow-sm`}>
+                  <Icon className="h-4 w-4 text-white" />
+                </div>
+                <span className="flex-1">{accentOption.label}</span>
+                {accentOption.animated && (
+                  <Sparkles className="h-3 w-3 text-muted-foreground" />
+                )}
+                {accentTheme === accentOption.value && (
+                  <div className="h-2 w-2 rounded-full bg-primary" />
+                )}
+              </div>
+            </DropdownMenuItem>
+          );
+        })}
+        
+        
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4" />
+          Premium (Animated)
+        </DropdownMenuLabel>
+        {premiumThemes.map((accentOption) => {
           const Icon = accentOption.icon;
           return (
             <DropdownMenuItem
