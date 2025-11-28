@@ -2847,6 +2847,53 @@ export type Database = {
         }
         Relationships: []
       }
+      vps_agents: {
+        Row: {
+          agent_token: string
+          created_at: string | null
+          id: string
+          last_heartbeat: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          vps_credential_id: string | null
+          vps_host: string
+          vps_info: Json | null
+        }
+        Insert: {
+          agent_token: string
+          created_at?: string | null
+          id?: string
+          last_heartbeat?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          vps_credential_id?: string | null
+          vps_host: string
+          vps_info?: Json | null
+        }
+        Update: {
+          agent_token?: string
+          created_at?: string | null
+          id?: string
+          last_heartbeat?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          vps_credential_id?: string | null
+          vps_host?: string
+          vps_info?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vps_agents_vps_credential_id_fkey"
+            columns: ["vps_credential_id"]
+            isOneToOne: false
+            referencedRelation: "vps_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vps_credentials: {
         Row: {
           created_at: string | null

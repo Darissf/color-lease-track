@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Rocket } from 'lucide-react';
+import { Loader2, Rocket, CheckCircle2 } from 'lucide-react';
 import { VPSCredentials } from '@/hooks/useVPSCredentials';
 import { InstallProgress } from './InstallProgress';
+import { AgentSetup } from './AgentSetup';
 
 interface OneClickInstallerProps {
   credentials: VPSCredentials;
@@ -18,7 +18,7 @@ interface InstallSession {
   install_token: string;
   status: string;
   current_step: string;
-  steps_completed: Array<{ step: string; message: string; timestamp: string }>;
+  completed_steps: Array<{ step: string; message: string; timestamp: string }>;
   total_steps: number;
   error_message?: string;
   last_output?: string;
@@ -29,8 +29,9 @@ interface InstallSession {
 
 export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerProps) => {
   const [installing, setInstalling] = useState(false);
+  const [agentId, setAgentId] = useState<string>("");
+  const [agentConnected, setAgentConnected] = useState(false);
   const [session, setSession] = useState<InstallSession | null>(null);
-  const [oneLineCommand, setOneLineCommand] = useState('');
   const { toast } = useToast();
 
   // Subscribe to real-time updates
@@ -74,152 +75,173 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
     };
   }, [session, toast, onSuccess]);
 
-  const startFullAutoInstall = async () => {
+  const handleAgentConnected = (connectedAgentId: string) => {
+    setAgentId(connectedAgentId);
+    setAgentConnected(true);
+  };
+
+  const startTrueOneClickInstall = async () => {
+    if (!agentId) {
+      toast({
+        title: "Agent Not Connected",
+        description: "Please setup the VPS agent first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setInstalling(true);
-
     try {
-      const { data, error } = await supabase.functions.invoke('vps-full-setup', {
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      if (!authSession) {
+        throw new Error('Not authenticated');
+      }
+
+      // Send WAHA installation commands to agent
+      const installCommands = `
+        # Check and install Docker
+        if ! command -v docker &> /dev/null; then
+          echo "Installing Docker..."
+          curl -fsSL https://get.docker.com | sh
+          systemctl enable docker
+          systemctl start docker
+        fi
+
+        # Pull and run WAHA
+        docker pull devlikeapro/waha:latest
+        docker stop waha 2>/dev/null || true
+        docker rm waha 2>/dev/null || true
+        docker run -d --name waha \\
+          --restart unless-stopped \\
+          -p ${credentials.waha_port || 3000}:3000 \\
+          -e WHATSAPP_API_KEY=${credentials.waha_api_key} \\
+          -e WHATSAPP_SESSION_NAME=${credentials.waha_session_name || 'default'} \\
+          devlikeapro/waha:latest
+
+        echo "WAHA installation complete!"
+      `;
+
+      const response = await supabase.functions.invoke('vps-agent-controller/execute', {
         body: {
-          vps_credential_id: credentials.id,
-          vps_host: credentials.host,
-          vps_port: credentials.port,
-          vps_username: credentials.username,
-          vps_password: credentials.password,
-          waha_port: credentials.waha_port || 3000,
-          waha_session_name: credentials.waha_session_name || 'default',
-          waha_api_key: credentials.waha_api_key
+          agent_id: agentId,
+          commands: installCommands,
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      toast({
+        title: "🚀 Installation Started",
+        description: "WAHA is being installed via agent...",
+      });
+
+      // Poll for outputs
+      const pollInterval = setInterval(async () => {
+        const outputResponse = await supabase.functions.invoke(
+          `vps-agent-controller/get-output?agent_id=${agentId}`
+        );
+
+        if (outputResponse.data?.outputs?.length > 0) {
+          const latestOutput = outputResponse.data.outputs[outputResponse.data.outputs.length - 1];
+          console.log('Installation output:', latestOutput);
+
+          if (latestOutput.includes('complete')) {
+            clearInterval(pollInterval);
+            setInstalling(false);
+            toast({
+              title: "✅ Installation Complete!",
+              description: "WAHA has been successfully installed",
+            });
+            if (onSuccess) {
+              onSuccess();
+            }
+          }
         }
-      });
+      }, 3000);
 
-      if (error) throw error;
-
-      setOneLineCommand(data.one_line_command);
-      setSession({
-        id: data.session_id,
-        install_token: data.install_token,
-        status: 'pending',
-        current_step: 'pending',
-        steps_completed: [],
-        total_steps: 8,
-        ssh_method: 'one_click'
-      });
-
+      // Auto-clear after 5 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setInstalling(false);
+      }, 300000);
+    } catch (error) {
+      console.error('Error starting installation:', error);
       toast({
-        title: '✅ Ready to Install!',
-        description: 'Copy and run the command below from your terminal.',
+        title: "Error",
+        description: "Failed to start installation",
+        variant: "destructive",
       });
-
-    } catch (error: any) {
-      console.error('Error generating install command:', error);
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
       setInstalling(false);
     }
   };
 
-  const copyCommand = () => {
-    navigator.clipboard.writeText(oneLineCommand);
-    toast({
-      title: 'Copied!',
-      description: 'Command copied to clipboard. Paste in your terminal!',
-    });
-  };
-
 
   return (
-    <Card className="p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <Rocket className="w-6 h-6 text-blue-500" />
-        <div>
-          <h3 className="text-lg font-semibold">🚀 One-Click Auto Installer</h3>
-          <p className="text-sm text-muted-foreground">
-            Satu command, full automation! ✨
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Agent Setup Section */}
+      <AgentSetup
+        vpsHost={credentials.host}
+        vpsCredentialId={credentials.id}
+        onAgentConnected={handleAgentConnected}
+      />
 
-      {!oneLineCommand ? (
-        <div className="text-center py-8 space-y-4">
-          <Rocket className="w-20 h-20 mx-auto text-blue-500 animate-bounce" />
-          <div className="space-y-2">
-            <p className="text-lg font-semibold">Ready to Install WAHA</p>
-            <p className="text-sm text-muted-foreground">
-              Target: <strong className="text-foreground">{credentials.host}:{credentials.port}</strong>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              User: <strong className="text-foreground">{credentials.username}</strong>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              WAHA Port: <strong className="text-foreground">{credentials.waha_port || 3000}</strong>
-            </p>
-          </div>
-          <Button 
-            onClick={startFullAutoInstall} 
-            disabled={installing} 
-            size="lg"
-            className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-          >
-            {installing && <Loader2 className="w-5 h-5 animate-spin" />}
-            <Rocket className="w-5 h-5" />
-            Generate One-Click Command
-          </Button>
-          <div className="max-w-md mx-auto space-y-2 text-left bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-lg">
-            <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">✨ Super Simple:</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>🖥️ Run 1 command dari terminal lokal Anda</li>
-              <li>🤖 System otomatis SSH & install semua</li>
-              <li>📊 Progress tracking real-time</li>
-              <li>✅ Zero manual work!</li>
-            </ul>
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-              ⏱️ <strong>Est. Time:</strong> 3-5 menit
-            </p>
-          </div>
+      {/* Installation Section */}
+      <Card className="p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Rocket className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-semibold">Install WAHA</h3>
         </div>
-      ) : !session || session.status === 'pending' ? (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-4 rounded-lg border-2 border-green-500">
-            <div className="flex items-center gap-2 mb-3">
-              <Rocket className="w-5 h-5 text-green-600" />
-              <p className="font-semibold text-green-700 dark:text-green-300">🎯 Run This Command:</p>
+
+        {agentConnected ? (
+          <div className="space-y-4">
+            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-2">
+                <CheckCircle2 className="w-5 h-5" />
+                <p className="font-medium">Ready for True One-Click Installation!</p>
+              </div>
+              <p className="text-sm text-green-600 dark:text-green-400">
+                Click the button below to automatically install WAHA on your VPS.
+              </p>
             </div>
-            <div className="bg-slate-950 text-green-400 p-4 rounded-lg font-mono text-xs break-all mb-3">
-              {oneLineCommand}
-            </div>
-            <Button onClick={copyCommand} className="w-full gap-2" variant="outline">
-              <Rocket className="w-4 h-4" />
-              Copy Command
+
+            <Button
+              onClick={startTrueOneClickInstall}
+              disabled={installing}
+              className="w-full"
+              size="lg"
+            >
+              {installing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Installing WAHA...
+                </>
+              ) : (
+                <>
+                  <Rocket className="w-4 h-4 mr-2" />
+                  🚀 Install WAHA Sekarang
+                </>
+              )}
             </Button>
-          </div>
 
-          <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950">
-            <Rocket className="w-4 h-4 text-blue-500" />
-            <AlertDescription className="text-sm space-y-2">
-              <p className="font-semibold text-blue-700 dark:text-blue-300">📝 Cara Install:</p>
-              <ol className="list-decimal list-inside space-y-1 text-blue-600 dark:text-blue-400">
-                <li>Copy command di atas (klik Copy Command)</li>
-                <li>Buka terminal lokal Anda (Mac/Linux/Windows WSL)</li>
-                <li>Paste & Enter</li>
-                <li>Command akan auto-SSH ke VPS & install semua!</li>
-                <li>Progress muncul otomatis di bawah ⬇️</li>
-              </ol>
-            </AlertDescription>
-          </Alert>
-        </div>
-      ) : (
-        <InstallProgress
-          status={session.status}
-          currentStep={session.current_step}
-          stepsCompleted={session.steps_completed}
-          totalSteps={session.total_steps}
-          errorMessage={session.error_message}
-          commandLog={session.command_log}
-        />
-      )}
-    </Card>
+            {session && (
+              <InstallProgress
+                status={session.status}
+                currentStep={session.current_step}
+                stepsCompleted={session.completed_steps}
+                totalSteps={session.total_steps}
+                errorMessage={session.error_message}
+                commandLog={session.command_log}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-sm text-muted-foreground">
+              Please setup the VPS agent first to enable one-click installation.
+            </p>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 };
