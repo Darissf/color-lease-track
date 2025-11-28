@@ -4,7 +4,12 @@ import { VPSCredentialsForm } from './VPSCredentialsForm';
 import { SetupProgressLog, SetupStep } from './SetupProgressLog';
 import { WebTerminal } from './WebTerminal';
 import { SavedVPSList } from './SavedVPSList';
-import { Rocket, Terminal as TerminalIcon, Server } from 'lucide-react';
+import { VPSScriptGenerator } from './VPSScriptGenerator';
+import { DockerDashboard } from './DockerDashboard';
+import { ConfigFileEditor } from './ConfigFileEditor';
+import { WAHAHealthMonitor } from './WAHAHealthMonitor';
+import { QuickActionsPanel } from './QuickActionsPanel';
+import { Rocket, Terminal as TerminalIcon, Server, FileCode, Container, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { VPSCredentials as SavedVPSType } from '@/hooks/useVPSCredentials';
@@ -166,34 +171,91 @@ export const WAHAVPSSetup = () => {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
           <TabsTrigger value="saved-vps" className="flex items-center gap-2">
             <Server className="h-4 w-4" />
-            <span className="hidden md:inline">VPS Tersimpan</span>
+            <span className="hidden md:inline">VPS</span>
           </TabsTrigger>
-          <TabsTrigger value="auto-setup" className="flex items-center gap-2">
+          <TabsTrigger value="script" className="flex items-center gap-2">
+            <FileCode className="h-4 w-4" />
+            <span className="hidden md:inline">Script</span>
+          </TabsTrigger>
+          <TabsTrigger value="docker" className="flex items-center gap-2">
+            <Container className="h-4 w-4" />
+            <span className="hidden md:inline">Docker</span>
+          </TabsTrigger>
+          <TabsTrigger value="config" className="flex items-center gap-2">
             <Rocket className="h-4 w-4" />
-            <span className="hidden md:inline">Auto Setup</span>
+            <span className="hidden md:inline">Config</span>
+          </TabsTrigger>
+          <TabsTrigger value="monitor" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            <span className="hidden md:inline">Monitor</span>
           </TabsTrigger>
           <TabsTrigger value="terminal" className="flex items-center gap-2">
             <TerminalIcon className="h-4 w-4" />
-            <span className="hidden md:inline">Web Terminal</span>
+            <span className="hidden md:inline">Terminal</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="saved-vps" className="mt-6">
+        <TabsContent value="saved-vps" className="mt-6 space-y-6">
           <SavedVPSList onSelect={handleSelectSavedVPS} />
+          
+          {credentials && (
+            <QuickActionsPanel
+              host={credentials.host}
+              wahaPort={parseInt(credentials.wahaPort)}
+              onAction={(action) => {
+                if (action === 'show-script') setSelectedTab('script');
+                if (action === 'show-terminal') setSelectedTab('terminal');
+              }}
+            />
+          )}
         </TabsContent>
 
-        <TabsContent value="auto-setup" className="mt-6 space-y-6">
-          {setupStatus === 'idle' ? (
-            <VPSCredentialsForm
-              onStartSetup={handleStartSetup}
-              isLoading={isSetupRunning}
+        <TabsContent value="script" className="mt-6">
+          {credentials ? (
+            <VPSScriptGenerator
+              host={credentials.host}
+              wahaPort={parseInt(credentials.wahaPort)}
+              sessionName={credentials.wahaSessionName}
+              apiKey={credentials.wahaApiKey}
             />
           ) : (
-            <SetupProgressLog steps={steps} overallStatus={setupStatus} />
+            <div className="text-center py-12 text-muted-foreground">
+              Pilih VPS terlebih dahulu untuk generate script
+            </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="docker" className="mt-6">
+          {credentials ? (
+            <DockerDashboard
+              wahaApiUrl={`http://${credentials.host}:${credentials.wahaPort}`}
+              wahaApiKey={credentials.wahaApiKey}
+            />
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              Pilih VPS terlebih dahulu untuk manage Docker
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="config" className="mt-6">
+          {credentials ? (
+            <ConfigFileEditor
+              wahaPort={parseInt(credentials.wahaPort)}
+              sessionName={credentials.wahaSessionName}
+            />
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              Pilih VPS terlebih dahulu untuk edit config
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="monitor" className="mt-6">
+          <WAHAHealthMonitor />
         </TabsContent>
 
         <TabsContent value="terminal" className="mt-6">
@@ -206,7 +268,7 @@ export const WAHAVPSSetup = () => {
             />
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              Isi kredensial VPS di tab "Auto Setup" terlebih dahulu untuk menggunakan Web Terminal
+              Pilih VPS terlebih dahulu untuk menggunakan Web Terminal
             </div>
           )}
         </TabsContent>
