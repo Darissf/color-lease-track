@@ -4,11 +4,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
-import { Loader2, Save, TestTube, Eye, EyeOff, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Save, TestTube, Eye, EyeOff, CheckCircle, XCircle, AlertCircle, Copy, Info } from 'lucide-react';
 import { useWhatsAppSettings } from '@/hooks/useWhatsAppSettings';
+import { useToast } from '@/hooks/use-toast';
 
 export const WhatsAppConfigForm = () => {
   const { settings, loading, saveSettings, testConnection, fetchSettings } = useWhatsAppSettings();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     waha_api_url: '',
     waha_api_key: '',
@@ -18,6 +20,14 @@ export const WhatsAppConfigForm = () => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: 'Berhasil',
+      description: 'API Key berhasil disalin',
+    });
+  };
 
   // Auto-refresh settings when component mounts (in case settings were just saved)
   useEffect(() => {
@@ -87,17 +97,58 @@ export const WhatsAppConfigForm = () => {
 
   return (
     <div className="space-y-6">
-      {isEmpty && (
-        <Card className="p-6 bg-muted/50 border-dashed">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="font-semibold mb-2">Belum Ada Konfigurasi</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Silakan isi form di bawah untuk mengkonfigurasi koneksi WhatsApp WAHA
-            </p>
+      {/* WAHA Information Card - Always visible when settings exist */}
+      {!isEmpty && settings && (
+        <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <Info className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-green-900 dark:text-green-100">Informasi WAHA</h3>
+              <p className="text-sm text-green-700 dark:text-green-300">Kredensial yang sudah terkonfigurasi</p>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="bg-white/50 dark:bg-black/20 rounded-lg p-3">
+              <p className="text-xs font-medium text-muted-foreground mb-1">WAHA URL</p>
+              <p className="font-mono text-sm">{settings.waha_api_url}</p>
+            </div>
+
+            <div className="bg-white/50 dark:bg-black/20 rounded-lg p-3">
+              <p className="text-xs font-medium text-muted-foreground mb-1">API Key</p>
+              <div className="flex items-center gap-2">
+                <p className="font-mono text-sm flex-1 break-all">
+                  {showApiKey ? settings.waha_api_key : '••••••••••••••••••••••••••••••••'}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                >
+                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => copyToClipboard(settings.waha_api_key)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-white/50 dark:bg-black/20 rounded-lg p-3">
+              <p className="text-xs font-medium text-muted-foreground mb-1">Session Name</p>
+              <p className="font-mono text-sm">{settings.waha_session_name}</p>
+            </div>
           </div>
         </Card>
       )}
+
       {/* Connection Status */}
       <Card className="p-4 bg-muted/50">
         <div className="flex items-center justify-between">
