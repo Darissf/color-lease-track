@@ -1919,6 +1919,105 @@ export type Database = {
           },
         ]
       }
+      inventory_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          item_code: string
+          item_name: string
+          minimum_stock: number
+          total_quantity: number
+          unit_price: number | null
+          unit_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          item_code: string
+          item_name: string
+          minimum_stock?: number
+          total_quantity?: number
+          unit_price?: number | null
+          unit_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          item_code?: string
+          item_name?: string
+          minimum_stock?: number
+          total_quantity?: number
+          unit_price?: number | null
+          unit_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      inventory_movements: {
+        Row: {
+          contract_id: string | null
+          created_at: string
+          id: string
+          inventory_item_id: string
+          movement_date: string
+          movement_type: string
+          notes: string | null
+          quantity: number
+          user_id: string
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          movement_date?: string
+          movement_type: string
+          notes?: string | null
+          quantity: number
+          user_id: string
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          movement_date?: string
+          movement_type?: string
+          notes?: string | null
+          quantity?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_sessions: {
         Row: {
           created_at: string | null
