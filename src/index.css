@@ -1483,3 +1483,36 @@ All colors MUST be HSL.
       opacity: 0.5;
     }
   }
+
+  /* Float Animation */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+
+  /* ===== ANIMATION UTILITY CLASSES ===== */
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 6s ease-in-out infinite;
+    animation-delay: 2s;
+  }
+
+  .animate-twinkle {
+    animation: twinkle 2s ease-in-out infinite;
+  }
+
+  .animate-firefly-glow {
+    animation: firefly-glow 3s ease-in-out infinite;
+  }
+
+  .animate-mist-float {
+    animation: mist-float 8s ease-in-out infinite;
+  }
+
+  .animate-sakura-fall {
+    animation: sakura-fall 15s linear infinite;
+  }

@@ -345,8 +345,6 @@ export default function Nabila() {
       className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col bg-background"
       data-editable-ignore
     >
-      {/* Decorations hidden - handled by AnimatedBackground */}
-
       {/* Content */}
       <div className="relative z-10 space-y-4 px-2 py-2 md:px-8 md:py-4 flex-1 overflow-y-auto overflow-x-hidden w-full">
         {/* Header with Gradient */}
