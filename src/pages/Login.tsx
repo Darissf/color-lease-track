@@ -8,6 +8,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2 } from "lucide-react";
+import { z } from "zod";
+
+// Validation schemas
+const loginSchema = z.object({
+  identifier: z.string()
+    .min(3, "Minimal 3 karakter")
+    .refine(val => {
+      const isEmail = val.includes('@');
+      const isPhone = /^[0-9+\-\s()]+$/.test(val);
+      return isEmail || isPhone || val.length >= 3;
+    }, "Format tidak valid"),
+  password: z.string().min(6, "Password minimal 6 karakter")
+});
+
+const forgotPasswordEmailSchema = z.object({
+  email: z.string().email("Format email tidak valid")
+});
+
+const forgotPasswordOtpSchema = z.object({
+  otp: z.string().length(6, "OTP harus 6 digit"),
+  newPassword: z.string().min(6, "Password minimal 6 karakter"),
+  confirmPassword: z.string().min(6, "Password minimal 6 karakter")
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Password tidak cocok",
+  path: ["confirmPassword"]
+});
+
+const tempCodeSchema = z.object({
+  code: z.string().min(1, "Kode tidak boleh kosong")
+});
 
 export default function Login() {
   const [identifier, setIdentifier] = useState(""); // email or phone
@@ -32,6 +62,14 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate input
+    const validation = loginSchema.safeParse({ identifier, password });
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -99,44 +137,35 @@ export default function Login() {
 
   const handleTempCodeLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate input
+    const validation = tempCodeSchema.safeParse({ code: tempCode });
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      // Verify temp code exists and is valid
-      const { data: tempCodeData, error } = await supabase
-        .from('temporary_access_codes')
-        .select('user_id, force_password_change')
-        .eq('code', tempCode)
-        .eq('used', false)
-        .gt('expires_at', new Date().toISOString())
-        .single();
+      // Call edge function to verify temp code and get credentials
+      const { data, error } = await supabase.functions.invoke('verify-temp-access', {
+        body: { code: tempCode }
+      });
 
-      if (error || !tempCodeData) {
-        throw new Error("Kode akses tidak valid atau sudah kadaluarsa");
+      if (error || !data) {
+        throw new Error(error?.message || "Kode akses tidak valid");
       }
 
-      // Get user auth to login
-      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(tempCodeData.user_id);
-      
-      if (userError || !user) {
-        throw new Error("User tidak ditemukan");
-      }
-
-      // Sign in the user
+      // Sign in with returned credentials
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email!,
-        password: tempCode // Use temp code as temporary password
+        email: data.email,
+        password: data.tempPassword
       });
 
       if (signInError) throw signInError;
 
-      // Mark code as used
-      await supabase
-        .from('temporary_access_codes')
-        .update({ used: true, used_at: new Date().toISOString() })
-        .eq('code', tempCode);
-
-      if (tempCodeData.force_password_change) {
+      if (data.forcePasswordChange) {
         toast.info("Silakan ganti password Anda");
         navigate('/vip/settings/account');
       } else {
@@ -179,6 +208,12 @@ export default function Login() {
 
     try {
       if (forgotStep === 'email') {
+        // Validate email
+        const validation = forgotPasswordEmailSchema.safeParse({ email: forgotEmail });
+        if (!validation.success) {
+          throw new Error(validation.error.errors[0].message);
+        }
+        
         // Send OTP to email
         const { error } = await supabase.functions.invoke('send-password-reset', {
           body: { email: forgotEmail }
@@ -189,13 +224,15 @@ export default function Login() {
         toast.success("Kode OTP telah dikirim ke email Anda");
         setForgotStep('otp');
       } else {
-        // Verify OTP and reset password
-        if (newPassword !== confirmPassword) {
-          throw new Error("Password baru dan konfirmasi tidak cocok");
-        }
-
-        if (newPassword.length < 6) {
-          throw new Error("Password minimal 6 karakter");
+        // Validate OTP and passwords
+        const validation = forgotPasswordOtpSchema.safeParse({
+          otp: resetOtp,
+          newPassword,
+          confirmPassword
+        });
+        
+        if (!validation.success) {
+          throw new Error(validation.error.errors[0].message);
         }
 
         const { error } = await supabase.functions.invoke('verify-password-reset', {

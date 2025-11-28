@@ -3421,6 +3421,14 @@ export type Database = {
           total: number
         }[]
       }
+      get_monthly_trend: {
+        Args: { p_months?: number; p_user_id: string }
+        Returns: {
+          expenses: number
+          income: number
+          month: string
+        }[]
+      }
       get_table_sizes: {
         Args: never
         Returns: {
