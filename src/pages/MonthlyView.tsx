@@ -257,10 +257,9 @@ export default function MonthlyView() {
             </>
           )}
           <CardHeader className="relative flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className={cn(
-              "text-sm font-medium",
-              activeTheme === 'japanese' ? "text-white" : "text-foreground"
-            )}>Total Pemasukan</CardTitle>
+            <CardTitle className="text-sm font-medium text-card-foreground">
+              Total Pemasukan
+            </CardTitle>
             <div className={cn(
               "h-10 w-10 rounded-xl flex items-center justify-center transition-transform duration-300",
               activeTheme === 'japanese' 
@@ -271,19 +270,12 @@ export default function MonthlyView() {
             </div>
           </CardHeader>
           <CardContent className="relative">
-            <div className={cn(
-              "text-3xl font-bold",
-              activeTheme === 'japanese' ? "text-white" : "text-foreground"
-            )}>{formatCurrency(stats.totalIncome)}</div>
+            <div className="text-3xl font-bold text-foreground">
+              {formatCurrency(stats.totalIncome)}
+            </div>
             <div className="flex items-center gap-1 mt-2">
-              <ArrowUpRight className={cn(
-                "h-4 w-4",
-                activeTheme === 'japanese' ? "text-emerald-100" : "text-emerald-600"
-              )} />
-              <p className={cn(
-                "text-xs",
-                activeTheme === 'japanese' ? "text-emerald-100" : "text-muted-foreground"
-              )}>Bulan {month}</p>
+              <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+              <p className="text-xs text-muted-foreground">Bulan {month}</p>
             </div>
           </CardContent>
         </Card>
@@ -302,10 +294,9 @@ export default function MonthlyView() {
             </>
           )}
           <CardHeader className="relative flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className={cn(
-              "text-sm font-medium",
-              activeTheme === 'japanese' ? "text-white" : "text-foreground"
-            )}>Total Pengeluaran</CardTitle>
+            <CardTitle className="text-sm font-medium text-card-foreground">
+              Total Pengeluaran
+            </CardTitle>
             <div className={cn(
               "h-10 w-10 rounded-xl flex items-center justify-center transition-transform duration-300",
               activeTheme === 'japanese' 
@@ -316,19 +307,12 @@ export default function MonthlyView() {
             </div>
           </CardHeader>
           <CardContent className="relative">
-            <div className={cn(
-              "text-3xl font-bold",
-              activeTheme === 'japanese' ? "text-white" : "text-foreground"
-            )}>{formatCurrency(stats.totalExpenses)}</div>
+            <div className="text-3xl font-bold text-foreground">
+              {formatCurrency(stats.totalExpenses)}
+            </div>
             <div className="flex items-center gap-1 mt-2">
-              <ArrowDownRight className={cn(
-                "h-4 w-4",
-                activeTheme === 'japanese' ? "text-rose-100" : "text-rose-600"
-              )} />
-              <p className={cn(
-                "text-xs",
-                activeTheme === 'japanese' ? "text-rose-100" : "text-muted-foreground"
-              )}>Bulan {month}</p>
+              <ArrowDownRight className="h-4 w-4 text-rose-600" />
+              <p className="text-xs text-muted-foreground">Bulan {month}</p>
             </div>
           </CardContent>
         </Card>
@@ -347,10 +331,9 @@ export default function MonthlyView() {
             </>
           )}
           <CardHeader className="relative flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className={cn(
-              "text-sm font-medium",
-              activeTheme === 'japanese' ? "text-white" : "text-foreground"
-            )}>Total Tabungan</CardTitle>
+            <CardTitle className="text-sm font-medium text-card-foreground">
+              Total Tabungan
+            </CardTitle>
             <div className={cn(
               "h-10 w-10 rounded-xl flex items-center justify-center transition-transform duration-300",
               activeTheme === 'japanese' 
@@ -361,19 +344,12 @@ export default function MonthlyView() {
             </div>
           </CardHeader>
           <CardContent className="relative">
-            <div className={cn(
-              "text-3xl font-bold",
-              activeTheme === 'japanese' ? "text-white" : "text-foreground"
-            )}>{formatCurrency(stats.totalSavings)}</div>
+            <div className="text-3xl font-bold text-foreground">
+              {formatCurrency(stats.totalSavings)}
+            </div>
             <div className="flex items-center gap-1 mt-2">
-              <Wallet className={cn(
-                "h-4 w-4",
-                activeTheme === 'japanese' ? "text-blue-100" : "text-blue-600"
-              )} />
-              <p className={cn(
-                "text-xs",
-                activeTheme === 'japanese' ? "text-blue-100" : "text-muted-foreground"
-              )}>Akumulasi</p>
+              <Wallet className="h-4 w-4 text-blue-600" />
+              <p className="text-xs text-muted-foreground">Akumulasi</p>
             </div>
           </CardContent>
         </Card>
@@ -392,10 +368,9 @@ export default function MonthlyView() {
             </>
           )}
           <CardHeader className="relative flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className={cn(
-              "text-sm font-medium",
-              activeTheme === 'japanese' ? "text-white" : "text-foreground"
-            )}>Savings Rate</CardTitle>
+            <CardTitle className="text-sm font-medium text-card-foreground">
+              Savings Rate
+            </CardTitle>
             <div className={cn(
               "h-10 w-10 rounded-xl flex items-center justify-center transition-transform duration-300",
               activeTheme === 'japanese' 
@@ -406,19 +381,12 @@ export default function MonthlyView() {
             </div>
           </CardHeader>
           <CardContent className="relative">
-            <div className={cn(
-              "text-3xl font-bold",
-              activeTheme === 'japanese' ? "text-white" : "text-foreground"
-            )}>{stats.savingsRate.toFixed(1)}%</div>
+            <div className="text-3xl font-bold text-foreground">
+              {stats.savingsRate.toFixed(1)}%
+            </div>
             <div className="flex items-center gap-1 mt-2">
-              <ArrowUpRight className={cn(
-                "h-4 w-4",
-                activeTheme === 'japanese' ? "text-purple-100" : "text-purple-600"
-              )} />
-              <p className={cn(
-                "text-xs",
-                activeTheme === 'japanese' ? "text-purple-100" : "text-muted-foreground"
-              )}>Dari pendapatan</p>
+              <ArrowUpRight className="h-4 w-4 text-purple-600" />
+              <p className="text-xs text-muted-foreground">Dari pendapatan</p>
             </div>
           </CardContent>
         </Card>

@@ -223,22 +223,11 @@ export default function Dashboard() {
       <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
           <div>
-            <h1 className={cn(
-              "text-2xl md:text-4xl font-bold",
-              activeTheme === 'japanese' 
-                ? 'text-white' 
-                : 'text-foreground'
-            )}>
-              {activeTheme === 'japanese' && '🏮 '}{getContent('dashboard.title', 'Dashboard Keuangan Nabila')}{activeTheme === 'japanese' && ' 🏮'}
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground">
+              {getContent('dashboard.title', 'Dashboard Keuangan Nabila')}
             </h1>
-            <p className={cn(
-              "mt-1 text-sm md:text-base",
-              activeTheme === 'japanese' ? 'text-slate-300' : 'text-muted-foreground'
-            )}>
-              {activeTheme === 'japanese' 
-                ? getContent('dashboard.subtitle', 'Kelola finansial Anda dengan ketenangan malam Jepang')
-                : getContent('dashboard.subtitle.professional', 'Ringkasan keuangan profesional Anda')
-              }
+            <p className="mt-1 text-sm md:text-base text-muted-foreground">
+              {getContent('dashboard.subtitle', 'Ringkasan keuangan profesional Anda')}
             </p>
           </div>
           
@@ -270,69 +259,35 @@ export default function Dashboard() {
       <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className={cn(
-            "hover:shadow-lg transition-all duration-300 hover:scale-[1.02]",
-            activeTheme === 'japanese' 
-              ? "bg-slate-900/90 border-slate-700" 
-              : "bg-gradient-to-br from-card to-card/50 border-[hsl(var(--gold-kin))]/20"
-          )}>
+          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={cn(
-                "text-sm font-medium",
-                activeTheme === 'japanese' ? 'text-slate-100' : ''
-              )}>
+              <CardTitle className="text-sm font-medium text-card-foreground">
                 Total Pemasukan
               </CardTitle>
-              <TrendingUp className={cn(
-                "h-4 w-4",
-                activeTheme === 'japanese' ? "text-emerald-400" : "text-emerald-600"
-              )} />
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
-              <div className={cn(
-                "text-2xl font-bold",
-                activeTheme === 'japanese' ? "text-emerald-400" : "text-emerald-600"
-              )}>
+              <div className="text-2xl font-bold text-emerald-600">
                 {formatCurrency(stats.totalIncome)}
               </div>
-              <p className={cn(
-                "text-xs mt-1",
-                activeTheme === 'japanese' ? 'text-slate-300' : 'text-muted-foreground'
-              )}>
+              <p className="text-xs mt-1 text-muted-foreground">
                 Periode: {period === 'week' ? 'Minggu' : period === 'month' ? 'Bulan' : 'Tahun'} ini
               </p>
             </CardContent>
           </Card>
 
-          <Card className={cn(
-            "hover:shadow-lg transition-all duration-300 hover:scale-[1.02]",
-            activeTheme === 'japanese' 
-              ? "bg-slate-900/90 border-slate-700" 
-              : "bg-gradient-to-br from-card to-card/50 border-[hsl(var(--sakura-pink))]/20"
-          )}>
+          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={cn(
-                "text-sm font-medium",
-                activeTheme === 'japanese' ? 'text-slate-100' : ''
-              )}>
+              <CardTitle className="text-sm font-medium text-card-foreground">
                 Total Pengeluaran
               </CardTitle>
-              <TrendingDown className={cn(
-                "h-4 w-4",
-                activeTheme === 'japanese' ? "text-red-400" : "text-red-600"
-              )} />
+              <TrendingDown className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className={cn(
-                "text-2xl font-bold",
-                activeTheme === 'japanese' ? "text-red-400" : "text-red-600"
-              )}>
+              <div className="text-2xl font-bold text-red-600">
                 {formatCurrency(stats.totalExpenses)}
               </div>
-              <p className={cn(
-                "text-xs mt-1",
-                activeTheme === 'japanese' ? 'text-slate-300' : 'text-muted-foreground'
-              )}>
+              <p className="text-xs mt-1 text-muted-foreground">
                 {stats.monthlyBudget > 0 
                   ? `${((stats.totalExpenses / stats.monthlyBudget) * 100).toFixed(1)}% dari budget`
                   : 'Budget belum diatur'
@@ -341,51 +296,26 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className={cn(
-            "hover:shadow-lg transition-all duration-300 hover:scale-[1.02]",
-            activeTheme === 'japanese' 
-              ? "bg-slate-900/90 border-slate-700" 
-              : "bg-gradient-to-br from-card to-card/50 border-[hsl(var(--matcha-green))]/20"
-          )}>
+          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={cn(
-                "text-sm font-medium",
-                activeTheme === 'japanese' ? 'text-slate-100' : ''
-              )}>
+              <CardTitle className="text-sm font-medium text-card-foreground">
                 Total Tabungan
               </CardTitle>
-              <PiggyBank className={cn(
-                "h-4 w-4",
-                activeTheme === 'japanese' ? "text-blue-400" : "text-blue-600"
-              )} />
+              <PiggyBank className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className={cn(
-                "text-2xl font-bold",
-                activeTheme === 'japanese' ? "text-blue-400" : "text-blue-600"
-              )}>
+              <div className="text-2xl font-bold text-blue-600">
                 {formatCurrency(stats.totalSavings)}
               </div>
-              <p className={cn(
-                "text-xs mt-1",
-                activeTheme === 'japanese' ? 'text-slate-300' : 'text-muted-foreground'
-              )}>
+              <p className="text-xs mt-1 text-muted-foreground">
                 Tingkat tabungan: {stats.savingsRate.toFixed(1)}%
               </p>
             </CardContent>
           </Card>
 
-          <Card className={cn(
-            "hover:shadow-lg transition-all duration-300 hover:scale-[1.02]",
-            activeTheme === 'japanese' 
-              ? "bg-slate-900/90 border-slate-700" 
-              : "bg-gradient-to-br from-card to-card/50 border-primary/20"
-          )}>
+          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={cn(
-                "text-sm font-medium",
-                activeTheme === 'japanese' ? 'text-slate-100' : ''
-              )}>
+              <CardTitle className="text-sm font-medium text-card-foreground">
                 Sisa Budget
               </CardTitle>
               <Wallet className={cn(
@@ -407,15 +337,9 @@ export default function Dashboard() {
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Monthly Trend Chart */}
-          <Card className={cn(
-            "hover:shadow-lg transition-all duration-300",
-            activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
-          )}>
+          <Card className="bg-card border shadow-sm hover:shadow-lg transition-all duration-300">
             <CardHeader>
-              <CardTitle className={cn(
-                "flex items-center gap-2",
-                activeTheme === 'japanese' ? 'text-white' : 'text-foreground'
-              )}>
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <TrendingUp className="h-5 w-5 text-primary" />
                 Tren Bulanan
               </CardTitle>
