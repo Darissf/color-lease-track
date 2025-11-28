@@ -11,7 +11,6 @@ interface CategoryBadgeProps {
 
 export const CategoryBadge = ({ category, size = "md", showIcon = true }: CategoryBadgeProps) => {
   const style = getCategoryStyle(category);
-  const { activeTheme } = useAppTheme();
   const Icon = style.icon;
 
   const sizeClasses = {
@@ -28,10 +27,8 @@ export const CategoryBadge = ({ category, size = "md", showIcon = true }: Catego
       variant="outline" 
       className={cn(
         "flex items-center gap-1.5 font-medium border-2 transition-all duration-300",
-        "hover:scale-110 hover:shadow-xl text-white",
-        activeTheme === 'japanese' 
-          ? `${style.bg} ${style.border} hover:shadow-${shadowColor}/50`
-          : `${style.bg.replace('bg-', 'bg-')} border-border`,
+        "hover:scale-110 hover:shadow-xl",
+        `${style.bg} ${style.border}`,
         sizeClasses[size]
       )}
     >

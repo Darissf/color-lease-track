@@ -39,7 +39,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const notifications = useAdminNotifications(isAdmin || isSuperAdmin);
-  const { activeTheme, themeColors } = useAppTheme();
   
   // Close sidebar on mobile by default
   useEffect(() => {
@@ -312,12 +311,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-      <main className={cn(
-        "flex-1 overflow-auto p-0 md:p-6",
-        activeTheme === 'japanese' 
-          ? "bg-transparent" 
-          : "bg-background"
-      )}>
+      <main className="flex-1 overflow-auto p-0 md:p-6 bg-background">
           {children}
         </main>
       </div>

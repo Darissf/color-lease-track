@@ -636,7 +636,7 @@ const ClientGroups = () => {
 
   if (loading) {
     return (
-      <AnimatedBackground theme="neutral">
+      <AnimatedBackground>
         <div className="flex flex-col items-center justify-center h-screen gap-4">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-600 rounded-full blur-xl opacity-50 animate-pulse"></div>
@@ -651,7 +651,7 @@ const ClientGroups = () => {
   }
 
   return (
-    <AnimatedBackground theme="neutral">
+    <AnimatedBackground>
       <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto px-2 py-2 md:px-8 md:py-4 space-y-6">
         {/* Header dengan Gradient */}
