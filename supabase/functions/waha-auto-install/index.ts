@@ -75,7 +75,7 @@ serve(async (req) => {
   }
 
   try {
-    // Check for Authorization header first
+    // Extract user ID from JWT in Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -84,19 +84,31 @@ serve(async (req) => {
       );
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const token = authHeader.split(' ')[1];
+    let userId: string | null = null;
 
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
+    try {
+      const payload = JSON.parse(atob((token.split('.')[1] ?? '')));
+      // Standard JWT: subject is user id
+      userId = (payload.sub as string | null) ?? (payload.user_id as string | null) ?? null;
+    } catch (_e) {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid authorization token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid authorization token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    );
 
     const { host, port, username, password, waha_port, waha_api_key, waha_session_name }: InstallRequest = await req.json();
     
@@ -106,7 +118,7 @@ serve(async (req) => {
     const { data: progressRecord, error: createError } = await supabaseClient
       .from('vps_installation_progress')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         vps_host: host,
         current_step: 0,
         total_steps: INSTALL_STEPS.length,
