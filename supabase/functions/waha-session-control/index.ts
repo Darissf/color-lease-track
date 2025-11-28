@@ -86,8 +86,10 @@ serve(async (req) => {
       body,
     });
 
-    // Special handling for QR code image response
-    if (action === 'get-qr') {
+    const contentType = wahaResponse.headers.get('content-type') || '';
+
+    // If WAHA returns an image (e.g. QR code), don't try to parse it as JSON
+    if (contentType.startsWith('image/')) {
       if (!wahaResponse.ok) {
         const errorText = await wahaResponse.text().catch(() => '');
         throw new Error(errorText || `WAHA API Error: ${wahaResponse.status}`);
@@ -95,7 +97,7 @@ serve(async (req) => {
 
       const buffer = await wahaResponse.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-      const qrDataUrl = `data:image/png;base64,${base64}`;
+      const qrDataUrl = `data:${contentType};base64,${base64}`;
 
       return new Response(
         JSON.stringify({ success: true, qrCode: qrDataUrl }),
@@ -103,14 +105,30 @@ serve(async (req) => {
       );
     }
 
-    const wahaData = await wahaResponse.json();
+    // For non-image responses, treat as JSON when possible
+    const rawText = await wahaResponse.text();
+    let wahaData: any = null;
+
+    try {
+      wahaData = rawText ? JSON.parse(rawText) : null;
+    } catch (e) {
+      // If parsing fails and response is not OK, surface the raw text as error
+      if (!wahaResponse.ok) {
+        throw new Error(rawText || `WAHA API Error: ${wahaResponse.status}`);
+      }
+      // If OK but not JSON, just return the raw text
+      return new Response(
+        JSON.stringify({ success: true, data: rawText }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!wahaResponse.ok) {
-      throw new Error(wahaData.message || `WAHA API Error: ${wahaResponse.status}`);
+      throw new Error((wahaData && wahaData.message) || `WAHA API Error: ${wahaResponse.status}`);
     }
 
     return new Response(
-      JSON.stringify(wahaData),
+      JSON.stringify(wahaData ?? {}),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
