@@ -2900,12 +2900,15 @@ export type Database = {
       }
       vps_installation_sessions: {
         Row: {
+          command_log: Json | null
           completed_at: string | null
           created_at: string | null
           current_step: string | null
           error_message: string | null
           id: string
           install_token: string
+          last_output: string | null
+          ssh_method: string | null
           started_at: string | null
           status: string
           steps_completed: Json | null
@@ -2917,12 +2920,15 @@ export type Database = {
           waha_port: number | null
         }
         Insert: {
+          command_log?: Json | null
           completed_at?: string | null
           created_at?: string | null
           current_step?: string | null
           error_message?: string | null
           id?: string
           install_token: string
+          last_output?: string | null
+          ssh_method?: string | null
           started_at?: string | null
           status?: string
           steps_completed?: Json | null
@@ -2934,12 +2940,15 @@ export type Database = {
           waha_port?: number | null
         }
         Update: {
+          command_log?: Json | null
           completed_at?: string | null
           created_at?: string | null
           current_step?: string | null
           error_message?: string | null
           id?: string
           install_token?: string
+          last_output?: string | null
+          ssh_method?: string | null
           started_at?: string | null
           status?: string
           steps_completed?: Json | null
