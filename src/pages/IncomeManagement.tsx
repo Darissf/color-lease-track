@@ -256,13 +256,9 @@ export default function IncomeManagement() {
       />
 
       {/* Income Sources Table */}
-      <Card className={cn(
-        activeTheme === 'japanese' 
-          ? "bg-slate-900/90 border-slate-700" 
-          : ""
-      )}>
+      <Card className="bg-card border shadow-sm">
         <CardHeader>
-          <CardTitle className={activeTheme === 'japanese' ? 'text-white' : ''}>
+          <CardTitle className="text-foreground">
             Daftar Sumber Pemasukan
           </CardTitle>
         </CardHeader>
