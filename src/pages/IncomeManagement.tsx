@@ -177,9 +177,14 @@ export default function IncomeManagement() {
       {/* Header */}
       <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2 text-foreground">Kelola Pemasukan</h1>
-            <p className="text-muted-foreground">Rekedi Jelai - Akar Asal</p>
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/30">
+              <TrendingUp className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-foreground">Kelola Pemasukan</h1>
+              <p className="text-muted-foreground mt-1">Rekedi Jelai - Akar Asal</p>
+            </div>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
