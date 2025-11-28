@@ -94,7 +94,7 @@ log "✅ Connection test successful!"
 log "📡 Sending initial heartbeat..."
 HEARTBEAT_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/heartbeat" \
   -H "Content-Type: application/json" \
-  -d "{\"token\":\"$TOKEN\",\"hostname\":\"$(hostname)\",\"uptime\":\"initial\"}" 2>&1)
+  -d "$(jq -n --arg t "$TOKEN" --arg h "$(hostname)" --arg u "initial" '{token:$t,hostname:$h,uptime:$u}')" 2>&1)
 
 HTTP_CODE=$(echo "$HEARTBEAT_RESPONSE" | tail -n1)
 BODY=$(echo "$HEARTBEAT_RESPONSE" | head -n -1)
@@ -112,7 +112,7 @@ while true; do
   # Send heartbeat
   HEARTBEAT_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/heartbeat" \
     -H "Content-Type: application/json" \
-    -d "{\"token\":\"$TOKEN\",\"hostname\":\"$(hostname)\",\"uptime\":\"$(uptime -p)\"}" 2>&1)
+    -d "$(jq -n --arg t "$TOKEN" --arg h "$(hostname)" --arg u "$(uptime -p)" '{token:$t,hostname:$h,uptime:$u}')" 2>&1)
   
   HTTP_CODE=$(echo "$HEARTBEAT_RESPONSE" | tail -n1)
   
