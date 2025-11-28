@@ -190,10 +190,9 @@ echo "Access WAHA at: http://${credentials.host}:3000"
 
       // Send command to agent
       const { data: executeData, error: executeError } = await supabase.functions.invoke(
-        'vps-agent-controller',
+        'vps-agent-controller/execute',
         {
           body: {
-            action: 'execute',
             agent_id: agentId,
             command: installScript
           }
@@ -229,10 +228,9 @@ echo "Access WAHA at: http://${credentials.host}:3000"
 
         try {
           const { data: outputData, error: outputError } = await supabase.functions.invoke(
-            'vps-agent-controller',
+            'vps-agent-controller/get-output',
             {
               body: {
-                action: 'get_output',
                 agent_id: agentId,
                 command_id: commandId
               }
