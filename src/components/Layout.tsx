@@ -16,6 +16,7 @@ import { useAppTheme } from "@/contexts/AppThemeContext";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { BrandText } from "@/components/BrandText";
 import { cn } from "@/lib/utils";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState, useEffect } from "react";
@@ -312,7 +313,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Page Content */}
       <main className="flex-1 overflow-auto p-0 md:p-6 bg-background">
-          {children}
+          <AnimatedBackground>
+            {children}
+          </AnimatedBackground>
         </main>
       </div>
     </div>
