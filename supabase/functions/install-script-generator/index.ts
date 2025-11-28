@@ -165,20 +165,12 @@ else
 fi
 `;
 
-    // Generate one-line install command
-    const oneLineCommand = `curl -fsSL "data:text/plain;base64,${btoa(installScript)}" | bash`;
-    
-    // Alternative direct download method
-    const wgetCommand = `bash <(curl -fsSL "${appUrl}/functions/v1/install-script-generator?token=${installToken}&raw=true")`;
-
     return new Response(
       JSON.stringify({
         success: true,
         session_id: session.id,
         install_token: installToken,
         script: installScript,
-        one_line_command: oneLineCommand,
-        wget_command: wgetCommand,
         callback_url: callbackUrl
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
