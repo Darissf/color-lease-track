@@ -37,7 +37,7 @@ services:
       - "${config.port}:3000"
     environment:
       - WHATSAPP_HOOK_URL=
-      - WHATSAPP_API_KEY=${config.apiKey}
+      - WAHA_API_KEY=${config.apiKey}
       - WHATSAPP_DEFAULT_SESSION=${config.sessionName}
       - WHATSAPP_RESTART_ALL_SESSIONS=true
     volumes:

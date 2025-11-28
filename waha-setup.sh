@@ -122,8 +122,7 @@ EOF
 
 if [[ "$ENABLE_API_KEY" == "y" ]]; then
     cat >> docker-compose.yml <<EOF
-      - WHATSAPP_API_KEY=$API_KEY
-      - WHATSAPP_API_KEY_ENABLED=true
+      - WAHA_API_KEY=$API_KEY
 EOF
 fi
 

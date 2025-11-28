@@ -165,7 +165,7 @@ docker run -d --name waha \\
   --restart=always \\
   -p 3000:3000 \\
   -e WHATSAPP_HOOK_EVENTS=* \\
-  -e WHATSAPP_API_KEY=${existingApiKey} \\
+  -e WAHA_API_KEY=${existingApiKey} \\
   devlikeapro/waha:latest
 
 echo "✅ WAHA restarted with API Key"
@@ -322,7 +322,7 @@ docker run -d --name waha \\
   --restart=always \\
   -p 3000:3000 \\
   -e WHATSAPP_HOOK_EVENTS=* \\
-  -e WHATSAPP_API_KEY=${generatedApiKey} \\
+  -e WAHA_API_KEY=${generatedApiKey} \\
   devlikeapro/waha:latest
 
 echo "✅ WAHA container started with API Key"
