@@ -204,7 +204,7 @@ echo "Access WAHA at: http://${credentials.host}:3000"
           },
           body: JSON.stringify({
             agent_id: agentId,
-            command: installScript
+            commands: installScript  // Changed from "command" to "commands"
           })
         }
       );
@@ -216,12 +216,12 @@ echo "Access WAHA at: http://${credentials.host}:3000"
 
       const executeData = await executeResponse.json();
 
-      if (!executeData?.command_id) {
-        throw new Error("Failed to send command to agent");
+      if (!executeData?.success) {
+        throw new Error("Failed to queue commands to agent");
       }
 
-      const commandId = executeData.command_id;
-      setTerminalOutput(`📡 Command sent to agent (ID: ${commandId})\n⏳ Waiting for agent to start execution...\n\n`);
+      const commandId = `cmd_${Date.now()}_${agentId.substring(0, 8)}`;
+      setTerminalOutput(`📡 Commands queued for agent\n⏳ Waiting for agent to poll and execute...\n\n`);
 
       // Start polling for output
       let attempts = 0;
@@ -243,7 +243,7 @@ echo "Access WAHA at: http://${credentials.host}:3000"
 
         try {
           const outputResponse = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vps-agent-controller/get-output?agent_id=${agentId}&command_id=${commandId}`,
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vps-agent-controller/get-output?agent_id=${agentId}`,
             {
               method: 'GET',
               headers: {
@@ -260,11 +260,19 @@ echo "Access WAHA at: http://${credentials.host}:3000"
 
           const outputData = await outputResponse.json();
 
-          if (outputData?.output) {
-            setTerminalOutput(prev => prev + outputData.output);
+          if (outputData?.outputs && outputData.outputs.length > 0) {
+            // Join all outputs and set
+            const fullOutput = outputData.outputs.join('\n');
+            setTerminalOutput(prev => {
+              // Only add new outputs
+              if (!prev.includes(fullOutput)) {
+                return prev + fullOutput + '\n';
+              }
+              return prev;
+            });
 
             // Check for completion
-            if (outputData.output.includes("WAHA Installation Complete!")) {
+            if (fullOutput.includes("WAHA Installation Complete!")) {
               if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
               setInstalling(false);
               setInstallComplete(true);
@@ -278,9 +286,9 @@ echo "Access WAHA at: http://${credentials.host}:3000"
             }
 
             // Check for errors
-            if (outputData.output.toLowerCase().includes("error") || 
-                outputData.output.toLowerCase().includes("failed")) {
-              console.warn("Installation may have errors:", outputData.output);
+            if (fullOutput.toLowerCase().includes("error") || 
+                fullOutput.toLowerCase().includes("failed")) {
+              console.warn("Installation may have errors:", fullOutput);
             }
           }
         } catch (pollError) {
