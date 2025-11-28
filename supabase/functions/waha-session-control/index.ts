@@ -86,6 +86,23 @@ serve(async (req) => {
       body,
     });
 
+    // Special handling for QR code image response
+    if (action === 'get-qr') {
+      if (!wahaResponse.ok) {
+        const errorText = await wahaResponse.text().catch(() => '');
+        throw new Error(errorText || `WAHA API Error: ${wahaResponse.status}`);
+      }
+
+      const buffer = await wahaResponse.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const qrDataUrl = `data:image/png;base64,${base64}`;
+
+      return new Response(
+        JSON.stringify({ success: true, qrCode: qrDataUrl }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const wahaData = await wahaResponse.json();
 
     if (!wahaResponse.ok) {
