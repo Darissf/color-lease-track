@@ -66,7 +66,7 @@ export const WhatsAppConfigForm = () => {
   const reconfigureWaha = async () => {
     setIsReconfiguring(true);
     try {
-      // Fetch VPS credentials to get agent_id and API key
+      // Fetch VPS credentials (default) to get API key
       const { data: vpsData, error: vpsError } = await supabase
         .from('vps_credentials')
         .select('id, host, waha_api_key')
@@ -76,7 +76,32 @@ export const WhatsAppConfigForm = () => {
       if (vpsError || !vpsData) {
         toast({
           title: 'Error',
-          description: 'VPS credentials tidak ditemukan. Pastikan VPS sudah terhubung.',
+          description: 'VPS credentials tidak ditemukan. Pastikan VPS sudah terhubung dan agent sudah di-setup.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Cari agent yang terhubung ke kredensial VPS ini
+      const { data: agent, error: agentError } = await supabase
+        .from('vps_agents')
+        .select('id, status')
+        .eq('vps_credential_id', vpsData.id)
+        .single();
+
+      if (agentError || !agent) {
+        toast({
+          title: 'Error',
+          description: 'Agent VPS tidak ditemukan. Jalankan dulu setup otomatis WAHA sampai selesai.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (agent.status !== 'connected') {
+        toast({
+          title: 'Error',
+          description: 'Agent VPS belum terhubung. Pastikan VPS online dan agent status "connected".',
           variant: 'destructive',
         });
         return;
@@ -97,22 +122,19 @@ export const WhatsAppConfigForm = () => {
         description: 'Mengirim command ke VPS untuk restart WAHA container...',
       });
 
-      // Send command to VPS agent to reconfigure WAHA
-      const { data: executeData, error: executeError } = await supabase.functions.invoke(
-        'vps-agent-controller',
-        {
-          body: {
-            action: 'execute',
-            agent_id: vpsData.id,
-            commands: `
-              docker stop waha 2>/dev/null || true
-              docker rm waha 2>/dev/null || true
-              docker run -d --name waha --restart=always -p 3000:3000 -e WHATSAPP_API_KEY=${apiKey} devlikeapro/waha:latest
-              echo "WAHA reconfigured successfully with API key"
-            `.trim()
-          }
-        }
-      );
+      // Kirim perintah ke VPS agent untuk reconfigure WAHA
+      const { error: executeError } = await supabase.functions.invoke('vps-agent-controller', {
+        body: {
+          action: 'execute',
+          agent_id: agent.id,
+          commands: `
+            docker stop waha 2>/dev/null || true
+            docker rm waha 2>/dev/null || true
+            docker run -d --name waha --restart=always -p 3000:3000 -e WHATSAPP_API_KEY=${apiKey} devlikeapro/waha:latest
+            echo "WAHA reconfigured successfully with API key"
+          `.trim(),
+        },
+      });
 
       if (executeError) {
         toast({
@@ -128,12 +150,12 @@ export const WhatsAppConfigForm = () => {
         description: 'Menunggu WAHA restart (5 detik)...',
       });
 
-      // Wait a bit for container to start
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Tunggu sebentar agar container sempat start
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      // Test connection automatically
+      // Test koneksi otomatis
       await testConnection();
-      
+
       toast({
         title: 'Berhasil',
         description: '✅ WAHA berhasil di-reconfigure dengan API key yang benar!',
