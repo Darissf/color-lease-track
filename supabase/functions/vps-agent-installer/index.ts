@@ -42,32 +42,79 @@ echo "🚀 Installing WAHA VPS Agent..."
 # Install jq if not present (needed for JSON parsing)
 if ! command -v jq &> /dev/null; then
   echo "📦 Installing jq for JSON parsing..."
-  apt-get update -qq && apt-get install -y -qq jq
+  if apt-get update -qq && apt-get install -y -qq jq; then
+    echo "✅ jq installed successfully"
+  else
+    echo "❌ Failed to install jq"
+    exit 1
+  fi
 fi
 
 # Create agent directory
 mkdir -p /opt/waha-agent
 cd /opt/waha-agent
 
-# Create agent script
+# Create agent script with robust logging
 cat > /opt/waha-agent/agent.sh << AGENT_SCRIPT
 #!/bin/bash
 TOKEN="${token}"
 API_URL="${appUrl}/vps-agent-controller"
+LOG_FILE="/var/log/waha-agent.log"
 
+# Logging function
+log() {
+  echo "[\\$(date '+%Y-%m-%d %H:%M:%S')] \\$1" | tee -a \\$LOG_FILE
+}
+
+log "🚀 WAHA Agent starting..."
+log "Token: \\$TOKEN"
+log "API URL: \\$API_URL"
+
+# Test connection before starting main loop
+log "🔗 Testing connection to server..."
+TEST_RESPONSE=\\$(curl -s -o /dev/null -w "%{http_code}" "\\$API_URL/test")
+if [ "\\$TEST_RESPONSE" != "200" ]; then
+  log "❌ Cannot connect to server! HTTP: \\$TEST_RESPONSE"
+  log "Check: 1) Internet connection 2) Firewall 3) Server availability"
+  exit 1
+fi
+log "✅ Connection test successful!"
+
+# Send initial heartbeat as test
+log "📡 Sending initial heartbeat..."
+HEARTBEAT_RESPONSE=\\$(curl -s -w "\\n%{http_code}" -X POST "\\$API_URL/heartbeat" \\\\
+  -H "Content-Type: application/json" \\\\
+  -d "{\\\\"token\\\\":\\\\"\\$TOKEN\\\\",\\\\"hostname\\\\":\\\\"\\$(hostname)\\\\",\\\\"uptime\\\\":\\\\"initial\\\\"}")
+HTTP_CODE=\\$(echo "\\$HEARTBEAT_RESPONSE" | tail -n1)
+BODY=\\$(echo "\\$HEARTBEAT_RESPONSE" | head -n -1)
+
+if [ "\\$HTTP_CODE" != "200" ]; then
+  log "❌ Initial heartbeat failed: HTTP \\$HTTP_CODE - \\$BODY"
+  exit 1
+fi
+log "✅ Initial heartbeat sent successfully"
+
+# Main agent loop
+log "🔄 Starting main agent loop..."
 while true; do
-  # Send heartbeat and get commands
-  curl -s -X POST "\\$API_URL/heartbeat" \\\\
+  # Send heartbeat
+  HEARTBEAT_RESPONSE=\\$(curl -s -w "\\n%{http_code}" -X POST "\\$API_URL/heartbeat" \\\\
     -H "Content-Type: application/json" \\\\
-    -d "{\\\\"token\\\\":\\\\"\\$TOKEN\\\\",\\\\"hostname\\\\":\\\\"\\$(hostname)\\\\",\\\\"uptime\\\\":\\\\"\\$(uptime -p)\\\\"}" > /dev/null 2>&1
+    -d "{\\\\"token\\\\":\\\\"\\$TOKEN\\\\",\\\\"hostname\\\\":\\\\"\\$(hostname)\\\\",\\\\"uptime\\\\":\\\\"\\$(uptime -p)\\\\"}")
+  HTTP_CODE=\\$(echo "\\$HEARTBEAT_RESPONSE" | tail -n1)
+  
+  if [ "\\$HTTP_CODE" != "200" ]; then
+    log "⚠️ Heartbeat failed: HTTP \\$HTTP_CODE"
+  fi
   
   # Check for commands to execute
   RESPONSE=\\$(curl -s "\\$API_URL/commands?token=\\$TOKEN" 2>&1)
   COMMANDS=\\$(echo "\\$RESPONSE" | jq -r '.commands // empty' 2>/dev/null)
   
   if [ -n "\\$COMMANDS" ]; then
-    echo "Executing commands..."
+    log "📝 Executing commands: \\$COMMANDS"
     OUTPUT=\\$(eval "\\$COMMANDS" 2>&1)
+    log "📤 Command output: \\$OUTPUT"
     
     # Send output back using jq for proper JSON encoding
     curl -s -X POST "\\$API_URL/output" \\\\
@@ -104,9 +151,25 @@ systemctl daemon-reload
 systemctl enable waha-agent
 systemctl start waha-agent
 
+echo ""
+echo "⏳ Verifying agent service..."
+sleep 3
+
+# Verify agent is running
+if systemctl is-active --quiet waha-agent; then
+  echo "✅ Agent service is running!"
+else
+  echo "❌ Agent service failed to start!"
+  echo "📋 Last 20 log lines:"
+  journalctl -u waha-agent -n 20 --no-pager
+  exit 1
+fi
+
+echo ""
 echo "✅ WAHA Agent installed and running!"
 echo "🔗 Agent Token: ${token}"
 echo "📊 Check status: systemctl status waha-agent"
+echo "📋 View logs: tail -f /var/log/waha-agent.log"
 `;
 
       return new Response(installerScript, {
