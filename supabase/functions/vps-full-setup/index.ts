@@ -37,89 +37,16 @@ serve(async (req) => {
 
     const body: SetupRequest = await req.json();
     
-    console.log(`[Full Setup] Starting automatic installation for ${body.vps_host}`);
+    console.log(`[One-Click Installer] Generating install command for ${body.vps_host}`);
 
-    // Generate installation script
+    // Generate WAHA API key if not provided
+    const wahaApiKey = body.waha_api_key || crypto.randomUUID();
     const installToken = crypto.randomUUID();
-    const appUrl = Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '').replace('https://', 'https://');
+    const appUrl = Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '');
     const callbackUrl = `${appUrl}/functions/v1/install-progress-webhook`;
 
-    const installScript = `#!/bin/bash
-set -e
-
-# WAHA Auto-Install Script
-# Generated: ${new Date().toISOString()}
-# Target: ${body.vps_host}
-
-INSTALL_TOKEN="${installToken}"
-CALLBACK_URL="${callbackUrl}"
-WAHA_PORT="${body.waha_port}"
-WAHA_API_KEY="${body.waha_api_key || crypto.randomUUID()}"
-
-# Progress reporter
-report_progress() {
-  local step=$1
-  local message=$2
-  curl -X POST "$CALLBACK_URL" \\
-    -H "Content-Type: application/json" \\
-    -d "{\\"token\\":\\"$INSTALL_TOKEN\\",\\"step\\":\\"$step\\",\\"message\\":\\"$message\\"}" \\
-    -s || true
-}
-
-echo "🚀 Starting WAHA Auto-Installation..."
-report_progress "checking_system" "Checking system"
-
-# Check Docker
-if ! command -v docker &> /dev/null; then
-  echo "📦 Installing Docker..."
-  report_progress "installing_docker" "Installing Docker"
-  curl -fsSL https://get.docker.com -o get-docker.sh
-  sh get-docker.sh
-  rm get-docker.sh
-  report_progress "docker_installed" "Docker installed successfully"
-else
-  echo "✅ Docker already installed"
-  report_progress "docker_exists" "Docker already exists"
-fi
-
-# Cleanup old containers
-echo "🧹 Cleaning up old containers..."
-report_progress "cleanup" "Removing old WAHA containers"
-docker stop waha 2>/dev/null || true
-docker rm waha 2>/dev/null || true
-
-# Pull WAHA image
-echo "⬇️  Downloading WAHA..."
-report_progress "pulling_image" "Downloading WAHA image"
-docker pull devlikeapro/waha:latest
-
-# Create container
-echo "🏗️  Creating WAHA container..."
-report_progress "creating_container" "Creating WAHA container"
-docker run -d \\
-  --name waha \\
-  --restart=unless-stopped \\
-  -p $WAHA_PORT:3000 \\
-  -e WAHA_API_KEY="$WAHA_API_KEY" \\
-  devlikeapro/waha:latest
-
-# Wait for startup
-echo "⏳ Waiting for WAHA to start..."
-report_progress "waiting_start" "Waiting for WAHA to start"
-sleep 10
-
-# Verify
-echo "✅ Verifying installation..."
-report_progress "verifying" "Verifying WAHA installation"
-if docker ps | grep -q waha; then
-  echo "🎉 WAHA installation completed successfully!"
-  report_progress "success" "Installation completed"
-else
-  echo "❌ Installation failed"
-  report_progress "error" "Installation verification failed"
-  exit 1
-fi
-`;
+    // Create the one-liner command that user can run locally
+    const oneLineCommand = `curl -sSL "${appUrl}/functions/v1/vps-ssh-execute" -H "Content-Type: application/json" -d '{"host":"${body.vps_host}","port":${body.vps_port},"username":"${body.vps_username}","password":"${body.vps_password}","install_token":"${installToken}","callback_url":"${callbackUrl}","waha_port":${body.waha_port},"waha_api_key":"${wahaApiKey}"}' | bash`;
 
     // Create installation session
     const { data: session, error: sessionError } = await supabase
@@ -130,7 +57,7 @@ fi
         vps_host: body.vps_host,
         install_token: installToken,
         status: 'pending',
-        ssh_method: 'script',
+        ssh_method: 'one_click',
         current_step: 'pending',
         steps_completed: [],
         total_steps: 8,
@@ -141,28 +68,32 @@ fi
 
     if (sessionError) throw sessionError;
 
-    console.log(`[Full Setup] Session created: ${session.id}`);
-    console.log(`[Full Setup] Script generated. User must execute on VPS.`);
+    console.log(`[One-Click Installer] Session created: ${session.id}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         session_id: session.id,
         install_token: installToken,
-        script: installScript,
+        one_line_command: oneLineCommand,
         instructions: {
-          step1: `SSH to your VPS: ssh ${body.vps_username}@${body.vps_host}`,
-          step2: 'Copy and paste the script below',
-          step3: 'Or download and run: bash waha-install.sh',
-          step4: 'Progress will update automatically'
+          method: 'one_click',
+          description: 'Run this single command from your local terminal (Mac/Linux/Windows WSL)',
+          command: oneLineCommand,
+          note: 'This command will SSH to your VPS and automatically install everything'
         },
-        message: 'Installation script generated. Execute on your VPS for automatic installation with real-time progress tracking.'
+        waha_config: {
+          url: `http://${body.vps_host}:${body.waha_port}`,
+          api_key: wahaApiKey,
+          session_name: body.waha_session_name
+        },
+        message: 'One-click install command generated. Run from your local terminal for full automation.'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('[Full Setup] Error:', error);
+    console.error('[SSH Full Setup] Error:', error);
     return new Response(
       JSON.stringify({
         success: false,
