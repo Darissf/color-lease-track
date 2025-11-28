@@ -342,224 +342,29 @@ export default function Nabila() {
 
   return (
     <div 
-      className={cn(
-        "h-[calc(100vh-104px)] relative overflow-hidden flex flex-col",
-        activeTheme === 'japanese' && "bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950",
-        activeTheme === 'professional' && "bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50",
-        activeTheme === 'ocean-bali' && "bg-gradient-to-br from-cyan-950 via-teal-900 to-blue-950",
-        activeTheme === 'sunset-warm' && "bg-gradient-to-br from-orange-950 via-red-900 to-amber-950",
-        activeTheme === 'bamboo-zen' && "bg-gradient-to-br from-green-950 via-emerald-900 to-teal-950",
-        activeTheme === 'sakura-bloom' && "bg-gradient-to-br from-pink-950 via-rose-900 to-purple-950",
-        activeTheme === 'neon-cyber' && "bg-gradient-to-br from-purple-950 via-indigo-900 to-violet-950",
-        activeTheme === 'mountain-stone' && "bg-gradient-to-br from-gray-950 via-slate-900 to-zinc-950"
-      )}
+      className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col bg-background"
       data-editable-ignore
     >
-      {/* Japanese Theme Decorations - Only visible in Japanese theme */}
-      {activeTheme === 'japanese' && (
-        <>
-          {/* Animated Stars Background - Minimal */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(30)].map((_, i) => (
-              <div
-                key={`star-${i}`}
-                className="absolute rounded-full bg-white animate-pulse"
-                style={{
-                  width: Math.random() * 2 + 1 + 'px',
-                  height: Math.random() * 2 + 1 + 'px',
-                  top: Math.random() * 100 + '%',
-                  left: Math.random() * 100 + '%',
-                  animationDelay: Math.random() * 3 + 's',
-                  animationDuration: Math.random() * 2 + 2 + 's'
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Moon - Responsive positioning to prevent overflow */}
-          <div className="absolute top-20 right-4 md:right-20 pointer-events-none hidden md:block">
-            <div className="relative w-24 md:w-32 h-24 md:h-32 rounded-full bg-gradient-to-br from-yellow-200 to-orange-200 shadow-2xl shadow-yellow-500/30 animate-float">
-              <div className="absolute inset-2 rounded-full bg-gradient-to-br from-yellow-100 to-orange-100 opacity-80"></div>
-              {/* Crater details */}
-              <div className="absolute top-6 md:top-8 left-6 md:left-8 w-4 md:w-6 h-4 md:h-6 rounded-full bg-yellow-300/30"></div>
-              <div className="absolute bottom-8 md:bottom-10 right-8 md:right-12 w-3 md:w-4 h-3 md:h-4 rounded-full bg-orange-300/20"></div>
-            </div>
-          </div>
-
-          {/* Sakura Petals - Minimal */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={`sakura-${i}`}
-                className="absolute text-2xl opacity-70 animate-float"
-                style={{
-                  top: -20 + 'px',
-                  left: Math.random() * 100 + '%',
-                  animationDelay: Math.random() * 5 + 's',
-                  animationDuration: Math.random() * 5 + 8 + 's'
-                }}
-              >
-                🌸
-              </div>
-            ))}
-          </div>
-
-          {/* Fireflies - Minimal */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={`firefly-${i}`}
-                className="absolute w-1 h-1 bg-yellow-300 rounded-full shadow-lg shadow-yellow-400/50 animate-pulse"
-                style={{
-                  top: Math.random() * 80 + 10 + '%',
-                  left: Math.random() * 90 + 5 + '%',
-                  animationDelay: Math.random() * 2 + 's',
-                  animationDuration: Math.random() * 2 + 1 + 's'
-                }}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      {/* Decorations hidden - handled by AnimatedBackground */}
 
       {/* Content */}
       <div className="relative z-10 space-y-4 px-2 py-2 md:px-8 md:py-4 flex-1 overflow-y-auto overflow-x-hidden w-full">
         {/* Header with Gradient */}
         <div className="text-center space-y-2 md:space-y-4 py-6 md:py-12 shrink-0">
-          <h1 className={cn(
-            "text-4xl sm:text-6xl md:text-8xl font-serif italic bg-clip-text text-transparent drop-shadow-2xl animate-fade-in",
-            activeTheme === 'japanese'
-              ? "bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300"
-              : "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
-          )}>
+          <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif italic bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary drop-shadow-2xl animate-fade-in">
             Financial Planner.
           </h1>
-          <p className={cn(
-            "text-xl sm:text-3xl md:text-4xl font-serif italic bg-clip-text text-transparent animate-fade-in",
-            activeTheme === 'japanese'
-              ? "bg-gradient-to-r from-slate-300 to-slate-400"
-              : "bg-gradient-to-r from-gray-700 to-gray-900"
-          )} style={{ animationDelay: '0.2s' }}>
+          <p className="text-xl sm:text-3xl md:text-4xl font-serif italic text-muted-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
             KAKEIBO PAGE
           </p>
         </div>
 
-        {/* Theme Selector Card - Compact Dropdown */}
-        <Card className={cn(
-          "p-6 backdrop-blur-lg shadow-2xl transition-all duration-300 animate-scale-in",
-          activeTheme === 'japanese'
-            ? "bg-white/10 border-white/20 hover:shadow-purple-500/20"
-            : activeTheme === 'professional'
-            ? "bg-white border-gray-200 hover:shadow-blue-500/20"
-            : activeTheme === 'ocean-bali'
-            ? "bg-cyan-900/80 border-cyan-700 hover:shadow-cyan-500/20"
-            : activeTheme === 'sunset-warm'
-            ? "bg-orange-900/80 border-orange-700 hover:shadow-orange-500/20"
-            : activeTheme === 'bamboo-zen'
-            ? "bg-green-900/80 border-green-700 hover:shadow-green-500/20"
-            : activeTheme === 'sakura-bloom'
-            ? "bg-pink-900/80 border-pink-700 hover:shadow-pink-500/20"
-            : activeTheme === 'neon-cyber'
-            ? "bg-purple-900/80 border-purple-700 hover:shadow-purple-500/20"
-            : "bg-gray-800/80 border-gray-600 hover:shadow-gray-500/20"
-        )}>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Palette className={cn(
-                "h-5 w-5",
-                ['japanese', 'ocean-bali', 'sunset-warm', 'bamboo-zen', 'sakura-bloom', 'neon-cyber', 'mountain-stone'].includes(activeTheme)
-                  ? "text-white" 
-                  : "text-purple-600"
-              )} />
-              <span className={cn(
-                "font-semibold",
-                ['japanese', 'ocean-bali', 'sunset-warm', 'bamboo-zen', 'sakura-bloom', 'neon-cyber', 'mountain-stone'].includes(activeTheme)
-                  ? "text-white" 
-                  : "text-gray-900"
-              )}>
-                Tema
-              </span>
-            </div>
-            
-            <Select value={appTheme} onValueChange={setAppTheme}>
-              <SelectTrigger className={cn(
-                "w-[220px]",
-                ['japanese', 'ocean-bali', 'sunset-warm', 'bamboo-zen', 'sakura-bloom', 'neon-cyber', 'mountain-stone'].includes(activeTheme)
-                  ? "bg-white/10 border-white/20 text-white"
-                  : "bg-white border-gray-300"
-              )}>
-                <SelectValue placeholder="Pilih tema..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="japanese">
-                  <div className="flex items-center gap-2">
-                    <Moon className="h-4 w-4 text-purple-500" />
-                    <span>Japanese Night</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="professional">
-                  <div className="flex items-center gap-2">
-                    <Sun className="h-4 w-4 text-blue-500" />
-                    <span>Professional Clean</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="ocean-bali">
-                  <div className="flex items-center gap-2">
-                    <Waves className="h-4 w-4 text-cyan-500" />
-                    <span>Ocean Bali</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="sunset-warm">
-                  <div className="flex items-center gap-2">
-                    <Sunset className="h-4 w-4 text-orange-500" />
-                    <span>Sunset Warm</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="bamboo-zen">
-                  <div className="flex items-center gap-2">
-                    <Leaf className="h-4 w-4 text-green-500" />
-                    <span>Bamboo Zen</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="sakura-bloom">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-pink-500" />
-                    <span>Sakura Bloom</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="neon-cyber">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-500" />
-                    <span>Neon Cyber</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="mountain-stone">
-                  <div className="flex items-center gap-2">
-                    <Box className="h-4 w-4 text-gray-500" />
-                    <span>Mountain Stone</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </Card>
-
         {/* User Info Card */}
-        <Card className={cn(
-          "p-8 backdrop-blur-lg shadow-2xl transition-all duration-300 animate-scale-in",
-          activeTheme === 'japanese'
-            ? "bg-white/10 border-white/20 hover:shadow-purple-500/20"
-            : "bg-white border-gray-200 hover:shadow-blue-500/20"
-        )}>
+        <Card className="p-8 backdrop-blur-lg shadow-2xl transition-all duration-300 animate-scale-in bg-card border">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <h2 className={cn(
-                  "text-3xl font-bold bg-clip-text text-transparent",
-                  activeTheme === 'japanese'
-                    ? "bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300"
-                    : "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
-                )}>
+                <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary">
                   {displayName}
                 </h2>
                 <div className="flex items-center gap-2">
@@ -572,38 +377,20 @@ export default function Nabila() {
             </div>
             
             {/* Quick Stats */}
-            <div className={cn(
-              "grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t",
-              activeTheme === 'japanese' ? "border-white/10" : "border-gray-200"
-            )}>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-border">
               {/* Total Saldo Card */}
-              <div className={cn(
-                `col-span-2 md:col-span-1 p-4 rounded-lg backdrop-blur-sm transition-all duration-300`,
-                isBalanceAnimating && 'animate-pulse-scale',
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-purple-400/30"
-                  : "bg-gradient-to-br from-purple-100 to-pink-100 border-2 border-purple-300"
-              )}>
+              <div className="col-span-2 md:col-span-1 p-4 rounded-lg backdrop-blur-sm transition-all duration-300 bg-primary/10 border-2 border-primary/30">
                 <div className="space-y-1">
-                  <div className={cn(
-                    "text-xs font-medium",
-                    activeTheme === 'japanese' ? "text-purple-200" : "text-purple-700"
-                  )}>Total Saldo</div>
+                  <div className="text-xs font-medium text-primary">Total Saldo</div>
                   {loadingBalance ? (
-                    <div className={cn(
-                      "text-lg font-bold",
-                      activeTheme === 'japanese' ? "text-purple-300" : "text-purple-600"
-                    )}>
+                    <div className="text-lg font-bold text-primary">
                       <div className="animate-pulse">Loading...</div>
                     </div>
                   ) : (
                     <>
                       <div className={cn(
-                        `text-lg font-bold bg-clip-text text-transparent transition-all duration-500`,
-                        isBalanceAnimating && 'animate-counter-up',
-                        activeTheme === 'japanese'
-                          ? "bg-gradient-to-r from-purple-300 to-pink-300"
-                          : "bg-gradient-to-r from-purple-600 to-pink-600"
+                        "text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent transition-all duration-500",
+                        isBalanceAnimating && 'animate-counter-up'
                       )}>
                         {formatCurrency(totalBalance)}
                       </div>
@@ -611,109 +398,54 @@ export default function Nabila() {
                       {/* Show change indicator jika ada perubahan */}
                       {isBalanceAnimating && prevBalance > 0 && (
                         <div className={`text-xs font-semibold ${
-                          totalBalance > prevBalance ? 'text-green-300' : 'text-red-300'
+                          totalBalance > prevBalance ? 'text-green-500' : 'text-red-500'
                         } animate-fade-in`}>
                           {totalBalance > prevBalance ? '↑' : '↓'} {formatCurrency(Math.abs(totalBalance - prevBalance))}
                         </div>
                       )}
                     </>
                   )}
-                  <div className={cn(
-                    "text-xs",
-                    activeTheme === 'japanese' ? "text-purple-200/70" : "text-purple-600/70"
-                  )}>Bank Accounts</div>
+                  <div className="text-xs text-primary/70">Bank Accounts</div>
                 </div>
               </div>
               
               {/* Bulan Card */}
-              <div className={cn(
-                "p-4 rounded-lg backdrop-blur-sm",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-2 border-blue-400/30"
-                  : "bg-gradient-to-br from-blue-100 to-cyan-100 border-2 border-blue-300"
-              )}>
+              <div className="p-4 rounded-lg backdrop-blur-sm bg-secondary/10 border-2 border-secondary/30">
                 <div className="text-center space-y-1">
-                  <div className={cn(
-                    "text-2xl font-bold bg-clip-text text-transparent",
-                    activeTheme === 'japanese'
-                      ? "bg-gradient-to-r from-blue-300 to-cyan-300"
-                      : "bg-gradient-to-r from-blue-600 to-cyan-600"
-                  )}>
+                  <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-secondary to-accent">
                     12
                   </div>
-                  <div className={cn(
-                    "text-xs font-medium",
-                    activeTheme === 'japanese' ? "text-blue-200" : "text-blue-700"
-                  )}>Bulan</div>
+                  <div className="text-xs font-medium text-secondary">Bulan</div>
                 </div>
               </div>
               
               {/* Kuartal Card */}
-              <div className={cn(
-                "p-4 rounded-lg backdrop-blur-sm",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-indigo-400/30"
-                  : "bg-gradient-to-br from-indigo-100 to-purple-100 border-2 border-indigo-300"
-              )}>
+              <div className="p-4 rounded-lg backdrop-blur-sm bg-accent/10 border-2 border-accent/30">
                 <div className="text-center space-y-1">
-                  <div className={cn(
-                    "text-2xl font-bold bg-clip-text text-transparent",
-                    activeTheme === 'japanese'
-                      ? "bg-gradient-to-r from-indigo-300 to-purple-300"
-                      : "bg-gradient-to-r from-indigo-600 to-purple-600"
-                  )}>
+                  <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary">
                     4
                   </div>
-                  <div className={cn(
-                    "text-xs font-medium",
-                    activeTheme === 'japanese' ? "text-indigo-200" : "text-indigo-700"
-                  )}>Kuartal</div>
+                  <div className="text-xs font-medium text-accent">Kuartal</div>
                 </div>
               </div>
               
               {/* Data Years Card */}
-              <div className={cn(
-                "p-4 rounded-lg backdrop-blur-sm",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-pink-500/20 to-rose-500/20 border-2 border-pink-400/30"
-                  : "bg-gradient-to-br from-pink-100 to-rose-100 border-2 border-pink-300"
-              )}>
+              <div className="p-4 rounded-lg backdrop-blur-sm bg-primary/10 border-2 border-primary/30">
                 <div className="text-center space-y-1">
-                  <div className={cn(
-                    "text-2xl font-bold bg-clip-text text-transparent",
-                    activeTheme === 'japanese'
-                      ? "bg-gradient-to-r from-pink-300 to-rose-300"
-                      : "bg-gradient-to-r from-pink-600 to-rose-600"
-                  )}>
+                  <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
                     {availableYears.length}
                   </div>
-                  <div className={cn(
-                    "text-xs font-medium",
-                    activeTheme === 'japanese' ? "text-pink-200" : "text-pink-700"
-                  )}>Data Years</div>
+                  <div className="text-xs font-medium text-primary">Data Years</div>
                 </div>
               </div>
               
               {/* Readiness Card */}
-              <div className={cn(
-                "p-4 rounded-lg backdrop-blur-sm",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-2 border-emerald-400/30"
-                  : "bg-gradient-to-br from-emerald-100 to-teal-100 border-2 border-emerald-300"
-              )}>
+              <div className="p-4 rounded-lg backdrop-blur-sm bg-green-500/10 border-2 border-green-500/30">
                 <div className="text-center space-y-1">
-                  <div className={cn(
-                    "text-2xl font-bold bg-clip-text text-transparent",
-                    activeTheme === 'japanese'
-                      ? "bg-gradient-to-r from-emerald-300 to-teal-300"
-                      : "bg-gradient-to-r from-emerald-600 to-teal-600"
-                  )}>
+                  <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-600">
                     95%
                   </div>
-                  <div className={cn(
-                    "text-xs font-medium",
-                    activeTheme === 'japanese' ? "text-emerald-200" : "text-emerald-700"
-                  )}>Readiness</div>
+                  <div className="text-xs font-medium text-green-600">Readiness</div>
                 </div>
               </div>
             </div>
@@ -722,34 +454,13 @@ export default function Nabila() {
 
         {/* Bank Balance History Accordion */}
         <Accordion type="single" collapsible className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <AccordionItem 
-            value="bank-history" 
-            className={cn(
-              "border rounded-lg backdrop-blur-lg",
-              activeTheme === 'japanese'
-                ? "border-white/20 bg-white/10"
-                : "border-gray-200 bg-white"
-            )}
-          >
+          <AccordionItem value="bank-history" className="border rounded-lg backdrop-blur-lg border-border bg-card">
             <AccordionTrigger className="px-6 py-4 hover:no-underline group">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "p-2 rounded-lg transition-all",
-                  activeTheme === 'japanese'
-                    ? "bg-gradient-to-br from-blue-500/30 to-cyan-500/30 group-hover:from-blue-500/40 group-hover:to-cyan-500/40"
-                    : "bg-gradient-to-br from-blue-100 to-cyan-100 group-hover:from-blue-200 group-hover:to-cyan-200"
-                )}>
-                  <Clock className={cn(
-                    "h-5 w-5",
-                    activeTheme === 'japanese' ? "text-blue-200" : "text-blue-600"
-                  )} />
+                <div className="p-2 rounded-lg transition-all bg-secondary/30 group-hover:bg-secondary/40">
+                  <Clock className="h-5 w-5 text-secondary-foreground" />
                 </div>
-                <span className={cn(
-                  "text-lg font-semibold",
-                  activeTheme === 'japanese' 
-                    ? "text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
-                    : "text-gray-900"
-                )}>
+                <span className="text-lg font-semibold text-foreground">
                   Riwayat Perubahan Saldo Bank
                 </span>
               </div>
@@ -761,53 +472,25 @@ export default function Nabila() {
         </Accordion>
 
         {/* Laporan Bulanan Finansial */}
-        <Card className={cn(
-          "p-8 relative overflow-hidden backdrop-blur-lg shadow-2xl animate-fade-in",
-          activeTheme === 'japanese'
-            ? "bg-white/10 border-white/20"
-            : "bg-white border-gray-200"
-        )} style={{ animationDelay: '0.4s' }}>
+        <Card className="p-8 relative overflow-hidden backdrop-blur-lg shadow-2xl animate-fade-in bg-card border" style={{ animationDelay: '0.4s' }}>
           {/* Gradient Overlay */}
-          <div className={cn(
-            "absolute inset-0 pointer-events-none",
-            activeTheme === 'japanese'
-              ? "bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-rose-500/10"
-              : "bg-gradient-to-br from-purple-50/50 via-pink-50/50 to-rose-50/50"
-          )}></div>
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/10"></div>
           
           <div className="relative space-y-6">
             {/* Section Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "p-2 rounded-lg backdrop-blur-sm",
-                  activeTheme === 'japanese'
-                    ? "bg-gradient-to-br from-purple-500/30 to-pink-500/30"
-                    : "bg-gradient-to-br from-purple-100 to-pink-100"
-                )}>
-                  <Calendar className={cn(
-                    "h-6 w-6",
-                    activeTheme === 'japanese' ? "text-purple-200" : "text-purple-600"
-                  )} />
+                <div className="p-2 rounded-lg backdrop-blur-sm bg-primary/30">
+                  <Calendar className="h-6 w-6 text-primary-foreground" />
                 </div>
-                <h3 className={cn(
-                  "text-2xl font-bold bg-clip-text text-transparent",
-                  activeTheme === 'japanese'
-                    ? "bg-gradient-to-r from-purple-300 via-pink-300 to-rose-300"
-                    : "bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600"
-                )}>
+                <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary">
                   Laporan Bulanan Finansial
                 </h3>
               </div>
               
               {/* Year Selector */}
               <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                <SelectTrigger className={cn(
-                  "w-32 backdrop-blur-sm",
-                  activeTheme === 'japanese'
-                    ? "bg-white/10 border-white/20 text-white"
-                    : "bg-white border-gray-300 text-gray-900"
-                )}>
+                <SelectTrigger className="w-32 backdrop-blur-sm bg-card border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -822,14 +505,8 @@ export default function Nabila() {
             
             {loading ? (
               <div className="text-center py-12">
-                <div className={cn(
-                  "animate-spin rounded-full h-12 w-12 border-b-2 mx-auto",
-                  activeTheme === 'japanese' ? "border-purple-400" : "border-purple-600"
-                )}></div>
-                <p className={cn(
-                  "mt-4",
-                  activeTheme === 'japanese' ? "text-purple-200" : "text-purple-700"
-                )}>Loading data...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Loading data...</p>
               </div>
             ) : (
               <div className="grid gap-6">
@@ -840,41 +517,20 @@ export default function Nabila() {
                   return (
                     <Card
                       key={quarter.number}
-                      className={cn(
-                        "p-6 backdrop-blur-sm transition-all duration-300 cursor-pointer hover:scale-[1.02] group",
-                        activeTheme === 'japanese'
-                          ? `bg-gradient-to-br ${theme.bg} border-2 ${theme.border} ${theme.shadow} ${theme.hover}`
-                          : "bg-white border-2 border-gray-200 hover:shadow-lg hover:border-gray-300"
-                      )}
+                      className={`p-6 backdrop-blur-sm transition-all duration-300 cursor-pointer hover:scale-[1.02] group bg-gradient-to-br ${theme.bg} border-2 ${theme.border} ${theme.shadow} ${theme.hover}`}
                     >
                       <div className="space-y-4">
                         {/* Quarter Header */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "p-3 rounded-lg shadow-lg",
-                              activeTheme === 'japanese'
-                                ? `bg-gradient-to-br ${theme.gradient}`
-                                : "bg-gradient-to-br from-gray-200 to-gray-300"
-                            )}>
-                              <Icon className={cn(
-                                "h-6 w-6",
-                                activeTheme === 'japanese' ? "text-white" : "text-gray-700"
-                              )} />
+                            <div className={`p-3 rounded-lg shadow-lg bg-gradient-to-br ${theme.gradient}`}>
+                              <Icon className="h-6 w-6 text-white" />
                             </div>
                             <div>
-                              <h4 className={cn(
-                                "text-xl font-bold bg-clip-text text-transparent",
-                                activeTheme === 'japanese'
-                                  ? `bg-gradient-to-r ${theme.textGradient}`
-                                  : "bg-gradient-to-r from-gray-700 to-gray-900"
-                              )}>
+                              <h4 className={`text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r ${theme.textGradient}`}>
                                 Kuartal {quarter.number}
                               </h4>
-                              <p className={cn(
-                                "text-sm",
-                                activeTheme === 'japanese' ? "text-muted-foreground" : "text-gray-600"
-                              )}>{theme.name} {theme.emoji}</p>
+                              <p className="text-sm text-muted-foreground">{theme.name} {theme.emoji}</p>
                             </div>
                           </div>
                         </div>
@@ -886,25 +542,14 @@ export default function Nabila() {
                               key={month.monthKey}
                               variant="outline"
                               onClick={() => navigate(`/month/${selectedYear}/${month.monthKey}`)}
-                              className={cn(
-                                "h-auto py-4 backdrop-blur-sm border-2 hover:scale-105 transition-all duration-200",
-                                activeTheme === 'japanese'
-                                  ? "bg-white/50 hover:bg-white/70 dark:bg-slate-800/50 dark:hover:bg-slate-700/70"
-                                  : "bg-gray-50 hover:bg-gray-100 border-gray-300"
-                              )}
+                              className="h-auto py-4 backdrop-blur-sm border-2 hover:scale-105 transition-all duration-200 bg-card hover:bg-accent/10"
                             >
                               <div className="flex flex-col items-start w-full gap-1">
                                 <div className="flex items-center gap-2 w-full">
-                                  <Calendar className={cn(
-                                    "h-4 w-4",
-                                    activeTheme === 'japanese' ? "text-muted-foreground" : "text-gray-600"
-                                  )} />
+                                  <Calendar className="h-4 w-4 text-muted-foreground" />
                                   <span className="font-semibold">{month.name}</span>
                                 </div>
-                                <span className={cn(
-                                  "text-xs",
-                                  activeTheme === 'japanese' ? "text-muted-foreground" : "text-gray-600"
-                                )}>
+                                <span className="text-xs text-muted-foreground">
                                   Lihat Detail →
                                 </span>
                               </div>
@@ -921,146 +566,56 @@ export default function Nabila() {
         </Card>
 
         {/* Rencana Anggaran & Tabungan Bulanan */}
-        <Card className={cn(
-          "p-8 relative overflow-hidden backdrop-blur-lg shadow-2xl animate-fade-in",
-          activeTheme === 'japanese'
-            ? "bg-white/10 border-white/20"
-            : "bg-white border-gray-200"
-        )} style={{ animationDelay: '0.5s' }}>
-          {/* Gradient Overlay */}
-          <div className={cn(
-            "absolute inset-0 pointer-events-none",
-            activeTheme === 'japanese'
-              ? "bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-rose-500/10"
-              : "bg-gradient-to-br from-purple-50/50 via-pink-50/50 to-rose-50/50"
-          )}></div>
+        <Card className="p-8 relative overflow-hidden backdrop-blur-lg shadow-2xl animate-fade-in bg-card border" style={{ animationDelay: '0.5s' }}>
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/10"></div>
           
           <div className="relative space-y-6">
-            {/* Section Header */}
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "p-2 rounded-lg backdrop-blur-sm",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-purple-500/30 to-pink-500/30"
-                  : "bg-gradient-to-br from-purple-100 to-pink-100"
-              )}>
-                <Target className={cn(
-                  "h-6 w-6",
-                  activeTheme === 'japanese' ? "text-purple-200" : "text-purple-600"
-                )} />
+              <div className="p-2 rounded-lg backdrop-blur-sm bg-primary/30">
+                <Target className="h-6 w-6 text-primary-foreground" />
               </div>
-              <h3 className={cn(
-                "text-2xl font-bold bg-clip-text text-transparent",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-r from-purple-300 via-pink-300 to-rose-300"
-                  : "bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600"
-              )}>
+              <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary">
                 Rencana Anggaran & Tabungan Bulanan
               </h3>
             </div>
             
-            {/* Stats Preview Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className={cn(
-                "p-4 rounded-lg backdrop-blur-sm",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-400/30"
-                  : "bg-gradient-to-br from-emerald-100 to-green-100 border border-emerald-300"
-              )}>
+              <div className="p-4 rounded-lg backdrop-blur-sm bg-green-500/10 border border-green-500/30">
                 <div className="flex items-center gap-2 mb-2">
-                  <Wallet className={cn(
-                    "h-4 w-4",
-                    activeTheme === 'japanese' ? "text-emerald-300" : "text-emerald-600"
-                  )} />
-                  <div className={cn(
-                    "text-xs font-semibold",
-                    activeTheme === 'japanese' ? "text-emerald-200" : "text-emerald-700"
-                  )}>Target Budget</div>
+                  <Wallet className="h-4 w-4 text-green-600" />
+                  <div className="text-xs font-semibold text-green-600">Target Budget</div>
                 </div>
-                <div className={cn(
-                  "text-lg font-bold bg-clip-text text-transparent",
-                  activeTheme === 'japanese'
-                    ? "bg-gradient-to-r from-emerald-300 to-green-300"
-                    : "bg-gradient-to-r from-emerald-600 to-green-600"
-                )}>
+                <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-600">
                   Rp 0
                 </div>
               </div>
               
-              <div className={cn(
-                "p-4 rounded-lg backdrop-blur-sm",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/30"
-                  : "bg-gradient-to-br from-blue-100 to-cyan-100 border border-blue-300"
-              )}>
+              <div className="p-4 rounded-lg backdrop-blur-sm bg-secondary/10 border border-secondary/30">
                 <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className={cn(
-                    "h-4 w-4",
-                    activeTheme === 'japanese' ? "text-blue-300" : "text-blue-600"
-                  )} />
-                  <div className={cn(
-                    "text-xs font-semibold",
-                    activeTheme === 'japanese' ? "text-blue-200" : "text-blue-700"
-                  )}>Savings Goal</div>
+                  <TrendingUp className="h-4 w-4 text-secondary" />
+                  <div className="text-xs font-semibold text-secondary">Savings Goal</div>
                 </div>
-                <div className={cn(
-                  "text-lg font-bold bg-clip-text text-transparent",
-                  activeTheme === 'japanese'
-                    ? "bg-gradient-to-r from-blue-300 to-cyan-300"
-                    : "bg-gradient-to-r from-blue-600 to-cyan-600"
-                )}>
+                <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-secondary to-accent">
                   Rp 0
                 </div>
               </div>
               
-              <div className={cn(
-                "p-4 rounded-lg backdrop-blur-sm",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-400/30"
-                  : "bg-gradient-to-br from-purple-100 to-pink-100 border border-purple-300"
-              )}>
+              <div className="p-4 rounded-lg backdrop-blur-sm bg-primary/10 border border-primary/30">
                 <div className="flex items-center gap-2 mb-2">
-                  <Target className={cn(
-                    "h-4 w-4",
-                    activeTheme === 'japanese' ? "text-purple-300" : "text-purple-600"
-                  )} />
-                  <div className={cn(
-                    "text-xs font-semibold",
-                    activeTheme === 'japanese' ? "text-purple-200" : "text-purple-700"
-                  )}>Achievement</div>
+                  <Target className="h-4 w-4 text-primary" />
+                  <div className="text-xs font-semibold text-primary">Achievement</div>
                 </div>
-                <div className={cn(
-                  "text-lg font-bold bg-clip-text text-transparent",
-                  activeTheme === 'japanese'
-                    ? "bg-gradient-to-r from-purple-300 to-pink-300"
-                    : "bg-gradient-to-r from-purple-600 to-pink-600"
-                )}>
+                <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
                   0%
                 </div>
               </div>
               
-              <div className={cn(
-                "p-4 rounded-lg backdrop-blur-sm",
-                activeTheme === 'japanese'
-                  ? "bg-gradient-to-br from-orange-500/20 to-amber-500/20 border border-orange-400/30"
-                  : "bg-gradient-to-br from-orange-100 to-amber-100 border border-orange-300"
-              )}>
+              <div className="p-4 rounded-lg backdrop-blur-sm bg-orange-500/10 border border-orange-500/30">
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar className={cn(
-                    "h-4 w-4",
-                    activeTheme === 'japanese' ? "text-orange-300" : "text-orange-600"
-                  )} />
-                  <div className={cn(
-                    "text-xs font-semibold",
-                    activeTheme === 'japanese' ? "text-orange-200" : "text-orange-700"
-                  )}>Months</div>
+                  <Calendar className="h-4 w-4 text-orange-600" />
+                  <div className="text-xs font-semibold text-orange-600">Months</div>
                 </div>
-                <div className={cn(
-                  "text-lg font-bold bg-clip-text text-transparent",
-                  activeTheme === 'japanese'
-                    ? "bg-gradient-to-r from-orange-300 to-amber-300"
-                    : "bg-gradient-to-r from-orange-600 to-amber-600"
-                )}>
+                <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-amber-600">
                   0/12
                 </div>
               </div>
