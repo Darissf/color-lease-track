@@ -7,23 +7,74 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useWhatsAppSettings } from '@/hooks/useWhatsAppSettings';
 
+type SessionStatus = 'WORKING' | 'STOPPED' | 'STARTING' | 'SCAN_QR_CODE' | 'FAILED' | 'UNKNOWN';
+
 export const WAHAQRScanner = () => {
   const { toast } = useToast();
   const { settings } = useWhatsAppSettings();
   const [qrCode, setQrCode] = useState<string | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'connected' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'connected' | 'error' | 'needs-start'>('loading');
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>('UNKNOWN');
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  const fetchQRCode = async () => {
+  const checkSessionStatus = async () => {
     if (!settings?.waha_api_url || !settings?.waha_session_name) {
       setError('Konfigurasi WAHA belum lengkap. Silakan isi di tab Konfigurasi.');
       setStatus('error');
-      return;
+      return false;
     }
 
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('waha-session-control', {
+        body: {
+          action: 'status',
+          sessionName: settings.waha_session_name
+        }
+      });
+
+      if (invokeError) throw invokeError;
+      
+      const currentStatus = data.status as SessionStatus;
+      setSessionStatus(currentStatus);
+
+      // If session is WORKING, already connected
+      if (currentStatus === 'WORKING') {
+        setStatus('connected');
+        setQrCode(null);
+        setAutoRefresh(false);
+        return false;
+      }
+
+      // If session is STOPPED, need to start first
+      if (currentStatus === 'STOPPED') {
+        setStatus('needs-start');
+        setError('Session belum dimulai. Silakan klik "Start Session" di atas terlebih dahulu.');
+        setAutoRefresh(false);
+        return false;
+      }
+
+      // If session is SCAN_QR_CODE or STARTING, we can fetch QR
+      if (currentStatus === 'SCAN_QR_CODE' || currentStatus === 'STARTING') {
+        return true;
+      }
+
+      return false;
+    } catch (err: any) {
+      console.error('Error checking session:', err);
+      setError(err.message || 'Gagal mengecek status session');
+      setStatus('error');
+      return false;
+    }
+  };
+
+  const fetchQRCode = async () => {
     setStatus('loading');
     setError(null);
+
+    // First check if session is in correct state
+    const canFetchQR = await checkSessionStatus();
+    if (!canFetchQR) return;
 
     try {
       const { data, error: invokeError } = await supabase.functions.invoke('waha-session-control', {
@@ -35,11 +86,7 @@ export const WAHAQRScanner = () => {
 
       if (invokeError) throw invokeError;
 
-      if (data.status === 'connected') {
-        setStatus('connected');
-        setQrCode(null);
-        setAutoRefresh(false);
-      } else if (data.qrCode) {
+      if (data.qrCode) {
         setQrCode(data.qrCode);
         setStatus('ready');
       } else if (data.error) {
@@ -58,7 +105,7 @@ export const WAHAQRScanner = () => {
   }, []);
 
   useEffect(() => {
-    if (!autoRefresh || status === 'connected') return;
+    if (!autoRefresh || status === 'connected' || status === 'needs-start') return;
 
     const interval = setInterval(() => {
       fetchQRCode();
@@ -75,6 +122,15 @@ export const WAHAQRScanner = () => {
             <Clock className="h-4 w-4 text-blue-500" />
             <AlertDescription className="text-blue-500">
               Memuat QR Code...
+            </AlertDescription>
+          </Alert>
+        );
+      case 'needs-start':
+        return (
+          <Alert className="border-yellow-500/20 bg-yellow-500/5">
+            <Clock className="h-4 w-4 text-yellow-500" />
+            <AlertDescription className="text-yellow-500">
+              {error || 'Session belum dimulai. Klik "Start Session" di atas terlebih dahulu.'}
             </AlertDescription>
           </Alert>
         );
@@ -143,14 +199,14 @@ export const WAHAQRScanner = () => {
       <div className="flex gap-2">
         <Button 
           onClick={fetchQRCode} 
-          disabled={status === 'loading'}
+          disabled={status === 'loading' || status === 'needs-start'}
           className="flex-1"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${status === 'loading' ? 'animate-spin' : ''}`} />
           Refresh QR Code
         </Button>
         
-        {status !== 'connected' && (
+        {status !== 'connected' && status !== 'needs-start' && (
           <Button
             variant={autoRefresh ? 'default' : 'outline'}
             onClick={() => setAutoRefresh(!autoRefresh)}
