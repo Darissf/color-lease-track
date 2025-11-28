@@ -132,6 +132,10 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Get session token for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
+
       // WAHA Installation Script
       const installScript = `#!/bin/bash
 set -e
@@ -188,18 +192,29 @@ echo "🎉 WAHA Installation Complete!"
 echo "Access WAHA at: http://${credentials.host}:3000"
 `;
 
-      // Send command to agent
-      const { data: executeData, error: executeError } = await supabase.functions.invoke(
-        'vps-agent-controller/execute',
+      // Send command to agent using direct fetch
+      const executeResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vps-agent-controller/execute`,
         {
-          body: {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+          },
+          body: JSON.stringify({
             agent_id: agentId,
             command: installScript
-          }
+          })
         }
       );
 
-      if (executeError) throw executeError;
+      if (!executeResponse.ok) {
+        const errorData = await executeResponse.json();
+        throw new Error(errorData.error || `HTTP ${executeResponse.status}`);
+      }
+
+      const executeData = await executeResponse.json();
 
       if (!executeData?.command_id) {
         throw new Error("Failed to send command to agent");
@@ -227,20 +242,23 @@ echo "Access WAHA at: http://${credentials.host}:3000"
         }
 
         try {
-          const { data: outputData, error: outputError } = await supabase.functions.invoke(
-            'vps-agent-controller/get-output',
+          const outputResponse = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vps-agent-controller/get-output?agent_id=${agentId}&command_id=${commandId}`,
             {
-              body: {
-                agent_id: agentId,
-                command_id: commandId
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
               }
             }
           );
 
-          if (outputError) {
-            console.error("Error fetching output:", outputError);
+          if (!outputResponse.ok) {
+            console.error("Error fetching output:", outputResponse.status);
             return;
           }
+
+          const outputData = await outputResponse.json();
 
           if (outputData?.output) {
             setTerminalOutput(prev => prev + outputData.output);
