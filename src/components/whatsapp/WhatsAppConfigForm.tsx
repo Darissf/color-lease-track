@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Loader2, Save, TestTube, Eye, EyeOff, CheckCircle, XCircle, AlertCircle, Copy, Info } from 'lucide-react';
 import { useWhatsAppSettings } from '@/hooks/useWhatsAppSettings';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const WhatsAppConfigForm = () => {
   const { settings, loading, saveSettings, testConnection, fetchSettings } = useWhatsAppSettings();
@@ -20,6 +21,7 @@ export const WhatsAppConfigForm = () => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isReconfiguring, setIsReconfiguring] = useState(false);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -59,6 +61,93 @@ export const WhatsAppConfigForm = () => {
       await testConnection();
     }
     setIsTesting(false);
+  };
+
+  const reconfigureWaha = async () => {
+    setIsReconfiguring(true);
+    try {
+      // Fetch VPS credentials to get agent_id and API key
+      const { data: vpsData, error: vpsError } = await supabase
+        .from('vps_credentials')
+        .select('id, host, waha_api_key')
+        .eq('is_default', true)
+        .single();
+
+      if (vpsError || !vpsData) {
+        toast({
+          title: 'Error',
+          description: 'VPS credentials tidak ditemukan. Pastikan VPS sudah terhubung.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const apiKey = vpsData.waha_api_key || formData.waha_api_key;
+      if (!apiKey) {
+        toast({
+          title: 'Error',
+          description: 'API key tidak ditemukan. Simpan konfigurasi terlebih dahulu.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Memulai Reconfigure',
+        description: 'Mengirim command ke VPS untuk restart WAHA container...',
+      });
+
+      // Send command to VPS agent to reconfigure WAHA
+      const { data: executeData, error: executeError } = await supabase.functions.invoke(
+        'vps-agent-controller',
+        {
+          body: {
+            action: 'execute',
+            agent_id: vpsData.id,
+            commands: `
+              docker stop waha 2>/dev/null || true
+              docker rm waha 2>/dev/null || true
+              docker run -d --name waha --restart=always -p 3000:3000 -e WHATSAPP_API_KEY=${apiKey} devlikeapro/waha:latest
+              echo "WAHA reconfigured successfully with API key"
+            `.trim()
+          }
+        }
+      );
+
+      if (executeError) {
+        toast({
+          title: 'Error',
+          description: `Gagal mengirim command: ${executeError.message}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Command Terkirim',
+        description: 'Menunggu WAHA restart (5 detik)...',
+      });
+
+      // Wait a bit for container to start
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // Test connection automatically
+      await testConnection();
+      
+      toast({
+        title: 'Berhasil',
+        description: '✅ WAHA berhasil di-reconfigure dengan API key yang benar!',
+      });
+    } catch (error: any) {
+      console.error('Reconfigure error:', error);
+      toast({
+        title: 'Error',
+        description: `Gagal reconfigure: ${error.message}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsReconfiguring(false);
+    }
   };
 
   const getStatusIcon = () => {
@@ -166,12 +255,32 @@ export const WhatsAppConfigForm = () => {
           )}
         </div>
         {settings?.error_message && (
-          <div className="mt-3 space-y-1">
+          <div className="mt-3 space-y-2">
             <p className="text-xs text-red-500">{settings.error_message}</p>
             {settings.error_message.includes('401') && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 rounded">
-                💡 <strong>Solusi:</strong> WAHA berjalan tanpa API key. Buka tab <strong>Setup</strong> dan klik tombol <strong>🔄 Reconfigure</strong> untuk restart container dengan API key yang benar.
-              </p>
+              <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg space-y-2">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  💡 <strong>Solusi:</strong> WAHA berjalan tanpa API key. Klik tombol di bawah untuk restart container dengan API key yang benar.
+                </p>
+                <Button
+                  onClick={reconfigureWaha}
+                  disabled={isReconfiguring}
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                >
+                  {isReconfiguring ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Reconfiguring...
+                    </>
+                  ) : (
+                    <>
+                      🔄 Reconfigure WAHA
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -246,10 +355,10 @@ export const WhatsAppConfigForm = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button
           onClick={handleTest}
-          disabled={isTesting || !formData.waha_api_url}
+          disabled={isTesting || isReconfiguring || !formData.waha_api_url}
           variant="outline"
         >
           {isTesting ? (
@@ -266,7 +375,7 @@ export const WhatsAppConfigForm = () => {
         </Button>
         <Button
           onClick={handleSave}
-          disabled={isSaving || !formData.waha_api_url}
+          disabled={isSaving || isReconfiguring || !formData.waha_api_url}
         >
           {isSaving ? (
             <>
@@ -277,6 +386,22 @@ export const WhatsAppConfigForm = () => {
             <>
               <Save className="h-4 w-4 mr-2" />
               Simpan Konfigurasi
+            </>
+          )}
+        </Button>
+        <Button
+          onClick={reconfigureWaha}
+          disabled={isReconfiguring || isTesting || isSaving}
+          variant="secondary"
+        >
+          {isReconfiguring ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Reconfiguring...
+            </>
+          ) : (
+            <>
+              🔄 Reconfigure WAHA
             </>
           )}
         </Button>
