@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowLeft, Pencil, MessageSquare, ChevronRight, FileText, Mail, BarChart3, Palette, LayoutDashboard, Edit3, Ban, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Shield, ArrowLeft, Pencil, MessageSquare, ChevronRight, FileText, Mail, BarChart3, Palette, LayoutDashboard, Edit3, Ban, Trash2, CheckCircle2, XCircle, Brain } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppTheme } from "@/contexts/AppThemeContext";
@@ -382,6 +382,26 @@ const AdminSettings = () => {
               </h3>
               <p className="text-xs text-muted-foreground">
                 Kelola konten dengan versi simpel atau pro
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground group-hover:text-primary" />
+          </div>
+        </Card>
+
+        <Card 
+          className="p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
+          onClick={() => navigate("/vip/settings/ai")}
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <Brain className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                AI Management
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Kelola AI providers & konfigurasi ChatBot/AI Chat
               </p>
             </div>
             <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground group-hover:text-primary" />
