@@ -8,7 +8,7 @@ import { Loader2, Save, TestTube, Eye, EyeOff, CheckCircle, XCircle, AlertCircle
 import { useWhatsAppSettings } from '@/hooks/useWhatsAppSettings';
 
 export const WhatsAppConfigForm = () => {
-  const { settings, loading, saveSettings, testConnection } = useWhatsAppSettings();
+  const { settings, loading, saveSettings, testConnection, fetchSettings } = useWhatsAppSettings();
   const [formData, setFormData] = useState({
     waha_api_url: '',
     waha_api_key: '',
@@ -18,6 +18,11 @@ export const WhatsAppConfigForm = () => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+
+  // Auto-refresh settings when component mounts (in case settings were just saved)
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     if (settings) {

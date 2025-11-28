@@ -40,6 +40,8 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
   const [agentId, setAgentId] = useState<string>("");
   const [terminalOutput, setTerminalOutput] = useState<string>("");
   const [installComplete, setInstallComplete] = useState(false);
+  const [wahaApiKey, setWahaApiKey] = useState<string>("");
+  const [wahaUrl, setWahaUrl] = useState<string>("");
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
@@ -136,7 +138,12 @@ export const OneClickInstaller = ({ credentials, onSuccess }: OneClickInstallerP
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No active session");
 
-      // WAHA Installation Script
+      // Auto-generate WAHA API Key
+      const generatedApiKey = crypto.randomUUID();
+      setWahaApiKey(generatedApiKey);
+      setWahaUrl(`http://${credentials.host}:3000`);
+
+      // WAHA Installation Script with API Key
       const installScript = `#!/bin/bash
 set -e
 
@@ -167,9 +174,10 @@ docker run -d --name waha \\
   --restart=always \\
   -p 3000:3000 \\
   -e WHATSAPP_HOOK_EVENTS=* \\
+  -e WHATSAPP_API_KEY=${generatedApiKey} \\
   devlikeapro/waha:latest
 
-echo "✅ WAHA container started"
+echo "✅ WAHA container started with API Key"
 
 echo ""
 echo "=== Step 5: Opening Firewall Port ==="
@@ -277,10 +285,50 @@ echo "Access WAHA at: http://${credentials.host}:3000"
               setInstalling(false);
               setInstallComplete(true);
               
-              toast({
-                title: "✅ Installation Complete!",
-                description: `WAHA is running at http://${credentials.host}:3000`,
-              });
+              // Auto-save WAHA configuration to database
+              try {
+                // Save to whatsapp_settings
+                const { error: settingsError } = await supabase
+                  .from('whatsapp_settings')
+                  .upsert({
+                    user_id: user.id,
+                    waha_api_url: `http://${credentials.host}:3000`,
+                    waha_api_key: generatedApiKey,
+                    waha_session_name: 'default',
+                    is_active: true,
+                    connection_status: 'pending',
+                  }, {
+                    onConflict: 'user_id',
+                  });
+
+                if (settingsError) {
+                  console.error('Error saving whatsapp_settings:', settingsError);
+                }
+
+                // Update vps_credentials with waha_api_key
+                const { error: credError } = await supabase
+                  .from('vps_credentials')
+                  .update({ 
+                    waha_api_key: generatedApiKey,
+                    waha_session_name: 'default',
+                  })
+                  .eq('id', credentials.id);
+
+                if (credError) {
+                  console.error('Error updating vps_credentials:', credError);
+                }
+
+                toast({
+                  title: "✅ Installation Complete!",
+                  description: `WAHA running & configuration saved automatically!`,
+                });
+              } catch (saveError) {
+                console.error('Error auto-saving config:', saveError);
+                toast({
+                  title: "✅ Installation Complete!",
+                  description: `WAHA is running at http://${credentials.host}:3000`,
+                });
+              }
 
               if (onSuccess) onSuccess();
             }
@@ -337,22 +385,78 @@ echo "Access WAHA at: http://${credentials.host}:3000"
             </p>
           </div>
         ) : installComplete ? (
-          <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-2">
-              <CheckCircle2 className="w-5 h-5" />
-              <p className="font-medium">🎉 Installation Complete!</p>
+          <div className="space-y-4">
+            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-3">
+                <CheckCircle2 className="w-5 h-5" />
+                <p className="font-medium">🎉 Installation Complete!</p>
+              </div>
+              <p className="text-sm text-green-600 dark:text-green-400 mb-4">
+                WAHA has been successfully installed and configured automatically.
+              </p>
+              
+              {/* Configuration Details */}
+              <div className="bg-white dark:bg-slate-900 rounded-lg p-4 space-y-3 border border-green-300 dark:border-green-700">
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">WAHA URL</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded flex-1">
+                      {wahaUrl}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(wahaUrl);
+                        toast({ title: "✅ URL Copied!" });
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">API Key (Auto-Generated)</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded flex-1 truncate">
+                      {wahaApiKey}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(wahaApiKey);
+                        toast({ title: "✅ API Key Copied!" });
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Session Name</p>
+                  <code className="text-sm font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded block">
+                    default
+                  </code>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-green-300 dark:border-green-700">
+                <p className="text-xs text-green-600 dark:text-green-400 mb-2">
+                  ✅ Configuration saved automatically to database
+                </p>
+                <a 
+                  href={`http://${credentials.host}:3000`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-green-700 dark:text-green-300 hover:underline inline-block"
+                >
+                  🔗 Access WAHA Dashboard
+                </a>
+              </div>
             </div>
-            <p className="text-sm text-green-600 dark:text-green-400 mb-2">
-              WAHA has been successfully installed and is running on your VPS.
-            </p>
-            <a 
-              href={`http://${credentials.host}:3000`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-green-700 dark:text-green-300 hover:underline"
-            >
-              🔗 Access WAHA Dashboard: http://{credentials.host}:3000
-            </a>
           </div>
         ) : (
           <>
