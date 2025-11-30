@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import { PaginationControls } from "@/components/shared/PaginationControls";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { CalendarIcon, Plus, Edit, Trash2, Check, Repeat } from "lucide-react";
+import { CalendarIcon, Plus, Edit, Trash2, Check, Repeat, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useAppTheme } from "@/contexts/AppThemeContext";
@@ -55,6 +56,7 @@ interface RecurringIncome {
 export default function RecurringIncome() {
   const { user } = useAuth();
   const { activeTheme } = useAppTheme();
+  const navigate = useNavigate();
   const [incomes, setIncomes] = useState<RecurringIncome[]>([]);
   const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -558,7 +560,7 @@ export default function RecurringIncome() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">No</TableHead>
+                   <TableHead className="w-12">No</TableHead>
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Invoice</TableHead>
                   <TableHead>Kelompok</TableHead>
@@ -567,6 +569,7 @@ export default function RecurringIncome() {
                   <TableHead>Nominal</TableHead>
                   <TableHead>Tanggal Lunas</TableHead>
                   <TableHead>Catatan</TableHead>
+                  <TableHead className="text-center">Input Data</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -574,7 +577,7 @@ export default function RecurringIncome() {
               <TableBody>
                 {paginatedIncomes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       Belum ada data pemasukan tetap
                     </TableCell>
                   </TableRow>
@@ -585,7 +588,14 @@ export default function RecurringIncome() {
                       <TableCell className="whitespace-nowrap">
                         {formatDateRange(income.rental_date_start, income.rental_date_end)}
                       </TableCell>
-                      <TableCell>{income.invoice}</TableCell>
+                      <TableCell>
+                        <button
+                          onClick={() => navigate(`/vip/recurring-income/${income.id}`)}
+                          className="text-primary hover:underline font-semibold"
+                        >
+                          {income.invoice}
+                        </button>
+                      </TableCell>
                       <TableCell>{income.client_groups?.nama || "-"}</TableCell>
                       <TableCell>{income.keterangan || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -645,6 +655,16 @@ export default function RecurringIncome() {
                             {income.catatan || "Klik untuk tambah catatan..."}
                           </div>
                         )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/vip/recurring-income/${income.id}/scaffolding`)}
+                        >
+                          <Package className="h-4 w-4 mr-1" />
+                          Input Data
+                        </Button>
                       </TableCell>
                       <TableCell>
                         {income.is_paid ? (

@@ -1812,13 +1812,22 @@ export type Database = {
           id: string
           invoice: string
           is_paid: boolean | null
+          jenis_scaffolding: string | null
+          jumlah_unit: number | null
           keterangan: string | null
+          lokasi_proyek: string | null
           nominal: number
+          ongkos_transport: number | null
           paid_date: string | null
+          penanggung_jawab: string | null
           period_end_month: string
           period_start_month: string
           rental_date_end: string
           rental_date_start: string
+          status_pengambilan: string | null
+          status_pengiriman: string | null
+          tanggal_pengambilan: string | null
+          tanggal_pengiriman: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1830,13 +1839,22 @@ export type Database = {
           id?: string
           invoice: string
           is_paid?: boolean | null
+          jenis_scaffolding?: string | null
+          jumlah_unit?: number | null
           keterangan?: string | null
+          lokasi_proyek?: string | null
           nominal?: number
+          ongkos_transport?: number | null
           paid_date?: string | null
+          penanggung_jawab?: string | null
           period_end_month: string
           period_start_month: string
           rental_date_end: string
           rental_date_start: string
+          status_pengambilan?: string | null
+          status_pengiriman?: string | null
+          tanggal_pengambilan?: string | null
+          tanggal_pengiriman?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1848,13 +1866,22 @@ export type Database = {
           id?: string
           invoice?: string
           is_paid?: boolean | null
+          jenis_scaffolding?: string | null
+          jumlah_unit?: number | null
           keterangan?: string | null
+          lokasi_proyek?: string | null
           nominal?: number
+          ongkos_transport?: number | null
           paid_date?: string | null
+          penanggung_jawab?: string | null
           period_end_month?: string
           period_start_month?: string
           rental_date_end?: string
           rental_date_start?: string
+          status_pengambilan?: string | null
+          status_pengiriman?: string | null
+          tanggal_pengambilan?: string | null
+          tanggal_pengiriman?: string | null
           updated_at?: string | null
           user_id?: string
         }

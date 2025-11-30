@@ -24,7 +24,8 @@ import {
   ExternalLink,
   Clock,
   Receipt,
-  TrendingUp
+  TrendingUp,
+  Package
 } from "lucide-react";
 import { toast } from "sonner";
 

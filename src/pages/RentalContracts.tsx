@@ -12,7 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PaginationControls } from "@/components/shared/PaginationControls";
-import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users, Package } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
@@ -69,6 +70,7 @@ interface BankAccount {
 const RentalContracts = () => {
   const { user } = useAuth();
   const { activeTheme } = useAppTheme();
+  const navigate = useNavigate();
   const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
   const [rentalContracts, setRentalContracts] = useState<RentalContract[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -1287,8 +1289,7 @@ const RentalContracts = () => {
                 <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Periode</TableHead>
                 <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Status</TableHead>
                 <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
-                <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Lunas</TableHead>
-                <TableHead className={cn("text-center w-32 font-semibold", isCompactMode && "py-1 text-xs")}>Tanggal Lunas</TableHead>
+                <TableHead className={cn("text-center font-semibold", isCompactMode && "py-1 text-xs")}>Input Data</TableHead>
                 <TableHead className={cn("text-center w-24 font-semibold", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -1357,9 +1358,12 @@ const RentalContracts = () => {
                         </Popover>
                       </TableCell>
                       <TableCell className={cn("font-medium whitespace-nowrap", isCompactMode && "py-1 px-2 text-xs")}>
-                        <span className="truncate block max-w-[120px]" title={contract.invoice || "-"}>
+                        <button
+                          onClick={() => navigate(`/vip/contracts/${contract.id}`)}
+                          className="text-primary hover:underline"
+                        >
                           {contract.invoice || "-"}
-                        </span>
+                        </button>
                       </TableCell>
                       <TableCell className={cn(isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="truncate block max-w-[200px]" title={group?.nama || "-"}>

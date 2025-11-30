@@ -46,6 +46,9 @@ import CloudUsageDashboard from "./pages/CloudUsageDashboard";
 import ChatBotAI from "./pages/ChatBotAI";
 import ClientDashboard from "./pages/ClientDashboard";
 import ContractDetail from "./pages/ContractDetail";
+import ContractScaffoldingInput from "./pages/ContractScaffoldingInput";
+import RecurringIncomeDetail from "./pages/RecurringIncomeDetail";
+import RecurringIncomeScaffoldingInput from "./pages/RecurringIncomeScaffoldingInput";
 import NotFound from "./pages/NotFound";
 import BudgetTracker from "./pages/BudgetTracker";
 import EditPage from "./pages/EditPage";
@@ -122,8 +125,11 @@ const App = () => (
                               <Route path="/blog-categories" element={<BlogCategories />} />
                               <Route path="/client-groups" element={<ClientGroups />} />
                               <Route path="/rental-contracts" element={<RentalContracts />} />
-                              <Route path="/client-dashboard" element={<ClientDashboard />} />
-                              <Route path="/contract/:id" element={<ContractDetail />} />
+                              <Route path="/contracts/:id" element={<ContractDetail />} />
+                              <Route path="/contracts/:id/scaffolding" element={<ContractScaffoldingInput />} />
+                              <Route path="/recurring-income" element={<RecurringIncome />} />
+                              <Route path="/recurring-income/:id" element={<RecurringIncomeDetail />} />
+                              <Route path="/recurring-income/:id/scaffolding" element={<RecurringIncomeScaffoldingInput />} />
                               <Route path="/settings/landing" element={<LandingSettings />} />
                               <Route path="/portfolio-manager" element={<PortfolioManager />} />
                               <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
