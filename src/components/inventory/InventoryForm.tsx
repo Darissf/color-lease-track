@@ -15,7 +15,6 @@ interface InventoryFormData {
   category: string;
   total_quantity: number;
   minimum_stock: number;
-  unit_price: number;
   unit_type: string;
   description: string;
 }
@@ -52,7 +51,6 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
       category: "Scaffolding",
       total_quantity: 0,
       minimum_stock: 0,
-      unit_price: 0,
       unit_type: "unit",
       description: "",
     },
@@ -171,7 +169,7 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="total_quantity">Total Stok *</Label>
               <Input
@@ -204,19 +202,6 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
               {errors.minimum_stock && (
                 <p className="text-sm text-destructive mt-1">{errors.minimum_stock.message}</p>
               )}
-            </div>
-
-            <div>
-              <Label htmlFor="unit_price">Harga Satuan</Label>
-              <Input
-                id="unit_price"
-                type="number"
-                {...register("unit_price", { 
-                  valueAsNumber: true,
-                  min: { value: 0, message: "Minimal 0" }
-                })}
-                placeholder="50000"
-              />
             </div>
           </div>
 
