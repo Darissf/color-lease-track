@@ -7,6 +7,8 @@ import { Plus, Search, Package, AlertCircle, Edit, Trash2, History } from "lucid
 import { InventorySummaryCards } from "@/components/inventory/InventorySummaryCards";
 import { InventoryForm } from "@/components/inventory/InventoryForm";
 import { InventoryMovementHistory } from "@/components/inventory/InventoryMovementHistory";
+import { RelatedContracts } from "@/components/inventory/RelatedContracts";
+import { RelatedIncome } from "@/components/inventory/RelatedIncome";
 import { PaginationControls } from "@/components/shared/PaginationControls";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -223,9 +225,11 @@ export default function InventoryStock() {
       <Tabs defaultValue="items" className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="shrink-0">
           <TabsTrigger value="items">Daftar Barang</TabsTrigger>
+          <TabsTrigger value="contracts">Kontrak Terkait</TabsTrigger>
+          <TabsTrigger value="income">Pemasukan</TabsTrigger>
           <TabsTrigger value="history">
             <History className="h-4 w-4 mr-2" />
-            Riwayat Pergerakan
+            Riwayat
           </TabsTrigger>
         </TabsList>
 
@@ -267,7 +271,6 @@ export default function InventoryStock() {
                   <TableHead className="text-right">Total Stok</TableHead>
                   <TableHead className="text-right">Tersedia</TableHead>
                   <TableHead className="text-right">Disewa</TableHead>
-                  <TableHead className="text-right">Harga</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -275,13 +278,13 @@ export default function InventoryStock() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       Memuat data...
                     </TableCell>
                   </TableRow>
                 ) : currentItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       <Package className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">
                         {searchQuery || categoryFilter !== "all"
@@ -321,9 +324,6 @@ export default function InventoryStock() {
                         </TableCell>
                         <TableCell className="text-right text-blue-600">
                           {item.rented_quantity || 0} {item.unit_type}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(item.unit_price)}
                         </TableCell>
                         <TableCell>
                           {lowStock && (
@@ -376,6 +376,14 @@ export default function InventoryStock() {
               />
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="contracts" className="flex-1 overflow-auto mt-4">
+          <RelatedContracts items={items} />
+        </TabsContent>
+
+        <TabsContent value="income" className="flex-1 overflow-auto mt-4">
+          <RelatedIncome items={items} />
         </TabsContent>
 
         <TabsContent value="history" className="flex-1 overflow-auto mt-4">
