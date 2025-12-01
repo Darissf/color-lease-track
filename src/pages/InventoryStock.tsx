@@ -215,9 +215,6 @@ export default function InventoryStock() {
               <p className="text-sm text-muted-foreground">
                 Kelola persediaan scaffolding dan aksesoris
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Debug: Items: {items.length} | Filtered: {filteredItems.length} | Current: {currentItems.length}
-              </p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -288,26 +285,24 @@ export default function InventoryStock() {
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
-                  <TableHead>Kode</TableHead>
-                  <TableHead>Nama Barang</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead className="text-right">Total Stok</TableHead>
-                  <TableHead className="text-right">Tersedia</TableHead>
-                  <TableHead className="text-right">Disewa</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="w-16">No</TableHead>
+                  <TableHead>Kode Barang</TableHead>
+                  <TableHead>Nama</TableHead>
+                  <TableHead className="text-right">Stok Barang</TableHead>
+                  <TableHead className="text-right">Jumlah Stok</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       Memuat data...
                     </TableCell>
                   </TableRow>
                 ) : currentItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       <Package className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">
                         {searchQuery || categoryFilter !== "all"
@@ -317,12 +312,16 @@ export default function InventoryStock() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  currentItems.map((item) => {
+                  currentItems.map((item, index) => {
                     const available = getAvailableQuantity(item);
                     const lowStock = isLowStock(item);
+                    const rowNumber = (currentPage - 1) * itemsPerPage + index + 1;
 
                     return (
                       <TableRow key={item.id}>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {rowNumber}
+                        </TableCell>
                         <TableCell className="font-mono text-sm">
                           {item.item_code}
                         </TableCell>
@@ -334,27 +333,13 @@ export default function InventoryStock() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{item.category}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {item.total_quantity} {item.unit_type}
-                        </TableCell>
                         <TableCell className="text-right">
-                          <span className={lowStock ? "text-destructive font-medium" : ""}>
+                          <span className={lowStock ? "text-destructive font-semibold" : ""}>
                             {available} {item.unit_type}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right text-blue-600">
-                          {item.rented_quantity || 0} {item.unit_type}
-                        </TableCell>
-                        <TableCell>
-                          {lowStock && (
-                            <Badge variant="destructive" className="gap-1">
-                              <AlertCircle className="h-3 w-3" />
-                              Stok Rendah
-                            </Badge>
-                          )}
+                        <TableCell className="text-right font-medium">
+                          {item.total_quantity} {item.unit_type}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
