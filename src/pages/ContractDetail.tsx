@@ -108,7 +108,7 @@ export default function ContractDetail() {
           bank_name,
           account_number
         ),
-        inventory_items (
+        inventory_items!inventory_item_id (
           id,
           item_code,
           item_name,
@@ -121,6 +121,12 @@ export default function ContractDetail() {
       .eq("id", id)
       .eq("user_id", user.id)
       .single();
+
+    // Debug logging
+    console.log('Contract Data:', contractData);
+    console.log('Contract Error:', contractError);
+    console.log('Inventory Items:', contractData?.inventory_items);
+    console.log('Inventory Item ID:', contractData?.inventory_item_id);
 
     if (contractError) {
       console.error("Error fetching contract:", contractError);
