@@ -16,6 +16,7 @@ interface ContractInfo {
   client_name: string;
   start_date: string;
   end_date: string;
+  inventory_item_id: string | null;
   jenis_scaffolding: string | null;
   jumlah_unit: number | null;
   lokasi_detail: string | null;
@@ -42,6 +43,7 @@ export default function ContractScaffoldingInput() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   
   const [formData, setFormData] = useState({
+    inventory_item_id: "",
     jenis_scaffolding: "",
     jumlah_unit: "",
     lokasi_detail: "",
@@ -69,6 +71,7 @@ export default function ContractScaffoldingInput() {
           invoice,
           start_date,
           end_date,
+          inventory_item_id,
           jenis_scaffolding,
           jumlah_unit,
           lokasi_detail,
@@ -94,6 +97,7 @@ export default function ContractScaffoldingInput() {
 
       // Set form data from existing contract data
       setFormData({
+        inventory_item_id: contract.inventory_item_id || "",
         jenis_scaffolding: contract.jenis_scaffolding || "",
         jumlah_unit: contract.jumlah_unit?.toString() || "",
         lokasi_detail: contract.lokasi_detail || "",
@@ -129,6 +133,7 @@ export default function ContractScaffoldingInput() {
       setSaving(true);
 
       const updateData = {
+        inventory_item_id: formData.inventory_item_id || null,
         jenis_scaffolding: formData.jenis_scaffolding || null,
         jumlah_unit: formData.jumlah_unit ? parseInt(formData.jumlah_unit) : null,
         lokasi_detail: formData.lokasi_detail || null,
@@ -239,17 +244,22 @@ export default function ContractScaffoldingInput() {
                   Jenis Scaffolding <span className="text-destructive">*</span>
                 </Label>
                 <Select
-                  value={formData.jenis_scaffolding}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, jenis_scaffolding: value })
-                  }
+                  value={formData.inventory_item_id}
+                  onValueChange={(itemId) => {
+                    const selectedItem = inventoryItems.find((i) => i.id === itemId);
+                    setFormData({
+                      ...formData,
+                      inventory_item_id: itemId,
+                      jenis_scaffolding: selectedItem?.item_name || "",
+                    });
+                  }}
                 >
                   <SelectTrigger id="jenis_scaffolding">
                     <SelectValue placeholder="Pilih jenis scaffolding" />
                   </SelectTrigger>
                   <SelectContent>
                     {inventoryItems.map((item) => (
-                      <SelectItem key={item.id} value={item.item_name}>
+                      <SelectItem key={item.id} value={item.id}>
                         {item.item_name}
                       </SelectItem>
                     ))}
