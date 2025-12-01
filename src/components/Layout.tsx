@@ -1,4 +1,4 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat, MessageSquare, Package, Receipt, CalendarClock } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat, MessageSquare, Package, Receipt, CalendarClock, Mail } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -29,6 +29,7 @@ const navItems = [
 
   const adminNavItems = [
     { title: "AI Chat", url: "/vip/ai-chat", icon: MessageSquare, badge: "New", badgeVariant: "default" as const, description: "Chat dengan berbagai AI provider (Admin Only)", adminOnly: true },
+    { title: "Mail Inbox", url: "/vip/mail", icon: Mail, badge: "New", badgeVariant: "default" as const, description: "Kelola email masuk domain", adminOnly: true },
     { title: "Pengaturan", url: "/vip/settings", icon: Settings, description: "Konfigurasi pengaturan aplikasi" },
     { title: "AI Settings", url: "/vip/settings/ai", icon: Brain, badge: "AI", badgeVariant: "ai" as const, description: "Konfigurasi fitur AI dan model" },
     { title: "Admin Settings", url: "/vip/settings/admin", icon: User2, superAdminOnly: true, badge: "Super", badgeVariant: "destructive" as const, description: "Kelola pengguna dan hak akses sistem" },
