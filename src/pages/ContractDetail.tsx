@@ -45,6 +45,9 @@ interface Contract {
   bank_account_id: string | null;
   google_maps_link: string | null;
   notes: string | null;
+  inventory_item_id: string | null;
+  jumlah_unit: number | null;
+  jenis_scaffolding: string | null;
   client_groups?: {
     nama: string;
     nomor_telepon: string;
@@ -52,6 +55,15 @@ interface Contract {
   bank_accounts?: {
     bank_name: string;
     account_number: string;
+  };
+  inventory_items?: {
+    id: string;
+    item_code: string;
+    item_name: string;
+    category: string;
+    unit_price: number;
+    unit_type: string;
+    description: string | null;
   };
 }
 
@@ -95,6 +107,15 @@ export default function ContractDetail() {
         bank_accounts (
           bank_name,
           account_number
+        ),
+        inventory_items (
+          id,
+          item_code,
+          item_name,
+          category,
+          unit_price,
+          unit_type,
+          description
         )
       `)
       .eq("id", id)
@@ -466,6 +487,87 @@ export default function ContractDetail() {
               </CardContent>
             </Card>
           )}
+
+          {/* Rincian Stok Barang */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Rincian Stok Barang
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {contract.inventory_items ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Kode Barang</p>
+                      <p className="font-semibold">{contract.inventory_items.item_code}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Nama Barang</p>
+                      <p className="font-semibold">{contract.inventory_items.item_name}</p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Kategori</p>
+                      <p className="font-semibold">{contract.inventory_items.category}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Satuan</p>
+                      <p className="font-semibold">{contract.inventory_items.unit_type}</p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <p className="text-sm text-muted-foreground">Jumlah Unit Disewa</p>
+                    <p className="font-bold text-xl text-primary">
+                      {contract.jumlah_unit} {contract.inventory_items.unit_type}
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <p className="text-sm text-muted-foreground">Harga Satuan</p>
+                    <p className="font-semibold">
+                      {formatRupiah(contract.inventory_items.unit_price)} / {contract.inventory_items.unit_type}
+                    </p>
+                  </div>
+
+                  {contract.inventory_items.description && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Deskripsi</p>
+                        <p className="mt-1">{contract.inventory_items.description}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-3 text-yellow-500 opacity-50" />
+                  <p className="text-muted-foreground mb-4">
+                    Kontrak ini belum terhubung dengan item inventory
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/vip/contract-scaffolding-input?edit=${id}`)}
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Hubungkan ke Inventory
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column - Summary */}
