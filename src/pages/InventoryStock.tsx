@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Package, AlertCircle, Edit, Trash2, History } from "lucide-react";
+import { Plus, Search, Package, AlertCircle, Edit, Trash2, History, RefreshCw } from "lucide-react";
 import { InventorySummaryCards } from "@/components/inventory/InventorySummaryCards";
 import { InventoryForm } from "@/components/inventory/InventoryForm";
 import { InventoryMovementHistory } from "@/components/inventory/InventoryMovementHistory";
@@ -68,20 +68,25 @@ export default function InventoryStock() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
+      console.log("🔄 Fetching inventory items for user:", user.id);
       fetchItems();
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     filterItems();
   }, [items, searchQuery, categoryFilter]);
 
   const fetchItems = async () => {
-    if (!user) return;
+    if (!user?.id) {
+      console.log("⚠️ No user ID available");
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log("📦 Fetching inventory items...");
 
       // Fetch inventory items
       const { data: itemsData, error: itemsError } = await supabase
@@ -92,6 +97,7 @@ export default function InventoryStock() {
         .order("item_code");
 
       if (itemsError) throw itemsError;
+      console.log("✅ Fetched inventory items:", itemsData?.length || 0, "items");
 
       // Fetch rental quantities (sudah_kirim but not sudah_diambil)
       const { data: contractsData, error: contractsError } = await supabase
@@ -116,9 +122,10 @@ export default function InventoryStock() {
         rented_quantity: rentedMap.get(item.item_name) || 0,
       })) || [];
 
+      console.log("✅ Final items with rented quantities:", itemsWithRented);
       setItems(itemsWithRented);
     } catch (error) {
-      console.error("Error fetching inventory:", error);
+      console.error("❌ Error fetching inventory:", error);
       toast.error("Gagal memuat data stok barang");
     } finally {
       setLoading(false);
@@ -203,10 +210,16 @@ export default function InventoryStock() {
               </p>
             </div>
           </div>
-          <Button onClick={() => { setEditData(null); setShowForm(true); }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah Barang
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={fetchItems} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button onClick={() => { setEditData(null); setShowForm(true); }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Barang
+            </Button>
+          </div>
         </div>
       </div>
 
