@@ -2078,6 +2078,69 @@ export type Database = {
         }
         Relationships: []
       }
+      mail_inbox: {
+        Row: {
+          attachments: Json | null
+          bcc: string[] | null
+          body_html: string | null
+          body_text: string | null
+          cc: string[] | null
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          email_id: string
+          from_address: string
+          from_name: string | null
+          id: string
+          is_deleted: boolean | null
+          is_read: boolean | null
+          is_starred: boolean | null
+          received_at: string
+          subject: string | null
+          to_address: string
+        }
+        Insert: {
+          attachments?: Json | null
+          bcc?: string[] | null
+          body_html?: string | null
+          body_text?: string | null
+          cc?: string[] | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email_id: string
+          from_address: string
+          from_name?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          received_at?: string
+          subject?: string | null
+          to_address: string
+        }
+        Update: {
+          attachments?: Json | null
+          bcc?: string[] | null
+          body_html?: string | null
+          body_text?: string | null
+          cc?: string[] | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email_id?: string
+          from_address?: string
+          from_name?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          received_at?: string
+          subject?: string | null
+          to_address?: string
+        }
+        Relationships: []
+      }
       meta_ads_settings: {
         Row: {
           access_token: string | null

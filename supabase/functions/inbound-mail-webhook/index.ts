@@ -1,0 +1,123 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.80.0';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const payload = await req.json();
+    console.log('Received webhook:', JSON.stringify(payload, null, 2));
+
+    // Only process email.received events
+    if (payload.type !== 'email.received') {
+      console.log('Ignored event type:', payload.type);
+      return new Response(JSON.stringify({ message: 'Event ignored' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const emailData = payload.data;
+
+    // Parse from address
+    const parseEmailAddress = (emailString: string) => {
+      // Handle formats like "John Doe <john@example.com>" or "john@example.com"
+      const match = emailString.match(/^(.+?)\s*<(.+?)>$/);
+      if (match) {
+        return {
+          name: match[1].trim().replace(/^["']|["']$/g, ''),
+          email: match[2].trim(),
+        };
+      }
+      return {
+        name: null,
+        email: emailString.trim(),
+      };
+    };
+
+    const fromParsed = parseEmailAddress(emailData.from);
+    const toAddress = Array.isArray(emailData.to) ? emailData.to[0] : emailData.to;
+
+    // Fetch full email content from Resend API
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    let bodyHtml = emailData.html || '';
+    let bodyText = emailData.text || '';
+
+    if (resendApiKey && emailData.id) {
+      try {
+        const emailDetailResponse = await fetch(
+          `https://api.resend.com/emails/${emailData.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${resendApiKey}`,
+              Accept: 'application/json',
+            },
+          }
+        );
+
+        if (emailDetailResponse.ok) {
+          const emailDetail = await emailDetailResponse.json();
+          bodyHtml = emailDetail.html || bodyHtml;
+          bodyText = emailDetail.text || bodyText;
+          console.log('Fetched full email content from Resend API');
+        }
+      } catch (error) {
+        console.error('Error fetching email from Resend API:', error);
+        // Continue with webhook data
+      }
+    }
+
+    // Insert into database
+    const { data, error } = await supabase.from('mail_inbox').insert({
+      email_id: emailData.id || `webhook-${Date.now()}`,
+      from_address: fromParsed.email,
+      from_name: fromParsed.name,
+      to_address: toAddress,
+      cc: emailData.cc || [],
+      bcc: emailData.bcc || [],
+      subject: emailData.subject || '(No Subject)',
+      body_text: bodyText,
+      body_html: bodyHtml,
+      attachments: emailData.attachments || [],
+      is_read: false,
+      is_starred: false,
+      received_at: emailData.created_at || new Date().toISOString(),
+    });
+
+    if (error) {
+      console.error('Database error:', error);
+      throw error;
+    }
+
+    console.log('Email saved successfully:', data);
+
+    return new Response(
+      JSON.stringify({ success: true, message: 'Email received and stored' }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+});

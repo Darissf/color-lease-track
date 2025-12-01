@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.vps-agent-controller]
 verify_jwt = false
+
+[functions.inbound-mail-webhook]
+verify_jwt = false
