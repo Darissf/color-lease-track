@@ -55,7 +55,7 @@ interface InventoryItem {
 }
 
 export default function InventoryStock() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin, isAdmin } = useAuth();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,23 +90,35 @@ export default function InventoryStock() {
       console.log("📦 Fetching inventory items...");
 
       // Fetch inventory items
-      const { data: itemsData, error: itemsError } = await supabase
+      let itemsQuery = supabase
         .from("inventory_items")
         .select("*")
-        .eq("user_id", user.id)
         .eq("is_active", true)
         .order("item_code");
+
+      // Only filter by user_id for regular users (not admin/super_admin)
+      if (!isSuperAdmin && !isAdmin) {
+        itemsQuery = itemsQuery.eq("user_id", user.id);
+      }
+
+      const { data: itemsData, error: itemsError } = await itemsQuery;
 
       if (itemsError) throw itemsError;
       console.log("✅ Fetched inventory items:", itemsData?.length || 0, "items");
 
       // Fetch rental quantities (sudah_kirim but not sudah_diambil)
-      const { data: contractsData, error: contractsError } = await supabase
+      let contractsQuery = supabase
         .from("rental_contracts")
         .select("jenis_scaffolding, jumlah_unit")
-        .eq("user_id", user.id)
         .eq("status_pengiriman", "sudah_kirim")
         .neq("status_pengambilan", "sudah_diambil");
+
+      // Only filter by user_id for regular users (not admin/super_admin)
+      if (!isSuperAdmin && !isAdmin) {
+        contractsQuery = contractsQuery.eq("user_id", user.id);
+      }
+
+      const { data: contractsData, error: contractsError } = await contractsQuery;
 
       if (contractsError) throw contractsError;
 
