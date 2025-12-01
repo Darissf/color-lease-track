@@ -2634,6 +2634,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_rental_contracts_inventory_item"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "rental_contracts_bank_account_id_fkey"
             columns: ["bank_account_id"]
             isOneToOne: false
