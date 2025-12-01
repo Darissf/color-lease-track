@@ -20,6 +20,7 @@ interface Contract {
   client_groups: {
     nama: string;
   };
+  inventory_item_id: string | null;
   jenis_scaffolding: string;
   jumlah_unit: number;
   start_date: string;
@@ -50,8 +51,12 @@ export function RelatedContracts({ items }: RelatedContractsProps) {
         `)
         .order("start_date", { ascending: false });
 
+      // Filter by inventory_item_id (UUID) instead of text matching
       if (selectedItem !== "all") {
-        query = query.eq("jenis_scaffolding", selectedItem);
+        query = query.eq("inventory_item_id", selectedItem);
+      } else {
+        // Only show contracts that have been linked to inventory items
+        query = query.not("inventory_item_id", "is", null);
       }
 
       const { data, error } = await query;
@@ -89,9 +94,9 @@ export function RelatedContracts({ items }: RelatedContractsProps) {
               <SelectValue placeholder="Pilih barang..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Semua Barang</SelectItem>
+              <SelectItem value="all">Semua Barang Terhubung</SelectItem>
               {items.map((item) => (
-                <SelectItem key={item.id} value={item.item_name}>
+                <SelectItem key={item.id} value={item.id}>
                   {item.item_name}
                 </SelectItem>
               ))}

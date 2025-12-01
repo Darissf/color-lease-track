@@ -2551,6 +2551,7 @@ export type Database = {
           end_date: string
           google_maps_link: string | null
           id: string
+          inventory_item_id: string | null
           invoice: string | null
           jenis_scaffolding: string | null
           jumlah_lunas: number | null
@@ -2580,6 +2581,7 @@ export type Database = {
           end_date: string
           google_maps_link?: string | null
           id?: string
+          inventory_item_id?: string | null
           invoice?: string | null
           jenis_scaffolding?: string | null
           jumlah_lunas?: number | null
@@ -2609,6 +2611,7 @@ export type Database = {
           end_date?: string
           google_maps_link?: string | null
           id?: string
+          inventory_item_id?: string | null
           invoice?: string | null
           jenis_scaffolding?: string | null
           jumlah_lunas?: number | null
@@ -2642,6 +2645,13 @@ export type Database = {
             columns: ["client_group_id"]
             isOneToOne: false
             referencedRelation: "client_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
         ]

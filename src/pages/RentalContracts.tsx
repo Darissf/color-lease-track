@@ -50,6 +50,7 @@ interface RentalContract {
   bank_account_id: string | null;
   google_maps_link: string | null;
   notes: string | null;
+  inventory_item_id: string | null;
   jenis_scaffolding: string | null;
   jumlah_unit: number | null;
   lokasi_detail: string | null;

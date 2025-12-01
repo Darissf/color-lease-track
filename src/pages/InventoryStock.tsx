@@ -106,12 +106,13 @@ export default function InventoryStock() {
       if (itemsError) throw itemsError;
       console.log("✅ Fetched inventory items:", itemsData?.length || 0, "items");
 
-      // Fetch rental quantities (sudah_kirim but not sudah_diambil)
+      // Fetch rental quantities using inventory_item_id foreign key
       let contractsQuery = supabase
         .from("rental_contracts")
-        .select("jenis_scaffolding, jumlah_unit")
+        .select("inventory_item_id, jumlah_unit")
         .eq("status_pengiriman", "sudah_kirim")
-        .neq("status_pengambilan", "sudah_diambil");
+        .neq("status_pengambilan", "sudah_diambil")
+        .not("inventory_item_id", "is", null);
 
       // Only filter by user_id for regular users (not admin/super_admin)
       if (!isSuperAdmin && !isAdmin) {
@@ -122,17 +123,19 @@ export default function InventoryStock() {
 
       if (contractsError) throw contractsError;
 
-      // Calculate rented quantities
+      // Calculate rented quantities by inventory_item_id (UUID)
       const rentedMap = new Map<string, number>();
       contractsData?.forEach((contract) => {
-        const current = rentedMap.get(contract.jenis_scaffolding) || 0;
-        rentedMap.set(contract.jenis_scaffolding, current + contract.jumlah_unit);
+        if (contract.inventory_item_id) {
+          const current = rentedMap.get(contract.inventory_item_id) || 0;
+          rentedMap.set(contract.inventory_item_id, current + contract.jumlah_unit);
+        }
       });
 
-      // Merge data
+      // Merge data using item.id (UUID) for lookup
       const itemsWithRented = itemsData?.map((item) => ({
         ...item,
-        rented_quantity: rentedMap.get(item.item_name) || 0,
+        rented_quantity: rentedMap.get(item.id) || 0,
       })) || [];
 
       console.log("✅ Final items with rented quantities:", itemsWithRented);
