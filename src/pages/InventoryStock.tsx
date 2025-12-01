@@ -75,6 +75,7 @@ export default function InventoryStock() {
   }, [user?.id]);
 
   useEffect(() => {
+    console.log("🔍 filterItems effect triggered, items:", items.length);
     filterItems();
   }, [items, searchQuery, categoryFilter]);
 
@@ -124,6 +125,10 @@ export default function InventoryStock() {
 
       console.log("✅ Final items with rented quantities:", itemsWithRented);
       setItems(itemsWithRented);
+      
+      // FIX: Set filteredItems directly to avoid race condition
+      console.log("🎯 Setting filteredItems directly:", itemsWithRented.length);
+      setFilteredItems(itemsWithRented);
     } catch (error) {
       console.error("❌ Error fetching inventory:", error);
       toast.error("Gagal memuat data stok barang");
@@ -133,6 +138,7 @@ export default function InventoryStock() {
   };
 
   const filterItems = () => {
+    console.log("🔍 filterItems called, items:", items.length, "searchQuery:", searchQuery, "categoryFilter:", categoryFilter);
     let filtered = items;
 
     if (searchQuery) {
@@ -147,6 +153,7 @@ export default function InventoryStock() {
       filtered = filtered.filter((item) => item.category === categoryFilter);
     }
 
+    console.log("🔍 Setting filteredItems:", filtered.length);
     setFilteredItems(filtered);
     setCurrentPage(1);
   };
@@ -207,6 +214,9 @@ export default function InventoryStock() {
               </h1>
               <p className="text-sm text-muted-foreground">
                 Kelola persediaan scaffolding dan aksesoris
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Debug: Items: {items.length} | Filtered: {filteredItems.length} | Current: {currentItems.length}
               </p>
             </div>
           </div>
