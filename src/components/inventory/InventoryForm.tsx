@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,31 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
 
   const selectedCategory = watch("category");
   const selectedUnitType = watch("unit_type");
+
+  // Sync form values with editData when dialog opens or editData changes
+  useEffect(() => {
+    if (open && editData) {
+      reset({
+        item_code: editData.item_code || "",
+        item_name: editData.item_name || "",
+        category: editData.category || "Scaffolding",
+        total_quantity: editData.total_quantity || 0,
+        minimum_stock: editData.minimum_stock || 0,
+        unit_type: editData.unit_type || "unit",
+        description: editData.description || "",
+      });
+    } else if (open && !editData) {
+      reset({
+        item_code: "",
+        item_name: "",
+        category: "Scaffolding",
+        total_quantity: 0,
+        minimum_stock: 0,
+        unit_type: "unit",
+        description: "",
+      });
+    }
+  }, [open, editData, reset]);
 
   const onSubmit = async (data: InventoryFormData) => {
     if (!user) return;
