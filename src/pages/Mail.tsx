@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Inbox, Star, Trash2, Search, RefreshCw, Mail as MailIcon } from "lucide-react";
+import { Mail, Inbox, Star, Trash2, Search, RefreshCw, Mail as MailIcon, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import MailList from "@/components/mail/MailList";
 import MailReader from "@/components/mail/MailReader";
+import EmailAddressFilter from "@/components/mail/EmailAddressFilter";
 
 interface Email {
   id: string;
@@ -36,17 +38,19 @@ type FilterType = "inbox" | "starred" | "trash";
 export default function MailPage() {
   const { user, isSuperAdmin, isAdmin } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("inbox");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && (isSuperAdmin || isAdmin)) {
       fetchEmails();
     }
-  }, [user, isSuperAdmin, isAdmin, filter]);
+  }, [user, isSuperAdmin, isAdmin, filter, selectedAddress]);
 
   const fetchEmails = async () => {
     setLoading(true);
@@ -55,6 +59,11 @@ export default function MailPage() {
         .from("mail_inbox")
         .select("*")
         .order("received_at", { ascending: false });
+
+      // Filter by monitored address if selected
+      if (selectedAddress) {
+        query = query.eq("to_address", selectedAddress);
+      }
 
       if (filter === "inbox") {
         query = query.eq("is_deleted", false);
@@ -226,10 +235,22 @@ export default function MailPage() {
               Kelola email masuk domain sewascaffoldingbali.com
             </p>
           </div>
-          <Button onClick={fetchEmails} disabled={loading} size="sm">
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            {isSuperAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/vip/settings/smtp?tab=monitored")}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Manage
+              </Button>
+            )}
+            <Button onClick={fetchEmails} disabled={loading} size="sm">
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -278,6 +299,13 @@ export default function MailPage() {
                   </Badge>
                 )}
               </Button>
+
+              <Separator className="my-4" />
+
+              <EmailAddressFilter
+                selectedAddress={selectedAddress}
+                onSelectAddress={setSelectedAddress}
+              />
 
               <Separator className="my-4" />
 
