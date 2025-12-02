@@ -368,7 +368,7 @@ export default function MailPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4">
+      <div className="flex-1 min-h-0 h-full grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4">
         {/* Sidebar - hidden on mobile (moved to Sheet) */}
         <div className="hidden md:block md:col-span-3">
           <div className="bg-card rounded-lg border p-3 md:p-4 h-full">
@@ -378,7 +378,7 @@ export default function MailPage() {
 
         {/* Email List - hidden on mobile when reader is active */}
         {(!isMobile || !selectedEmail) && (
-          <div className="md:col-span-4 min-h-0">
+          <div className="h-full md:col-span-4 min-h-0">
             <MailList
               emails={emails}
               selectedEmail={selectedEmail}
@@ -390,7 +390,7 @@ export default function MailPage() {
 
         {/* Email Reader - full width on mobile */}
         {(!isMobile || selectedEmail) && (
-          <div className={cn("min-h-0", isMobile ? "flex-1" : "md:col-span-5")}>
+          <div className={cn("min-h-0 h-full", isMobile ? "" : "md:col-span-5")}>
             <MailReader
               email={selectedEmail}
               onMarkRead={handleMarkRead}
