@@ -1467,6 +1467,7 @@ export type Database = {
           monthly_limit: number | null
           priority: number | null
           provider_name: string
+          purpose: string | null
           sender_email: string
           sender_name: string | null
           updated_at: string | null
@@ -1493,6 +1494,7 @@ export type Database = {
           monthly_limit?: number | null
           priority?: number | null
           provider_name: string
+          purpose?: string | null
           sender_email: string
           sender_name?: string | null
           updated_at?: string | null
@@ -1519,6 +1521,7 @@ export type Database = {
           monthly_limit?: number | null
           priority?: number | null
           provider_name?: string
+          purpose?: string | null
           sender_email?: string
           sender_name?: string | null
           updated_at?: string | null

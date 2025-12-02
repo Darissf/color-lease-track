@@ -69,12 +69,14 @@ serve(async (req) => {
       throw new Error('Invalid or unauthorized FROM address');
     }
 
-    // Get best email provider (prefer Resend for custom FROM)
+    // Get best email provider for compose (prefer Resend for custom FROM)
+    // Only select providers with purpose 'compose' or 'all'
     const { data: providers, error: providersError } = await supabase
       .from('email_providers')
       .select('*')
       .eq('is_active', true)
       .eq('health_status', 'healthy')
+      .in('purpose', ['compose', 'all'])
       .order('priority', { ascending: false });
 
     if (providersError || !providers || providers.length === 0) {
