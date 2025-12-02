@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Calendar, Wallet, TrendingUp, TrendingDown, Target, Snowflake, Flower2, Sun, Leaf, Clock, Moon, Waves, Sunset, Sparkles, Box, ArrowUpRight, ChevronRight } from "lucide-react";
+import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf, Clock, Moon, Waves, Sunset, Sparkles, Box, ArrowUpRight, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -468,111 +468,86 @@ export default function Nabila() {
               <div className="hidden md:block text-6xl">🏦</div>
             </div>
             
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-border">
+            {/* Quick Stats - 4 Symmetric Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
               {/* Total Volume Transaksi Card - Clickable */}
               <div 
-                className="col-span-2 md:col-span-2 p-4 rounded-lg backdrop-blur-sm transition-all duration-300 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/30 cursor-pointer hover:shadow-lg hover:border-primary/50 group"
+                className="p-4 rounded-lg backdrop-blur-sm transition-all duration-300 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/30 cursor-pointer hover:shadow-lg hover:border-primary/50 group flex flex-col justify-between min-h-[100px]"
                 onClick={() => navigate(`/vip/transaction-history?period=${volumePeriod}`)}
               >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-medium text-primary flex items-center gap-1">
-                      <Wallet className="h-3.5 w-3.5" />
-                      Total Volume Transaksi
-                    </div>
-                    <Select 
-                      value={volumePeriod} 
-                      onValueChange={(v: 'month' | 'year' | 'all') => setVolumePeriod(v)}
-                    >
-                      <SelectTrigger 
-                        className="h-6 w-[90px] text-xs border-primary/30"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent onClick={(e) => e.stopPropagation()}>
-                        <SelectItem value="month">Bulan Ini</SelectItem>
-                        <SelectItem value="year">Tahun Ini</SelectItem>
-                        <SelectItem value="all">All Time</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-primary flex items-center gap-1">
+                    <Wallet className="h-3.5 w-3.5" />
+                    Total Volume
                   </div>
-                  
+                  <Select 
+                    value={volumePeriod} 
+                    onValueChange={(v: 'month' | 'year' | 'all') => setVolumePeriod(v)}
+                  >
+                    <SelectTrigger 
+                      className="h-5 w-[70px] text-[10px] border-primary/30 px-1.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent onClick={(e) => e.stopPropagation()}>
+                      <SelectItem value="month">Bulan Ini</SelectItem>
+                      <SelectItem value="year">Tahun Ini</SelectItem>
+                      <SelectItem value="all">All Time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="text-center">
                   {loadingVolume ? (
-                    <div className="text-xl font-bold text-primary animate-pulse">Loading...</div>
+                    <div className="text-lg font-bold text-primary animate-pulse">...</div>
                   ) : (
-                    <>
-                      <div className="text-xl font-bold text-primary">
-                        {formatCurrency(transactionVolume.total)}
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1 text-green-600">
-                            <TrendingUp className="h-3 w-3" />
-                            {formatCurrency(transactionVolume.income)}
-                          </span>
-                          <span className="flex items-center gap-1 text-red-500">
-                            <TrendingDown className="h-3 w-3" />
-                            {formatCurrency(transactionVolume.expense)}
-                          </span>
-                        </div>
-                        {volumePercentChange !== null && (
-                          <span className={cn(
-                            "flex items-center gap-0.5 font-medium",
-                            volumePercentChange >= 0 ? "text-green-600" : "text-red-500"
-                          )}>
-                            {volumePercentChange >= 0 ? '↑' : '↓'}
-                            {Math.abs(volumePercentChange).toFixed(1)}%
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-xs text-primary/70">
-                        <span>Klik untuk detail</span>
-                        <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </>
+                    <div className="text-lg font-bold text-primary">
+                      {formatCurrency(transactionVolume.total)}
+                    </div>
                   )}
+                </div>
+                
+                <div className="flex items-center justify-center text-[10px] text-primary/70">
+                  <span>Lihat Detail</span>
+                  <ChevronRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
               
               {/* Bulan Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 border-2 border-secondary/30">
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-foreground">
-                    12
-                  </div>
-                  <div className="text-xs font-medium text-muted-foreground">Bulan</div>
+              <div className="p-4 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 border-2 border-secondary/30 flex flex-col justify-between min-h-[100px]">
+                <div className="text-xs font-medium text-muted-foreground text-center">Bulan</div>
+                <div className="text-2xl font-bold text-foreground text-center">
+                  12
                 </div>
+                <div className="text-[10px] text-muted-foreground text-center">Laporan</div>
               </div>
               
               {/* Data Years Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border-2 border-primary/30">
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-foreground">
-                    {availableYears.length}
-                  </div>
-                  <div className="text-xs font-medium text-muted-foreground">Data Years</div>
+              <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border-2 border-primary/30 flex flex-col justify-between min-h-[100px]">
+                <div className="text-xs font-medium text-muted-foreground text-center">Data Years</div>
+                <div className="text-2xl font-bold text-foreground text-center">
+                  {availableYears.length}
                 </div>
+                <div className="text-[10px] text-muted-foreground text-center">Tahun Tersedia</div>
               </div>
               
               {/* Net Balance Card */}
               <div className={cn(
-                "p-4 rounded-lg border-2",
+                "p-4 rounded-lg border-2 flex flex-col justify-between min-h-[100px]",
                 transactionVolume.income - transactionVolume.expense >= 0 
                   ? "bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30"
                   : "bg-gradient-to-br from-red-500/20 to-rose-500/20 border-red-500/30"
               )}>
-                <div className="text-center space-y-1">
-                  <div className={cn(
-                    "text-lg font-bold",
-                    transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
-                  )}>
-                    {formatCurrency(transactionVolume.income - transactionVolume.expense)}
-                  </div>
-                  <div className="text-xs font-medium text-muted-foreground">Saldo Bersih</div>
+                <div className="text-xs font-medium text-muted-foreground text-center">Saldo Bersih</div>
+                <div className={cn(
+                  "text-lg font-bold text-center",
+                  transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
+                )}>
+                  {formatCurrency(transactionVolume.income - transactionVolume.expense)}
+                </div>
+                <div className="text-[10px] text-muted-foreground text-center">
+                  {volumePeriod === 'month' ? 'Bulan Ini' : volumePeriod === 'year' ? 'Tahun Ini' : 'All Time'}
                 </div>
               </div>
             </div>
