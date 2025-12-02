@@ -271,9 +271,9 @@ const EmailTemplateEditor = () => {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <Label htmlFor="body">Body Template (HTML)</Label>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap justify-start sm:justify-end">
                 {currentTemplate.template_type && 
                  TEMPLATE_TYPES[currentTemplate.template_type as keyof typeof TEMPLATE_TYPES]?.requiredVars.map((v) => (
                   <Button
@@ -281,6 +281,7 @@ const EmailTemplateEditor = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => insertVariable(v)}
+                    className="text-xs"
                   >
                     {v}
                   </Button>
