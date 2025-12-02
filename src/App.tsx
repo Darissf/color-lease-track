@@ -62,6 +62,7 @@ import SMTPSettings from "./pages/SMTPSettings";
 import VIPDesignSettings from "./pages/VIPDesignSettings";
 import AIChat from "./pages/AIChat";
 import Mail from "./pages/Mail";
+import TransactionHistory from "./pages/TransactionHistory";
 
 const queryClient = new QueryClient();
 
@@ -139,6 +140,7 @@ const App = () => (
                               <Route path="/ai-chat" element={<AIChat />} />
                               <Route path="/mail" element={<Mail />} />
                               <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
+                              <Route path="/transaction-history" element={<TransactionHistory />} />
                               <Route path="*" element={<NotFound />} />
                             </Routes>
                           </Layout>
