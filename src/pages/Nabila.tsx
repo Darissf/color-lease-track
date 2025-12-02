@@ -136,6 +136,7 @@ export default function Nabila() {
   const [transactionVolume, setTransactionVolume] = useState({ income: 0, expense: 0, total: 0 });
   const [prevVolume, setPrevVolume] = useState({ income: 0, expense: 0 });
   const [loadingVolume, setLoadingVolume] = useState(true);
+  const [isHeroExpanded, setIsHeroExpanded] = useState(false);
 
   // Fetch transaction volume based on period
   useEffect(() => {
@@ -470,72 +471,98 @@ export default function Nabila() {
             
             {/* Quick Stats - Hero Style Layout */}
             <div className="space-y-4 pt-4 border-t border-border">
-              {/* Hero Card - Total Volume Transaksi (Full Width) */}
+              {/* Hero Card - Minimal + Expandable */}
               <div 
-                className="p-6 rounded-xl bg-gradient-to-br from-primary/15 via-accent/10 to-secondary/15 border-2 border-primary/40 cursor-pointer hover:shadow-xl hover:border-primary/60 group transition-all duration-300"
+                className={cn(
+                  "rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 border cursor-pointer transition-all duration-300 ease-in-out overflow-hidden group",
+                  isHeroExpanded 
+                    ? "p-5 border-primary/50 shadow-lg" 
+                    : "p-3 border-primary/30 hover:border-primary/50 hover:shadow-md"
+                )}
                 onClick={() => navigate(`/vip/transaction-history?period=${volumePeriod}`)}
+                onMouseEnter={() => setIsHeroExpanded(true)}
+                onMouseLeave={() => setIsHeroExpanded(false)}
               >
-                {/* Header Row */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-primary/20">
-                      <Wallet className="h-5 w-5 text-primary" />
+                {/* Compact Header - Always Visible */}
+                <div className={cn(
+                  "flex items-center justify-between transition-all duration-300",
+                  isHeroExpanded && "mb-3"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <div className="p-1.5 rounded-lg bg-primary/20">
+                      <Wallet className="h-4 w-4 text-primary" />
                     </div>
-                    <span className="text-sm font-semibold text-primary">
-                      Total Volume Transaksi
+                    <span className="text-sm font-medium text-primary">Total Volume</span>
+                    {/* Inline value when compact */}
+                    <span className={cn(
+                      "font-bold text-primary transition-all duration-300",
+                      isHeroExpanded ? "opacity-0 w-0 overflow-hidden" : "text-base md:text-lg"
+                    )}>
+                      {loadingVolume ? '...' : formatCurrency(transactionVolume.total)}
                     </span>
                   </div>
-                  <Select 
-                    value={volumePeriod} 
-                    onValueChange={(v: 'month' | 'year' | 'all') => setVolumePeriod(v)}
-                  >
-                    <SelectTrigger 
-                      className="h-8 w-[100px] text-xs border-primary/30"
-                      onClick={(e) => e.stopPropagation()}
+                  
+                  <div className="flex items-center gap-2">
+                    <Select 
+                      value={volumePeriod} 
+                      onValueChange={(v: 'month' | 'year' | 'all') => setVolumePeriod(v)}
                     >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent onClick={(e) => e.stopPropagation()}>
-                      <SelectItem value="month">Bulan Ini</SelectItem>
-                      <SelectItem value="year">Tahun Ini</SelectItem>
-                      <SelectItem value="all">All Time</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {/* Main Value - Centered Large */}
-                <div className="text-center py-4">
-                  {loadingVolume ? (
-                    <div className="text-3xl md:text-4xl font-bold text-primary animate-pulse">...</div>
-                  ) : (
-                    <div className="text-3xl md:text-4xl font-bold text-primary">
-                      {formatCurrency(transactionVolume.total)}
-                    </div>
-                  )}
-                </div>
-                
-                {/* Income/Expense Breakdown - Side by Side */}
-                <div className="grid grid-cols-2 gap-4 py-4 border-t border-primary/20">
-                  <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Pemasukan</div>
-                    <div className="text-lg font-semibold text-green-600 dark:text-green-400">
-                      {loadingVolume ? '...' : formatCurrency(transactionVolume.income)}
-                    </div>
-                  </div>
-                  <div className="text-center border-l border-primary/20">
-                    <div className="text-xs text-muted-foreground mb-1">Pengeluaran</div>
-                    <div className="text-lg font-semibold text-red-500 dark:text-red-400">
-                      {loadingVolume ? '...' : formatCurrency(transactionVolume.expense)}
-                    </div>
+                      <SelectTrigger 
+                        className="h-7 w-[90px] text-xs border-primary/30"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent onClick={(e) => e.stopPropagation()}>
+                        <SelectItem value="month">Bulan Ini</SelectItem>
+                        <SelectItem value="year">Tahun Ini</SelectItem>
+                        <SelectItem value="all">All Time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <ChevronRight className={cn(
+                      "h-4 w-4 text-primary/60 transition-transform duration-300",
+                      isHeroExpanded && "rotate-90"
+                    )} />
                   </div>
                 </div>
                 
-                {/* CTA Button */}
-                <div className="flex items-center justify-center pt-3 border-t border-primary/20">
-                  <span className="text-sm text-primary/80 group-hover:text-primary transition-colors">
-                    Lihat Riwayat Transaksi
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-primary/80 group-hover:translate-x-1 transition-transform" />
+                {/* Expanded Content - Animated */}
+                <div className={cn(
+                  "grid transition-all duration-300 ease-in-out",
+                  isHeroExpanded 
+                    ? "grid-rows-[1fr] opacity-100" 
+                    : "grid-rows-[0fr] opacity-0"
+                )}>
+                  <div className="overflow-hidden">
+                    {/* Large Total Value */}
+                    <div className="text-center py-3">
+                      <div className="text-2xl md:text-3xl font-bold text-primary">
+                        {loadingVolume ? '...' : formatCurrency(transactionVolume.total)}
+                      </div>
+                    </div>
+                    
+                    {/* Income/Expense Breakdown */}
+                    <div className="grid grid-cols-2 gap-4 py-3 border-t border-primary/20">
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Pemasukan</div>
+                        <div className="text-base font-semibold text-green-600 dark:text-green-400">
+                          {loadingVolume ? '...' : formatCurrency(transactionVolume.income)}
+                        </div>
+                      </div>
+                      <div className="text-center border-l border-primary/20">
+                        <div className="text-xs text-muted-foreground mb-1">Pengeluaran</div>
+                        <div className="text-base font-semibold text-red-500 dark:text-red-400">
+                          {loadingVolume ? '...' : formatCurrency(transactionVolume.expense)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* CTA */}
+                    <div className="flex items-center justify-center pt-2 text-sm text-primary/80 group-hover:text-primary">
+                      <span>Lihat Riwayat Transaksi</span>
+                      <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
