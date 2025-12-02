@@ -7,7 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Mail, Inbox, Star, Trash2, Search, RefreshCw, Mail as MailIcon, Settings, Menu, ArrowLeft } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Mail, Inbox, Star, Trash2, Search, RefreshCw, Mail as MailIcon, Settings, Menu, ArrowLeft, PenSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 import MailList from "@/components/mail/MailList";
 import MailReader from "@/components/mail/MailReader";
 import EmailAddressFilter from "@/components/mail/EmailAddressFilter";
+import { ComposeEmailDialog } from "@/components/mail/ComposeEmailDialog";
 
 interface Email {
   id: string;
@@ -50,12 +52,15 @@ export default function MailPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mailType, setMailType] = useState<"inbound" | "outbound">("inbound");
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<Email | null>(null);
 
   useEffect(() => {
     if (user && (isSuperAdmin || isAdmin)) {
       fetchEmails();
     }
-  }, [user, isSuperAdmin, isAdmin, filter, selectedAddress]);
+  }, [user, isSuperAdmin, isAdmin, filter, selectedAddress, mailType]);
 
   const fetchEmails = async () => {
     setLoading(true);
@@ -65,9 +70,16 @@ export default function MailPage() {
         .select("*")
         .order("received_at", { ascending: false });
 
+      // Filter by mail type (inbox = inbound, sent = outbound)
+      query = query.eq("mail_type", mailType);
+
       // Filter by monitored address if selected
       if (selectedAddress) {
-        query = query.eq("to_address", selectedAddress);
+        if (mailType === "inbound") {
+          query = query.eq("to_address", selectedAddress);
+        } else {
+          query = query.eq("from_address", selectedAddress);
+        }
       }
 
       if (filter === "inbox") {
@@ -312,7 +324,7 @@ export default function MailPage() {
   return (
     <div className="h-[calc(100vh-104px)] overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="shrink-0 mb-2 md:mb-4">
+      <div className="shrink-0 mb-2 md:mb-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {/* Mobile: Back button when in reader view */}
@@ -349,6 +361,17 @@ export default function MailPage() {
             </div>
           </div>
           <div className="flex gap-1 md:gap-2">
+            <Button
+              onClick={() => {
+                setReplyTo(null);
+                setComposeOpen(true);
+              }}
+              size="sm"
+              className="h-8 md:h-9"
+            >
+              <PenSquare className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Compose</span>
+            </Button>
             {isSuperAdmin && !isMobile && (
               <Button
                 variant="outline"
@@ -365,6 +388,14 @@ export default function MailPage() {
             </Button>
           </div>
         </div>
+
+        {/* Tabs for Inbox/Sent */}
+        <Tabs value={mailType} onValueChange={(v) => setMailType(v as "inbound" | "outbound")}>
+          <TabsList>
+            <TabsTrigger value="inbound">📥 Inbox</TabsTrigger>
+            <TabsTrigger value="outbound">📤 Sent</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Main Content */}
@@ -398,10 +429,25 @@ export default function MailPage() {
               onDelete={handleDelete}
               isSuperAdmin={isSuperAdmin}
               onBack={() => setSelectedEmail(null)}
+              onReply={(email) => {
+                setReplyTo(email);
+                setComposeOpen(true);
+              }}
             />
           </div>
         )}
       </div>
+
+      {/* Compose Dialog */}
+      <ComposeEmailDialog
+        open={composeOpen}
+        onOpenChange={setComposeOpen}
+        replyTo={replyTo || undefined}
+        onEmailSent={() => {
+          fetchEmails();
+          setSelectedEmail(null);
+        }}
+      />
     </div>
   );
 }
