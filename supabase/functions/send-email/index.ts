@@ -159,10 +159,12 @@ async function selectBestProvider(
   excludeProviders: string[] = [],
   forceProviderId?: string
 ) {
+  // Only select providers with purpose 'automated' or 'all' for automated emails
   let query = supabase
     .from("email_providers")
     .select("*")
     .eq("is_active", true)
+    .in("purpose", ["automated", "all"])
     .order("last_used_at", { ascending: true, nullsFirst: true });
 
   if (forceProviderId) {

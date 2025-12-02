@@ -27,6 +27,7 @@ interface EmailProvider {
   health_status: string;
   last_error: string | null;
   last_success_at: string | null;
+  purpose: string;
 }
 
 const EmailProviderManager = () => {
@@ -46,6 +47,7 @@ const EmailProviderManager = () => {
     sender_name: "",
     daily_limit: 100,
     monthly_limit: 3000,
+    purpose: "all",
   });
   const [editForm, setEditForm] = useState({
     display_name: "",
@@ -56,6 +58,7 @@ const EmailProviderManager = () => {
     daily_limit: 100,
     monthly_limit: 3000,
     priority: 1,
+    purpose: "all",
   });
 
   useEffect(() => {
@@ -96,6 +99,7 @@ const EmailProviderManager = () => {
         daily_limit: newProvider.daily_limit,
         monthly_limit: newProvider.monthly_limit,
         priority: providers.length + 1,
+        purpose: newProvider.purpose,
       });
 
       if (error) throw error;
@@ -115,6 +119,7 @@ const EmailProviderManager = () => {
         sender_name: "",
         daily_limit: 100,
         monthly_limit: 3000,
+        purpose: "all",
       });
       fetchProviders();
     } catch (error: any) {
@@ -214,6 +219,7 @@ const EmailProviderManager = () => {
       daily_limit: provider.daily_limit,
       monthly_limit: provider.monthly_limit,
       priority: provider.priority,
+      purpose: provider.purpose || "all",
     });
     setShowEditDialog(true);
   };
@@ -229,6 +235,7 @@ const EmailProviderManager = () => {
         daily_limit: editForm.daily_limit,
         monthly_limit: editForm.monthly_limit,
         priority: editForm.priority,
+        purpose: editForm.purpose,
       };
 
       // Only update API key if provided
@@ -348,11 +355,14 @@ const EmailProviderManager = () => {
                       <div className="flex items-start gap-4 flex-1">
                         <div className="text-3xl shrink-0">{getProviderIcon(provider.provider_name)}</div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h3 className="font-semibold text-sm md:text-base">
                               #{provider.priority} {provider.display_name || provider.provider_name}
                             </h3>
                             {getHealthBadge(provider.health_status)}
+                            {provider.purpose === "automated" && <Badge variant="secondary">🤖 Auto</Badge>}
+                            {provider.purpose === "compose" && <Badge variant="secondary">📝 Compose</Badge>}
+                            {provider.purpose === "all" && <Badge variant="secondary">🔄 All</Badge>}
                           </div>
                           <p className="text-xs md:text-sm text-muted-foreground mb-3 truncate">{provider.sender_email}</p>
 
@@ -452,6 +462,20 @@ const EmailProviderManager = () => {
                 value={newProvider.display_name}
                 onChange={(e) => setNewProvider({ ...newProvider, display_name: e.target.value })}
               />
+            </div>
+
+            <div>
+              <Label>Purpose (Tujuan Penggunaan)</Label>
+              <Select value={newProvider.purpose} onValueChange={(v) => setNewProvider({ ...newProvider, purpose: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="automated">🤖 Automated Only - Email Otomatis</SelectItem>
+                  <SelectItem value="compose">📝 Compose Only - Kirim Email Manual</SelectItem>
+                  <SelectItem value="all">🔄 All - Semua Fungsi</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -593,6 +617,20 @@ const EmailProviderManager = () => {
               <p className="text-xs text-muted-foreground mt-1">
                 Lower numbers are tried first in the rotation
               </p>
+            </div>
+
+            <div>
+              <Label>Purpose (Tujuan Penggunaan)</Label>
+              <Select value={editForm.purpose} onValueChange={(v) => setEditForm({ ...editForm, purpose: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="automated">🤖 Automated Only - Email Otomatis</SelectItem>
+                  <SelectItem value="compose">📝 Compose Only - Kirim Email Manual</SelectItem>
+                  <SelectItem value="all">🔄 All - Semua Fungsi</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex gap-2">
