@@ -2,7 +2,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Star, Trash2, Mail, Download } from "lucide-react";
+import { Star, Trash2, Mail, Download, Reply } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import DOMPurify from "dompurify";
@@ -20,6 +20,7 @@ import {
 
 interface Email {
   id: string;
+  email_id: string;
   from_address: string;
   from_name: string | null;
   to_address: string;
@@ -30,7 +31,13 @@ interface Email {
   attachments: any;
   is_read: boolean;
   is_starred: boolean;
+  is_deleted: boolean;
+  deleted_by?: string | null;
+  deleted_at?: string | null;
   received_at: string;
+  created_at: string;
+  mail_type?: string;
+  reply_to_id?: string | null;
 }
 
 interface MailReaderProps {
@@ -40,6 +47,7 @@ interface MailReaderProps {
   onDelete: (emailId: string) => void;
   isSuperAdmin: boolean;
   onBack?: () => void;
+  onReply?: (email: Email) => void;
 }
 
 export default function MailReader({
@@ -49,6 +57,7 @@ export default function MailReader({
   onDelete,
   isSuperAdmin,
   onBack,
+  onReply,
 }: MailReaderProps) {
   if (!email) {
     return (
@@ -123,6 +132,18 @@ export default function MailReader({
         <Separator />
 
         <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+          {onReply && (
+            <Button
+              variant="default"
+              size="sm"
+              className="h-8 px-2 md:px-3"
+              onClick={() => onReply(email)}
+            >
+              <Reply className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Reply</span>
+            </Button>
+          )}
+
           <Button
             variant="outline"
             size="sm"

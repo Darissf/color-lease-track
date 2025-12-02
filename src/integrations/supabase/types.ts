@@ -2095,7 +2095,9 @@ export type Database = {
           is_deleted: boolean | null
           is_read: boolean | null
           is_starred: boolean | null
+          mail_type: string | null
           received_at: string
+          reply_to_id: string | null
           subject: string | null
           to_address: string
         }
@@ -2115,7 +2117,9 @@ export type Database = {
           is_deleted?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
+          mail_type?: string | null
           received_at?: string
+          reply_to_id?: string | null
           subject?: string | null
           to_address: string
         }
@@ -2135,11 +2139,21 @@ export type Database = {
           is_deleted?: boolean | null
           is_read?: boolean | null
           is_starred?: boolean | null
+          mail_type?: string | null
           received_at?: string
+          reply_to_id?: string | null
           subject?: string | null
           to_address?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mail_inbox_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "mail_inbox"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meta_ads_settings: {
         Row: {
@@ -2198,6 +2212,7 @@ export type Database = {
       monitored_email_addresses: {
         Row: {
           badge_color: string
+          can_send_from: boolean | null
           created_at: string
           created_by: string | null
           display_name: string
@@ -2208,6 +2223,7 @@ export type Database = {
         }
         Insert: {
           badge_color?: string
+          can_send_from?: boolean | null
           created_at?: string
           created_by?: string | null
           display_name: string
@@ -2218,6 +2234,7 @@ export type Database = {
         }
         Update: {
           badge_color?: string
+          can_send_from?: boolean | null
           created_at?: string
           created_by?: string | null
           display_name?: string

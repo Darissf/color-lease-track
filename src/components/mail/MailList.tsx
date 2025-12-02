@@ -8,14 +8,19 @@ import { cn } from "@/lib/utils";
 
 interface Email {
   id: string;
+  email_id: string;
   from_address: string;
   from_name: string | null;
+  to_address: string;
+  cc?: string[];
   subject: string;
   body_text: string;
+  body_html: string;
   attachments: any;
   is_read: boolean;
   is_starred: boolean;
   received_at: string;
+  mail_type?: string;
 }
 
 interface MailListProps {
@@ -93,7 +98,14 @@ export default function MailList({
                         !email.is_read && "font-semibold"
                       )}
                     >
-                      {email.from_name || email.from_address}
+                      {(email as any).mail_type === 'outbound' ? (
+                        <span className="flex items-center gap-1">
+                          <span className="text-muted-foreground">→</span>
+                          {email.to_address}
+                        </span>
+                      ) : (
+                        email.from_name || email.from_address
+                      )}
                     </p>
                     <span className="text-[10px] md:text-xs text-muted-foreground shrink-0">
                       {format(new Date(email.received_at), "HH:mm", {
