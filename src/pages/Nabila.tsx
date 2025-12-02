@@ -566,40 +566,41 @@ export default function Nabila() {
                 </div>
               </div>
 
-              {/* Mini Stats - 3 Compact Cards */}
-              <div className="grid grid-cols-3 gap-2">
-                {/* Bulan Card */}
-                <div className="p-2.5 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 border border-secondary/30 text-center">
-                  <Calendar className="h-4 w-4 mx-auto mb-1 text-secondary-foreground" />
-                  <div className="text-lg font-bold text-foreground">12</div>
-                  <div className="text-[10px] text-muted-foreground">Bulan Laporan</div>
+              {/* Mini Stats - Inline Bar */}
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-gradient-to-r from-secondary/10 via-primary/10 to-accent/10 border border-border/50">
+                {/* Bulan */}
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-secondary-foreground" />
+                  <span className="text-sm font-semibold text-foreground">12</span>
+                  <span className="text-xs text-muted-foreground">Bulan</span>
                 </div>
                 
-                {/* Data Years Card */}
-                <div className="p-2.5 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/30 text-center">
-                  <BarChart3 className="h-4 w-4 mx-auto mb-1 text-primary" />
-                  <div className="text-lg font-bold text-foreground">{availableYears.length}</div>
-                  <div className="text-[10px] text-muted-foreground">Tahun Data</div>
+                {/* Divider */}
+                <div className="h-4 w-px bg-border/50" />
+                
+                {/* Tahun Data */}
+                <div className="flex items-center gap-1.5">
+                  <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">{availableYears.length}</span>
+                  <span className="text-xs text-muted-foreground">Tahun</span>
                 </div>
                 
-                {/* Net Balance Card */}
-                <div className={cn(
-                  "p-2.5 rounded-lg border text-center",
-                  transactionVolume.income - transactionVolume.expense >= 0 
-                    ? "bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30"
-                    : "bg-gradient-to-br from-red-500/20 to-rose-500/20 border-red-500/30"
-                )}>
+                {/* Divider */}
+                <div className="h-4 w-px bg-border/50" />
+                
+                {/* Saldo Bersih */}
+                <div className="flex items-center gap-1.5">
                   <TrendingUp className={cn(
-                    "h-4 w-4 mx-auto mb-1",
+                    "h-3.5 w-3.5",
                     transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
                   )} />
-                  <div className={cn(
-                    "text-base font-bold",
+                  <span className={cn(
+                    "text-sm font-semibold",
                     transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
                   )}>
                     {formatCurrency(transactionVolume.income - transactionVolume.expense)}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground">Saldo Bersih</div>
+                  </span>
+                  <span className="text-xs text-muted-foreground">Saldo</span>
                 </div>
               </div>
             </div>
