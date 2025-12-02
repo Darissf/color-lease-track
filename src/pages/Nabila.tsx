@@ -566,40 +566,40 @@ export default function Nabila() {
                 </div>
               </div>
 
-              {/* Mini Stats - 3 Cards Below */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Mini Stats - 3 Compact Cards */}
+              <div className="grid grid-cols-3 gap-2">
                 {/* Bulan Card */}
-                <div className="p-4 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 border border-secondary/30 text-center">
-                  <Calendar className="h-5 w-5 mx-auto mb-2 text-secondary-foreground" />
-                  <div className="text-2xl font-bold text-foreground">12</div>
-                  <div className="text-xs text-muted-foreground">Bulan Laporan</div>
+                <div className="p-2.5 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 border border-secondary/30 text-center">
+                  <Calendar className="h-4 w-4 mx-auto mb-1 text-secondary-foreground" />
+                  <div className="text-lg font-bold text-foreground">12</div>
+                  <div className="text-[10px] text-muted-foreground">Bulan Laporan</div>
                 </div>
                 
                 {/* Data Years Card */}
-                <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/30 text-center">
-                  <BarChart3 className="h-5 w-5 mx-auto mb-2 text-primary" />
-                  <div className="text-2xl font-bold text-foreground">{availableYears.length}</div>
-                  <div className="text-xs text-muted-foreground">Tahun Data</div>
+                <div className="p-2.5 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/30 text-center">
+                  <BarChart3 className="h-4 w-4 mx-auto mb-1 text-primary" />
+                  <div className="text-lg font-bold text-foreground">{availableYears.length}</div>
+                  <div className="text-[10px] text-muted-foreground">Tahun Data</div>
                 </div>
                 
                 {/* Net Balance Card */}
                 <div className={cn(
-                  "p-4 rounded-lg border text-center",
+                  "p-2.5 rounded-lg border text-center",
                   transactionVolume.income - transactionVolume.expense >= 0 
                     ? "bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30"
                     : "bg-gradient-to-br from-red-500/20 to-rose-500/20 border-red-500/30"
                 )}>
                   <TrendingUp className={cn(
-                    "h-5 w-5 mx-auto mb-2",
+                    "h-4 w-4 mx-auto mb-1",
                     transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
                   )} />
                   <div className={cn(
-                    "text-lg font-bold",
+                    "text-base font-bold",
                     transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
                   )}>
                     {formatCurrency(transactionVolume.income - transactionVolume.expense)}
                   </div>
-                  <div className="text-xs text-muted-foreground">Saldo Bersih</div>
+                  <div className="text-[10px] text-muted-foreground">Saldo Bersih</div>
                 </div>
               </div>
             </div>
