@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf, Clock, Moon, Waves, Sunset, Sparkles, Box, ArrowUpRight, ChevronRight } from "lucide-react";
+import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf, Clock, Moon, Waves, Sunset, Sparkles, Box, ArrowUpRight, ChevronRight, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -468,24 +468,29 @@ export default function Nabila() {
               <div className="hidden md:block text-6xl">🏦</div>
             </div>
             
-            {/* Quick Stats - 4 Symmetric Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border">
-              {/* Total Volume Transaksi Card - Clickable */}
+            {/* Quick Stats - Hero Style Layout */}
+            <div className="space-y-4 pt-4 border-t border-border">
+              {/* Hero Card - Total Volume Transaksi (Full Width) */}
               <div 
-                className="p-4 rounded-lg backdrop-blur-sm transition-all duration-300 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/30 cursor-pointer hover:shadow-lg hover:border-primary/50 group flex flex-col justify-between min-h-[100px]"
+                className="p-6 rounded-xl bg-gradient-to-br from-primary/15 via-accent/10 to-secondary/15 border-2 border-primary/40 cursor-pointer hover:shadow-xl hover:border-primary/60 group transition-all duration-300"
                 onClick={() => navigate(`/vip/transaction-history?period=${volumePeriod}`)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-medium text-primary flex items-center gap-1">
-                    <Wallet className="h-3.5 w-3.5" />
-                    Total Volume
+                {/* Header Row */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/20">
+                      <Wallet className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="text-sm font-semibold text-primary">
+                      Total Volume Transaksi
+                    </span>
                   </div>
                   <Select 
                     value={volumePeriod} 
                     onValueChange={(v: 'month' | 'year' | 'all') => setVolumePeriod(v)}
                   >
                     <SelectTrigger 
-                      className="h-5 w-[70px] text-[10px] border-primary/30 px-1.5"
+                      className="h-8 w-[100px] text-xs border-primary/30"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <SelectValue />
@@ -498,56 +503,76 @@ export default function Nabila() {
                   </Select>
                 </div>
                 
-                <div className="text-center">
+                {/* Main Value - Centered Large */}
+                <div className="text-center py-4">
                   {loadingVolume ? (
-                    <div className="text-lg font-bold text-primary animate-pulse">...</div>
+                    <div className="text-3xl md:text-4xl font-bold text-primary animate-pulse">...</div>
                   ) : (
-                    <div className="text-lg font-bold text-primary">
+                    <div className="text-3xl md:text-4xl font-bold text-primary">
                       {formatCurrency(transactionVolume.total)}
                     </div>
                   )}
                 </div>
                 
-                <div className="flex items-center justify-center text-[10px] text-primary/70">
-                  <span>Lihat Detail</span>
-                  <ChevronRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+                {/* Income/Expense Breakdown - Side by Side */}
+                <div className="grid grid-cols-2 gap-4 py-4 border-t border-primary/20">
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-1">Pemasukan</div>
+                    <div className="text-lg font-semibold text-green-600 dark:text-green-400">
+                      {loadingVolume ? '...' : formatCurrency(transactionVolume.income)}
+                    </div>
+                  </div>
+                  <div className="text-center border-l border-primary/20">
+                    <div className="text-xs text-muted-foreground mb-1">Pengeluaran</div>
+                    <div className="text-lg font-semibold text-red-500 dark:text-red-400">
+                      {loadingVolume ? '...' : formatCurrency(transactionVolume.expense)}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* CTA Button */}
+                <div className="flex items-center justify-center pt-3 border-t border-primary/20">
+                  <span className="text-sm text-primary/80 group-hover:text-primary transition-colors">
+                    Lihat Riwayat Transaksi
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-primary/80 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
-              
-              {/* Bulan Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 border-2 border-secondary/30 flex flex-col justify-between min-h-[100px]">
-                <div className="text-xs font-medium text-muted-foreground text-center">Bulan</div>
-                <div className="text-2xl font-bold text-foreground text-center">
-                  12
+
+              {/* Mini Stats - 3 Cards Below */}
+              <div className="grid grid-cols-3 gap-4">
+                {/* Bulan Card */}
+                <div className="p-4 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 border border-secondary/30 text-center">
+                  <Calendar className="h-5 w-5 mx-auto mb-2 text-secondary-foreground" />
+                  <div className="text-2xl font-bold text-foreground">12</div>
+                  <div className="text-xs text-muted-foreground">Bulan Laporan</div>
                 </div>
-                <div className="text-[10px] text-muted-foreground text-center">Laporan</div>
-              </div>
-              
-              {/* Data Years Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border-2 border-primary/30 flex flex-col justify-between min-h-[100px]">
-                <div className="text-xs font-medium text-muted-foreground text-center">Data Years</div>
-                <div className="text-2xl font-bold text-foreground text-center">
-                  {availableYears.length}
+                
+                {/* Data Years Card */}
+                <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/30 text-center">
+                  <BarChart3 className="h-5 w-5 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold text-foreground">{availableYears.length}</div>
+                  <div className="text-xs text-muted-foreground">Tahun Data</div>
                 </div>
-                <div className="text-[10px] text-muted-foreground text-center">Tahun Tersedia</div>
-              </div>
-              
-              {/* Net Balance Card */}
-              <div className={cn(
-                "p-4 rounded-lg border-2 flex flex-col justify-between min-h-[100px]",
-                transactionVolume.income - transactionVolume.expense >= 0 
-                  ? "bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30"
-                  : "bg-gradient-to-br from-red-500/20 to-rose-500/20 border-red-500/30"
-              )}>
-                <div className="text-xs font-medium text-muted-foreground text-center">Saldo Bersih</div>
+                
+                {/* Net Balance Card */}
                 <div className={cn(
-                  "text-lg font-bold text-center",
-                  transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
+                  "p-4 rounded-lg border text-center",
+                  transactionVolume.income - transactionVolume.expense >= 0 
+                    ? "bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30"
+                    : "bg-gradient-to-br from-red-500/20 to-rose-500/20 border-red-500/30"
                 )}>
-                  {formatCurrency(transactionVolume.income - transactionVolume.expense)}
-                </div>
-                <div className="text-[10px] text-muted-foreground text-center">
-                  {volumePeriod === 'month' ? 'Bulan Ini' : volumePeriod === 'year' ? 'Tahun Ini' : 'All Time'}
+                  <TrendingUp className={cn(
+                    "h-5 w-5 mx-auto mb-2",
+                    transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
+                  )} />
+                  <div className={cn(
+                    "text-lg font-bold",
+                    transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
+                  )}>
+                    {formatCurrency(transactionVolume.income - transactionVolume.expense)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Saldo Bersih</div>
                 </div>
               </div>
             </div>
