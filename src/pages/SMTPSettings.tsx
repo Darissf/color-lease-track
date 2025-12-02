@@ -14,14 +14,17 @@ import EmailRotationTester from "@/components/smtp/EmailRotationTester";
 import UnifiedNotificationCenter from "@/components/smtp/UnifiedNotificationCenter";
 import EmailProviderManager from "@/components/smtp/EmailProviderManager";
 import EmailUsageDashboard from "@/components/smtp/EmailUsageDashboard";
+import EmailAddressManager from "@/components/mail/EmailAddressManager";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "react-router-dom";
 
 const SMTPSettings = () => {
   const { activeTheme } = useAppTheme();
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState("providers");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "providers");
 
   // Redirect if not super admin
   if (!isSuperAdmin) {
@@ -68,7 +71,7 @@ const SMTPSettings = () => {
         <CardContent className="flex-1 overflow-hidden flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
             <div className="shrink-0 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 mb-4">
-              <TabsList className="inline-flex w-max md:grid md:w-full md:grid-cols-8 gap-1">
+              <TabsList className="inline-flex w-max md:grid md:w-full md:grid-cols-9 gap-1">
                 <TabsTrigger value="providers" className="text-xs md:text-sm whitespace-nowrap">Providers</TabsTrigger>
                 <TabsTrigger value="config" className="text-xs md:text-sm whitespace-nowrap">Config</TabsTrigger>
                 <TabsTrigger value="templates" className="text-xs md:text-sm whitespace-nowrap">Templates</TabsTrigger>
@@ -76,6 +79,7 @@ const SMTPSettings = () => {
                 <TabsTrigger value="unified" className="text-xs md:text-sm whitespace-nowrap">Unified</TabsTrigger>
                 <TabsTrigger value="usage" className="text-xs md:text-sm whitespace-nowrap">Usage</TabsTrigger>
                 <TabsTrigger value="logs" className="text-xs md:text-sm whitespace-nowrap">Logs</TabsTrigger>
+                <TabsTrigger value="monitored" className="text-xs md:text-sm whitespace-nowrap">Monitored</TabsTrigger>
                 <TabsTrigger value="test" className="text-xs md:text-sm whitespace-nowrap">Test</TabsTrigger>
               </TabsList>
             </div>
@@ -107,6 +111,10 @@ const SMTPSettings = () => {
 
               <TabsContent value="logs" className="space-y-4 mt-0">
                 <EmailLogsPanel />
+              </TabsContent>
+
+              <TabsContent value="monitored" className="space-y-4 mt-0">
+                <EmailAddressManager />
               </TabsContent>
 
               <TabsContent value="test" className="space-y-4 mt-0">

@@ -2195,6 +2195,39 @@ export type Database = {
         }
         Relationships: []
       }
+      monitored_email_addresses: {
+        Row: {
+          badge_color: string
+          created_at: string
+          created_by: string | null
+          display_name: string
+          display_order: number
+          email_address: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          badge_color?: string
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          display_order?: number
+          email_address: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          badge_color?: string
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          display_order?: number
+          email_address?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
       monthly_budgets: {
         Row: {
           created_at: string
