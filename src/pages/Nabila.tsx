@@ -567,40 +567,40 @@ export default function Nabila() {
               </div>
 
               {/* Mini Stats - Inline Bar */}
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-gradient-to-r from-secondary/10 via-primary/10 to-accent/10 border border-border/50">
+              <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-secondary/10 via-primary/10 to-accent/10 border border-border/50">
                 {/* Bulan */}
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-secondary-foreground" />
-                  <span className="text-sm font-semibold text-foreground">12</span>
-                  <span className="text-xs text-muted-foreground">Bulan</span>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-secondary-foreground" />
+                  <span className="text-lg font-semibold text-foreground">12</span>
+                  <span className="text-sm text-muted-foreground">Bulan</span>
                 </div>
                 
                 {/* Divider */}
-                <div className="h-4 w-px bg-border/50" />
+                <div className="h-6 w-px bg-border/50" />
                 
                 {/* Tahun Data */}
-                <div className="flex items-center gap-1.5">
-                  <BarChart3 className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">{availableYears.length}</span>
-                  <span className="text-xs text-muted-foreground">Tahun</span>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  <span className="text-lg font-semibold text-foreground">{availableYears.length}</span>
+                  <span className="text-sm text-muted-foreground">Tahun</span>
                 </div>
                 
                 {/* Divider */}
-                <div className="h-4 w-px bg-border/50" />
+                <div className="h-6 w-px bg-border/50" />
                 
                 {/* Saldo Bersih */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <TrendingUp className={cn(
-                    "h-3.5 w-3.5",
+                    "h-5 w-5",
                     transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
                   )} />
                   <span className={cn(
-                    "text-sm font-semibold",
+                    "text-lg font-semibold",
                     transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
                   )}>
                     {formatCurrency(transactionVolume.income - transactionVolume.expense)}
                   </span>
-                  <span className="text-xs text-muted-foreground">Saldo</span>
+                  <span className="text-sm text-muted-foreground">Saldo</span>
                 </div>
               </div>
             </div>
