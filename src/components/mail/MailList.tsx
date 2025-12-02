@@ -59,20 +59,20 @@ export default function MailList({
   }
 
   return (
-    <div className="bg-card rounded-lg border h-full flex flex-col">
-      <div className="p-3 border-b shrink-0">
-        <p className="text-sm font-medium">
+    <div className="bg-card rounded-lg border h-full flex flex-col overflow-hidden">
+      <div className="p-2 md:p-3 border-b shrink-0">
+        <p className="text-xs md:text-sm font-medium">
           {emails.length} {emails.length === 1 ? "email" : "emails"}
         </p>
       </div>
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-1 md:p-2 space-y-1">
           {emails.map((email) => (
             <button
               key={email.id}
               onClick={() => onSelectEmail(email)}
               className={cn(
-                "w-full text-left p-3 rounded-lg transition-colors hover:bg-accent",
+                "w-full text-left p-2 md:p-3 rounded-lg transition-colors hover:bg-accent",
                 selectedEmail?.id === email.id && "bg-accent",
                 !email.is_read && "bg-accent/50"
               )}
@@ -80,22 +80,22 @@ export default function MailList({
               <div className="flex items-start gap-2">
                 <div className="shrink-0 mt-0.5">
                   {email.is_starred ? (
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <Star className="h-3 w-3 md:h-4 md:w-4 fill-yellow-400 text-yellow-400" />
                   ) : (
-                    <Star className="h-4 w-4 text-muted-foreground" />
+                    <Star className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
                   )}
                 </div>
-                <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex-1 min-w-0 space-y-0.5 md:space-y-1">
                   <div className="flex items-center justify-between gap-2">
                     <p
                       className={cn(
-                        "text-sm truncate",
+                        "text-xs md:text-sm truncate",
                         !email.is_read && "font-semibold"
                       )}
                     >
                       {email.from_name || email.from_address}
                     </p>
-                    <span className="text-xs text-muted-foreground shrink-0">
+                    <span className="text-[10px] md:text-xs text-muted-foreground shrink-0">
                       {format(new Date(email.received_at), "HH:mm", {
                         locale: localeId,
                       })}
@@ -103,20 +103,20 @@ export default function MailList({
                   </div>
                   <p
                     className={cn(
-                      "text-sm truncate",
+                      "text-xs md:text-sm truncate",
                       !email.is_read ? "font-medium" : "text-muted-foreground"
                     )}
                   >
                     {email.subject || "(No Subject)"}
                   </p>
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-muted-foreground truncate flex-1">
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate flex-1">
                       {email.body_text?.substring(0, 60)}...
                     </p>
                     {email.attachments && Array.isArray(email.attachments) && email.attachments.length > 0 && (
-                      <Badge variant="secondary" className="shrink-0">
-                        <Paperclip className="h-3 w-3 mr-1" />
-                        {email.attachments.length}
+                      <Badge variant="secondary" className="shrink-0 text-[10px] md:text-xs h-4 md:h-5">
+                        <Paperclip className="h-2 w-2 md:h-3 md:w-3 md:mr-1" />
+                        <span className="hidden md:inline">{email.attachments.length}</span>
                       </Badge>
                     )}
                   </div>

@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Inbox, Star, Trash2, Search, RefreshCw, Mail as MailIcon, Settings } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Mail, Inbox, Star, Trash2, Search, RefreshCw, Mail as MailIcon, Settings, Menu, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import MailList from "@/components/mail/MailList";
 import MailReader from "@/components/mail/MailReader";
 import EmailAddressFilter from "@/components/mail/EmailAddressFilter";
@@ -39,12 +42,14 @@ export default function MailPage() {
   const { user, isSuperAdmin, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("inbox");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (user && (isSuperAdmin || isAdmin)) {
@@ -222,131 +227,180 @@ export default function MailPage() {
     );
   }
 
+  // Sidebar content component for reuse
+  const SidebarContent = () => (
+    <div className="space-y-2">
+      <Button
+        variant={filter === "inbox" ? "default" : "ghost"}
+        className="w-full justify-start h-8 md:h-9 text-sm"
+        onClick={() => {
+          setFilter("inbox");
+          setSidebarOpen(false);
+        }}
+      >
+        <Inbox className="h-4 w-4 mr-2" />
+        Inbox
+        {unreadCount > 0 && (
+          <Badge variant="secondary" className="ml-auto text-xs">
+            {unreadCount}
+          </Badge>
+        )}
+      </Button>
+      <Button
+        variant={filter === "starred" ? "default" : "ghost"}
+        className="w-full justify-start h-8 md:h-9 text-sm"
+        onClick={() => {
+          setFilter("starred");
+          setSidebarOpen(false);
+        }}
+      >
+        <Star className="h-4 w-4 mr-2" />
+        Starred
+        {starredCount > 0 && (
+          <Badge variant="secondary" className="ml-auto text-xs">
+            {starredCount}
+          </Badge>
+        )}
+      </Button>
+      <Button
+        variant={filter === "trash" ? "default" : "ghost"}
+        className="w-full justify-start h-8 md:h-9 text-sm"
+        onClick={() => {
+          setFilter("trash");
+          setSidebarOpen(false);
+        }}
+      >
+        <Trash2 className="h-4 w-4 mr-2" />
+        Trash
+        {trashCount > 0 && (
+          <Badge variant="secondary" className="ml-auto text-xs">
+            {trashCount}
+          </Badge>
+        )}
+      </Button>
+
+      <Separator className="my-3 md:my-4" />
+
+      <EmailAddressFilter
+        selectedAddress={selectedAddress}
+        onSelectAddress={(addr) => {
+          setSelectedAddress(addr);
+          setSidebarOpen(false);
+        }}
+      />
+
+      <Separator className="my-3 md:my-4" />
+
+      <div className="relative">
+        <Search className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search..."
+          className="pl-8 h-8 md:h-9 text-sm"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              fetchEmails();
+              setSidebarOpen(false);
+            }
+          }}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="h-[calc(100vh-104px)] overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="shrink-0 mb-4">
+      <div className="shrink-0 mb-2 md:mb-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl md:text-4xl font-bold mb-1 md:mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              📬 Mail Inbox
-            </h1>
-            <p className="text-sm text-muted-foreground hidden md:block">
-              Kelola email masuk domain sewascaffoldingbali.com
-            </p>
+          <div className="flex items-center gap-2">
+            {/* Mobile: Back button when in reader view */}
+            {isMobile && selectedEmail && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setSelectedEmail(null)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            {/* Mobile: Hamburger menu when in list view */}
+            {isMobile && !selectedEmail && (
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[280px] p-4">
+                  <SidebarContent />
+                </SheetContent>
+              </Sheet>
+            )}
+            <div>
+              <h1 className="text-lg md:text-4xl font-bold mb-0 md:mb-1 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                📬 {isMobile && selectedEmail ? "Email" : "Mail Inbox"}
+              </h1>
+              <p className="text-xs md:text-sm text-muted-foreground hidden md:block">
+                Kelola email masuk domain sewascaffoldingbali.com
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            {isSuperAdmin && (
+          <div className="flex gap-1 md:gap-2">
+            {isSuperAdmin && !isMobile && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate("/vip/settings/smtp?tab=monitored")}
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Manage
+                <Settings className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Manage</span>
               </Button>
             )}
-            <Button onClick={fetchEmails} disabled={loading} size="sm">
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+            <Button onClick={fetchEmails} disabled={loading} size="sm" className="h-8 md:h-9">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""} ${!isMobile && "mr-2"}`} />
+              <span className="hidden md:inline">Refresh</span>
             </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-4">
-        {/* Sidebar */}
-        <div className="md:col-span-3 shrink-0 md:shrink">
-          <div className="bg-card rounded-lg border p-4 h-full">
-            <div className="space-y-2">
-              <Button
-                variant={filter === "inbox" ? "default" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setFilter("inbox")}
-              >
-                <Inbox className="h-4 w-4 mr-2" />
-                Inbox
-                {unreadCount > 0 && (
-                  <Badge variant="secondary" className="ml-auto">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                variant={filter === "starred" ? "default" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setFilter("starred")}
-              >
-                <Star className="h-4 w-4 mr-2" />
-                Starred
-                {starredCount > 0 && (
-                  <Badge variant="secondary" className="ml-auto">
-                    {starredCount}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                variant={filter === "trash" ? "default" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setFilter("trash")}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Trash
-                {trashCount > 0 && (
-                  <Badge variant="secondary" className="ml-auto">
-                    {trashCount}
-                  </Badge>
-                )}
-              </Button>
-
-              <Separator className="my-4" />
-
-              <EmailAddressFilter
-                selectedAddress={selectedAddress}
-                onSelectAddress={setSelectedAddress}
-              />
-
-              <Separator className="my-4" />
-
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      fetchEmails();
-                    }
-                  }}
-                />
-              </div>
-            </div>
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4">
+        {/* Sidebar - hidden on mobile (moved to Sheet) */}
+        <div className="hidden md:block md:col-span-3">
+          <div className="bg-card rounded-lg border p-3 md:p-4 h-full">
+            <SidebarContent />
           </div>
         </div>
 
-        {/* Email List */}
-        <div className="md:col-span-4 min-h-0">
-          <MailList
-            emails={emails}
-            selectedEmail={selectedEmail}
-            onSelectEmail={handleEmailSelect}
-            loading={loading}
-          />
-        </div>
+        {/* Email List - hidden on mobile when reader is active */}
+        {(!isMobile || !selectedEmail) && (
+          <div className="md:col-span-4 min-h-0">
+            <MailList
+              emails={emails}
+              selectedEmail={selectedEmail}
+              onSelectEmail={handleEmailSelect}
+              loading={loading}
+            />
+          </div>
+        )}
 
-        {/* Email Reader */}
-        <div className="md:col-span-5 min-h-0">
-          <MailReader
-            email={selectedEmail}
-            onMarkRead={handleMarkRead}
-            onStar={handleStar}
-            onDelete={handleDelete}
-            isSuperAdmin={isSuperAdmin}
-          />
-        </div>
+        {/* Email Reader - full width on mobile */}
+        {(!isMobile || selectedEmail) && (
+          <div className={cn("min-h-0", isMobile ? "flex-1" : "md:col-span-5")}>
+            <MailReader
+              email={selectedEmail}
+              onMarkRead={handleMarkRead}
+              onStar={handleStar}
+              onDelete={handleDelete}
+              isSuperAdmin={isSuperAdmin}
+              onBack={() => setSelectedEmail(null)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
