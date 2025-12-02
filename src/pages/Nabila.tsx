@@ -2,9 +2,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Calendar, Wallet, TrendingUp, Target, Snowflake, Flower2, Sun, Leaf, Clock, Moon, Waves, Sunset, Sparkles, Box } from "lucide-react";
+import { Calendar, Wallet, TrendingUp, TrendingDown, Target, Snowflake, Flower2, Sun, Leaf, Clock, Moon, Waves, Sunset, Sparkles, Box, ArrowUpRight, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { GradientButton } from "@/components/GradientButton";
@@ -132,6 +132,97 @@ export default function Nabila() {
     }
   };
 
+  const [volumePeriod, setVolumePeriod] = useState<'month' | 'year' | 'all'>('month');
+  const [transactionVolume, setTransactionVolume] = useState({ income: 0, expense: 0, total: 0 });
+  const [prevVolume, setPrevVolume] = useState({ income: 0, expense: 0 });
+  const [loadingVolume, setLoadingVolume] = useState(true);
+
+  // Fetch transaction volume based on period
+  useEffect(() => {
+    const fetchTransactionVolume = async () => {
+      if (!user) return;
+      
+      setLoadingVolume(true);
+      try {
+        const now = new Date();
+        let startDate: string;
+        let prevStartDate: string;
+        let prevEndDate: string;
+
+        if (volumePeriod === 'month') {
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          startDate = monthStart.toISOString().split('T')[0];
+          const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+          prevStartDate = prevMonthStart.toISOString().split('T')[0];
+          prevEndDate = prevMonthEnd.toISOString().split('T')[0];
+        } else if (volumePeriod === 'year') {
+          const yearStart = new Date(now.getFullYear(), 0, 1);
+          startDate = yearStart.toISOString().split('T')[0];
+          const prevYearStart = new Date(now.getFullYear() - 1, 0, 1);
+          const prevYearEnd = new Date(now.getFullYear() - 1, 11, 31);
+          prevStartDate = prevYearStart.toISOString().split('T')[0];
+          prevEndDate = prevYearEnd.toISOString().split('T')[0];
+        } else {
+          startDate = '2000-01-01';
+          prevStartDate = '2000-01-01';
+          prevEndDate = '2000-01-01';
+        }
+
+        // Current period income
+        const { data: incomeData } = await supabase
+          .from('income_sources')
+          .select('amount')
+          .eq('user_id', user.id)
+          .gte('date', startDate);
+
+        // Current period expenses
+        const { data: expenseData } = await supabase
+          .from('expenses')
+          .select('amount')
+          .eq('user_id', user.id)
+          .gte('date', startDate);
+
+        const totalIncome = incomeData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+        const totalExpense = expenseData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+
+        setTransactionVolume({
+          income: totalIncome,
+          expense: totalExpense,
+          total: totalIncome + totalExpense,
+        });
+
+        // Previous period data for comparison
+        if (volumePeriod !== 'all') {
+          const { data: prevIncomeData } = await supabase
+            .from('income_sources')
+            .select('amount')
+            .eq('user_id', user.id)
+            .gte('date', prevStartDate)
+            .lte('date', prevEndDate);
+
+          const { data: prevExpenseData } = await supabase
+            .from('expenses')
+            .select('amount')
+            .eq('user_id', user.id)
+            .gte('date', prevStartDate)
+            .lte('date', prevEndDate);
+
+          setPrevVolume({
+            income: prevIncomeData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0,
+            expense: prevExpenseData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching transaction volume:', error);
+      } finally {
+        setLoadingVolume(false);
+      }
+    };
+
+    fetchTransactionVolume();
+  }, [user, volumePeriod]);
+
   // Fetch bank accounts and calculate total balance
   useEffect(() => {
     const fetchBankAccounts = async () => {
@@ -169,6 +260,13 @@ export default function Nabila() {
 
     fetchBankAccounts();
   }, [user]);
+
+  // Calculate percentage change
+  const volumePercentChange = useMemo(() => {
+    const prevTotal = prevVolume.income + prevVolume.expense;
+    if (prevTotal === 0 || volumePeriod === 'all') return null;
+    return ((transactionVolume.total - prevTotal) / prevTotal) * 100;
+  }, [transactionVolume, prevVolume, volumePeriod]);
 
   // Real-time subscription for bank account changes
   useEffect(() => {
@@ -372,34 +470,71 @@ export default function Nabila() {
             
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-border">
-              {/* Total Saldo Card */}
-              <div className="col-span-2 md:col-span-1 p-4 rounded-lg backdrop-blur-sm transition-all duration-300 bg-primary/10 border-2 border-primary/30">
-                <div className="space-y-1">
-                  <div className="text-xs font-medium text-primary">Total Saldo</div>
-                  {loadingBalance ? (
-                    <div className="text-lg font-bold text-primary">
-                      <div className="animate-pulse">Loading...</div>
+              {/* Total Volume Transaksi Card - Clickable */}
+              <div 
+                className="col-span-2 md:col-span-2 p-4 rounded-lg backdrop-blur-sm transition-all duration-300 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/30 cursor-pointer hover:shadow-lg hover:border-primary/50 group"
+                onClick={() => navigate(`/vip/transaction-history?period=${volumePeriod}`)}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-medium text-primary flex items-center gap-1">
+                      <Wallet className="h-3.5 w-3.5" />
+                      Total Volume Transaksi
                     </div>
+                    <Select 
+                      value={volumePeriod} 
+                      onValueChange={(v: 'month' | 'year' | 'all') => setVolumePeriod(v)}
+                    >
+                      <SelectTrigger 
+                        className="h-6 w-[90px] text-xs border-primary/30"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent onClick={(e) => e.stopPropagation()}>
+                        <SelectItem value="month">Bulan Ini</SelectItem>
+                        <SelectItem value="year">Tahun Ini</SelectItem>
+                        <SelectItem value="all">All Time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {loadingVolume ? (
+                    <div className="text-xl font-bold text-primary animate-pulse">Loading...</div>
                   ) : (
                     <>
-                      <div className={cn(
-                        "text-lg font-bold text-primary transition-all duration-500",
-                        isBalanceAnimating && 'animate-counter-up'
-                      )}>
-                        {formatCurrency(totalBalance)}
+                      <div className="text-xl font-bold text-primary">
+                        {formatCurrency(transactionVolume.total)}
                       </div>
                       
-                      {/* Show change indicator jika ada perubahan */}
-                      {isBalanceAnimating && prevBalance > 0 && (
-                        <div className={`text-xs font-semibold ${
-                          totalBalance > prevBalance ? 'text-green-500' : 'text-red-500'
-                        } animate-fade-in`}>
-                          {totalBalance > prevBalance ? '↑' : '↓'} {formatCurrency(Math.abs(totalBalance - prevBalance))}
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1 text-green-600">
+                            <TrendingUp className="h-3 w-3" />
+                            {formatCurrency(transactionVolume.income)}
+                          </span>
+                          <span className="flex items-center gap-1 text-red-500">
+                            <TrendingDown className="h-3 w-3" />
+                            {formatCurrency(transactionVolume.expense)}
+                          </span>
                         </div>
-                      )}
+                        {volumePercentChange !== null && (
+                          <span className={cn(
+                            "flex items-center gap-0.5 font-medium",
+                            volumePercentChange >= 0 ? "text-green-600" : "text-red-500"
+                          )}>
+                            {volumePercentChange >= 0 ? '↑' : '↓'}
+                            {Math.abs(volumePercentChange).toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs text-primary/70">
+                        <span>Klik untuk detail</span>
+                        <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                      </div>
                     </>
                   )}
-                  <div className="text-xs text-primary/70">Bank Accounts</div>
                 </div>
               </div>
               
@@ -413,16 +548,6 @@ export default function Nabila() {
                 </div>
               </div>
               
-              {/* Kuartal Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 border-2 border-accent/30">
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-foreground">
-                    4
-                  </div>
-                  <div className="text-xs font-medium text-muted-foreground">Kuartal</div>
-                </div>
-              </div>
-              
               {/* Data Years Card */}
               <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border-2 border-primary/30">
                 <div className="text-center space-y-1">
@@ -433,13 +558,21 @@ export default function Nabila() {
                 </div>
               </div>
               
-              {/* Readiness Card */}
-              <div className="p-4 rounded-lg bg-gradient-to-br from-green-500/20 to-teal-500/20 border-2 border-green-500/30">
+              {/* Net Balance Card */}
+              <div className={cn(
+                "p-4 rounded-lg border-2",
+                transactionVolume.income - transactionVolume.expense >= 0 
+                  ? "bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30"
+                  : "bg-gradient-to-br from-red-500/20 to-rose-500/20 border-red-500/30"
+              )}>
                 <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-green-600">
-                    95%
+                  <div className={cn(
+                    "text-lg font-bold",
+                    transactionVolume.income - transactionVolume.expense >= 0 ? "text-green-600" : "text-red-600"
+                  )}>
+                    {formatCurrency(transactionVolume.income - transactionVolume.expense)}
                   </div>
-                  <div className="text-xs font-medium text-muted-foreground">Readiness</div>
+                  <div className="text-xs font-medium text-muted-foreground">Saldo Bersih</div>
                 </div>
               </div>
             </div>
