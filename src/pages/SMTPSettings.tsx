@@ -30,8 +30,8 @@ const SMTPSettings = () => {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6 animate-fade-in">
-      <div className="flex items-center gap-4">
+    <div className="h-[calc(100vh-104px)] overflow-hidden flex flex-col px-4 md:px-6 py-4 md:py-6">
+      <div className="shrink-0 flex items-center gap-4 mb-4">
         <Button
           variant="ghost"
           size="icon"
@@ -42,76 +42,80 @@ const SMTPSettings = () => {
         </Button>
         <div>
           <h1 className={cn(
-            "text-3xl font-bold",
+            "text-xl md:text-3xl font-bold",
             activeTheme === 'japanese'
               ? "bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent"
               : "text-foreground"
           )}>
             SMTP Email Settings
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">
             Kelola pengiriman email otomatis dengan Resend
           </p>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="flex-1 overflow-hidden flex flex-col">
+        <CardHeader className="shrink-0">
           <div className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" />
-            <CardTitle>Email Management System</CardTitle>
+            <CardTitle className="text-base md:text-lg">Email Management System</CardTitle>
           </div>
-          <CardDescription>
+          <CardDescription className="text-xs md:text-sm">
             Konfigurasi SMTP, template, signature, dan unified notifications
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
-              <TabsTrigger value="providers">Providers</TabsTrigger>
-              <TabsTrigger value="config">Config</TabsTrigger>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
-              <TabsTrigger value="signatures">Signatures</TabsTrigger>
-              <TabsTrigger value="unified">Unified</TabsTrigger>
-              <TabsTrigger value="usage">Usage</TabsTrigger>
-              <TabsTrigger value="logs">Logs</TabsTrigger>
-              <TabsTrigger value="test">Test</TabsTrigger>
-            </TabsList>
+        <CardContent className="flex-1 overflow-hidden flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
+            <div className="shrink-0 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 mb-4">
+              <TabsList className="inline-flex w-max md:grid md:w-full md:grid-cols-8 gap-1">
+                <TabsTrigger value="providers" className="text-xs md:text-sm whitespace-nowrap">Providers</TabsTrigger>
+                <TabsTrigger value="config" className="text-xs md:text-sm whitespace-nowrap">Config</TabsTrigger>
+                <TabsTrigger value="templates" className="text-xs md:text-sm whitespace-nowrap">Templates</TabsTrigger>
+                <TabsTrigger value="signatures" className="text-xs md:text-sm whitespace-nowrap">Signatures</TabsTrigger>
+                <TabsTrigger value="unified" className="text-xs md:text-sm whitespace-nowrap">Unified</TabsTrigger>
+                <TabsTrigger value="usage" className="text-xs md:text-sm whitespace-nowrap">Usage</TabsTrigger>
+                <TabsTrigger value="logs" className="text-xs md:text-sm whitespace-nowrap">Logs</TabsTrigger>
+                <TabsTrigger value="test" className="text-xs md:text-sm whitespace-nowrap">Test</TabsTrigger>
+              </TabsList>
+            </div>
 
-            <TabsContent value="providers" className="space-y-4">
-              <EmailProviderManager />
-            </TabsContent>
+            <div className="flex-1 overflow-y-auto">
+              <TabsContent value="providers" className="space-y-4 mt-0">
+                <EmailProviderManager />
+              </TabsContent>
 
-            <TabsContent value="config" className="space-y-4">
-              <SMTPConfigForm />
-            </TabsContent>
+              <TabsContent value="config" className="space-y-4 mt-0">
+                <SMTPConfigForm />
+              </TabsContent>
 
-            <TabsContent value="templates" className="space-y-4">
-              <EmailTemplateEditor />
-            </TabsContent>
+              <TabsContent value="templates" className="space-y-4 mt-0">
+                <EmailTemplateEditor />
+              </TabsContent>
 
-            <TabsContent value="signatures" className="space-y-4">
-              <EmailSignatureManager />
-            </TabsContent>
+              <TabsContent value="signatures" className="space-y-4 mt-0">
+                <EmailSignatureManager />
+              </TabsContent>
 
-            <TabsContent value="unified" className="space-y-4">
-              <UnifiedNotificationCenter />
-            </TabsContent>
+              <TabsContent value="unified" className="space-y-4 mt-0">
+                <UnifiedNotificationCenter />
+              </TabsContent>
 
-            <TabsContent value="usage" className="space-y-4">
-              <EmailUsageDashboard />
-            </TabsContent>
+              <TabsContent value="usage" className="space-y-4 mt-0">
+                <EmailUsageDashboard />
+              </TabsContent>
 
-            <TabsContent value="logs" className="space-y-4">
-              <EmailLogsPanel />
-            </TabsContent>
+              <TabsContent value="logs" className="space-y-4 mt-0">
+                <EmailLogsPanel />
+              </TabsContent>
 
-            <TabsContent value="test" className="space-y-4">
-              <div className="space-y-6">
-                <EmailTester />
-                <EmailRotationTester />
-              </div>
-            </TabsContent>
+              <TabsContent value="test" className="space-y-4 mt-0">
+                <div className="space-y-6">
+                  <EmailTester />
+                  <EmailRotationTester />
+                </div>
+              </TabsContent>
+            </div>
           </Tabs>
         </CardContent>
       </Card>

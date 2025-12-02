@@ -315,17 +315,17 @@ const EmailProviderManager = () => {
         </CardHeader>
         <CardContent>
           {/* Total Capacity Summary */}
-          <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-muted rounded-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 p-4 bg-muted rounded-lg">
             <div>
               <div className="text-sm text-muted-foreground">Daily Capacity</div>
-              <div className="text-2xl font-bold">
+              <div className="text-xl md:text-2xl font-bold">
                 {totalDailyUsed} / {totalDailyCapacity}
               </div>
               <Progress value={(totalDailyUsed / totalDailyCapacity) * 100} className="mt-2" />
             </div>
             <div>
               <div className="text-sm text-muted-foreground">Monthly Capacity</div>
-              <div className="text-2xl font-bold">
+              <div className="text-xl md:text-2xl font-bold">
                 {totalMonthlyUsed} / {totalMonthlyCapacity}
               </div>
               <Progress value={(totalMonthlyUsed / totalMonthlyCapacity) * 100} className="mt-2" />
@@ -344,19 +344,19 @@ const EmailProviderManager = () => {
               providers.map((provider) => (
                 <Card key={provider.id} className={!provider.is_active ? "opacity-60" : ""}>
                   <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                       <div className="flex items-start gap-4 flex-1">
-                        <div className="text-3xl">{getProviderIcon(provider.provider_name)}</div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">
+                        <div className="text-3xl shrink-0">{getProviderIcon(provider.provider_name)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-sm md:text-base">
                               #{provider.priority} {provider.display_name || provider.provider_name}
                             </h3>
                             {getHealthBadge(provider.health_status)}
                           </div>
-                          <p className="text-sm text-muted-foreground mb-3">{provider.sender_email}</p>
+                          <p className="text-xs md:text-sm text-muted-foreground mb-3 truncate">{provider.sender_email}</p>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <div className="text-xs text-muted-foreground mb-1">Daily Usage</div>
                               <div className="flex items-center gap-2">
@@ -386,28 +386,33 @@ const EmailProviderManager = () => {
                           {provider.last_error && (
                             <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
                               <AlertCircle className="h-3 w-3" />
-                              {provider.last_error}
+                              <span className="truncate">{provider.last_error}</span>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleTestProvider(provider)}>
-                          <TestTube className="h-4 w-4" />
+                      <div className="flex flex-wrap gap-2 justify-end md:justify-start">
+                        <Button size="sm" variant="outline" onClick={() => handleTestProvider(provider)} className="flex-1 sm:flex-none">
+                          <TestTube className="h-4 w-4 sm:mr-0 md:mr-2" />
+                          <span className="sm:hidden md:inline">Test</span>
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleOpenEdit(provider)}>
-                          <Pencil className="h-4 w-4" />
+                        <Button size="sm" variant="outline" onClick={() => handleOpenEdit(provider)} className="flex-1 sm:flex-none">
+                          <Pencil className="h-4 w-4 sm:mr-0 md:mr-2" />
+                          <span className="sm:hidden md:inline">Edit</span>
                         </Button>
                         <Button
                           size="sm"
                           variant={provider.is_active ? "outline" : "default"}
                           onClick={() => handleToggleProvider(provider.id, provider.is_active)}
+                          className="flex-1 sm:flex-none"
                         >
-                          <Power className="h-4 w-4" />
+                          <Power className="h-4 w-4 sm:mr-0 md:mr-2" />
+                          <span className="sm:hidden md:inline">{provider.is_active ? "On" : "Off"}</span>
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDeleteProvider(provider.id)}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteProvider(provider.id)} className="flex-1 sm:flex-none">
+                          <Trash2 className="h-4 w-4 sm:mr-0 md:mr-2" />
+                          <span className="sm:hidden md:inline">Delete</span>
                         </Button>
                       </div>
                     </div>

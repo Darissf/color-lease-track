@@ -149,7 +149,7 @@ const SMTPConfigForm = () => {
         <div className="grid gap-4">
           <div className="space-y-2">
             <Label htmlFor="api_key">Resend API Key</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 id="api_key"
                 type={showApiKey ? "text" : "password"}
@@ -158,11 +158,13 @@ const SMTPConfigForm = () => {
                   setConfig({ ...config, api_key_encrypted: e.target.value })
                 }
                 placeholder="re_..."
+                className="flex-1"
               />
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setShowApiKey(!showApiKey)}
+                className="shrink-0"
               >
                 {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -238,8 +240,8 @@ const SMTPConfigForm = () => {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={loading}>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Settings
           </Button>
@@ -247,6 +249,7 @@ const SMTPConfigForm = () => {
             variant="outline"
             onClick={handleTestConnection}
             disabled={testing || !config.sender_email}
+            className="w-full sm:w-auto"
           >
             {testing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Test Connection
