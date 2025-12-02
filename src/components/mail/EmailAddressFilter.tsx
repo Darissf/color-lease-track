@@ -94,9 +94,9 @@ export default function EmailAddressFilter({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="px-2 py-1">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+    <div className="space-y-1 md:space-y-2">
+      <div className="px-2 py-0.5 md:py-1">
+        <p className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           📧 Alamat Email
         </p>
       </div>
@@ -104,16 +104,16 @@ export default function EmailAddressFilter({
       {/* All emails button */}
       <Button
         variant={selectedAddress === null ? "default" : "ghost"}
-        className="w-full justify-start"
+        className="w-full justify-start h-8 md:h-9 text-sm"
         onClick={() => onSelectAddress(null)}
       >
         <div
-          className="h-2 w-2 rounded-full mr-2"
+          className="h-2 w-2 rounded-full mr-2 shrink-0"
           style={{ backgroundColor: "#0ea5e9" }}
         />
-        All
+        <span className="truncate">All</span>
         {emailCounts["all"] > 0 && (
-          <Badge variant="secondary" className="ml-auto">
+          <Badge variant="secondary" className="ml-auto shrink-0 text-xs">
             {emailCounts["all"]}
           </Badge>
         )}
@@ -124,16 +124,16 @@ export default function EmailAddressFilter({
         <Button
           key={addr.id}
           variant={selectedAddress === addr.email_address ? "default" : "ghost"}
-          className="w-full justify-start"
+          className="w-full justify-start h-8 md:h-9 text-sm"
           onClick={() => onSelectAddress(addr.email_address)}
         >
           <div
-            className="h-2 w-2 rounded-full mr-2"
+            className="h-2 w-2 rounded-full mr-2 shrink-0"
             style={{ backgroundColor: addr.badge_color }}
           />
-          {addr.display_name}
+          <span className="truncate">{addr.display_name}</span>
           {emailCounts[addr.email_address] > 0 && (
-            <Badge variant="secondary" className="ml-auto">
+            <Badge variant="secondary" className="ml-auto shrink-0 text-xs">
               {emailCounts[addr.email_address]}
             </Badge>
           )}
