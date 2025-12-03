@@ -305,10 +305,10 @@ async function sendViaWaha(number: any, scheduled: any) {
         response: result
       };
     }
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       response: null
     };
   }
@@ -367,10 +367,10 @@ async function sendViaMeta(number: any, scheduled: any) {
         response: result
       };
     }
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       response: null
     };
   }
