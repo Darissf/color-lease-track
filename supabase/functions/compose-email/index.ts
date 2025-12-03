@@ -68,17 +68,10 @@ serve(async (req) => {
       attachmentCount: body.attachments?.length || 0
     });
 
-    // Validate from_address is in monitored_email_addresses
-    const { data: monitoredAddress, error: addrError } = await supabase
-      .from('monitored_email_addresses')
-      .select('*')
-      .eq('email_address', body.from_address)
-      .eq('can_send_from', true)
-      .eq('is_active', true)
-      .single();
-
-    if (addrError || !monitoredAddress) {
-      throw new Error('Invalid or unauthorized FROM address');
+    // Validate email format for from_address (no longer require monitored address)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!body.from_address || !emailRegex.test(body.from_address)) {
+      throw new Error('Invalid FROM email address format');
     }
 
     // Get best email provider for compose (prefer Resend for custom FROM)
@@ -173,7 +166,7 @@ serve(async (req) => {
         .insert({
           email_id: resendData.id || crypto.randomUUID(),
           from_address: body.from_address,
-          from_name: body.from_name || monitoredAddress.display_name,
+          from_name: body.from_name || null,
           to_address: body.to,
           cc: body.cc || [],
           subject: body.subject,
