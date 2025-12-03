@@ -76,7 +76,7 @@ serve(async (req) => {
       .select('*')
       .eq('is_active', true)
       .eq('health_status', 'healthy')
-      .in('purpose', ['compose', 'all'])
+      .in('purpose', ['compose', 'inbox', 'all'])
       .order('priority', { ascending: false });
 
     if (providersError || !providers || providers.length === 0) {

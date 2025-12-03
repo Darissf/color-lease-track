@@ -370,6 +370,7 @@ const EmailProviderManager = () => {
                             {getHealthBadge(provider.health_status)}
                             {provider.purpose === "automated" && <Badge variant="secondary">🤖 Auto</Badge>}
                             {provider.purpose === "compose" && <Badge variant="secondary">📝 Compose</Badge>}
+                            {provider.purpose === "inbox" && <Badge variant="secondary" className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">📬 Inbox</Badge>}
                             {provider.purpose === "all" && <Badge variant="secondary">🔄 All</Badge>}
                           </div>
                           <p className="text-xs md:text-sm text-muted-foreground mb-3 truncate">{provider.sender_email}</p>
@@ -481,6 +482,7 @@ const EmailProviderManager = () => {
                 <SelectContent>
                   <SelectItem value="automated">🤖 Automated Only - Email Otomatis</SelectItem>
                   <SelectItem value="compose">📝 Compose Only - Kirim Email Manual</SelectItem>
+                  <SelectItem value="inbox">📬 Inbox - Compose & Receive Inbound</SelectItem>
                   <SelectItem value="all">🔄 All - Semua Fungsi</SelectItem>
                 </SelectContent>
               </Select>
@@ -646,6 +648,7 @@ const EmailProviderManager = () => {
                 <SelectContent>
                   <SelectItem value="automated">🤖 Automated Only - Email Otomatis</SelectItem>
                   <SelectItem value="compose">📝 Compose Only - Kirim Email Manual</SelectItem>
+                  <SelectItem value="inbox">📬 Inbox - Compose & Receive Inbound</SelectItem>
                   <SelectItem value="all">🔄 All - Semua Fungsi</SelectItem>
                 </SelectContent>
               </Select>
