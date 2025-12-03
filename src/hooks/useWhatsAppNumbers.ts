@@ -79,6 +79,7 @@ export const useWhatsAppNumbers = () => {
       if (!user) throw new Error('Not authenticated');
 
       const insertData = {
+        user_id: user.id,
         name: data.name || 'New Number',
         phone_number: data.phone_number || '',
         provider: data.provider || 'waha',
@@ -102,7 +103,7 @@ export const useWhatsAppNumbers = () => {
 
       const { data: result, error } = await supabase
         .from('whatsapp_numbers')
-        .insert(insertData)
+        .insert([insertData])
         .select()
         .single();
 
