@@ -20,5 +20,6 @@ Allow: /
 Disallow: /vip/
 Disallow: /api/
 
-# Sitemap
+# Sitemaps
 Sitemap: https://sewascaffoldingbali.com/sitemap.xml
+Sitemap: https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/generate-sitemap

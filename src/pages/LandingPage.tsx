@@ -16,7 +16,7 @@ import { initMetaPixel, trackEvent } from "@/lib/metaPixel";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
-import { getLocalBusinessSchema, getBreadcrumbSchema } from "@/lib/seo";
+import { getLocalBusinessSchema, getBreadcrumbSchema, getFAQSchema, getServiceSchema, getAggregateRatingSchema } from "@/lib/seo";
 
 const services = [
   {
@@ -142,7 +142,10 @@ const LandingPage = () => {
         ogImage="/og-image.jpg"
         structuredData={[
           getLocalBusinessSchema(),
-          getBreadcrumbSchema([{ name: "Beranda", url: "/" }])
+          getBreadcrumbSchema([{ name: "Beranda", url: "/" }]),
+          getFAQSchema(),
+          getServiceSchema(),
+          getAggregateRatingSchema()
         ]}
       />
 
