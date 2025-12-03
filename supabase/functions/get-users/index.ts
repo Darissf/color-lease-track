@@ -42,39 +42,53 @@ Deno.serve(async (req) => {
       throw new Error('Only super admins can view users')
     }
 
-    // Fetch all profiles
-    const { data: profiles, error: profilesError } = await supabaseClient
-      .from('profiles')
-      .select('id, full_name, username, nomor_telepon, created_at, email_verified, temp_email, is_suspended')
-      .order('created_at', { ascending: false })
+    // Use optimized database function to get users with roles in single query
+    const { data: usersWithRoles, error: usersError } = await supabaseClient
+      .rpc('get_users_with_roles')
 
-    if (profilesError) throw profilesError
+    if (usersError) {
+      console.error('Error fetching users with roles:', usersError)
+      throw usersError
+    }
 
-    // Fetch roles and emails for each user
-    const usersWithData = await Promise.all(
-      (profiles || []).map(async (profile) => {
-        // Get role
-        const { data: roleData } = await supabaseClient
-          .from('user_roles')
-          .select('id, role')
-          .eq('user_id', profile.id)
-          .single()
+    // Get all user IDs for batch auth lookup
+    const userIds = (usersWithRoles || []).map((u: any) => u.id)
+    
+    // Batch fetch auth data - single call instead of N calls
+    const { data: authData, error: authError } = await supabaseClient.auth.admin.listUsers({
+      perPage: 1000 // Fetch all users in one call
+    })
 
-        // Get email and last_sign_in_at from auth using service role
-        const { data: authData } = await supabaseClient.auth.admin.getUserById(profile.id)
+    if (authError) {
+      console.error('Error fetching auth users:', authError)
+      throw authError
+    }
 
-        return {
-          ...profile,
-          email: authData.user?.email || '',
-          role: roleData?.role || null,
-          role_id: roleData?.id || null,
-          last_sign_in_at: authData.user?.last_sign_in_at || null,
-          email_verified: profile.email_verified || false,
-          temp_email: profile.temp_email || false,
-          is_suspended: profile.is_suspended || false,
-        }
-      })
+    // Create lookup map for O(1) access
+    const authUsersMap = new Map(
+      (authData?.users || []).map(user => [user.id, user])
     )
+
+    // Merge data efficiently using the map
+    const usersWithData = (usersWithRoles || []).map((user: any) => {
+      const authUser = authUsersMap.get(user.id)
+      return {
+        id: user.id,
+        full_name: user.full_name,
+        username: user.username,
+        nomor_telepon: user.nomor_telepon,
+        created_at: user.created_at,
+        email_verified: user.email_verified,
+        temp_email: user.temp_email,
+        is_suspended: user.is_suspended,
+        email: authUser?.email || '',
+        role: user.role,
+        role_id: user.role_id,
+        last_sign_in_at: authUser?.last_sign_in_at || null,
+      }
+    })
+
+    console.log(`Successfully fetched ${usersWithData.length} users with optimized query`)
 
     return new Response(
       JSON.stringify({ users: usersWithData }),
@@ -85,6 +99,7 @@ Deno.serve(async (req) => {
     )
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    console.error('get-users error:', errorMessage)
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { 

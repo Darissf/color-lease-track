@@ -4247,7 +4247,24 @@ export type Database = {
         Args: { role_name: string; user_id: string }
         Returns: boolean
       }
+      cleanup_old_agent_logs: { Args: never; Returns: number }
       cleanup_old_agent_outputs: { Args: never; Returns: undefined }
+      get_available_years: {
+        Args: { p_user_id: string }
+        Returns: {
+          year: number
+        }[]
+      }
+      get_dashboard_summary: {
+        Args: { p_user_id: string }
+        Returns: {
+          active_contracts: number
+          pending_payments: number
+          total_balance: number
+          total_expense_this_month: number
+          total_income_this_month: number
+        }[]
+      }
       get_email_daily_trends: {
         Args: { days: number }
         Returns: {
@@ -4289,6 +4306,31 @@ export type Database = {
           row_count: number
           size_bytes: number
           table_name: string
+        }[]
+      }
+      get_transaction_summary: {
+        Args: { p_end_date: string; p_start_date: string; p_user_id: string }
+        Returns: {
+          expense_count: number
+          income_count: number
+          net_balance: number
+          total_expense: number
+          total_income: number
+        }[]
+      }
+      get_users_with_roles: {
+        Args: never
+        Returns: {
+          created_at: string
+          email_verified: boolean
+          full_name: string
+          id: string
+          is_suspended: boolean
+          nomor_telepon: string
+          role: string
+          role_id: string
+          temp_email: boolean
+          username: string
         }[]
       }
       increment_provider_usage: {
