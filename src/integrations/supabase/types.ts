@@ -2948,6 +2948,33 @@ export type Database = {
           },
         ]
       }
+      security_rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          identifier: string
+          request_count: number | null
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          identifier: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          identifier?: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       smtp_settings: {
         Row: {
           api_key_encrypted: string | null
@@ -4249,6 +4276,7 @@ export type Database = {
       }
       cleanup_old_agent_logs: { Args: never; Returns: number }
       cleanup_old_agent_outputs: { Args: never; Returns: undefined }
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
       get_available_years: {
         Args: { p_user_id: string }
         Returns: {

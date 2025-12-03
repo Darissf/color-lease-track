@@ -5,6 +5,80 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limit configurations per endpoint
+const RATE_LIMITS: Record<string, { maxRequests: number; windowSeconds: number }> = {
+  'heartbeat': { maxRequests: 60, windowSeconds: 300 }, // 60 per 5 min
+  'commands': { maxRequests: 30, windowSeconds: 60 },   // 30 per 1 min
+  'output': { maxRequests: 60, windowSeconds: 60 },     // 60 per 1 min
+  'execute': { maxRequests: 20, windowSeconds: 60 },    // 20 per 1 min
+  'get-output': { maxRequests: 120, windowSeconds: 60 }, // 120 per 1 min (polling)
+};
+
+// Check rate limit and update counter
+async function checkRateLimit(
+  supabase: any,
+  identifier: string,
+  endpoint: string
+): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
+  const config = RATE_LIMITS[endpoint];
+  if (!config) {
+    return { allowed: true, remaining: 999, resetIn: 0 };
+  }
+
+  const windowStart = new Date(Date.now() - config.windowSeconds * 1000).toISOString();
+
+  // Get current count within window
+  const { data: existing } = await supabase
+    .from('security_rate_limits')
+    .select('id, request_count, window_start')
+    .eq('identifier', identifier)
+    .eq('endpoint', endpoint)
+    .gte('window_start', windowStart)
+    .order('window_start', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    const currentCount = existing.request_count || 0;
+    const remaining = Math.max(0, config.maxRequests - currentCount - 1);
+    const windowAge = Date.now() - new Date(existing.window_start).getTime();
+    const resetIn = Math.max(0, config.windowSeconds * 1000 - windowAge);
+
+    if (currentCount >= config.maxRequests) {
+      console.log(`[Rate Limit] BLOCKED: ${identifier} on ${endpoint} (${currentCount}/${config.maxRequests})`);
+      return { allowed: false, remaining: 0, resetIn };
+    }
+
+    // Update counter
+    await supabase
+      .from('security_rate_limits')
+      .update({ request_count: currentCount + 1 })
+      .eq('id', existing.id);
+
+    return { allowed: true, remaining, resetIn };
+  }
+
+  // Create new window
+  await supabase.from('security_rate_limits').insert({
+    identifier,
+    endpoint,
+    request_count: 1,
+    window_start: new Date().toISOString(),
+  });
+
+  return { allowed: true, remaining: config.maxRequests - 1, resetIn: config.windowSeconds * 1000 };
+}
+
+// Get client IP from request
+function getClientIP(req: Request): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    req.headers.get('cf-connecting-ip') ||
+    'unknown'
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,8 +92,9 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const pathname = url.pathname;
+    const clientIP = getClientIP(req);
 
-    // Simple ping endpoint for connection testing
+    // Simple ping endpoint for connection testing (no rate limit)
     if (pathname.includes('/ping')) {
       return new Response('pong', {
         status: 200,
@@ -43,7 +118,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Test endpoint - public connectivity check (no auth required)
+    // Test endpoint - public connectivity check (no auth required, no rate limit)
     if (path === 'test' && req.method === 'GET') {
       return new Response(JSON.stringify({ 
         status: 'ok', 
@@ -54,6 +129,8 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== RATE LIMITED ENDPOINTS ==========
+
     // Heartbeat endpoint - agent sends regular heartbeats
     if (path === 'heartbeat' && req.method === 'POST') {
       const { token, hostname, uptime } = await req.json();
@@ -62,6 +139,24 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Token required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Rate limit by token
+      const rateLimit = await checkRateLimit(supabase, token, 'heartbeat');
+      if (!rateLimit.allowed) {
+        console.log(`[VPS Agent] Rate limit exceeded for heartbeat from ${clientIP}, token: ${token.substring(0, 8)}...`);
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          retry_after: Math.ceil(rateLimit.resetIn / 1000)
+        }), {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)),
+            'X-RateLimit-Remaining': '0',
+          },
         });
       }
 
@@ -78,7 +173,7 @@ Deno.serve(async (req) => {
         .update({
           status: 'connected',
           last_heartbeat: new Date().toISOString(),
-          vps_info: { hostname, uptime },
+          vps_info: { hostname, uptime, last_ip: clientIP },
         })
         .eq('agent_token', token);
 
@@ -102,19 +197,23 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Log successful heartbeat
-      if (agent) {
+      // Log successful heartbeat (reduce log frequency)
+      if (agent && Math.random() < 0.1) { // Log only 10% of heartbeats
         await supabase.from('agent_logs').insert({
           agent_id: agent.id,
           user_id: agent.user_id,
           log_type: 'heartbeat',
           message: 'Agent heartbeat received',
-          metadata: { hostname, uptime },
+          metadata: { hostname, uptime, ip: clientIP },
         });
       }
 
       return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': String(rateLimit.remaining),
+        },
       });
     }
 
@@ -126,6 +225,23 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Token required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Rate limit by token
+      const rateLimit = await checkRateLimit(supabase, token, 'commands');
+      if (!rateLimit.allowed) {
+        console.log(`[VPS Agent] Rate limit exceeded for commands from ${clientIP}`);
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          retry_after: Math.ceil(rateLimit.resetIn / 1000)
+        }), {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)),
+          },
         });
       }
 
@@ -175,6 +291,23 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Token required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Rate limit by token
+      const rateLimit = await checkRateLimit(supabase, token, 'output');
+      if (!rateLimit.allowed) {
+        console.log(`[VPS Agent] Rate limit exceeded for output from ${clientIP}`);
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          retry_after: Math.ceil(rateLimit.resetIn / 1000)
+        }), {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)),
+          },
         });
       }
 
@@ -230,6 +363,23 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Rate limit by user ID
+      const rateLimit = await checkRateLimit(supabase, user.id, 'execute');
+      if (!rateLimit.allowed) {
+        console.log(`[VPS Agent] Rate limit exceeded for execute from user ${user.id}`);
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded. Please wait before sending more commands.',
+          retry_after: Math.ceil(rateLimit.resetIn / 1000)
+        }), {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)),
+          },
         });
       }
 
@@ -312,6 +462,22 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Rate limit by user ID
+      const rateLimit = await checkRateLimit(supabase, user.id, 'get-output');
+      if (!rateLimit.allowed) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          retry_after: Math.ceil(rateLimit.resetIn / 1000)
+        }), {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)),
+          },
         });
       }
 

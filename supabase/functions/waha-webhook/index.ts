@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
 serve(async (req) => {
@@ -15,6 +15,57 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // ========== SECURITY: Verify API Key ==========
+    const requestApiKey = req.headers.get('X-Api-Key') || req.headers.get('x-api-key');
+    
+    // Fetch valid API keys from database
+    const { data: wahaSettings } = await supabase
+      .from('whatsapp_settings')
+      .select('waha_api_key')
+      .not('waha_api_key', 'is', null);
+
+    const { data: vpsCredentials } = await supabase
+      .from('vps_credentials')
+      .select('waha_api_key')
+      .not('waha_api_key', 'is', null);
+
+    // Collect all valid API keys
+    const validApiKeys: string[] = [];
+    if (wahaSettings) {
+      wahaSettings.forEach((s: any) => {
+        if (s.waha_api_key) validApiKeys.push(s.waha_api_key);
+      });
+    }
+    if (vpsCredentials) {
+      vpsCredentials.forEach((v: any) => {
+        if (v.waha_api_key) validApiKeys.push(v.waha_api_key);
+      });
+    }
+
+    // If we have API keys configured, require verification
+    if (validApiKeys.length > 0) {
+      if (!requestApiKey) {
+        console.log('[WAHA Webhook] Missing X-Api-Key header');
+        return new Response(JSON.stringify({ error: 'Unauthorized - API key required' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (!validApiKeys.includes(requestApiKey)) {
+        console.log('[WAHA Webhook] Invalid API key provided');
+        return new Response(JSON.stringify({ error: 'Unauthorized - Invalid API key' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log('[WAHA Webhook] API key verified successfully');
+    } else {
+      console.log('[WAHA Webhook] Warning: No API keys configured, allowing request');
+    }
+    // ========== END SECURITY ==========
 
     const body = await req.json();
     console.log('[WAHA Webhook] Received event:', JSON.stringify(body, null, 2));
