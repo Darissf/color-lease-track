@@ -6,6 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface EmailAttachment {
+  filename: string;
+  content: string; // base64
+  contentType: string;
+}
+
 interface ComposeEmailRequest {
   from_address: string;
   from_name?: string;
@@ -16,6 +22,7 @@ interface ComposeEmailRequest {
   reply_to_id?: string;
   save_to_sent?: boolean;
   add_signature?: boolean;
+  attachments?: EmailAttachment[];
 }
 
 serve(async (req) => {
@@ -54,7 +61,12 @@ serve(async (req) => {
     }
 
     const body: ComposeEmailRequest = await req.json();
-    console.log('Compose email request:', { from: body.from_address, to: body.to, subject: body.subject });
+    console.log('Compose email request:', { 
+      from: body.from_address, 
+      to: body.to, 
+      subject: body.subject,
+      attachmentCount: body.attachments?.length || 0
+    });
 
     // Validate from_address is in monitored_email_addresses
     const { data: monitoredAddress, error: addrError } = await supabase
@@ -100,23 +112,43 @@ serve(async (req) => {
       }
     }
 
+    // Prepare attachments for Resend API
+    const resendAttachments = body.attachments?.map(att => ({
+      filename: att.filename,
+      content: att.content, // Resend accepts base64 directly
+    })) || [];
+
     // Send email via Resend
     const resendApiKey = selectedProvider.api_key_encrypted;
+    const emailPayload: any = {
+      from: body.from_name 
+        ? `${body.from_name} <${body.from_address}>`
+        : body.from_address,
+      to: [body.to],
+      cc: body.cc || [],
+      subject: body.subject,
+      html: finalHtml,
+    };
+
+    // Add attachments if present
+    if (resendAttachments.length > 0) {
+      emailPayload.attachments = resendAttachments;
+    }
+
+    console.log('Sending email with payload:', {
+      from: emailPayload.from,
+      to: emailPayload.to,
+      subject: emailPayload.subject,
+      attachmentCount: resendAttachments.length
+    });
+
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: body.from_name 
-          ? `${body.from_name} <${body.from_address}>`
-          : body.from_address,
-        to: [body.to],
-        cc: body.cc || [],
-        subject: body.subject,
-        html: finalHtml,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     const resendData = await resendResponse.json();
@@ -130,6 +162,12 @@ serve(async (req) => {
 
     // Save to mail_inbox if requested
     if (body.save_to_sent !== false) {
+      // Store attachment info (names only, not content)
+      const attachmentInfo = body.attachments?.map(att => ({
+        filename: att.filename,
+        contentType: att.contentType,
+      })) || [];
+
       const { error: insertError } = await supabase
         .from('mail_inbox')
         .insert({
@@ -143,6 +181,7 @@ serve(async (req) => {
           mail_type: 'outbound',
           reply_to_id: body.reply_to_id || null,
           is_read: true,
+          attachments: attachmentInfo.length > 0 ? attachmentInfo : null,
         });
 
       if (insertError) {
@@ -162,13 +201,19 @@ serve(async (req) => {
         status: 'sent',
         sent_at: new Date().toISOString(),
         external_message_id: resendData.id,
+        template_type: 'compose',
       });
 
     // Update provider stats
-    await supabase.rpc('increment', {
-      row_id: selectedProvider.id,
-      x: 1,
-    });
+    await supabase
+      .from('email_providers')
+      .update({
+        emails_sent_today: (selectedProvider.emails_sent_today || 0) + 1,
+        emails_sent_month: (selectedProvider.emails_sent_month || 0) + 1,
+        last_success_at: new Date().toISOString(),
+        last_used_at: new Date().toISOString(),
+      })
+      .eq('id', selectedProvider.id);
 
     return new Response(
       JSON.stringify({
