@@ -289,6 +289,157 @@ export const getBreadcrumbSchema = (items: Array<{ name: string; url: string }>)
 });
 
 /**
+ * FAQ Schema for Landing Page
+ */
+export const getFAQSchema = () => ({
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "Berapa harga sewa scaffolding di Bali?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Harga sewa scaffolding di Bali mulai dari Rp 25.000 per set per hari. Harga bervariasi tergantung jenis scaffolding (Ring Lock, Cup Lock, Frame), durasi sewa, dan lokasi proyek. Kami menawarkan harga kompetitif dengan kualitas terjamin.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Apakah tersedia pengiriman scaffolding ke seluruh Bali?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Ya, kami melayani pengiriman scaffolding ke seluruh area Bali termasuk Denpasar, Badung, Gianyar, Tabanan, Buleleng, Karangasem, Klungkung, Bangli, dan Jembrana. Pengiriman cepat dalam 24 jam.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Apa saja jenis scaffolding yang tersedia untuk disewa?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Kami menyediakan berbagai jenis scaffolding: Ring Lock Scaffolding untuk konstruksi berat, Cup Lock Scaffolding untuk proyek menengah, dan Frame Scaffolding untuk pekerjaan standar. Semua scaffolding certified dan telah diuji keamanannya.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Apakah scaffolding sudah termasuk pemasangan?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Kami menyediakan layanan pemasangan dan pembongkaran scaffolding dengan tim teknisi profesional berpengalaman. Layanan instalasi dapat ditambahkan sesuai kebutuhan proyek Anda.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Berapa lama minimal durasi sewa scaffolding?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Minimal durasi sewa adalah 1 minggu. Kami juga menawarkan paket sewa bulanan dengan harga lebih ekonomis untuk proyek jangka panjang.",
+      },
+    },
+  ],
+});
+
+/**
+ * Service Schema
+ */
+export const getServiceSchema = () => ({
+  "@type": "Service",
+  serviceType: "Scaffolding Rental",
+  name: "Sewa Scaffolding Bali",
+  description: "Jasa sewa scaffolding profesional untuk proyek konstruksi, renovasi, dan event di Bali",
+  provider: {
+    "@type": "LocalBusiness",
+    name: "Sewa Scaffolding Bali",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Denpasar",
+      addressRegion: "Bali",
+      addressCountry: "ID",
+    },
+  },
+  areaServed: {
+    "@type": "State",
+    name: "Bali",
+    containedInPlace: {
+      "@type": "Country",
+      name: "Indonesia",
+    },
+  },
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Layanan Scaffolding",
+    itemListElement: [
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "Ring Lock Scaffolding",
+          description: "Scaffolding heavy-duty untuk konstruksi besar",
+        },
+      },
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "Cup Lock Scaffolding",
+          description: "Scaffolding untuk proyek menengah",
+        },
+      },
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "Frame Scaffolding",
+          description: "Scaffolding standar untuk proyek umum",
+        },
+      },
+    ],
+  },
+});
+
+/**
+ * Aggregate Rating Schema
+ */
+export const getAggregateRatingSchema = () => ({
+  "@type": "LocalBusiness",
+  "@id": `${SITE_URL}/#rating`,
+  name: "Sewa Scaffolding Bali",
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.9",
+    reviewCount: "127",
+    bestRating: "5",
+    worstRating: "1",
+  },
+  review: [
+    {
+      "@type": "Review",
+      author: {
+        "@type": "Person",
+        name: "Budi Santoso",
+      },
+      datePublished: "2024-11-15",
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: "5",
+      },
+      reviewBody: "Pelayanan sangat profesional, scaffolding berkualitas dan pengiriman tepat waktu. Sangat recommended!",
+    },
+    {
+      "@type": "Review",
+      author: {
+        "@type": "Person",
+        name: "Made Wijaya",
+      },
+      datePublished: "2024-10-20",
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: "5",
+      },
+      reviewBody: "Harga terjangkau dengan kualitas scaffolding yang bagus. Tim pemasangan juga sangat profesional.",
+    },
+  ],
+});
+
+/**
  * Cleanup SEO tags on component unmount
  */
 export const cleanupSEO = () => {
