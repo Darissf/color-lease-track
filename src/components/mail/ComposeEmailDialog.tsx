@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -173,7 +172,14 @@ export function ComposeEmailDialog({
   };
 
   const handleSend = async () => {
-    if (!fromAddress || !to || !subject || !body) {
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!fromAddress || !emailRegex.test(fromAddress)) {
+      toast.error("Format email pengirim tidak valid");
+      return;
+    }
+
+    if (!to || !subject || !body) {
       toast.error("Harap isi semua field yang wajib");
       return;
     }
@@ -258,28 +264,41 @@ export function ComposeEmailDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* From Address */}
+          {/* From Address & Name - Fully Custom */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fromEmail">Email Pengirim *</Label>
-              <Select value={fromAddress} onValueChange={handleAddressChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih alamat pengirim" />
-                </SelectTrigger>
-                <SelectContent>
-                  {addresses.map((addr) => (
-                    <SelectItem key={addr.id} value={addr.email_address}>
-                      <div className="flex items-center gap-2">
+              <Input
+                id="fromEmail"
+                type="email"
+                value={fromAddress}
+                onChange={(e) => setFromAddress(e.target.value)}
+                placeholder="email@domain.com"
+              />
+              {/* Quick suggestions from monitored addresses */}
+              {addresses.length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">Alamat tersimpan:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {addresses.map((addr) => (
+                      <Button
+                        key={addr.id}
+                        type="button"
+                        size="sm"
+                        variant={fromAddress === addr.email_address ? "secondary" : "outline"}
+                        className="h-6 text-xs px-2"
+                        onClick={() => handleAddressChange(addr.email_address)}
+                      >
                         <div 
-                          className="w-2 h-2 rounded-full" 
+                          className="w-2 h-2 rounded-full mr-1" 
                           style={{ backgroundColor: addr.badge_color }}
                         />
-                        <span>{addr.email_address}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                        {addr.email_address.split('@')[0]}@...
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -291,7 +310,7 @@ export function ComposeEmailDialog({
                 placeholder="Nama yang ditampilkan"
               />
               <p className="text-xs text-muted-foreground">
-                Hasil: {fromName ? `${fromName} <${fromAddress}>` : fromAddress}
+                Hasil: {fromName ? `${fromName} <${fromAddress}>` : fromAddress || "email@domain.com"}
               </p>
             </div>
           </div>
