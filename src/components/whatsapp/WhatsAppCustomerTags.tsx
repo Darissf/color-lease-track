@@ -40,7 +40,7 @@ export const WhatsAppCustomerTags = () => {
       const { data, error } = await supabase
         .from('whatsapp_customer_tags')
         .select('*')
-        .order('tag_name');
+        .order('name');
 
       if (error) throw error;
       setTags(data || []);
