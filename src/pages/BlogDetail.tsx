@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar, Eye, ArrowLeft, Clock } from "lucide-react";
 import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import { id as idLocale } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
+import { SEOHead } from "@/components/SEOHead";
+import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 
 export default function BlogDetail() {
   const { slug } = useParams();
@@ -82,8 +84,38 @@ export default function BlogDetail() {
 
   const readingTime = Math.ceil(post.content.split(" ").length / 200);
 
+  const articleUrl = `https://sewascaffoldingbali.com/blog/${post.slug}`;
+
   return (
     <>
+      {/* SEO */}
+      <SEOHead
+        title={post.title}
+        description={post.excerpt || post.content.substring(0, 155)}
+        keywords={post.tags?.join(", ") || "scaffolding, konstruksi, bali"}
+        canonical={`/blog/${post.slug}`}
+        ogImage={post.featured_image}
+        ogType="article"
+        publishedTime={post.published_at}
+        modifiedTime={post.updated_at}
+        author="Tim Scaffolding Bali"
+        structuredData={[
+          getArticleSchema({
+            title: post.title,
+            description: post.excerpt || post.content.substring(0, 155),
+            url: articleUrl,
+            image: post.featured_image,
+            publishedTime: post.published_at,
+            modifiedTime: post.updated_at,
+          }),
+          getBreadcrumbSchema([
+            { name: "Beranda", url: "/" },
+            { name: "Blog", url: "/blog" },
+            { name: post.title, url: `/blog/${post.slug}` }
+          ])
+        ]}
+      />
+
       <ReadingProgress />
       
       <div className="min-h-screen bg-background">
@@ -108,7 +140,7 @@ export default function BlogDetail() {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
-                  {format(new Date(post.published_at), "d MMMM yyyy", { locale: id })}
+                  {format(new Date(post.published_at), "d MMMM yyyy", { locale: idLocale })}
                 </span>
                 <span className="flex items-center gap-1">
                   <Eye className="w-4 h-4" />

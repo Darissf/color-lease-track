@@ -8,6 +8,8 @@ import { ScrollAnimationWrapper } from "@/components/landing/ScrollAnimationWrap
 import { Button } from "@/components/ui/button";
 import { Award, Clock, Users, HeadphonesIcon } from "lucide-react";
 import { Link } from "react-router-dom";
+import { SEOHead } from "@/components/SEOHead";
+import { getOrganizationSchema, getBreadcrumbSchema } from "@/lib/seo";
 
 const teamMembers = [
   {
@@ -67,6 +69,21 @@ const achievements = [
 export default function AboutUs() {
   return (
     <div className="min-h-screen">
+      {/* SEO */}
+      <SEOHead
+        title="Tentang Kami - Sewa Scaffolding Bali"
+        description="Kenali Sewa Scaffolding Bali lebih dekat. Berpengalaman 10+ tahun melayani 500+ proyek konstruksi di Bali dengan tim profesional dan scaffolding bersertifikasi SNI."
+        keywords="tentang scaffolding bali, profil perusahaan scaffolding, tim scaffolding profesional, sejarah scaffolding bali"
+        canonical="/about"
+        structuredData={[
+          getOrganizationSchema(),
+          getBreadcrumbSchema([
+            { name: "Beranda", url: "/" },
+            { name: "Tentang Kami", url: "/about" }
+          ])
+        ]}
+      />
+
       <AboutHero />
       <CompanyTimeline />
       <CompanyValues />
