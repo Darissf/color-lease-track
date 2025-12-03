@@ -101,3 +101,18 @@ verify_jwt = false
 
 [functions.inbound-mail-webhook]
 verify_jwt = false
+
+[functions.send-whatsapp-unified]
+verify_jwt = true
+
+[functions.meta-whatsapp-webhook]
+verify_jwt = false
+
+[functions.waha-webhook]
+verify_jwt = false
+
+[functions.track-whatsapp-link]
+verify_jwt = false
+
+[functions.process-scheduled-whatsapp]
+verify_jwt = false
