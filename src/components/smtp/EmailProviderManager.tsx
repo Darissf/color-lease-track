@@ -28,7 +28,15 @@ interface EmailProvider {
   last_error: string | null;
   last_success_at: string | null;
   purpose: string;
+  api_key_encrypted?: string;
 }
+
+// Helper function to mask API key for display
+const maskApiKey = (apiKey: string | null | undefined): string => {
+  if (!apiKey) return "Tidak ada key tersimpan";
+  if (apiKey.length <= 15) return apiKey.slice(0, 8) + "****";
+  return apiKey.slice(0, 12) + "****";
+};
 
 const EmailProviderManager = () => {
   const { toast } = useToast();
@@ -557,6 +565,16 @@ const EmailProviderManager = () => {
 
             <div>
               <Label>API Key (leave empty to keep current)</Label>
+              {editingProvider?.api_key_encrypted && (
+                <div className="flex items-center gap-2 mb-2 p-2 bg-green-50 dark:bg-green-950/50 rounded border border-green-200 dark:border-green-800">
+                  <Badge variant="outline" className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
+                    🔑 Tersimpan
+                  </Badge>
+                  <code className="text-sm font-mono text-green-700 dark:text-green-300">
+                    {maskApiKey(editingProvider.api_key_encrypted)}
+                  </code>
+                </div>
+              )}
               <Input
                 type="password"
                 placeholder="Enter new API key (optional)"
@@ -564,7 +582,7 @@ const EmailProviderManager = () => {
                 onChange={(e) => setEditForm({ ...editForm, api_key: e.target.value })}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Only fill this if you want to change the API key
+                Kosongkan jika tidak ingin mengubah API key
               </p>
             </div>
 
