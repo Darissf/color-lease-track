@@ -2998,34 +2998,40 @@ export type Database = {
       }
       temporary_access_codes: {
         Row: {
+          attempts_count: number | null
           code: string
           created_at: string | null
           created_by: string
           expires_at: string
           force_password_change: boolean | null
           id: string
+          last_attempt_at: string | null
           used: boolean | null
           used_at: string | null
           user_id: string
         }
         Insert: {
+          attempts_count?: number | null
           code: string
           created_at?: string | null
           created_by: string
           expires_at: string
           force_password_change?: boolean | null
           id?: string
+          last_attempt_at?: string | null
           used?: boolean | null
           used_at?: string | null
           user_id: string
         }
         Update: {
+          attempts_count?: number | null
           code?: string
           created_at?: string | null
           created_by?: string
           expires_at?: string
           force_password_change?: boolean | null
           id?: string
+          last_attempt_at?: string | null
           used?: boolean | null
           used_at?: string | null
           user_id?: string
@@ -3034,6 +3040,7 @@ export type Database = {
       }
       two_factor_codes: {
         Row: {
+          attempts_count: number | null
           code: string
           created_at: string | null
           expires_at: string
@@ -3042,6 +3049,7 @@ export type Database = {
           verified: boolean | null
         }
         Insert: {
+          attempts_count?: number | null
           code: string
           created_at?: string | null
           expires_at: string
@@ -3050,6 +3058,7 @@ export type Database = {
           verified?: boolean | null
         }
         Update: {
+          attempts_count?: number | null
           code?: string
           created_at?: string | null
           expires_at?: string

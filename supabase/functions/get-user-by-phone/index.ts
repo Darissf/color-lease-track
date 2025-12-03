@@ -5,10 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Consistent response delay to prevent timing attacks
+const RESPONSE_DELAY_MS = 300;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
+
+  const startTime = Date.now();
 
   try {
     const supabaseClient = createClient(
@@ -19,11 +24,26 @@ Deno.serve(async (req) => {
     const { identifier } = await req.json()
 
     if (!identifier) {
-      throw new Error('Identifier required (email, phone, or username)')
+      // Wait for consistent timing
+      await ensureMinResponseTime(startTime, RESPONSE_DELAY_MS);
+      return new Response(
+        JSON.stringify({ error: 'Identifier required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Input validation
+    if (typeof identifier !== 'string' || identifier.length > 255) {
+      await ensureMinResponseTime(startTime, RESPONSE_DELAY_MS);
+      return new Response(
+        JSON.stringify({ error: 'Invalid identifier format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // If identifier contains @, it's an email - return directly
     if (identifier.includes('@')) {
+      await ensureMinResponseTime(startTime, RESPONSE_DELAY_MS);
       return new Response(
         JSON.stringify({ email: identifier }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -39,6 +59,12 @@ Deno.serve(async (req) => {
       // Normalize phone: remove spaces, dashes, etc
       const normalizedPhone = identifier.replace(/\D/g, '')
 
+      // Validate phone length
+      if (normalizedPhone.length < 8 || normalizedPhone.length > 15) {
+        await ensureMinResponseTime(startTime, RESPONSE_DELAY_MS);
+        return genericNotFoundResponse();
+      }
+
       // Find user by phone in profiles
       const { data, error } = await supabaseClient
         .from('profiles')
@@ -46,46 +72,70 @@ Deno.serve(async (req) => {
         .eq('nomor_telepon', normalizedPhone)
         .maybeSingle()
 
-      if (error) throw error
+      if (error) {
+        console.error('[get-user-by-phone] Database error:', error);
+        throw error;
+      }
       profile = data
     } else {
       // Assume it's a username - case insensitive lookup
+      // Sanitize username input
+      const sanitizedUsername = identifier.trim().slice(0, 50);
+      
       const { data, error } = await supabaseClient
         .from('profiles')
         .select('id')
-        .ilike('username', identifier)
+        .ilike('username', sanitizedUsername)
         .maybeSingle()
 
-      if (error) throw error
+      if (error) {
+        console.error('[get-user-by-phone] Database error:', error);
+        throw error;
+      }
       profile = data
     }
 
+    // SECURITY: Return consistent response regardless of user existence
+    // This prevents user enumeration attacks
     if (!profile) {
-      return new Response(
-        JSON.stringify({ error: 'User not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      await ensureMinResponseTime(startTime, RESPONSE_DELAY_MS);
+      return genericNotFoundResponse();
     }
 
     // Get user email from auth.users
     const { data: { user }, error: userError } = await supabaseClient.auth.admin.getUserById(profile.id)
 
     if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'User not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      await ensureMinResponseTime(startTime, RESPONSE_DELAY_MS);
+      return genericNotFoundResponse();
     }
 
+    await ensureMinResponseTime(startTime, RESPONSE_DELAY_MS);
     return new Response(
       JSON.stringify({ email: user.email, userId: user.id }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error: any) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    console.error('[get-user-by-phone] Error:', error);
+    await ensureMinResponseTime(startTime, RESPONSE_DELAY_MS);
+    // Return generic error to prevent information leakage
+    return genericNotFoundResponse();
   }
 })
+
+// Helper function to ensure consistent response timing
+async function ensureMinResponseTime(startTime: number, minMs: number) {
+  const elapsed = Date.now() - startTime;
+  if (elapsed < minMs) {
+    await new Promise(resolve => setTimeout(resolve, minMs - elapsed + Math.random() * 100));
+  }
+}
+
+// Generic not found response - same for all "not found" scenarios
+function genericNotFoundResponse() {
+  return new Response(
+    JSON.stringify({ error: 'User not found' }),
+    { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+}
