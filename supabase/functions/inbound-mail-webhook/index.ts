@@ -17,7 +17,11 @@ Deno.serve(async (req) => {
     );
 
     const payload = await req.json();
-    console.log('Received webhook:', JSON.stringify(payload, null, 2));
+    
+    // Log FULL payload for debugging
+    console.log('=== FULL WEBHOOK PAYLOAD ===');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('=== END PAYLOAD ===');
 
     // Only process email.received events
     if (payload.type !== 'email.received') {
@@ -64,12 +68,13 @@ Deno.serve(async (req) => {
     });
 
     // Try to fetch full email content from Resend API using email_id
-    const emailId = emailData.email_id || emailData.id;
+    // Use /emails/receiving/{id} endpoint for INBOUND emails (not /emails/{id} which is for outbound)
+    const emailId = emailData.email_id || emailData.id || payload.email_id || payload.id;
     if (resendApiKey && emailId) {
       try {
-        console.log('Fetching email content for ID:', emailId);
+        console.log('Fetching INBOUND email content for ID:', emailId);
         const emailDetailResponse = await fetch(
-          `https://api.resend.com/emails/${emailId}`,
+          `https://api.resend.com/emails/receiving/${emailId}`,
           {
             headers: {
               Authorization: `Bearer ${resendApiKey}`,
