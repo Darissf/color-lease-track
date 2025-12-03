@@ -63,14 +63,18 @@ serve(async (req) => {
     
     if (!selectedNumber) {
       // Find number by notification type
-      const { data: matchingNumbers } = await supabase
+      const { data: allNumbers } = await supabase
         .from('whatsapp_numbers')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true)
         .contains('notification_types', [notificationType])
-        .lt('messages_sent_today', supabase.rpc('get_column', { col: 'daily_limit' }))
         .order('priority', { ascending: false });
+
+      // Filter by daily limit in JavaScript
+      const matchingNumbers = (allNumbers || []).filter(
+        (n: any) => (n.messages_sent_today || 0) < (n.daily_limit || 1000)
+      );
 
       if (matchingNumbers && matchingNumbers.length > 0) {
         selectedNumber = matchingNumbers[0];

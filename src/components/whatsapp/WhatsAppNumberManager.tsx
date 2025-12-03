@@ -41,7 +41,7 @@ export const WhatsAppNumberManager = () => {
     business_hours_start: '08:00',
     business_hours_end: '17:00',
     business_days: [1, 2, 3, 4, 5],
-    rate_limit_per_minute: 20,
+    daily_limit: 1000,
     is_active: true,
   });
 
@@ -61,7 +61,7 @@ export const WhatsAppNumberManager = () => {
       business_hours_start: '08:00',
       business_hours_end: '17:00',
       business_days: [1, 2, 3, 4, 5],
-      rate_limit_per_minute: 20,
+      daily_limit: 1000,
       is_active: true,
     });
     setEditingNumber(null);
@@ -85,7 +85,7 @@ export const WhatsAppNumberManager = () => {
         business_hours_start: number.business_hours_start || '08:00',
         business_hours_end: number.business_hours_end || '17:00',
         business_days: number.business_days || [1, 2, 3, 4, 5],
-        rate_limit_per_minute: number.rate_limit_per_minute || 20,
+        daily_limit: number.daily_limit || 1000,
         is_active: number.is_active !== false,
       });
     } else {
@@ -341,14 +341,15 @@ export const WhatsAppNumberManager = () => {
                 )}
 
                 <div className="space-y-2">
-                  <Label>Rate Limit (per menit)</Label>
+                  <Label>Batas Harian</Label>
                   <Input
                     type="number"
-                    value={formData.rate_limit_per_minute}
-                    onChange={(e) => setFormData({ ...formData, rate_limit_per_minute: parseInt(e.target.value) || 20 })}
+                    value={formData.daily_limit}
+                    onChange={(e) => setFormData({ ...formData, daily_limit: parseInt(e.target.value) || 1000 })}
                     min={1}
-                    max={100}
+                    max={10000}
                   />
+                  <p className="text-xs text-muted-foreground">Maksimum pesan per hari</p>
                 </div>
               </TabsContent>
             </Tabs>

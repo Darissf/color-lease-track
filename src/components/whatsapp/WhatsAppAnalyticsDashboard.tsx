@@ -154,9 +154,9 @@ export const WhatsAppAnalyticsDashboard = () => {
                     innerRadius={60}
                     outerRadius={100}
                     paddingAngle={2}
-                    dataKey="value"
-                    nameKey="name"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    dataKey="count"
+                    nameKey="label"
+                    label={({ label, percent }) => `${label} (${(percent * 100).toFixed(0)}%)`}
                     labelLine={false}
                   >
                     {breakdownData.map((entry, index) => (
