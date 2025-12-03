@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import DOMPurify from 'dompurify';
 
 interface EmailSignature {
   id: string;
@@ -116,6 +117,26 @@ const EmailSignatureManager = () => {
       ...currentSignature,
       signature_html:
         (currentSignature.signature_html || "") + `<p>${placeholder}</p>`,
+    });
+  };
+
+  // Sanitize HTML for preview to prevent XSS
+  const getSanitizedPreview = () => {
+    return DOMPurify.sanitize(currentSignature.signature_html || "", {
+      ALLOWED_TAGS: [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr',
+        'ul', 'ol', 'li', 'a', 'strong', 'em', 'b', 'i', 'u',
+        'blockquote', 'pre', 'code', 'img', 'table', 'thead',
+        'tbody', 'tr', 'th', 'td', 'div', 'span', 'center'
+      ],
+      ALLOWED_ATTR: [
+        'href', 'src', 'alt', 'title', 'class', 'id', 'target',
+        'rel', 'width', 'height', 'style', 'border', 'cellpadding',
+        'cellspacing', 'bgcolor', 'align', 'valign'
+      ],
+      ALLOW_DATA_ATTR: false,
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
     });
   };
 
@@ -235,7 +256,7 @@ const EmailSignatureManager = () => {
                 <div
                   className="border rounded p-4"
                   dangerouslySetInnerHTML={{
-                    __html: currentSignature.signature_html || "",
+                    __html: getSanitizedPreview(),
                   }}
                 />
               </DialogContent>

@@ -1,8 +1,28 @@
+import DOMPurify from 'dompurify';
+
 interface BlogContentProps {
   content: string;
 }
 
 export const BlogContent = ({ content }: BlogContentProps) => {
+  // Sanitize HTML content to prevent XSS attacks
+  const sanitizedContent = DOMPurify.sanitize(content, {
+    ALLOWED_TAGS: [
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr',
+      'ul', 'ol', 'li', 'a', 'strong', 'em', 'b', 'i', 'u',
+      'blockquote', 'pre', 'code', 'img', 'table', 'thead',
+      'tbody', 'tr', 'th', 'td', 'div', 'span', 'figure', 'figcaption'
+    ],
+    ALLOWED_ATTR: [
+      'href', 'src', 'alt', 'title', 'class', 'id', 'target',
+      'rel', 'width', 'height', 'style'
+    ],
+    ALLOW_DATA_ATTR: false,
+    ADD_ATTR: ['target'],
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
+  });
+
   return (
     <div 
       className="blog-content prose prose-lg max-w-none
@@ -24,7 +44,7 @@ export const BlogContent = ({ content }: BlogContentProps) => {
         prose-table:border-collapse prose-table:w-full
         prose-th:bg-muted prose-th:p-3 prose-th:text-left prose-th:font-semibold
         prose-td:border prose-td:border-border prose-td:p-3"
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: sanitizedContent }}
     />
   );
 };

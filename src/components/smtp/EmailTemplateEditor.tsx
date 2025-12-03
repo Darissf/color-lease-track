@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import DOMPurify from 'dompurify';
 
 interface EmailTemplate {
   id: string;
@@ -181,7 +182,23 @@ const EmailTemplateEditor = () => {
       preview = preview.replace(regex, String(value));
     });
     
-    return preview;
+    // Sanitize HTML to prevent XSS
+    return DOMPurify.sanitize(preview, {
+      ALLOWED_TAGS: [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr',
+        'ul', 'ol', 'li', 'a', 'strong', 'em', 'b', 'i', 'u',
+        'blockquote', 'pre', 'code', 'img', 'table', 'thead',
+        'tbody', 'tr', 'th', 'td', 'div', 'span', 'center'
+      ],
+      ALLOWED_ATTR: [
+        'href', 'src', 'alt', 'title', 'class', 'id', 'target',
+        'rel', 'width', 'height', 'style', 'border', 'cellpadding',
+        'cellspacing', 'bgcolor', 'align', 'valign'
+      ],
+      ALLOW_DATA_ATTR: false,
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
+    });
   };
 
   return (
