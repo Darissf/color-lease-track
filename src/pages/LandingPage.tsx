@@ -15,6 +15,8 @@ import { EditableText } from "@/components/EditableText";
 import { initMetaPixel, trackEvent } from "@/lib/metaPixel";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { SEOHead } from "@/components/SEOHead";
+import { getLocalBusinessSchema, getBreadcrumbSchema } from "@/lib/seo";
 
 const services = [
   {
@@ -131,6 +133,19 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* SEO */}
+      <SEOHead
+        title="Sewa Scaffolding Bali - Rental Scaffolding Profesional & Terpercaya"
+        description="Sewa Scaffolding Bali - Penyedia jasa rental scaffolding profesional di Bali. Tersedia Ring Lock, Cup Lock & Frame Scaffolding dengan harga terjangkau, pengiriman cepat & instalasi oleh teknisi ahli."
+        keywords="sewa scaffolding bali, rental scaffolding bali, scaffolding denpasar, sewa steger bali, scaffolding murah bali, ring lock scaffolding, cup lock scaffolding"
+        canonical="/"
+        ogImage="/og-image.jpg"
+        structuredData={[
+          getLocalBusinessSchema(),
+          getBreadcrumbSchema([{ name: "Beranda", url: "/" }])
+        ]}
+      />
+
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm shadow-md transition-all duration-300">
         <div className="container mx-auto px-4">

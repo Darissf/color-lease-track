@@ -5,6 +5,8 @@ import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollAnimationWrapper } from "@/components/landing/ScrollAnimationWrapper";
 import { Loader2 } from "lucide-react";
+import { SEOHead } from "@/components/SEOHead";
+import { getBreadcrumbSchema } from "@/lib/seo";
 
 export default function Blog() {
   const [posts, setPosts] = useState<any[]>([]);
@@ -73,6 +75,18 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* SEO */}
+      <SEOHead
+        title="Blog Scaffolding Bali - Tips & Panduan Konstruksi"
+        description="Baca artikel terbaru seputar scaffolding, tips konstruksi, panduan keamanan, dan case study proyek di Bali. Informasi lengkap dari tim profesional Sewa Scaffolding Bali."
+        keywords="blog scaffolding, tips konstruksi bali, panduan scaffolding, keamanan scaffolding, proyek konstruksi bali"
+        canonical="/blog"
+        structuredData={getBreadcrumbSchema([
+          { name: "Beranda", url: "/" },
+          { name: "Blog", url: "/blog" }
+        ])}
+      />
+
       {/* Hero */}
       <section className="relative py-20 bg-gradient-to-br from-sky-blue to-cyan text-white overflow-hidden">
         <div className="container mx-auto px-4 text-center relative z-10">
