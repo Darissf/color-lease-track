@@ -49,15 +49,27 @@ Deno.serve(async (req) => {
     const fromParsed = parseEmailAddress(emailData.from);
     const toAddress = Array.isArray(emailData.to) ? emailData.to[0] : emailData.to;
 
-    // Fetch full email content from Resend API
+    // Get email content from webhook payload
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     let bodyHtml = emailData.html || '';
     let bodyText = emailData.text || '';
+    
+    // Log webhook payload for debugging
+    console.log('Email data fields:', {
+      email_id: emailData.email_id,
+      id: emailData.id,
+      hasHtml: !!emailData.html,
+      hasText: !!emailData.text,
+      subject: emailData.subject
+    });
 
-    if (resendApiKey && emailData.id) {
+    // Try to fetch full email content from Resend API using email_id
+    const emailId = emailData.email_id || emailData.id;
+    if (resendApiKey && emailId) {
       try {
+        console.log('Fetching email content for ID:', emailId);
         const emailDetailResponse = await fetch(
-          `https://api.resend.com/emails/${emailData.id}`,
+          `https://api.resend.com/emails/${emailId}`,
           {
             headers: {
               Authorization: `Bearer ${resendApiKey}`,
@@ -66,21 +78,32 @@ Deno.serve(async (req) => {
           }
         );
 
+        console.log('Resend API response status:', emailDetailResponse.status);
+        
         if (emailDetailResponse.ok) {
           const emailDetail = await emailDetailResponse.json();
+          console.log('Email detail response:', {
+            hasHtml: !!emailDetail.html,
+            hasText: !!emailDetail.text,
+            htmlLength: emailDetail.html?.length || 0,
+            textLength: emailDetail.text?.length || 0
+          });
           bodyHtml = emailDetail.html || bodyHtml;
           bodyText = emailDetail.text || bodyText;
-          console.log('Fetched full email content from Resend API');
+        } else {
+          const errorText = await emailDetailResponse.text();
+          console.error('Failed to fetch email from Resend:', errorText);
         }
       } catch (error) {
         console.error('Error fetching email from Resend API:', error);
-        // Continue with webhook data
       }
+    } else {
+      console.log('Skipping Resend API fetch - missing API key or email ID');
     }
 
     // Insert into database
     const { data, error } = await supabase.from('mail_inbox').insert({
-      email_id: emailData.id || `webhook-${Date.now()}`,
+      email_id: emailData.email_id || emailData.id || `webhook-${Date.now()}`,
       from_address: fromParsed.email,
       from_name: fromParsed.name,
       to_address: toAddress,
