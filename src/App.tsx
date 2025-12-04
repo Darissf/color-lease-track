@@ -61,6 +61,7 @@ import WhatsAppSettings from "./pages/WhatsAppSettings";
 import SMTPSettings from "./pages/SMTPSettings";
 import VIPDesignSettings from "./pages/VIPDesignSettings";
 import AIChat from "./pages/AIChat";
+import UserManagement from "./pages/UserManagement";
 
 import Mail from "./pages/Mail";
 import TransactionHistory from "./pages/TransactionHistory";
@@ -114,6 +115,7 @@ const App = () => (
                               <Route path="/settings/whatsapp" element={<WhatsAppSettings />} />
                               <Route path="/settings/smtp" element={<SMTPSettings />} />
                               <Route path="/settings/design" element={<VIPDesignSettings />} />
+                              <Route path="/settings/users" element={<UserManagement />} />
                               <Route path="/settings/accounts" element={<AccountSettings />} />
                               <Route path="/settings/income" element={<IncomeSettings />} />
                               <Route path="/settings/savings" element={<SavingsSettings />} />
