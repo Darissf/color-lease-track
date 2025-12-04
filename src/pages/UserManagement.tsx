@@ -31,8 +31,7 @@ import {
   Trash2, 
   Pencil,
   Mail,
-  MailCheck,
-  Shield
+  MailCheck
 } from "lucide-react";
 import { UserRegistrationForm } from "@/components/UserRegistrationForm";
 import { UserEditForm } from "@/components/UserEditForm";
@@ -182,14 +181,18 @@ const UserManagement = () => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Shield className="h-6 w-6 text-primary" />
-              Manajemen User & Role
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Kelola pengguna, role, dan hak akses sistem
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-cyan-600 flex items-center justify-center shrink-0">
+              <Users className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                Manajemen User & Role
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Kelola pengguna, role, dan hak akses sistem
+              </p>
+            </div>
           </div>
         </div>
 
