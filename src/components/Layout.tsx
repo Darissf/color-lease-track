@@ -29,6 +29,7 @@ const navItems = [
 
   const adminNavItems = [
     { title: "AI Chat", url: "/vip/ai-chat", icon: MessageSquare, badge: "New", badgeVariant: "default" as const, description: "Chat dengan berbagai AI provider (Admin Only)", adminOnly: true },
+    { title: "Generate Image", url: "/vip/generate-image", icon: Sparkles, badge: "AI", badgeVariant: "ai" as const, description: "Generate gambar dengan AI (Admin Only)", adminOnly: true },
     { title: "Mail Inbox", url: "/vip/mail", icon: Mail, badge: "New", badgeVariant: "default" as const, description: "Kelola email masuk domain", adminOnly: true },
     { title: "Pengaturan", url: "/vip/settings", icon: Settings, description: "Konfigurasi pengaturan aplikasi" },
     { title: "AI Settings", url: "/vip/settings/ai", icon: Brain, badge: "AI", badgeVariant: "ai" as const, description: "Konfigurasi fitur AI dan model" },

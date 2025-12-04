@@ -15,10 +15,10 @@ import { z } from "zod";
 const AI_PROVIDERS = {
   gemini: {
     name: "Google Gemini",
-    description: "Model AI dari Google dengan reasoning yang kuat (Support Vision)",
+    description: "Model AI dari Google dengan reasoning yang kuat (Support Vision & Image Generation)",
     link: "https://aistudio.google.com/app/apikey",
     needsApiKey: true,
-    models: ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"],
+    models: ["gemini-2.5-flash", "gemini-2.5-pro-preview", "gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"],
     keyPrefix: "AI",
   },
   openai: {

@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.generate-sitemap]
 verify_jwt = false
+
+[functions.ai-generate-image]
+verify_jwt = true
