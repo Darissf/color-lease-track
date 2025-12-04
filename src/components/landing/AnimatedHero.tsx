@@ -114,7 +114,7 @@ export const AnimatedHero = () => {
             <Button
               size="lg"
               className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-2xl shadow-orange-500/50 transform hover:scale-105 transition-all duration-300"
-              onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => document.getElementById("kontak")?.scrollIntoView({ behavior: "smooth" })}
             >
               Konsultasi Gratis
               <ArrowRight className="ml-2 w-5 h-5" />

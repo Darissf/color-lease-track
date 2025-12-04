@@ -319,7 +319,7 @@ const LandingPage = () => {
                   size="lg"
                   variant="outline"
                   className="bg-white/10 backdrop-blur-sm border-2 border-white text-white hover:bg-white/20 transform hover:scale-105 transition-all duration-300"
-                  onClick={() => window.open("https://wa.me/6281234567890", "_blank")}
+                  onClick={() => window.open("https://wa.me/6289666666632", "_blank")}
                 >
                   WhatsApp
                 </Button>
@@ -366,11 +366,11 @@ const LandingPage = () => {
                       <div>
                         <h4 className="font-bold text-gray-800 mb-2">Telepon</h4>
                         <a 
-                          href="tel:+6281234567890" 
+                          href="tel:+6289666666632" 
                           className="text-sky-600 hover:text-sky-700 font-medium"
                           onClick={() => handleContactClick("phone")}
                         >
-                          +62 812-3456-7890
+                          +62 896-6666-6632
                         </a>
                         <p className="text-sm text-gray-500 mt-1">Senin - Sabtu: 08:00 - 18:00</p>
                       </div>
@@ -408,8 +408,7 @@ const LandingPage = () => {
                       <div>
                         <h4 className="font-bold text-gray-800 mb-2">Alamat</h4>
                         <p className="text-gray-600">
-                          Jl. Bypass Ngurah Rai No. 123<br />
-                          Denpasar, Bali 80361
+                          Denpasar, Bali
                         </p>
                         <Button
                           variant="link"
@@ -467,7 +466,7 @@ const LandingPage = () => {
               <ul className="space-y-2 text-gray-400">
                 <li className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  +62 812-3456-7890
+                  +62 896-6666-6632
                 </li>
                 <li className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
