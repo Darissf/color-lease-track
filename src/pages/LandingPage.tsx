@@ -366,7 +366,9 @@ const LandingPage = () => {
                       <div>
                         <h4 className="font-bold text-gray-800 mb-2">Telepon</h4>
                         <a 
-                          href="tel:+6289666666632" 
+                          href="https://wa.me/6289666666632?text=Halo!%20Saya%20ingin%20bertanya%20tentang%20layanan%20scaffolding."
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-sky-600 hover:text-sky-700 font-medium"
                           onClick={() => handleContactClick("phone")}
                         >
@@ -466,7 +468,14 @@ const LandingPage = () => {
               <ul className="space-y-2 text-gray-400">
                 <li className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  +62 896-6666-6632
+                  <a 
+                    href="https://wa.me/6289666666632?text=Halo!%20Saya%20ingin%20bertanya%20tentang%20layanan%20scaffolding."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-sky-400 transition-colors"
+                  >
+                    +62 896-6666-6632
+                  </a>
                 </li>
                 <li className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
