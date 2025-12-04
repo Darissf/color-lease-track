@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 
 export const FloatingWhatsApp = () => {
-  const whatsappNumber = "6281234567890"; // Ganti dengan nomor WhatsApp bisnis
+  const whatsappNumber = "6289666666632";
   const message = "Halo! Saya tertarik dengan layanan scaffolding Anda.";
 
   const handleClick = () => {
