@@ -6,9 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, Send, Plus, Trash2, Loader2, User, Sparkles } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Bot, Send, Plus, Trash2, Loader2, User, Sparkles, MessageSquare, ImageIcon, Download, AlertCircle, Settings } from "lucide-react";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -21,7 +22,13 @@ const AI_PROVIDERS = {
   groq: { name: "Groq", models: ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"] },
 } as const;
 
+const IMAGE_MODELS = [
+  { id: "imagen-3.0-generate-002", name: "Imagen 3" },
+  { id: "gemini-2.0-flash-exp", name: "Gemini 2.0 Flash" },
+];
+
 type AIProvider = keyof typeof AI_PROVIDERS;
+type Mode = "chat" | "image";
 
 interface Message {
   id: string;
@@ -39,6 +46,11 @@ const AIChat = () => {
   const { isAdmin, isSuperAdmin, loading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const { activeTheme } = useAppTheme();
+  
+  // Mode state
+  const [mode, setMode] = useState<Mode>("chat");
+  
+  // Chat states
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -47,6 +59,12 @@ const AIChat = () => {
   const [provider, setProvider] = useState<AIProvider>("gemini");
   const [model, setModel] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Image states
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [imageModel, setImageModel] = useState("imagen-3.0-generate-002");
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
 
   // Check admin access
   useEffect(() => {
@@ -60,6 +78,7 @@ const AIChat = () => {
   useEffect(() => {
     if (user) {
       loadConversations();
+      checkApiKey();
     }
   }, [user]);
 
@@ -76,6 +95,17 @@ const AIChat = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const checkApiKey = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("user_ai_settings")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("ai_provider", "gemini")
+      .maybeSingle();
+    setHasApiKey(!!data);
+  };
 
   const loadConversations = async () => {
     try {
@@ -167,7 +197,6 @@ const AIChat = () => {
     
     if (!activeConversation) {
       await createNewConversation();
-      // Wait a bit for conversation to be created
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
@@ -182,7 +211,6 @@ const AIChat = () => {
     setIsLoading(true);
 
     try {
-      // Save user message
       if (activeConversation) {
         await supabase.from("chat_messages").insert({
           conversation_id: activeConversation,
@@ -191,7 +219,6 @@ const AIChat = () => {
         });
       }
 
-      // Call AI
       const { data, error } = await supabase.functions.invoke("ai-chat", {
         body: {
           messages: [...messages, userMessage].map(m => ({
@@ -213,7 +240,6 @@ const AIChat = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Save assistant message
       if (activeConversation) {
         await supabase.from("chat_messages").insert({
           conversation_id: activeConversation,
@@ -221,7 +247,6 @@ const AIChat = () => {
           content: assistantMessage.content,
         });
 
-        // Update conversation title if first message
         if (messages.length === 0) {
           const title = userMessage.content.slice(0, 50) + (userMessage.content.length > 50 ? "..." : "");
           await supabase
@@ -246,6 +271,49 @@ const AIChat = () => {
     }
   };
 
+  // Image generation handlers
+  const handleGenerateImage = async () => {
+    if (!imagePrompt.trim()) {
+      toast.error("Masukkan deskripsi gambar");
+      return;
+    }
+
+    setIsLoading(true);
+    setGeneratedImage(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-generate-image", {
+        body: { prompt: imagePrompt.trim(), model: imageModel },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      if (data.imageBase64) {
+        setGeneratedImage(data.imageBase64);
+        toast.success("Gambar berhasil digenerate!");
+      } else {
+        throw new Error("Tidak ada gambar yang dihasilkan");
+      }
+    } catch (error: any) {
+      console.error("Generate error:", error);
+      toast.error("Gagal generate gambar: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!generatedImage) return;
+    const link = document.createElement("a");
+    link.href = generatedImage;
+    link.download = `generated-image-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Gambar didownload!");
+  };
+
   if (authLoading) {
     return (
       <div className="h-[calc(100vh-104px)] flex items-center justify-center">
@@ -256,200 +324,333 @@ const AIChat = () => {
 
   return (
     <div className="h-[calc(100vh-104px)] relative overflow-hidden flex">
-      {/* Sidebar - Conversation History */}
-      <div className="hidden md:flex w-64 border-r border-border flex-col bg-card/50 backdrop-blur-sm">
-        <div className="p-4 border-b border-border">
-          <Button
-            onClick={createNewConversation}
-            className="w-full"
-            size="sm"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Chat
-          </Button>
-        </div>
-
-        <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={cn(
-                  "group flex items-center justify-between p-2 rounded hover:bg-accent cursor-pointer transition-colors",
-                  activeConversation === conv.id && "bg-accent"
-                )}
-                onClick={() => loadConversation(conv.id)}
-              >
-                <span className="text-sm truncate flex-1">{conv.title}</span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteConversation(conv.id);
-                  }}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-            ))}
+      {/* Sidebar - Conversation History (Chat Mode Only) */}
+      {mode === "chat" && (
+        <div className="hidden md:flex w-64 border-r border-border flex-col bg-card/50 backdrop-blur-sm">
+          <div className="p-4 border-b border-border">
+            <Button onClick={createNewConversation} className="w-full" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              New Chat
+            </Button>
           </div>
-        </ScrollArea>
-      </div>
 
-      {/* Main Chat Area */}
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-1">
+              {conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  className={cn(
+                    "group flex items-center justify-between p-2 rounded hover:bg-accent cursor-pointer transition-colors",
+                    activeConversation === conv.id && "bg-accent"
+                  )}
+                  onClick={() => loadConversation(conv.id)}
+                >
+                  <span className="text-sm truncate flex-1">{conv.title}</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteConversation(conv.id);
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+
+      {/* Main Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="shrink-0 p-4 border-b border-border bg-card/50 backdrop-blur-sm">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
               <h1 className={cn(
-                "text-xl md:text-2xl font-bold",
+                "text-xl font-bold",
                 activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
               )}>
                 AI Chat
               </h1>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Select value={provider} onValueChange={(v) => setProvider(v as AIProvider)}>
-                <SelectTrigger className="w-[140px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(AI_PROVIDERS).map(([key, info]) => (
-                    <SelectItem key={key} value={key} className="text-xs">
-                      {info.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Mode Toggle */}
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                <Button
+                  variant={mode === "chat" ? "default" : "ghost"}
+                  size="sm"
+                  className="rounded-none h-8"
+                  onClick={() => setMode("chat")}
+                >
+                  <MessageSquare className="w-4 h-4 mr-1" />
+                  Chat
+                </Button>
+                <Button
+                  variant={mode === "image" ? "default" : "ghost"}
+                  size="sm"
+                  className="rounded-none h-8"
+                  onClick={() => setMode("image")}
+                >
+                  <ImageIcon className="w-4 h-4 mr-1" />
+                  Image
+                </Button>
+              </div>
 
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger className="w-[180px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {AI_PROVIDERS[provider].models.map((m) => (
-                    <SelectItem key={m} value={m} className="text-xs">
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Provider/Model Selector */}
+              {mode === "chat" ? (
+                <>
+                  <Select value={provider} onValueChange={(v) => setProvider(v as AIProvider)}>
+                    <SelectTrigger className="w-[130px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(AI_PROVIDERS).map(([key, info]) => (
+                        <SelectItem key={key} value={key} className="text-xs">
+                          {info.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={createNewConversation}
-                className="md:hidden"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+                  <Select value={model} onValueChange={setModel}>
+                    <SelectTrigger className="w-[160px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AI_PROVIDERS[provider].models.map((m) => (
+                        <SelectItem key={m} value={m} className="text-xs">
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button size="sm" variant="outline" onClick={createNewConversation} className="md:hidden h-8">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </>
+              ) : (
+                <Select value={imageModel} onValueChange={setImageModel}>
+                  <SelectTrigger className="w-[160px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {IMAGE_MODELS.map((m) => (
+                      <SelectItem key={m.id} value={m.id} className="text-xs">
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Messages */}
-        <ScrollArea className="flex-1" ref={scrollRef}>
-          <div className="px-2 py-4 md:px-8 space-y-4">
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center">
-                <Bot className="w-16 h-16 text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">
-                  Mulai percakapan baru dengan AI
-                </p>
-              </div>
-            )}
-
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex gap-3",
-                  message.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
-                {message.role === "assistant" && (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-primary" />
+        {/* Content Area */}
+        {mode === "chat" ? (
+          <>
+            {/* Chat Messages */}
+            <ScrollArea className="flex-1" ref={scrollRef}>
+              <div className="px-2 py-4 md:px-8 space-y-4">
+                {messages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center">
+                    <Bot className="w-16 h-16 text-muted-foreground/50 mb-4" />
+                    <p className="text-muted-foreground">Mulai percakapan baru dengan AI</p>
                   </div>
                 )}
 
-                <Card
-                  className={cn(
-                    "max-w-[80%] p-4",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card"
-                  )}
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={cn("flex gap-3", message.role === "user" ? "justify-end" : "justify-start")}
+                  >
+                    {message.role === "assistant" && (
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Bot className="w-4 h-4 text-primary" />
+                      </div>
+                    )}
+
+                    <Card className={cn(
+                      "max-w-[80%] p-4",
+                      message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card"
+                    )}>
+                      {message.role === "assistant" ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                              code: ({ children }) => (
+                                <code className="bg-muted px-1 py-0.5 rounded text-xs">{children}</code>
+                              ),
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      )}
+                    </Card>
+
+                    {message.role === "user" && (
+                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {isLoading && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Bot className="w-4 h-4 text-primary" />
+                    </div>
+                    <Card className="max-w-[80%] p-4 bg-card">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    </Card>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Chat Input */}
+            <div className="shrink-0 p-4 border-t border-border bg-card/50 backdrop-blur-sm">
+              <div className="flex gap-2">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Ketik pesan... (Enter untuk kirim)"
+                  className="min-h-[60px] resize-none"
+                  disabled={isLoading}
+                />
+                <Button
+                  onClick={sendMessage}
+                  disabled={!input.trim() || isLoading}
+                  size="icon"
+                  className="h-[60px] w-[60px] shrink-0"
                 >
-                  {message.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown
-                        components={{
-                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                          code: ({ children }) => (
-                            <code className="bg-muted px-1 py-0.5 rounded text-xs">{children}</code>
-                          ),
-                        }}
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Image Generation Mode */
+          <div className="flex-1 flex flex-col p-4 min-h-0 overflow-hidden">
+            {/* API Key Warning */}
+            {hasApiKey === false && (
+              <Alert className="mb-4 shrink-0" variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Gemini API key belum dikonfigurasi.</span>
+                  <Button size="sm" variant="outline" onClick={() => navigate("/vip/settings/ai")}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Konfigurasi
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-hidden">
+              {/* Preview */}
+              <Card className="flex flex-col min-h-0">
+                <CardHeader className="shrink-0 py-3">
+                  <CardTitle className="text-lg">Preview</CardTitle>
+                  <CardDescription>Hasil gambar yang digenerate</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 flex items-center justify-center overflow-auto">
+                  {isLoading ? (
+                    <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                      <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                      <p>Sedang membuat gambar...</p>
+                    </div>
+                  ) : generatedImage ? (
+                    <div className="relative group">
+                      <img
+                        src={generatedImage}
+                        alt="Generated"
+                        className="max-w-full max-h-[350px] rounded-lg shadow-lg object-contain"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleDownload}
+                        className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        {message.content}
-                      </ReactMarkdown>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
                     </div>
                   ) : (
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                      <ImageIcon className="w-16 h-16 opacity-30" />
+                      <p className="text-center">Masukkan prompt dan klik Generate</p>
+                    </div>
                   )}
-                </Card>
+                </CardContent>
+              </Card>
 
-                {message.role === "user" && (
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                    <User className="w-4 h-4 text-primary-foreground" />
+              {/* Prompt Input */}
+              <Card className="flex flex-col min-h-0">
+                <CardHeader className="shrink-0 py-3">
+                  <CardTitle className="text-lg">Prompt</CardTitle>
+                  <CardDescription>Deskripsikan gambar yang ingin dibuat</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col gap-4">
+                  <Textarea
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                    placeholder="Contoh: A beautiful sunset over Indonesian rice terraces, photorealistic, 4k"
+                    className="flex-1 min-h-[120px] resize-none"
+                    disabled={isLoading}
+                  />
+
+                  <div className="shrink-0 space-y-3">
+                    <Button
+                      onClick={handleGenerateImage}
+                      disabled={!imagePrompt.trim() || isLoading || hasApiKey === false}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5 mr-2" />
+                          Generate Image
+                        </>
+                      )}
+                    </Button>
+
+                    {generatedImage && (
+                      <Button variant="outline" onClick={handleDownload} className="w-full">
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Image
+                      </Button>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
 
-            {isLoading && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Bot className="w-4 h-4 text-primary" />
-                </div>
-                <Card className="max-w-[80%] p-4 bg-card">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                </Card>
-              </div>
-            )}
+                  <Alert className="shrink-0">
+                    <Sparkles className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      <strong>Tips:</strong> Semakin detail deskripsi, semakin baik hasilnya.
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </ScrollArea>
-
-        {/* Input Area */}
-        <div className="shrink-0 p-4 border-t border-border bg-card/50 backdrop-blur-sm">
-          <div className="flex gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Ketik pesan... (Enter untuk kirim, Shift+Enter untuk baris baru)"
-              className="min-h-[60px] resize-none"
-              disabled={isLoading}
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!input.trim() || isLoading}
-              size="icon"
-              className="h-[60px] w-[60px] shrink-0"
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </Button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
