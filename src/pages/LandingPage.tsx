@@ -8,7 +8,7 @@ import { StatsCounter } from "@/components/landing/StatsCounter";
 import { FlipCard } from "@/components/landing/FlipCard";
 import { PortfolioGallery } from "@/components/landing/PortfolioGallery";
 import { TestimonialCarousel } from "@/components/landing/TestimonialCarousel";
-import { QuoteForm } from "@/components/landing/QuoteForm";
+
 import { FloatingWhatsApp } from "@/components/landing/FloatingWhatsApp";
 import { ScrollAnimationWrapper } from "@/components/landing/ScrollAnimationWrapper";
 import { EditableText } from "@/components/EditableText";
@@ -343,17 +343,9 @@ const LandingPage = () => {
             </div>
           </ScrollAnimationWrapper>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-            {/* Contact Form */}
-            <ScrollAnimationWrapper direction="left">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 border border-sky-100">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6">Minta Penawaran</h3>
-                <QuoteForm />
-              </div>
-            </ScrollAnimationWrapper>
-
+          <div className="max-w-2xl mx-auto">
             {/* Contact Info */}
-            <ScrollAnimationWrapper direction="right">
+            <ScrollAnimationWrapper direction="up">
               <div className="space-y-6">
                 <h3 className="text-2xl font-bold text-gray-800 mb-6">Informasi Kontak</h3>
                 
