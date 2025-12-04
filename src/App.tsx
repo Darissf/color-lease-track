@@ -61,7 +61,7 @@ import WhatsAppSettings from "./pages/WhatsAppSettings";
 import SMTPSettings from "./pages/SMTPSettings";
 import VIPDesignSettings from "./pages/VIPDesignSettings";
 import AIChat from "./pages/AIChat";
-import GenerateImage from "./pages/GenerateImage";
+
 import Mail from "./pages/Mail";
 import TransactionHistory from "./pages/TransactionHistory";
 
@@ -139,7 +139,7 @@ const App = () => (
                               <Route path="/database-backup" element={<DatabaseBackup />} />
                               <Route path="/chatbot" element={<ChatBotAI />} />
                               <Route path="/ai-chat" element={<AIChat />} />
-                              <Route path="/generate-image" element={<GenerateImage />} />
+                              
                               <Route path="/mail" element={<Mail />} />
                               <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
                               <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
