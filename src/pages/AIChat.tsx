@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 
 const AI_PROVIDERS = {
-  gemini: { name: "Google Gemini", models: ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"] },
+  gemini: { name: "Google Gemini", models: ["gemini-2.5-flash", "gemini-2.5-pro-preview", "gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"] },
   openai: { name: "OpenAI", models: ["gpt-5", "gpt-5-mini", "gpt-4o", "gpt-4o-mini"] },
   claude: { name: "Anthropic Claude", models: ["claude-sonnet-4-5", "claude-opus-4-1", "claude-3-5-haiku"] },
   deepseek: { name: "DeepSeek", models: ["deepseek-chat", "deepseek-coder"] },
