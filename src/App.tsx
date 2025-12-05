@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,61 +12,66 @@ import { HankoNotificationContainer } from "./components/HankoNotificationContai
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import PageLoadingSkeleton from "./components/PageLoadingSkeleton";
 
+// Public pages - loaded immediately (critical path)
+import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import EmailVerification from "./pages/EmailVerification";
-import LandingPage from "./pages/LandingPage";
-import AboutUs from "./pages/AboutUs";
-import Blog from "./pages/Blog";
-import BlogDetail from "./pages/BlogDetail";
-import Nabila from "./pages/Nabila";
-import MonthlyView from "./pages/MonthlyView";
-import Dashboard from "./pages/Dashboard";
-import IncomeManagement from "./pages/IncomeManagement";
-import ExpenseTracker from "./pages/ExpenseTracker";
-import RecurringIncome from "./pages/RecurringIncome";
-import InventoryStock from "./pages/InventoryStock";
-import SavingsPlans from "./pages/SavingsPlans";
-import Settings from "./pages/Settings";
-import AdminSettings from "./pages/AdminSettings";
-import AccountSettings from "./pages/AccountSettings";
-import IncomeSettings from "./pages/IncomeSettings";
-import SavingsSettings from "./pages/SavingsSettings";
-import AuditLogs from "./pages/AuditLogs";
-import ContentStudio from "./pages/ContentStudio";
-import ContentEditorChooser from "./pages/ContentEditorChooser";
-import BlogPosts from "./pages/admin/BlogPosts";
-import BlogPostEditor from "./pages/admin/BlogPostEditor";
-import BlogCategories from "./pages/admin/BlogCategories";
-import ClientGroups from "./pages/ClientGroups";
-import RentalContracts from "./pages/RentalContracts";
-import AISettings from "./pages/AISettings";
-import DatabaseBackup from "./pages/DatabaseBackup";
-import CloudUsageDashboard from "./pages/CloudUsageDashboard";
-import ChatBotAI from "./pages/ChatBotAI";
-import ClientDashboard from "./pages/ClientDashboard";
-import ContractDetail from "./pages/ContractDetail";
-import ContractScaffoldingInput from "./pages/ContractScaffoldingInput";
-import RecurringIncomeDetail from "./pages/RecurringIncomeDetail";
-import RecurringIncomeScaffoldingInput from "./pages/RecurringIncomeScaffoldingInput";
 import NotFound from "./pages/NotFound";
-import BudgetTracker from "./pages/BudgetTracker";
-import EditPage from "./pages/EditPage";
-import FixedExpenses from "./pages/FixedExpenses";
-import Profile from "./pages/Profile";
-import PortfolioManager from "./pages/PortfolioManager";
-import MetaAdsDashboard from "./pages/MetaAdsDashboard";
-import LandingSettings from "./pages/LandingSettings";
-import WhatsAppSettings from "./pages/WhatsAppSettings";
-import SMTPSettings from "./pages/SMTPSettings";
-import VIPDesignSettings from "./pages/VIPDesignSettings";
-import AIChat from "./pages/AIChat";
-import UserManagement from "./pages/UserManagement";
 
-import Mail from "./pages/Mail";
-import TransactionHistory from "./pages/TransactionHistory";
-import InstallApp from "./pages/InstallApp";
+// Lazy-loaded public pages
+const AboutUs = lazy(() => import("./pages/AboutUs"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogDetail = lazy(() => import("./pages/BlogDetail"));
+const InstallApp = lazy(() => import("./pages/InstallApp"));
+const EmailVerification = lazy(() => import("./pages/EmailVerification"));
+
+// Lazy-loaded protected pages
+const Nabila = lazy(() => import("./pages/Nabila"));
+const MonthlyView = lazy(() => import("./pages/MonthlyView"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const IncomeManagement = lazy(() => import("./pages/IncomeManagement"));
+const ExpenseTracker = lazy(() => import("./pages/ExpenseTracker"));
+const RecurringIncome = lazy(() => import("./pages/RecurringIncome"));
+const InventoryStock = lazy(() => import("./pages/InventoryStock"));
+const SavingsPlans = lazy(() => import("./pages/SavingsPlans"));
+const Settings = lazy(() => import("./pages/Settings"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const AccountSettings = lazy(() => import("./pages/AccountSettings"));
+const IncomeSettings = lazy(() => import("./pages/IncomeSettings"));
+const SavingsSettings = lazy(() => import("./pages/SavingsSettings"));
+const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const ContentStudio = lazy(() => import("./pages/ContentStudio"));
+const ContentEditorChooser = lazy(() => import("./pages/ContentEditorChooser"));
+const BlogPosts = lazy(() => import("./pages/admin/BlogPosts"));
+const BlogPostEditor = lazy(() => import("./pages/admin/BlogPostEditor"));
+const BlogCategories = lazy(() => import("./pages/admin/BlogCategories"));
+const ClientGroups = lazy(() => import("./pages/ClientGroups"));
+const RentalContracts = lazy(() => import("./pages/RentalContracts"));
+const AISettings = lazy(() => import("./pages/AISettings"));
+const DatabaseBackup = lazy(() => import("./pages/DatabaseBackup"));
+const CloudUsageDashboard = lazy(() => import("./pages/CloudUsageDashboard"));
+const ChatBotAI = lazy(() => import("./pages/ChatBotAI"));
+const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
+const ContractDetail = lazy(() => import("./pages/ContractDetail"));
+const ContractScaffoldingInput = lazy(() => import("./pages/ContractScaffoldingInput"));
+const RecurringIncomeDetail = lazy(() => import("./pages/RecurringIncomeDetail"));
+const RecurringIncomeScaffoldingInput = lazy(() => import("./pages/RecurringIncomeScaffoldingInput"));
+const BudgetTracker = lazy(() => import("./pages/BudgetTracker"));
+const EditPage = lazy(() => import("./pages/EditPage"));
+const FixedExpenses = lazy(() => import("./pages/FixedExpenses"));
+const Profile = lazy(() => import("./pages/Profile"));
+const PortfolioManager = lazy(() => import("./pages/PortfolioManager"));
+const MetaAdsDashboard = lazy(() => import("./pages/MetaAdsDashboard"));
+const LandingSettings = lazy(() => import("./pages/LandingSettings"));
+const WhatsAppSettings = lazy(() => import("./pages/WhatsAppSettings"));
+const SMTPSettings = lazy(() => import("./pages/SMTPSettings"));
+const VIPDesignSettings = lazy(() => import("./pages/VIPDesignSettings"));
+const AIChat = lazy(() => import("./pages/AIChat"));
+const UserManagement = lazy(() => import("./pages/UserManagement"));
+const Mail = lazy(() => import("./pages/Mail"));
+const TransactionHistory = lazy(() => import("./pages/TransactionHistory"));
 
 const queryClient = new QueryClient();
 
@@ -80,85 +86,86 @@ const App = () => (
             <NotificationProvider>
               <HankoNotificationContainer />
               <EditableContentProvider>
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/about" element={<AboutUs />} />
-                  <Route path="/blog" element={<Blog />} />
-                  <Route path="/blog/:slug" element={<BlogDetail />} />
-                  <Route path="/install" element={<InstallApp />} />
-                  
-                  {/* VIP Auth Routes */}
-            <Route path="/vip/login" element={<Login />} />
-            <Route path="/vip/register" element={<Register />} />
-            <Route path="/vip/verify-email" element={<ProtectedRoute><EmailVerification /></ProtectedRoute>} />
-                  
-                  {/* Protected VIP Routes */}
-                  <Route
-                    path="/vip/*"
-                    element={
-                      <ProtectedRoute>
-                        <AppThemeProvider>
-                          <Layout>
-                            <Routes>
-                              <Route path="/" element={<Nabila />} />
-                              <Route path="/month/:year/:month" element={<MonthlyView />} />
-                              <Route path="/dashboard" element={<Dashboard />} />
-                              <Route path="/income" element={<IncomeManagement />} />
-                              <Route path="/expenses" element={<ExpenseTracker />} />
-                              <Route path="/recurring-income" element={<RecurringIncome />} />
-                              <Route path="/fixed-expenses" element={<FixedExpenses />} />
-                              <Route path="/inventory" element={<InventoryStock />} />
-                              <Route path="/savings" element={<SavingsPlans />} />
-                              <Route path="/monthly-budget" element={<BudgetTracker />} />
-                              <Route path="/profile" element={<Profile />} />
-                              <Route path="/settings" element={<Settings />} />
-                              <Route path="/settings/admin" element={<AdminSettings />} />
-                              <Route path="/settings/whatsapp" element={<WhatsAppSettings />} />
-                              <Route path="/settings/smtp" element={<SMTPSettings />} />
-                              <Route path="/settings/design" element={<VIPDesignSettings />} />
-                              <Route path="/settings/users" element={<UserManagement />} />
-                              <Route path="/settings/accounts" element={<AccountSettings />} />
-                              <Route path="/settings/income" element={<IncomeSettings />} />
-                              <Route path="/settings/savings" element={<SavingsSettings />} />
-                              <Route path="/settings/ai" element={<AISettings />} />
-                              <Route path="/audit-logs" element={<AuditLogs />} />
-                              <Route path="/edit-page" element={<EditPage />} />
-                              <Route path="/content-studio" element={<ContentStudio />} />
-                              <Route path="/settings/content-editor" element={<ContentEditorChooser />} />
-                              <Route path="/blog-posts" element={<BlogPosts />} />
-                              <Route path="/blog-posts/new" element={<BlogPostEditor />} />
-                              <Route path="/blog-posts/:id/edit" element={<BlogPostEditor />} />
-                              <Route path="/blog-categories" element={<BlogCategories />} />
-                              <Route path="/client-groups" element={<ClientGroups />} />
-                              <Route path="/rental-contracts" element={<RentalContracts />} />
-                              <Route path="/contracts/:id" element={<ContractDetail />} />
-                              <Route path="/contracts/:id/scaffolding" element={<ContractScaffoldingInput />} />
-                              <Route path="/recurring-income" element={<RecurringIncome />} />
-                              <Route path="/recurring-income/:id" element={<RecurringIncomeDetail />} />
-                              <Route path="/recurring-income/:id/scaffolding" element={<RecurringIncomeScaffoldingInput />} />
-                              <Route path="/settings/landing" element={<LandingSettings />} />
-                              <Route path="/portfolio-manager" element={<PortfolioManager />} />
-                              <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
-                              <Route path="/database-backup" element={<DatabaseBackup />} />
-                              <Route path="/chatbot" element={<ChatBotAI />} />
-                              <Route path="/ai-chat" element={<AIChat />} />
-                              
-                              <Route path="/mail" element={<Mail />} />
-                              <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
-                              <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
-                              <Route path="/transaction-history" element={<TransactionHistory />} />
-                              <Route path="*" element={<NotFound />} />
-                            </Routes>
-                          </Layout>
-                        </AppThemeProvider>
-                      </ProtectedRoute>
-                    }
-                  />
-                  
-                  {/* Fallback */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                <Suspense fallback={<PageLoadingSkeleton />}>
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/about" element={<AboutUs />} />
+                    <Route path="/blog" element={<Blog />} />
+                    <Route path="/blog/:slug" element={<BlogDetail />} />
+                    <Route path="/install" element={<InstallApp />} />
+                    
+                    {/* VIP Auth Routes */}
+                    <Route path="/vip/login" element={<Login />} />
+                    <Route path="/vip/register" element={<Register />} />
+                    <Route path="/vip/verify-email" element={<ProtectedRoute><EmailVerification /></ProtectedRoute>} />
+                    
+                    {/* Protected VIP Routes */}
+                    <Route
+                      path="/vip/*"
+                      element={
+                        <ProtectedRoute>
+                          <AppThemeProvider>
+                            <Layout>
+                              <Suspense fallback={<PageLoadingSkeleton variant="content" />}>
+                                <Routes>
+                                  <Route path="/" element={<Nabila />} />
+                                  <Route path="/month/:year/:month" element={<MonthlyView />} />
+                                  <Route path="/dashboard" element={<Dashboard />} />
+                                  <Route path="/income" element={<IncomeManagement />} />
+                                  <Route path="/expenses" element={<ExpenseTracker />} />
+                                  <Route path="/recurring-income" element={<RecurringIncome />} />
+                                  <Route path="/fixed-expenses" element={<FixedExpenses />} />
+                                  <Route path="/inventory" element={<InventoryStock />} />
+                                  <Route path="/savings" element={<SavingsPlans />} />
+                                  <Route path="/monthly-budget" element={<BudgetTracker />} />
+                                  <Route path="/profile" element={<Profile />} />
+                                  <Route path="/settings" element={<Settings />} />
+                                  <Route path="/settings/admin" element={<AdminSettings />} />
+                                  <Route path="/settings/whatsapp" element={<WhatsAppSettings />} />
+                                  <Route path="/settings/smtp" element={<SMTPSettings />} />
+                                  <Route path="/settings/design" element={<VIPDesignSettings />} />
+                                  <Route path="/settings/users" element={<UserManagement />} />
+                                  <Route path="/settings/accounts" element={<AccountSettings />} />
+                                  <Route path="/settings/income" element={<IncomeSettings />} />
+                                  <Route path="/settings/savings" element={<SavingsSettings />} />
+                                  <Route path="/settings/ai" element={<AISettings />} />
+                                  <Route path="/audit-logs" element={<AuditLogs />} />
+                                  <Route path="/edit-page" element={<EditPage />} />
+                                  <Route path="/content-studio" element={<ContentStudio />} />
+                                  <Route path="/settings/content-editor" element={<ContentEditorChooser />} />
+                                  <Route path="/blog-posts" element={<BlogPosts />} />
+                                  <Route path="/blog-posts/new" element={<BlogPostEditor />} />
+                                  <Route path="/blog-posts/:id/edit" element={<BlogPostEditor />} />
+                                  <Route path="/blog-categories" element={<BlogCategories />} />
+                                  <Route path="/client-groups" element={<ClientGroups />} />
+                                  <Route path="/rental-contracts" element={<RentalContracts />} />
+                                  <Route path="/contracts/:id" element={<ContractDetail />} />
+                                  <Route path="/contracts/:id/scaffolding" element={<ContractScaffoldingInput />} />
+                                  <Route path="/recurring-income/:id" element={<RecurringIncomeDetail />} />
+                                  <Route path="/recurring-income/:id/scaffolding" element={<RecurringIncomeScaffoldingInput />} />
+                                  <Route path="/settings/landing" element={<LandingSettings />} />
+                                  <Route path="/portfolio-manager" element={<PortfolioManager />} />
+                                  <Route path="/meta-ads-dashboard" element={<MetaAdsDashboard />} />
+                                  <Route path="/database-backup" element={<DatabaseBackup />} />
+                                  <Route path="/chatbot" element={<ChatBotAI />} />
+                                  <Route path="/ai-chat" element={<AIChat />} />
+                                  <Route path="/mail" element={<Mail />} />
+                                  <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
+                                  <Route path="/transaction-history" element={<TransactionHistory />} />
+                                  <Route path="*" element={<NotFound />} />
+                                </Routes>
+                              </Suspense>
+                            </Layout>
+                          </AppThemeProvider>
+                        </ProtectedRoute>
+                      }
+                    />
+                    
+                    {/* Fallback */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
               </EditableContentProvider>
             </NotificationProvider>
           </AuthProvider>
