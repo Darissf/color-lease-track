@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Save, RotateCcw, AlignLeft, AlignCenter, AlignRight, Type, Image as ImageIcon, Upload, X, Home } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, AlignLeft, AlignCenter, AlignRight, Type, Image as ImageIcon, Upload, X, Home, Globe } from "lucide-react";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -146,7 +146,10 @@ const VIPDesignSettings = () => {
     sidebar_logo_height: 32,
     sidebar_logo_max_width: 150,
     sidebar_text: "Admin Area",
-    sidebar_display_mode: "both" as "logo" | "text" | "both"
+    sidebar_display_mode: "both" as "logo" | "text" | "both",
+    // Favicon settings
+    favicon_url: null as string | null,
+    favicon_type: "svg"
   });
   
   const [sidebarUploading, setSidebarUploading] = useState(false);
@@ -157,6 +160,7 @@ const VIPDesignSettings = () => {
   const [previewBg, setPreviewBg] = useState<"light" | "dark">("dark");
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [faviconUploading, setFaviconUploading] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -194,7 +198,10 @@ const VIPDesignSettings = () => {
         sidebar_logo_height: settings.sidebar_logo_height || 32,
         sidebar_logo_max_width: settings.sidebar_logo_max_width || 150,
         sidebar_text: settings.sidebar_text || 'Admin Area',
-        sidebar_display_mode: settings.sidebar_display_mode || 'both'
+        sidebar_display_mode: settings.sidebar_display_mode || 'both',
+        // Favicon settings
+        favicon_url: settings.favicon_url || null,
+        favicon_type: settings.favicon_type || 'svg'
       });
       setImagePreview(settings.brand_image_url);
       setSidebarImagePreview(settings.sidebar_logo_url);
@@ -241,7 +248,10 @@ const VIPDesignSettings = () => {
       sidebar_logo_height: 32,
       sidebar_logo_max_width: 150,
       sidebar_text: "Admin Area",
-      sidebar_display_mode: "both"
+      sidebar_display_mode: "both",
+      // Favicon settings
+      favicon_url: null,
+      favicon_type: "svg"
     });
     setImagePreview(null);
     setSidebarImagePreview(null);
@@ -420,6 +430,83 @@ const VIPDesignSettings = () => {
     } catch (error: any) {
       console.error("Delete error:", error);
       toast.error(error.message || "Gagal hapus logo sidebar");
+    }
+  };
+
+  // Favicon Upload Handler
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon'];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Format tidak didukung. Gunakan ICO, PNG, JPG, atau SVG");
+      return;
+    }
+
+    if (file.size > 1 * 1024 * 1024) {
+      toast.error("File terlalu besar. Maksimal 1MB untuk favicon");
+      return;
+    }
+
+    setFaviconUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Delete old favicon if exists
+      if (formData.favicon_url) {
+        const oldPath = formData.favicon_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage.from('brand-images').remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const fileName = `favicon-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('brand-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('brand-images')
+        .getPublicUrl(filePath);
+
+      setFormData({ 
+        ...formData, 
+        favicon_url: publicUrl,
+        favicon_type: fileExt || 'png'
+      });
+      toast.success("Favicon berhasil diupload!");
+    } catch (error: any) {
+      console.error("Favicon upload error:", error);
+      toast.error(error.message || "Gagal upload favicon");
+    } finally {
+      setFaviconUploading(false);
+    }
+  };
+
+  const handleDeleteFavicon = async () => {
+    if (!formData.favicon_url) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const oldPath = formData.favicon_url.split('/').pop();
+      if (oldPath) {
+        await supabase.storage.from('brand-images').remove([`${user.id}/${oldPath}`]);
+      }
+
+      setFormData({ ...formData, favicon_url: null, favicon_type: 'svg' });
+      toast.success("Favicon berhasil dihapus, kembali ke default");
+    } catch (error: any) {
+      console.error("Delete favicon error:", error);
+      toast.error(error.message || "Gagal hapus favicon");
     }
   };
 
@@ -1121,6 +1208,119 @@ const VIPDesignSettings = () => {
               </Card>
               </>
               )}
+
+              {/* ============================================= */}
+              {/* FAVICON SETTINGS */}
+              {/* ============================================= */}
+              <Separator className="my-6" />
+              <h2 className="text-xl font-bold mb-4">🌐 Favicon Settings</h2>
+              
+              {/* Favicon Preview */}
+              <Card className="p-6 mb-6">
+                <h3 className="text-lg font-semibold mb-4">Favicon Preview</h3>
+                <div className="flex items-center gap-6">
+                  <div className="space-y-2 text-center">
+                    <p className="text-xs text-muted-foreground font-medium uppercase">32x32</p>
+                    <div className="w-8 h-8 border-2 border-border rounded flex items-center justify-center bg-background overflow-hidden">
+                      {formData.favicon_url ? (
+                        <img src={formData.favicon_url} alt="Favicon" className="w-full h-full object-contain" />
+                      ) : (
+                        <Globe className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-center">
+                    <p className="text-xs text-muted-foreground font-medium uppercase">64x64</p>
+                    <div className="w-16 h-16 border-2 border-border rounded flex items-center justify-center bg-background overflow-hidden">
+                      {formData.favicon_url ? (
+                        <img src={formData.favicon_url} alt="Favicon" className="w-full h-full object-contain" />
+                      ) : (
+                        <Globe className="w-10 h-10 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium mb-1">
+                      {formData.favicon_url ? "Custom Favicon" : "Default Favicon"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.favicon_url 
+                        ? `Format: ${formData.favicon_type?.toUpperCase() || 'PNG'}`
+                        : "Menggunakan favicon default scaffolding"}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Favicon Upload */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Upload Favicon</h3>
+                <div className="space-y-4">
+                  {!formData.favicon_url ? (
+                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
+                      <input
+                        type="file"
+                        id="favicon-upload"
+                        accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/x-icon,.ico"
+                        onChange={handleFaviconUpload}
+                        className="hidden"
+                        disabled={faviconUploading}
+                      />
+                      <label htmlFor="favicon-upload" className="cursor-pointer">
+                        <Globe className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                        <p className="text-sm font-medium mb-1">
+                          {faviconUploading ? "Uploading..." : "Click to upload favicon"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          ICO, PNG, JPG, SVG (Max 1MB)
+                        </p>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="relative border-2 border-border rounded-lg p-4 bg-muted/50 flex items-center justify-center">
+                        <img
+                          src={formData.favicon_url}
+                          alt="Favicon"
+                          className="w-16 h-16 object-contain"
+                        />
+                        <button
+                          onClick={handleDeleteFavicon}
+                          className="absolute top-2 right-2 p-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => document.getElementById('favicon-replace')?.click()}
+                        disabled={faviconUploading}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Replace Favicon
+                      </Button>
+                      <input
+                        type="file"
+                        id="favicon-replace"
+                        accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/x-icon,.ico"
+                        onChange={handleFaviconUpload}
+                        className="hidden"
+                        disabled={faviconUploading}
+                      />
+                    </div>
+                  )}
+                  <div className="bg-muted/50 rounded-lg p-4 text-sm">
+                    <p className="font-medium mb-2">💡 Tips:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• Ukuran rekomendasi: 32x32 atau 64x64 pixels</li>
+                      <li>• Format terbaik: PNG atau ICO untuk kompatibilitas</li>
+                      <li>• SVG juga didukung untuk favicon modern</li>
+                      <li>• Favicon akan otomatis terupdate setelah save</li>
+                    </ul>
+                  </div>
+                </div>
+              </Card>
 
               {/* ============================================= */}
               {/* SIDEBAR LOGO SETTINGS */}
