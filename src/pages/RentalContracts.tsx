@@ -42,6 +42,7 @@ interface RentalContract {
   tanggal: string | null;
   tanggal_lunas: string | null;
   status: string;
+  tagihan: number;
   tagihan_belum_bayar: number;
   jumlah_lunas: number;
   invoice: string | null;
@@ -102,6 +103,7 @@ const RentalContracts = () => {
     tanggal: undefined as Date | undefined,
     tanggal_lunas: undefined as Date | undefined,
     status: "masa sewa",
+    tagihan: "",
     tagihan_belum_bayar: "",
     jumlah_lunas: "",
     invoice: "",
@@ -241,6 +243,7 @@ const RentalContracts = () => {
         tanggal: contractForm.tanggal ? format(contractForm.tanggal, "yyyy-MM-dd") : null,
         tanggal_lunas: contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "yyyy-MM-dd") : null,
         status: contractForm.status,
+        tagihan: parseFloat(contractForm.tagihan) || 0,
         tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
         jumlah_lunas: jumlahLunas,
         invoice: contractForm.invoice || null,
@@ -370,6 +373,7 @@ const RentalContracts = () => {
       tanggal: contract.tanggal ? new Date(contract.tanggal) : undefined,
       tanggal_lunas: contract.tanggal_lunas ? new Date(contract.tanggal_lunas) : undefined,
       status: contract.status,
+      tagihan: contract.tagihan?.toString() || "",
       tagihan_belum_bayar: contract.tagihan_belum_bayar.toString(),
       jumlah_lunas: contract.jumlah_lunas.toString(),
       invoice: contract.invoice || "",
@@ -422,6 +426,7 @@ const RentalContracts = () => {
       tanggal: undefined,
       tanggal_lunas: undefined,
       status: "masa sewa",
+      tagihan: "",
       tagihan_belum_bayar: "",
       jumlah_lunas: "",
       invoice: "",
@@ -957,9 +962,18 @@ const RentalContracts = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label>Tagihan (Belum Bayar)</Label>
+                  <Label>Tagihan</Label>
+                  <Input
+                    type="number"
+                    value={contractForm.tagihan}
+                    onChange={(e) => setContractForm({ ...contractForm, tagihan: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label>Sisa Tagihan</Label>
                   <Input
                     type="number"
                     value={contractForm.tagihan_belum_bayar}
@@ -1289,6 +1303,7 @@ const RentalContracts = () => {
                 <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Keterangan</TableHead>
                 <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Periode</TableHead>
                 <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Status</TableHead>
+                <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
                 <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Sisa Tagihan</TableHead>
                 <TableHead className={cn("text-center font-semibold", isCompactMode && "py-1 text-xs")}>Input Data</TableHead>
                 <TableHead className={cn("text-center w-24 font-semibold", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
@@ -1297,7 +1312,7 @@ const RentalContracts = () => {
             <TableBody>
               {paginatedContracts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                     <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p>Belum ada kontrak sewa</p>
                   </TableCell>
@@ -1386,6 +1401,11 @@ const RentalContracts = () => {
                         <Badge className={cn(getStatusBadge(contract.status), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
                           {contract.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
+                        <span className="text-blue-600 font-bold bg-blue-500/10 px-2 py-1 rounded-md">
+                          {formatRupiah(contract.tagihan || 0)}
+                        </span>
                       </TableCell>
                       <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="text-rose-600 font-bold bg-rose-500/10 px-2 py-1 rounded-md">
