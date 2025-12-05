@@ -35,10 +35,9 @@ interface Contract {
   start_date: string;
   end_date: string;
   tanggal: string | null;
-  tanggal_lunas: string | null;
   status: string;
   tagihan_belum_bayar: number;
-  jumlah_lunas: number;
+  tagihan: number;
   invoice: string | null;
   keterangan: string | null;
   bukti_pembayaran_files: Array<{ name: string; url: string }>;
@@ -48,6 +47,7 @@ interface Contract {
   inventory_item_id: string | null;
   jumlah_unit: number | null;
   jenis_scaffolding: string | null;
+  tanggal_bayar_terakhir?: string | null;
   client_groups?: {
     nama: string;
     nomor_telepon: string;
@@ -69,10 +69,10 @@ interface Contract {
 
 interface PaymentHistory {
   id: string;
+  payment_date: string;
   amount: number;
-  date: string;
-  source_name: string;
-  bank_name: string | null;
+  payment_number: number;
+  notes: string | null;
 }
 
 export default function ContractDetail() {
@@ -145,18 +145,25 @@ export default function ContractDetail() {
       bukti_pembayaran_files: buktiPembayaran
     };
 
-    setContract(processedContract);
+    setContract(processedContract as unknown as Contract);
 
-    // Fetch payment history
+    // Fetch payment history from income_sources (contract_payments table not yet in types)
     const { data: paymentData, error: paymentError } = await supabase
       .from("income_sources")
       .select("*")
       .eq("contract_id", id)
       .eq("user_id", user.id)
-      .order("date", { ascending: false });
+      .order("date", { ascending: true });
 
     if (!paymentError && paymentData) {
-      setPaymentHistory(paymentData);
+      // Convert to PaymentHistory format
+      setPaymentHistory(paymentData.map((p, idx) => ({
+        id: p.id,
+        payment_date: p.date || '',
+        amount: Number(p.amount) || 0,
+        payment_number: idx + 1,
+        notes: p.source_name || null
+      })));
     }
 
     setLoading(false);
@@ -187,13 +194,10 @@ export default function ContractDetail() {
   const getPaymentStatusIcon = () => {
     if (!contract) return null;
     
-    if (contract.tanggal_lunas) {
+    if (contract.tagihan_belum_bayar <= 0) {
       return <CheckCircle className="h-5 w-5 text-green-500" />;
     }
-    if (contract.tagihan_belum_bayar > 0) {
-      return <AlertCircle className="h-5 w-5 text-red-500" />;
-    }
-    return <Clock className="h-5 w-5 text-yellow-500" />;
+    return <AlertCircle className="h-5 w-5 text-red-500" />;
   };
 
   if (loading) {
@@ -401,7 +405,7 @@ export default function ContractDetail() {
                   {/* Timeline vertical line */}
                   <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-border animate-fade-in" />
                   
-                  <div className="space-y-6">
+                <div className="space-y-6">
                     {paymentHistory.map((payment, index) => (
                       <div 
                         key={payment.id} 
@@ -418,7 +422,7 @@ export default function ContractDetail() {
                             animationFillMode: 'forwards'
                           }}
                         >
-                          <div className="h-3 w-3 rounded-full bg-green-500" />
+                          <span className="text-xs font-bold text-green-600">#{payment.payment_number}</span>
                         </div>
                         
                         <div className="bg-muted/30 rounded-lg p-4 hover:bg-muted/50 hover:scale-[1.02] transition-all duration-200 border border-border hover:shadow-md">
@@ -427,30 +431,29 @@ export default function ContractDetail() {
                               <div className="flex items-center gap-2 mb-1">
                                 <CheckCircle className="h-4 w-4 text-green-500" />
                                 <span className="font-semibold text-foreground">
-                                  {payment.source_name}
+                                  Pembayaran #{payment.payment_number}
                                 </span>
                               </div>
                               
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Calendar className="h-3 w-3" />
                                 <span>
-                                  {payment.date
-                                    ? format(new Date(payment.date), "dd MMMM yyyy", { locale: localeId })
+                                  {payment.payment_date
+                                    ? format(new Date(payment.payment_date), "dd MMMM yyyy", { locale: localeId })
                                     : "-"}
                                 </span>
                               </div>
                               
-                              {payment.bank_name && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                  <Wallet className="h-3 w-3" />
-                                  <span>{payment.bank_name}</span>
+                              {payment.notes && (
+                                <div className="text-sm text-muted-foreground mt-1">
+                                  {payment.notes}
                                 </div>
                               )}
                             </div>
                             
                             <div className="text-right">
                               <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">
-                                Lunas
+                                #{payment.payment_number}
                               </Badge>
                               <p className="font-bold text-lg text-green-600 mt-1">
                                 {formatRupiah(payment.amount)}
@@ -613,7 +616,7 @@ export default function ContractDetail() {
                   <span className="text-sm font-medium">Sudah Dibayar</span>
                 </div>
                 <span className="font-bold text-green-600">
-                  {formatRupiah(contract.jumlah_lunas || 0)}
+                  {formatRupiah(totalPayment)}
                 </span>
               </div>
 
@@ -630,21 +633,21 @@ export default function ContractDetail() {
               <Separator />
 
               <div className="flex items-center justify-between">
-                <span className="font-medium">Total</span>
+                <span className="font-medium">Total Tagihan</span>
                 <span className="font-bold text-lg">
-                  {formatRupiah((contract.jumlah_lunas || 0) + (contract.tagihan_belum_bayar || 0))}
+                  {formatRupiah(totalPayment + (contract.tagihan_belum_bayar || 0))}
                 </span>
               </div>
 
-              {contract.tanggal_lunas && (
+              {contract.tanggal_bayar_terakhir && (
                 <>
                   <Separator />
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Tanggal Lunas</p>
+                    <p className="text-sm text-muted-foreground mb-1">Pembayaran Terakhir</p>
                     <div className="flex items-center gap-2">
                       {getPaymentStatusIcon()}
                       <span className="font-semibold text-green-600">
-                        {format(new Date(contract.tanggal_lunas), "dd MMMM yyyy", { locale: localeId })}
+                        {format(new Date(contract.tanggal_bayar_terakhir), "dd MMMM yyyy", { locale: localeId })}
                       </span>
                     </div>
                   </div>

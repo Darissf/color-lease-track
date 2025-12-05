@@ -43,7 +43,6 @@ interface Contract {
   start_date: string;
   end_date: string;
   status: string;
-  jumlah_lunas: number | null;
   tagihan_belum_bayar: number | null;
   tanggal: string | null;
 }
@@ -317,7 +316,7 @@ const ClientGroups = () => {
       
       const { data: contracts, error } = await supabase
         .from("rental_contracts")
-        .select("id, invoice, start_date, end_date, status, jumlah_lunas, tagihan_belum_bayar, tanggal")
+        .select("id, invoice, start_date, end_date, status, tagihan_belum_bayar, tanggal")
         .eq("client_group_id", clientId)
         .order("start_date", { ascending: false });
 
@@ -1165,10 +1164,10 @@ const ClientGroups = () => {
                                             <Wallet className="h-5 w-5 text-green-600" />
                                           </div>
                                           <div className="flex-1">
-                                            <p className="text-xs text-muted-foreground">Total Lunas</p>
-                                            <p className="text-lg font-bold text-green-600">
+                                            <p className="text-xs text-muted-foreground">Total Belum Bayar</p>
+                                            <p className="text-lg font-bold text-orange-600">
                                               {formatRupiah(
-                                                contracts.reduce((sum, c) => sum + (c.jumlah_lunas || 0), 0)
+                                                contracts.reduce((sum, c) => sum + (c.tagihan_belum_bayar || 0), 0)
                                               )}
                                             </p>
                                           </div>
@@ -1183,11 +1182,9 @@ const ClientGroups = () => {
                                             <Wallet className="h-5 w-5 text-orange-600" />
                                           </div>
                                           <div className="flex-1">
-                                            <p className="text-xs text-muted-foreground">Total Belum Bayar</p>
+                                            <p className="text-xs text-muted-foreground">Jumlah Kontrak</p>
                                             <p className="text-lg font-bold text-orange-600">
-                                              {formatRupiah(
-                                                contracts.reduce((sum, c) => sum + (c.tagihan_belum_bayar || 0), 0)
-                                              )}
+                                              {contracts.length}
                                             </p>
                                           </div>
                                         </div>
@@ -1220,12 +1217,6 @@ const ClientGroups = () => {
                                         </div>
                                         
                                         <div className="space-y-1 text-xs">
-                                          <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Lunas:</span>
-                                            <span className="font-medium text-green-600">
-                                              Rp {(contract.jumlah_lunas || 0).toLocaleString('id-ID')}
-                                            </span>
-                                          </div>
                                           <div className="flex justify-between">
                                             <span className="text-muted-foreground">Belum Bayar:</span>
                                             <span className="font-medium text-red-600">

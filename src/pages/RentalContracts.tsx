@@ -40,11 +40,10 @@ interface RentalContract {
   start_date: string;
   end_date: string;
   tanggal: string | null;
-  tanggal_lunas: string | null;
+  tanggal_bayar_terakhir: string | null;
   status: string;
   tagihan: number;
   tagihan_belum_bayar: number;
-  jumlah_lunas: number;
   invoice: string | null;
   keterangan: string | null;
   bukti_pembayaran_files: Array<{ name: string; url: string }>;
@@ -80,7 +79,7 @@ const RentalContracts = () => {
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [isTableLocked, setIsTableLocked] = useState(true);
-  const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'lunas' | 'tanggal' | 'none'>('none');
+  const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'tanggal' | 'none'>('none');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
@@ -93,19 +92,22 @@ const RentalContracts = () => {
   const [isProcessingRecurring, setIsProcessingRecurring] = useState(false);
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
-  const [paymentStatus, setPaymentStatus] = useState<"belum_lunas" | "sudah_lunas">("belum_lunas");
   const [invoiceSearch, setInvoiceSearch] = useState("");
+  
+  // Payment popover states
+  const [paymentContractId, setPaymentContractId] = useState<string | null>(null);
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
     start_date: undefined as Date | undefined,
     end_date: undefined as Date | undefined,
     tanggal: undefined as Date | undefined,
-    tanggal_lunas: undefined as Date | undefined,
     status: "masa sewa",
     tagihan: "",
     tagihan_belum_bayar: "",
-    jumlah_lunas: "",
     invoice: "",
     keterangan: "",
     bank_account_id: "",
@@ -152,8 +154,8 @@ const RentalContracts = () => {
       setRentalContracts((contracts || []).map(c => ({
         ...c,
         bukti_pembayaran_files: (c.bukti_pembayaran_files as any) || [],
-        tanggal_lunas: (c as any).tanggal_lunas || null
-      })) as any);
+        tanggal_bayar_terakhir: (c as any).tanggal_bayar_terakhir || null
+      })) as unknown as RentalContract[]);
 
       const { data: banks, error: banksError } = await supabase
         .from("bank_accounts")
