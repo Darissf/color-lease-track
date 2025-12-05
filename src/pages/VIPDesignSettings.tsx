@@ -13,6 +13,7 @@ import { ArrowLeft, Save, RotateCcw, AlignLeft, AlignCenter, AlignRight, Type, I
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ImageCropper } from "@/components/ImageCropper";
 
 // 40+ Fonts categorized
 const FONTS = {
@@ -150,6 +151,8 @@ const VIPDesignSettings = () => {
   
   const [sidebarUploading, setSidebarUploading] = useState(false);
   const [sidebarImagePreview, setSidebarImagePreview] = useState<string | null>(null);
+  const [sidebarSelectedFile, setSidebarSelectedFile] = useState<File | null>(null);
+  const [showSidebarCropper, setShowSidebarCropper] = useState(false);
 
   const [previewBg, setPreviewBg] = useState<"light" | "dark">("dark");
   const [uploading, setUploading] = useState(false);
@@ -323,8 +326,8 @@ const VIPDesignSettings = () => {
     }
   };
 
-  // Sidebar Logo Upload Handler
-  const handleSidebarImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Sidebar Logo Upload Handler - shows cropper for non-SVG images
+  const handleSidebarImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -339,6 +342,28 @@ const VIPDesignSettings = () => {
       return;
     }
 
+    // SVG doesn't need cropping, upload directly
+    if (file.type === 'image/svg+xml') {
+      uploadSidebarImage(file);
+      return;
+    }
+
+    // For other formats, show cropper
+    setSidebarSelectedFile(file);
+    setShowSidebarCropper(true);
+  };
+
+  // Handle cropped image
+  const handleSidebarCropComplete = async (blob: Blob) => {
+    setShowSidebarCropper(false);
+    setSidebarSelectedFile(null);
+    
+    const file = new File([blob], "sidebar-logo.jpg", { type: "image/jpeg" });
+    await uploadSidebarImage(file);
+  };
+
+  // Actual upload function
+  const uploadSidebarImage = async (file: File) => {
     setSidebarUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -348,7 +373,7 @@ const VIPDesignSettings = () => {
       if (formData.sidebar_logo_url) {
         const oldPath = formData.sidebar_logo_url.split('/').pop();
         if (oldPath) {
-          await supabase.storage.from('brand-images').remove([`${user.id}/sidebar-${oldPath}`]);
+          await supabase.storage.from('brand-images').remove([`${user.id}/${oldPath}`]);
         }
       }
 
@@ -1325,6 +1350,17 @@ const VIPDesignSettings = () => {
           </div>
         </div>
       </div>
+      {/* Image Cropper for Sidebar Logo */}
+      {sidebarSelectedFile && showSidebarCropper && (
+        <ImageCropper
+          file={sidebarSelectedFile}
+          onCrop={handleSidebarCropComplete}
+          onCancel={() => {
+            setShowSidebarCropper(false);
+            setSidebarSelectedFile(null);
+          }}
+        />
+      )}
     </Layout>
   );
 };

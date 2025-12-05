@@ -123,7 +123,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {(sidebarOpen || !isMobile) && (
           <>
             {/* Logo */}
-            <div className="h-16 flex items-center px-5 border-b border-slate-100">
+            <div className={cn(
+              "h-16 flex items-center border-b border-slate-100",
+              sidebarOpen ? "px-5" : "px-2 justify-center"
+            )}>
               {sidebarOpen ? (
                 <div className="flex items-center gap-3">
                   {/* Show Logo if mode is 'logo' or 'both' */}
