@@ -32,6 +32,12 @@ export interface BrandSettings {
   outline_color: string;
   outline_width: number;
   animation: string;
+  // Sidebar Logo Settings
+  sidebar_logo_url: string | null;
+  sidebar_logo_height: number;
+  sidebar_logo_max_width: number;
+  sidebar_text: string;
+  sidebar_display_mode: 'logo' | 'text' | 'both';
 }
 
 export const useBrandSettings = () => {

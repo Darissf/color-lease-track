@@ -3232,6 +3232,11 @@ export type Database = {
           shadow_enabled: boolean
           shadow_x: number
           shadow_y: number
+          sidebar_display_mode: string | null
+          sidebar_logo_height: number | null
+          sidebar_logo_max_width: number | null
+          sidebar_logo_url: string | null
+          sidebar_text: string | null
           solid_color: string
           text_align: string
           text_transform: string
@@ -3266,6 +3271,11 @@ export type Database = {
           shadow_enabled?: boolean
           shadow_x?: number
           shadow_y?: number
+          sidebar_display_mode?: string | null
+          sidebar_logo_height?: number | null
+          sidebar_logo_max_width?: number | null
+          sidebar_logo_url?: string | null
+          sidebar_text?: string | null
           solid_color?: string
           text_align?: string
           text_transform?: string
@@ -3300,6 +3310,11 @@ export type Database = {
           shadow_enabled?: boolean
           shadow_x?: number
           shadow_y?: number
+          sidebar_display_mode?: string | null
+          sidebar_logo_height?: number | null
+          sidebar_logo_max_width?: number | null
+          sidebar_logo_url?: string | null
+          sidebar_text?: string | null
           solid_color?: string
           text_align?: string
           text_transform?: string

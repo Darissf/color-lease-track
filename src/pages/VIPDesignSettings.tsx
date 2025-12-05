@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Save, RotateCcw, AlignLeft, AlignCenter, AlignRight, Type, Image as ImageIcon, Upload, X } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, AlignLeft, AlignCenter, AlignRight, Type, Image as ImageIcon, Upload, X, Home } from "lucide-react";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -139,8 +139,17 @@ const VIPDesignSettings = () => {
     outline_enabled: false,
     outline_color: "#000000",
     outline_width: 1,
-    animation: "shimmer"
+    animation: "shimmer",
+    // Sidebar settings
+    sidebar_logo_url: null as string | null,
+    sidebar_logo_height: 32,
+    sidebar_logo_max_width: 150,
+    sidebar_text: "Admin Area",
+    sidebar_display_mode: "both" as "logo" | "text" | "both"
   });
+  
+  const [sidebarUploading, setSidebarUploading] = useState(false);
+  const [sidebarImagePreview, setSidebarImagePreview] = useState<string | null>(null);
 
   const [previewBg, setPreviewBg] = useState<"light" | "dark">("dark");
   const [uploading, setUploading] = useState(false);
@@ -176,9 +185,16 @@ const VIPDesignSettings = () => {
         outline_enabled: settings.outline_enabled,
         outline_color: settings.outline_color,
         outline_width: settings.outline_width,
-        animation: settings.animation
+        animation: settings.animation,
+        // Sidebar settings
+        sidebar_logo_url: settings.sidebar_logo_url,
+        sidebar_logo_height: settings.sidebar_logo_height || 32,
+        sidebar_logo_max_width: settings.sidebar_logo_max_width || 150,
+        sidebar_text: settings.sidebar_text || 'Admin Area',
+        sidebar_display_mode: settings.sidebar_display_mode || 'both'
       });
       setImagePreview(settings.brand_image_url);
+      setSidebarImagePreview(settings.sidebar_logo_url);
     }
   }, [settings]);
 
@@ -216,9 +232,16 @@ const VIPDesignSettings = () => {
       outline_enabled: false,
       outline_color: "#000000",
       outline_width: 1,
-      animation: "shimmer"
+      animation: "shimmer",
+      // Sidebar settings
+      sidebar_logo_url: null,
+      sidebar_logo_height: 32,
+      sidebar_logo_max_width: 150,
+      sidebar_text: "Admin Area",
+      sidebar_display_mode: "both"
     });
     setImagePreview(null);
+    setSidebarImagePreview(null);
     toast.info("Reset to default values");
   };
 
@@ -297,6 +320,81 @@ const VIPDesignSettings = () => {
     } catch (error: any) {
       console.error("Delete error:", error);
       toast.error(error.message || "Gagal hapus gambar");
+    }
+  };
+
+  // Sidebar Logo Upload Handler
+  const handleSidebarImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Format tidak didukung. Gunakan PNG, JPG, WebP, atau SVG");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File terlalu besar. Maksimal 5MB");
+      return;
+    }
+
+    setSidebarUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Delete old image if exists
+      if (formData.sidebar_logo_url) {
+        const oldPath = formData.sidebar_logo_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage.from('brand-images').remove([`${user.id}/sidebar-${oldPath}`]);
+        }
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `sidebar-logo-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('brand-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('brand-images')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, sidebar_logo_url: publicUrl });
+      setSidebarImagePreview(publicUrl);
+      toast.success("Logo sidebar berhasil diupload!");
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error(error.message || "Gagal upload logo sidebar");
+    } finally {
+      setSidebarUploading(false);
+    }
+  };
+
+  const handleDeleteSidebarImage = async () => {
+    if (!formData.sidebar_logo_url) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const oldPath = formData.sidebar_logo_url.split('/').pop();
+      if (oldPath) {
+        await supabase.storage.from('brand-images').remove([`${user.id}/${oldPath}`]);
+      }
+
+      setFormData({ ...formData, sidebar_logo_url: null });
+      setSidebarImagePreview(null);
+      toast.success("Logo sidebar berhasil dihapus");
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      toast.error(error.message || "Gagal hapus logo sidebar");
     }
   };
 
@@ -997,6 +1095,219 @@ const VIPDesignSettings = () => {
                 </div>
               </Card>
               </>
+              )}
+
+              {/* ============================================= */}
+              {/* SIDEBAR LOGO SETTINGS */}
+              {/* ============================================= */}
+              <Separator className="my-6" />
+              <h2 className="text-xl font-bold mb-4">⚙️ Sidebar Logo Settings</h2>
+              
+              {/* Sidebar Live Preview */}
+              <Card className="p-6 mb-6">
+                <h3 className="text-lg font-semibold mb-4">Sidebar Preview</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Expanded State Preview */}
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium uppercase">Expanded</p>
+                    <div className="bg-white border-2 border-slate-200 rounded-lg p-4 min-h-[60px] flex items-center">
+                      <div className="flex items-center gap-3">
+                        {(formData.sidebar_display_mode === 'logo' || formData.sidebar_display_mode === 'both') && sidebarImagePreview ? (
+                          <img
+                            src={sidebarImagePreview}
+                            alt="Logo Preview"
+                            style={{
+                              height: `${formData.sidebar_logo_height}px`,
+                              maxWidth: `${formData.sidebar_logo_max_width}px`,
+                            }}
+                            className="object-contain"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-[#487FFF] flex items-center justify-center shrink-0">
+                            <Home className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                        {(formData.sidebar_display_mode === 'text' || formData.sidebar_display_mode === 'both') && (
+                          <h1 className="text-base font-semibold text-slate-800">
+                            {formData.sidebar_text || 'Admin Area'}
+                          </h1>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Collapsed State Preview */}
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium uppercase">Collapsed</p>
+                    <div className="bg-white border-2 border-slate-200 rounded-lg p-4 min-h-[60px] flex items-center justify-center w-16">
+                      {formData.sidebar_display_mode !== 'text' && sidebarImagePreview ? (
+                        <img
+                          src={sidebarImagePreview}
+                          alt="Logo Preview"
+                          style={{
+                            height: `${Math.min(formData.sidebar_logo_height, 32)}px`,
+                            maxWidth: '32px',
+                          }}
+                          className="object-contain"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-[#487FFF] flex items-center justify-center">
+                          <Home className="h-4 w-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Sidebar Display Mode */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Display Mode</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    onClick={() => setFormData({ ...formData, sidebar_display_mode: 'logo' })}
+                    className={`p-4 rounded-lg border-2 transition-all hover:border-primary text-center ${
+                      formData.sidebar_display_mode === 'logo' ? 'border-primary bg-primary/10' : 'border-border'
+                    }`}
+                  >
+                    <ImageIcon className="mx-auto h-6 w-6 mb-2" />
+                    <div className="text-sm font-semibold">🖼️ Logo Only</div>
+                  </button>
+                  <button
+                    onClick={() => setFormData({ ...formData, sidebar_display_mode: 'text' })}
+                    className={`p-4 rounded-lg border-2 transition-all hover:border-primary text-center ${
+                      formData.sidebar_display_mode === 'text' ? 'border-primary bg-primary/10' : 'border-border'
+                    }`}
+                  >
+                    <Type className="mx-auto h-6 w-6 mb-2" />
+                    <div className="text-sm font-semibold">📝 Text Only</div>
+                  </button>
+                  <button
+                    onClick={() => setFormData({ ...formData, sidebar_display_mode: 'both' })}
+                    className={`p-4 rounded-lg border-2 transition-all hover:border-primary text-center ${
+                      formData.sidebar_display_mode === 'both' ? 'border-primary bg-primary/10' : 'border-border'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      <ImageIcon className="h-5 w-5" />
+                      <span>+</span>
+                      <Type className="h-5 w-5" />
+                    </div>
+                    <div className="text-sm font-semibold">🖼️+📝 Both</div>
+                  </button>
+                </div>
+              </Card>
+
+              {/* Sidebar Logo Upload */}
+              {(formData.sidebar_display_mode === 'logo' || formData.sidebar_display_mode === 'both') && (
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Upload Sidebar Logo</h3>
+                  <div className="space-y-4">
+                    {!sidebarImagePreview ? (
+                      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
+                        <input
+                          type="file"
+                          id="sidebar-image-upload"
+                          accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                          onChange={handleSidebarImageUpload}
+                          className="hidden"
+                          disabled={sidebarUploading}
+                        />
+                        <label htmlFor="sidebar-image-upload" className="cursor-pointer">
+                          <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                          <p className="text-sm font-medium mb-1">
+                            {sidebarUploading ? "Uploading..." : "Click to upload sidebar logo"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            PNG, JPG, WebP, SVG (Max 5MB)
+                          </p>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="relative border-2 border-border rounded-lg p-4 bg-muted/50">
+                          <img
+                            src={sidebarImagePreview}
+                            alt="Sidebar Logo"
+                            style={{
+                              height: `${formData.sidebar_logo_height}px`,
+                              maxWidth: `${formData.sidebar_logo_max_width}px`,
+                              objectFit: 'contain'
+                            }}
+                            className="mx-auto"
+                          />
+                          <button
+                            onClick={handleDeleteSidebarImage}
+                            className="absolute top-2 right-2 p-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => document.getElementById('sidebar-image-replace')?.click()}
+                          disabled={sidebarUploading}
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          Replace Logo
+                        </Button>
+                        <input
+                          type="file"
+                          id="sidebar-image-replace"
+                          accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                          onChange={handleSidebarImageUpload}
+                          className="hidden"
+                          disabled={sidebarUploading}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Sidebar Logo Size Settings */}
+              {(formData.sidebar_display_mode === 'logo' || formData.sidebar_display_mode === 'both') && sidebarImagePreview && (
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Logo Size</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Height: {formData.sidebar_logo_height}px</Label>
+                      <Slider
+                        value={[formData.sidebar_logo_height]}
+                        onValueChange={(value) => setFormData({ ...formData, sidebar_logo_height: value[0] })}
+                        min={16}
+                        max={64}
+                        step={2}
+                      />
+                    </div>
+                    <div>
+                      <Label>Max Width: {formData.sidebar_logo_max_width}px</Label>
+                      <Slider
+                        value={[formData.sidebar_logo_max_width]}
+                        onValueChange={(value) => setFormData({ ...formData, sidebar_logo_max_width: value[0] })}
+                        min={50}
+                        max={200}
+                        step={10}
+                      />
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Sidebar Text Settings */}
+              {(formData.sidebar_display_mode === 'text' || formData.sidebar_display_mode === 'both') && (
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Sidebar Text</h3>
+                  <div>
+                    <Label htmlFor="sidebar_text">Text</Label>
+                    <Input
+                      id="sidebar_text"
+                      value={formData.sidebar_text}
+                      onChange={(e) => setFormData({ ...formData, sidebar_text: e.target.value })}
+                      placeholder="Admin Area"
+                    />
+                  </div>
+                </Card>
               )}
 
               {/* Action Buttons */}
