@@ -22,6 +22,7 @@ import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { useDynamicFavicon } from "@/hooks/useDynamicFavicon";
 
 const navItems = [
   { title: "Home", url: "/vip/", icon: Home },
@@ -45,6 +46,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const notifications = useAdminNotifications(isAdmin || isSuperAdmin);
+  
+  // Dynamic favicon based on brand settings
+  useDynamicFavicon();
   
   // Close sidebar on mobile by default
   useEffect(() => {

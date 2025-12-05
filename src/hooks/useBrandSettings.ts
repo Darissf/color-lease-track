@@ -38,6 +38,9 @@ export interface BrandSettings {
   sidebar_logo_max_width: number;
   sidebar_text: string;
   sidebar_display_mode: 'logo' | 'text' | 'both';
+  // Favicon Settings
+  favicon_url: string | null;
+  favicon_type: string;
 }
 
 export const useBrandSettings = () => {
