@@ -1,4 +1,4 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat, MessageSquare, Package, Receipt, CalendarClock, Mail } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat, MessageSquare, Package, Receipt, CalendarClock, Mail, Search } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -20,6 +20,7 @@ import { AnimatedBackground } from "@/components/AnimatedBackground";
 
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
 
 const navItems = [
   { title: "Home", url: "/vip/", icon: Home },
@@ -98,7 +99,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="flex h-screen overflow-hidden bg-[#F5F6FA]">
       {/* Backdrop overlay for mobile */}
       {isMobile && sidebarOpen && (
         <div 
@@ -107,41 +108,43 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
       )}
       
-      {/* Notion-style Sidebar */}
+      {/* Clean White Sidebar */}
       <aside
         className={cn(
-          "fixed lg:relative z-50 h-full transition-all duration-300 ease-in-out flex flex-col border-r relative",
-          "bg-gradient-to-b from-sidebar via-sidebar to-sidebar-accent/50",
-          "shadow-[4px_0_24px_-2px_hsl(var(--sidebar-primary)/0.3)]",
-          "backdrop-blur-sm border-sidebar-border",
+          "fixed lg:relative z-50 h-full transition-all duration-300 ease-in-out flex flex-col",
+          "bg-white shadow-[2px_0_8px_rgba(0,0,0,0.04)]",
           sidebarOpen
-            ? "translate-x-0 w-64"
+            ? "translate-x-0 w-[250px]"
             : "-translate-x-full lg:translate-x-0 w-0 lg:w-16 overflow-hidden"
         )}
       >
         {(sidebarOpen || !isMobile) && (
           <>
-            {/* Accent line */}
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-sidebar-primary via-sidebar-primary/50 to-transparent" />
             {/* Logo */}
-            <div className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border">
-          {sidebarOpen ? (
-            <h1 className="text-sm font-semibold text-sidebar-foreground">
-              Financial Planner
-            </h1>
-          ) : (
-            <Home className="h-5 w-5 text-sidebar-foreground" />
-          )}
-        </div>
+            <div className="h-16 flex items-center px-5 border-b border-slate-100">
+              {sidebarOpen ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#487FFF] flex items-center justify-center">
+                    <Home className="h-4 w-4 text-white" />
+                  </div>
+                  <h1 className="text-base font-semibold text-slate-800">
+                    Financial Planner
+                  </h1>
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-[#487FFF] flex items-center justify-center mx-auto">
+                  <Home className="h-4 w-4 text-white" />
+                </div>
+              )}
+            </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5" data-editable-ignore>
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1" data-editable-ignore>
           {/* Pages Section */}
           {pagesItems.length > 0 && (
             <>
-              <div className="h-px bg-sidebar-border my-2" />
               {sidebarOpen && (
-                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                   Pages
                 </p>
               )}
@@ -150,18 +153,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <TooltipTrigger asChild>
                      <NavLink
                       to={item.url}
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
-                      activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-all ${!sidebarOpen ? "justify-center" : "justify-between"}`}
+                      activeClassName="bg-[#487FFF] text-white hover:bg-[#487FFF] shadow-sm shadow-blue-200"
                       onClick={() => isMobile && setSidebarOpen(false)}
                     >
-                      <div className="flex items-center gap-2">
-                        <item.icon className="h-4 w-4 flex-shrink-0" />
-                        {sidebarOpen && <span>{item.title}</span>}
+                      <div className="flex items-center gap-3">
+                        <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                        {sidebarOpen && <span className="font-medium">{item.title}</span>}
                       </div>
                       {sidebarOpen && item.badge && (
                         <Badge 
                           variant={item.badgeVariant} 
-                          className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider"
+                          className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider rounded-full"
                         >
                           {item.badge}
                         </Badge>
@@ -179,9 +182,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Admin Section */}
           {(isSuperAdmin || user) && adminNavItems.length > 0 && (
             <>
-              <div className="h-px bg-sidebar-border my-2" />
+              <div className="h-px bg-slate-100 my-3" />
               {sidebarOpen && (
-                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                   Admin
                 </p>
               )}
@@ -193,18 +196,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <TooltipTrigger asChild>
                        <NavLink
                         to={item.url}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors ${!sidebarOpen ? "justify-center" : "justify-between"}`}
-                        activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-all ${!sidebarOpen ? "justify-center" : "justify-between"}`}
+                        activeClassName="bg-[#487FFF] text-white hover:bg-[#487FFF] shadow-sm shadow-blue-200"
                         onClick={() => isMobile && setSidebarOpen(false)}
                       >
-                        <div className="flex items-center gap-2">
-                          <item.icon className="h-4 w-4 flex-shrink-0" />
-                          {sidebarOpen && <span>{item.title}</span>}
+                        <div className="flex items-center gap-3">
+                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                          {sidebarOpen && <span className="font-medium">{item.title}</span>}
                         </div>
                         {sidebarOpen && item.badge && (
                           <Badge 
                             variant={item.badgeVariant} 
-                            className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider"
+                            className="text-[10px] px-1.5 py-0 h-5 font-semibold uppercase tracking-wider rounded-full"
                           >
                             {item.badge}
                           </Badge>
@@ -222,20 +225,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Sidebar Toggle Button */}
-        <div className="border-t border-sidebar-border p-2">
+        <div className="border-t border-slate-100 p-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-full flex items-center justify-center p-2 rounded hover:bg-sidebar-accent transition-colors group"
+            className="w-full flex items-center justify-center p-2.5 rounded-lg hover:bg-slate-50 transition-colors group"
             aria-label={sidebarOpen ? "Sembunyikan Menu" : "Tampilkan Menu"}
             title={sidebarOpen ? "Sembunyikan Menu" : "Tampilkan Menu"}
           >
             {sidebarOpen ? (
               <>
-                <ChevronLeft className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
-                <span className="ml-2 text-xs text-muted-foreground group-hover:text-foreground">Sembunyikan</span>
+                <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:text-slate-600" />
+                <span className="ml-2 text-xs text-slate-400 group-hover:text-slate-600">Sembunyikan</span>
               </>
             ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+              <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600" />
             )}
           </button>
         </div>
@@ -245,69 +248,80 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header - Notion Style */}
-        <header className="h-14 border-b border-border px-4 flex items-center justify-between bg-card">
-          <div className="flex items-center gap-3 flex-1">
+        {/* Header - Clean White Style */}
+        <header className="h-16 border-b border-slate-100 px-4 md:px-6 flex items-center justify-between bg-white shadow-sm">
+          <div className="flex items-center gap-4 flex-1">
             {/* Hamburger Menu for Mobile */}
             {isMobile && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden mr-2"
+                className="lg:hidden"
                 aria-label="Toggle Menu"
               >
                 {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             )}
             
-            {/* Brand Text */}
-            <div className="flex-1 flex items-center">
-              <BrandText />
+            {/* Search Bar */}
+            <div className="hidden md:flex relative max-w-md flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input 
+                placeholder="Search..." 
+                className="pl-10 bg-slate-50 border-slate-200 rounded-full h-10 text-sm focus:ring-2 focus:ring-[#487FFF]/20 focus:border-[#487FFF]"
+              />
             </div>
+            
+            {/* Mobile: Brand Text */}
+            {isMobile && (
+              <div className="flex-1">
+                <BrandText />
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Notifications */}
-            <button className="relative p-2 rounded hover:bg-accent transition-colors">
-              <Bell className="h-4 w-4 text-foreground" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full"></span>
-            </button>
-
+          <div className="flex items-center gap-1 md:gap-2">
             {/* Theme Selector */}
             <ThemeSelector />
+
+            {/* Notifications */}
+            <button className="relative p-2.5 rounded-full hover:bg-slate-100 transition-colors">
+              <Bell className="h-5 w-5 text-slate-600" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+            </button>
 
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 p-1.5 rounded hover:bg-accent transition-colors">
-                  <Avatar className="h-8 w-8">
+                <button className="flex items-center gap-2 p-1.5 rounded-full hover:bg-slate-100 transition-colors ml-1">
+                  <Avatar className="h-9 w-9 ring-2 ring-slate-100">
                     <AvatarImage 
                       src={profile?.avatar_url || undefined} 
                       alt={profile?.full_name || profile?.username || 'User'} 
                     />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                    <AvatarFallback className="bg-[#487FFF] text-white text-sm font-medium">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
-                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 text-slate-400 hidden md:block" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <div className="px-2 py-1.5 text-sm">
-                  <div className="font-medium text-foreground">
+              <DropdownMenuContent align="end" className="w-56 p-2">
+                <div className="px-3 py-2 mb-1">
+                  <div className="font-semibold text-slate-800">
                     {profile?.full_name || profile?.username || user?.email?.split("@")[0] || "User"}
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">
+                  <div className="text-xs text-slate-500 truncate mt-0.5">
                     {user?.email}
                   </div>
                 </div>
-                <DropdownMenuItem onClick={() => navigate('/vip/profile')} className="cursor-pointer text-sm">
-                  <User className="mr-2 h-3.5 w-3.5" />
+                <DropdownMenuItem onClick={() => navigate('/vip/profile')} className="cursor-pointer rounded-lg py-2.5">
+                  <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-sm">
-                  <LogOut className="mr-2 h-3.5 w-3.5" />
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer rounded-lg py-2.5 text-red-600 focus:text-red-600 focus:bg-red-50">
+                  <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -316,7 +330,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-      <main className="flex-1 overflow-auto p-0 md:p-6 bg-background">
+        <main className="flex-1 overflow-auto p-4 md:p-6 bg-[#F5F6FA]">
           <AnimatedBackground>
             {children}
           </AnimatedBackground>
