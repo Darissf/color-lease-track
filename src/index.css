@@ -942,9 +942,9 @@ All colors MUST be HSL.
     --sidebar-ring: 15 85% 65%;
   }
 
-
-
-
+  /* ===== SAKURA BLOOM THEME ===== */
+  [data-theme="sakura-bloom"],
+  .theme-sakura-bloom {
 
 
     --background: 330 25% 98%;
@@ -1516,3 +1516,4 @@ All colors MUST be HSL.
   .animate-sakura-fall {
     animation: sakura-fall 15s linear infinite;
   }
+}
