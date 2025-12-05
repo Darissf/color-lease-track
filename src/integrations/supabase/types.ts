@@ -2787,6 +2787,7 @@ export type Database = {
           tagihan_belum_bayar: number | null
           tanggal: string | null
           tanggal_ambil: string | null
+          tanggal_bayar_terakhir: string | null
           tanggal_kirim: string | null
           updated_at: string
           user_id: string
@@ -2816,6 +2817,7 @@ export type Database = {
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
           tanggal_ambil?: string | null
+          tanggal_bayar_terakhir?: string | null
           tanggal_kirim?: string | null
           updated_at?: string
           user_id: string
@@ -2845,6 +2847,7 @@ export type Database = {
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
           tanggal_ambil?: string | null
+          tanggal_bayar_terakhir?: string | null
           tanggal_kirim?: string | null
           updated_at?: string
           user_id?: string
