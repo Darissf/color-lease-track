@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, 
   FileText, 
@@ -35,7 +36,6 @@ import {
   ExternalLink,
   Clock,
   Receipt,
-  TrendingUp,
   Package,
   Trash2
 } from "lucide-react";
@@ -306,11 +306,10 @@ export default function ContractDetail() {
   // Calculate statistics
   const totalPayment = paymentHistory.reduce((sum, payment) => sum + Number(payment.amount), 0);
   
-  // Calculate months between start and end date
-  const startDate = new Date(contract.start_date);
-  const endDate = new Date(contract.end_date);
-  const monthsDifference = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-  const averagePaymentPerMonth = totalPayment / monthsDifference;
+  // Calculate payment percentage
+  const paymentPercentage = contract.tagihan > 0 
+    ? Math.min(100, (totalPayment / contract.tagihan) * 100)
+    : 0;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -350,16 +349,41 @@ export default function ContractDetail() {
 
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Rata-Rata Per Bulan</p>
-                <p className="text-2xl font-bold text-foreground mt-1">
-                  {formatRupiah(averagePaymentPerMonth)}
-                </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Persentase Lunas</p>
+                  <p className={cn(
+                    "text-2xl font-bold mt-1",
+                    paymentPercentage >= 100 ? "text-green-500" : 
+                    paymentPercentage >= 50 ? "text-amber-500" : "text-red-500"
+                  )}>
+                    {paymentPercentage.toFixed(0)}%
+                  </p>
+                </div>
+                <div className={cn(
+                  "h-12 w-12 rounded-full flex items-center justify-center",
+                  paymentPercentage >= 100 ? "bg-green-500/10" : 
+                  paymentPercentage >= 50 ? "bg-amber-500/10" : "bg-red-500/10"
+                )}>
+                  <CheckCircle className={cn(
+                    "h-6 w-6",
+                    paymentPercentage >= 100 ? "text-green-500" : 
+                    paymentPercentage >= 50 ? "text-amber-500" : "text-red-500"
+                  )} />
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-blue-500" />
-              </div>
+              <Progress 
+                value={paymentPercentage} 
+                className={cn(
+                  "h-2",
+                  paymentPercentage >= 100 ? "[&>div]:bg-green-500" : 
+                  paymentPercentage >= 50 ? "[&>div]:bg-amber-500" : "[&>div]:bg-red-500"
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                {formatRupiah(totalPayment)} / {formatRupiah(contract.tagihan || 0)}
+              </p>
             </div>
           </CardContent>
         </Card>
