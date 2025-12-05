@@ -14,6 +14,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageCropper } from "@/components/ImageCropper";
+import { compressImage, isCompressibleImage, formatFileSize } from "@/utils/imageCompressor";
 
 // 40+ Fonts categorized
 const FONTS = {
@@ -269,16 +270,25 @@ const VIPDesignSettings = () => {
       return;
     }
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File terlalu besar. Maksimal 5MB");
-      return;
-    }
-
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      let uploadFile: File | Blob = file;
+      let fileExt = file.name.split('.').pop();
+
+      // Auto-compress if > 5MB and compressible
+      if (file.size > 5 * 1024 * 1024 && isCompressibleImage(file)) {
+        toast.info(`Mengkompresi gambar (${formatFileSize(file.size)})...`);
+        uploadFile = await compressImage(file, {
+          maxSizeKB: 4000,
+          maxWidth: 2000,
+          maxHeight: 2000
+        });
+        fileExt = file.type === 'image/png' ? 'png' : 'jpg';
+        toast.success(`Berhasil dikompresi ke ${formatFileSize(uploadFile.size)}`);
+      }
 
       // Delete old image if exists
       if (formData.brand_image_url) {
@@ -289,13 +299,12 @@ const VIPDesignSettings = () => {
       }
 
       // Upload new image
-      const fileExt = file.name.split('.').pop();
       const fileName = `brand-logo-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('brand-images')
-        .upload(filePath, file);
+        .upload(filePath, uploadFile);
 
       if (uploadError) throw uploadError;
 
@@ -347,11 +356,6 @@ const VIPDesignSettings = () => {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File terlalu besar. Maksimal 5MB");
-      return;
-    }
-
     // SVG doesn't need cropping, upload directly
     if (file.type === 'image/svg+xml') {
       uploadSidebarImage(file);
@@ -379,6 +383,21 @@ const VIPDesignSettings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      let uploadFile: File | Blob = file;
+      let fileExt = file.name.split('.').pop();
+
+      // Auto-compress if > 5MB and compressible
+      if (file.size > 5 * 1024 * 1024 && isCompressibleImage(file)) {
+        toast.info(`Mengkompresi gambar (${formatFileSize(file.size)})...`);
+        uploadFile = await compressImage(file, {
+          maxSizeKB: 4000,
+          maxWidth: 1000,
+          maxHeight: 1000
+        });
+        fileExt = file.type === 'image/png' ? 'png' : 'jpg';
+        toast.success(`Berhasil dikompresi ke ${formatFileSize(uploadFile.size)}`);
+      }
+
       // Delete old image if exists
       if (formData.sidebar_logo_url) {
         const oldPath = formData.sidebar_logo_url.split('/').pop();
@@ -387,13 +406,12 @@ const VIPDesignSettings = () => {
         }
       }
 
-      const fileExt = file.name.split('.').pop();
       const fileName = `sidebar-logo-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('brand-images')
-        .upload(filePath, file);
+        .upload(filePath, uploadFile);
 
       if (uploadError) throw uploadError;
 
@@ -444,15 +462,25 @@ const VIPDesignSettings = () => {
       return;
     }
 
-    if (file.size > 1 * 1024 * 1024) {
-      toast.error("File terlalu besar. Maksimal 1MB untuk favicon");
-      return;
-    }
-
     setFaviconUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      let uploadFile: File | Blob = file;
+      let fileExt = file.name.split('.').pop()?.toLowerCase();
+
+      // Auto-compress if > 1MB and compressible (not SVG/ICO)
+      if (file.size > 1 * 1024 * 1024 && isCompressibleImage(file)) {
+        toast.info(`Mengkompresi favicon (${formatFileSize(file.size)})...`);
+        uploadFile = await compressImage(file, {
+          maxSizeKB: 800,
+          maxWidth: 256,
+          maxHeight: 256
+        });
+        fileExt = file.type === 'image/png' ? 'png' : 'jpg';
+        toast.success(`Berhasil dikompresi ke ${formatFileSize(uploadFile.size)}`);
+      }
 
       // Delete old favicon if exists
       if (formData.favicon_url) {
@@ -462,13 +490,12 @@ const VIPDesignSettings = () => {
         }
       }
 
-      const fileExt = file.name.split('.').pop()?.toLowerCase();
       const fileName = `favicon-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('brand-images')
-        .upload(filePath, file);
+        .upload(filePath, uploadFile);
 
       if (uploadError) throw uploadError;
 
