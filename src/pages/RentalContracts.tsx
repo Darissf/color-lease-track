@@ -244,7 +244,9 @@ const RentalContracts = () => {
         tanggal_lunas: contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "yyyy-MM-dd") : null,
         status: contractForm.status,
         tagihan: parseFloat(contractForm.tagihan) || 0,
-        tagihan_belum_bayar: parseFloat(contractForm.tagihan_belum_bayar) || 0,
+        tagihan_belum_bayar: editingContractId 
+          ? (rentalContracts.find(c => c.id === editingContractId)?.tagihan_belum_bayar ?? (parseFloat(contractForm.tagihan) || 0))
+          : (parseFloat(contractForm.tagihan) || 0),
         jumlah_lunas: jumlahLunas,
         invoice: contractForm.invoice || null,
         keterangan: contractForm.keterangan || null,
@@ -962,22 +964,13 @@ const RentalContracts = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Tagihan</Label>
                   <Input
                     type="number"
                     value={contractForm.tagihan}
                     onChange={(e) => setContractForm({ ...contractForm, tagihan: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label>Sisa Tagihan</Label>
-                  <Input
-                    type="number"
-                    value={contractForm.tagihan_belum_bayar}
-                    onChange={(e) => setContractForm({ ...contractForm, tagihan_belum_bayar: e.target.value })}
                     placeholder="0"
                   />
                 </div>
