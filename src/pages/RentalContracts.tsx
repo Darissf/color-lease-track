@@ -244,7 +244,7 @@ const RentalContracts = () => {
         tanggal_lunas: contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "yyyy-MM-dd") : null,
         status: contractForm.status,
         tagihan: parseFloat(contractForm.tagihan) || 0,
-        tagihan_belum_bayar: Math.max(0, (parseFloat(contractForm.tagihan) || 0) - jumlahLunas),
+        tagihan_belum_bayar: parseFloat(contractForm.tagihan) || 0,
         jumlah_lunas: jumlahLunas,
         invoice: contractForm.invoice || null,
         keterangan: contractForm.keterangan || null,
