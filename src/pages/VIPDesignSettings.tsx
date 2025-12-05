@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -113,6 +114,7 @@ const ANIMATIONS = [
 const VIPDesignSettings = () => {
   const navigate = useNavigate();
   const { settings, isLoading, updateSettings, isUpdating } = useBrandSettings();
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     display_mode: 'text' as 'text' | 'image',
@@ -276,7 +278,6 @@ const VIPDesignSettings = () => {
 
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       let uploadFile: File | Blob = file;
@@ -332,7 +333,6 @@ const VIPDesignSettings = () => {
     if (!formData.brand_image_url) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       const oldPath = formData.brand_image_url.split('/').pop();
@@ -384,7 +384,6 @@ const VIPDesignSettings = () => {
   const uploadSidebarImage = async (file: File) => {
     setSidebarUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       let uploadFile: File | Blob = file;
@@ -438,7 +437,6 @@ const VIPDesignSettings = () => {
     if (!formData.sidebar_logo_url) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       const oldPath = formData.sidebar_logo_url.split('/').pop();
@@ -490,7 +488,6 @@ const VIPDesignSettings = () => {
   const uploadFavicon = async (file: File) => {
     setFaviconUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       let uploadFile: File | Blob = file;
@@ -547,7 +544,6 @@ const VIPDesignSettings = () => {
     if (!formData.favicon_url) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       const oldPath = formData.favicon_url.split('/').pop();
