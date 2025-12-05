@@ -2720,7 +2720,6 @@ export type Database = {
           inventory_item_id: string | null
           invoice: string | null
           jenis_scaffolding: string | null
-          jumlah_lunas: number | null
           jumlah_unit: number | null
           keterangan: string | null
           lokasi_detail: string | null
@@ -2735,7 +2734,6 @@ export type Database = {
           tanggal: string | null
           tanggal_ambil: string | null
           tanggal_kirim: string | null
-          tanggal_lunas: string | null
           updated_at: string
           user_id: string
         }
@@ -2751,7 +2749,6 @@ export type Database = {
           inventory_item_id?: string | null
           invoice?: string | null
           jenis_scaffolding?: string | null
-          jumlah_lunas?: number | null
           jumlah_unit?: number | null
           keterangan?: string | null
           lokasi_detail?: string | null
@@ -2766,7 +2763,6 @@ export type Database = {
           tanggal?: string | null
           tanggal_ambil?: string | null
           tanggal_kirim?: string | null
-          tanggal_lunas?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2782,7 +2778,6 @@ export type Database = {
           inventory_item_id?: string | null
           invoice?: string | null
           jenis_scaffolding?: string | null
-          jumlah_lunas?: number | null
           jumlah_unit?: number | null
           keterangan?: string | null
           lokasi_detail?: string | null
@@ -2797,7 +2792,6 @@ export type Database = {
           tanggal?: string | null
           tanggal_ambil?: string | null
           tanggal_kirim?: string | null
-          tanggal_lunas?: string | null
           updated_at?: string
           user_id?: string
         }

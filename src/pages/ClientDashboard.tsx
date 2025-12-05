@@ -20,9 +20,8 @@ interface RentalContract {
   end_date: string;
   status: string;
   tagihan_belum_bayar: number;
-  jumlah_lunas: number;
+  tanggal_bayar_terakhir?: string | null;
   invoice: string | null;
-  tanggal_lunas: string | null;
   keterangan: string | null;
   client_groups?: {
     nama: string;
@@ -70,13 +69,19 @@ export default function ClientDashboard() {
       return;
     }
 
-    setContracts(data || []);
+    setContracts((data || []) as unknown as RentalContract[]);
 
-    // Calculate stats
+    // Calculate stats - fetch total paid from income_sources linked to contracts
+    const { data: incomeData } = await supabase
+      .from("income_sources")
+      .select("amount, contract_id")
+      .eq("user_id", user.id)
+      .not("contract_id", "is", null);
+
     const totalContracts = data?.length || 0;
     const activeContracts = data?.filter(c => c.status === "masa sewa").length || 0;
-    const totalPaid = data?.reduce((sum, c) => sum + (c.jumlah_lunas || 0), 0) || 0;
-    const totalUnpaid = data?.reduce((sum, c) => sum + (c.tagihan_belum_bayar || 0), 0) || 0;
+    const totalPaid = incomeData?.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
+    const totalUnpaid = data?.reduce((sum, c) => sum + ((c as any).tagihan_belum_bayar || 0), 0) || 0;
 
     setStats({
       totalContracts,
@@ -100,13 +105,10 @@ export default function ClientDashboard() {
   };
 
   const getPaymentStatusBadge = (contract: RentalContract) => {
-    if (contract.tanggal_lunas) {
+    if (contract.tagihan_belum_bayar <= 0) {
       return <Badge className="bg-green-500 flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Lunas</Badge>;
     }
-    if (contract.tagihan_belum_bayar > 0) {
-      return <Badge variant="destructive" className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Belum Lunas</Badge>;
-    }
-    return <Badge variant="secondary" className="flex items-center gap-1"><Clock className="h-3 w-3" /> Menunggu</Badge>;
+    return <Badge variant="destructive" className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Belum Lunas</Badge>;
   };
 
   if (loading) {
@@ -200,9 +202,8 @@ export default function ClientDashboard() {
                     <TableHead>Periode Sewa</TableHead>
                     <TableHead>Status Kontrak</TableHead>
                     <TableHead>Status Pembayaran</TableHead>
-                    <TableHead className="text-right">Tagihan</TableHead>
-                    <TableHead className="text-right">Dibayar</TableHead>
-                    <TableHead>Tanggal Lunas</TableHead>
+                    <TableHead className="text-right">Sisa Tagihan</TableHead>
+                    <TableHead>Bayar Terakhir</TableHead>
                     <TableHead className="text-center">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -219,18 +220,13 @@ export default function ClientDashboard() {
                       <TableCell>{getStatusBadge(contract.status)}</TableCell>
                       <TableCell>{getPaymentStatusBadge(contract)}</TableCell>
                       <TableCell className="text-right">
-                        <span className={contract.tagihan_belum_bayar > 0 ? "text-red-600 font-semibold" : ""}>
+                        <span className={contract.tagihan_belum_bayar > 0 ? "text-red-600 font-semibold" : "text-green-600 font-semibold"}>
                           {formatRupiah(contract.tagihan_belum_bayar || 0)}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-green-600 font-semibold">
-                          {formatRupiah(contract.jumlah_lunas || 0)}
-                        </span>
-                      </TableCell>
                       <TableCell>
-                        {contract.tanggal_lunas
-                          ? format(new Date(contract.tanggal_lunas), "dd MMM yyyy", { locale: localeId })
+                        {(contract as any).tanggal_bayar_terakhir
+                          ? format(new Date((contract as any).tanggal_bayar_terakhir), "dd MMM yyyy", { locale: localeId })
                           : "-"}
                       </TableCell>
                       <TableCell className="text-center">
