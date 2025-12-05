@@ -23,6 +23,17 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
   const [guideMode, setGuideMode] = useState<GuideMode>('all');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Draw checkered background pattern for transparency preview
+  const drawCheckerboard = (ctx: CanvasRenderingContext2D, size: number) => {
+    const tileSize = 16;
+    for (let y = 0; y < size; y += tileSize) {
+      for (let x = 0; x < size; x += tileSize) {
+        ctx.fillStyle = ((x + y) / tileSize) % 2 === 0 ? '#e8e8e8' : '#ffffff';
+        ctx.fillRect(x, y, tileSize, tileSize);
+      }
+    }
+  };
+
   // Draw guide lines overlay
   const drawGuides = (ctx: CanvasRenderingContext2D, size: number) => {
     if (guideMode === 'none') return;
@@ -110,9 +121,8 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
     canvas.width = size;
     canvas.height = size;
 
-    // Clear canvas
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, size, size);
+    // Draw checkered background for transparency preview
+    drawCheckerboard(ctx, size);
 
     const aspectRatio = image.width / image.height;
     let drawWidth = size * scale;
@@ -228,8 +238,8 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
     }
 
     const size = 400;
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, size, size);
+    // Clear canvas with transparency (no background)
+    ctx.clearRect(0, 0, size, size);
 
     const aspectRatio = image.width / image.height;
     let drawWidth = size * scale;
@@ -268,11 +278,16 @@ export function ImageCropper({ file, onCrop, onCancel }: ImageCropperProps) {
           onCrop(blob);
         }
         setProcessing(false);
-        // Redraw with guides after export
+        // Redraw checkered background and guides after export
+        drawCheckerboard(ctx, size);
+        ctx.save();
+        ctx.translate(size / 2, size / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.drawImage(image, x, y, drawWidth, drawHeight);
+        ctx.restore();
         drawGuides(ctx, size);
       },
-      "image/jpeg",
-      0.9
+      "image/png" // PNG preserves transparency
     );
   };
 
