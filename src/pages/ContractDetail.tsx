@@ -108,7 +108,7 @@ export default function ContractDetail() {
           bank_name,
           account_number
         ),
-        inventory_items!inventory_item_id (
+        inventory_items!rental_contracts_inventory_item_id_fkey (
           id,
           item_code,
           item_name,
