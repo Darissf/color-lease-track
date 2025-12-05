@@ -65,6 +65,7 @@ import UserManagement from "./pages/UserManagement";
 
 import Mail from "./pages/Mail";
 import TransactionHistory from "./pages/TransactionHistory";
+import InstallApp from "./pages/InstallApp";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,7 @@ const App = () => (
                   <Route path="/about" element={<AboutUs />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<BlogDetail />} />
+                  <Route path="/install" element={<InstallApp />} />
                   
                   {/* VIP Auth Routes */}
             <Route path="/vip/login" element={<Login />} />
