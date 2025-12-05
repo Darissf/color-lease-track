@@ -437,11 +437,11 @@ export default function Nabila() {
 
   return (
     <div 
-      className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col bg-background"
+      className="min-h-full relative flex flex-col bg-background"
       data-editable-ignore
     >
       {/* Content */}
-      <div className="relative z-10 space-y-4 px-2 py-2 md:px-8 md:py-4 flex-1 overflow-y-auto overflow-x-hidden w-full">
+      <div className="relative z-10 space-y-4 px-2 py-2 md:px-8 md:py-4 w-full">
         {/* Header with Gradient */}
         <div className="text-center space-y-2 md:space-y-4 py-6 md:py-12 shrink-0">
           <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif italic text-primary drop-shadow-2xl animate-fade-in">
