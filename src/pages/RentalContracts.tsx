@@ -79,7 +79,7 @@ const RentalContracts = () => {
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [isTableLocked, setIsTableLocked] = useState(true);
-  const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'tanggal' | 'none'>('none');
+  const [sortBy, setSortBy] = useState<'number' | 'invoice' | 'group' | 'keterangan' | 'periode' | 'status' | 'tagihan' | 'tanggal' | 'sisa' | 'none'>('none');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
@@ -235,19 +235,15 @@ const RentalContracts = () => {
         }
       }
 
-      const jumlahLunas = parseFloat(contractForm.jumlah_lunas) || 0;
-
       const contractData = {
         user_id: user?.id,
         client_group_id: contractForm.client_group_id,
         start_date: format(contractForm.start_date, "yyyy-MM-dd"),
         end_date: format(contractForm.end_date, "yyyy-MM-dd"),
         tanggal: contractForm.tanggal ? format(contractForm.tanggal, "yyyy-MM-dd") : null,
-        tanggal_lunas: contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "yyyy-MM-dd") : null,
         status: contractForm.status,
         tagihan: parseFloat(contractForm.tagihan) || 0,
         tagihan_belum_bayar: parseFloat(contractForm.tagihan) || 0,
-        jumlah_lunas: jumlahLunas,
         invoice: contractForm.invoice || null,
         keterangan: contractForm.keterangan || null,
         bukti_pembayaran_files: paymentProofUrls,
@@ -273,49 +269,7 @@ const RentalContracts = () => {
 
         if (contractError) throw contractError;
         
-        // Sinkronisasikan pemasukan berdasarkan tanggal_lunas terisi
-        if (contractForm.tanggal_lunas && jumlahLunas > 0) {
-          const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
-          const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
-          const sourceName = contractForm.invoice 
-            ? `${contractForm.invoice} - ${clientGroup?.nama || 'Unknown'}` 
-            : `Sewa - ${clientGroup?.nama || "Client"}`;
-          
-          const incomeData = {
-            user_id: user?.id,
-            source_name: sourceName,
-            bank_name: bankAccount?.bank_name || null,
-            amount: jumlahLunas,
-            date: format(contractForm.tanggal_lunas, "yyyy-MM-dd"),
-            contract_id: editingContractId,
-          };
-
-          // Check if income entry already exists for this contract
-          const { data: existingIncome } = await supabase
-            .from("income_sources")
-            .select("id")
-            .eq("contract_id", editingContractId)
-            .maybeSingle();
-
-          if (existingIncome) {
-            // Update existing income entry
-            await supabase
-              .from("income_sources")
-              .update(incomeData)
-              .eq("id", existingIncome.id);
-          } else {
-            // Insert new income entry
-            await supabase
-              .from("income_sources")
-              .insert([incomeData]);
-          }
-        } else if (!contractForm.tanggal_lunas) {
-          // Hapus pemasukan jika tanggal_lunas dikosongkan
-          await supabase
-            .from("income_sources")
-            .delete()
-            .eq("contract_id", editingContractId);
-        }
+        // Pemasukan sekarang dikelola melalui contract_payments, tidak perlu sinkronisasi manual
         
         toast.success("Kontrak berhasil diupdate");
       } else {
@@ -334,25 +288,7 @@ const RentalContracts = () => {
           .limit(1)
           .single();
 
-        // Buat pemasukan jika tanggal_lunas terisi dan jumlah_lunas > 0
-        if (contractForm.tanggal_lunas && jumlahLunas > 0 && newContract) {
-          const bankAccount = bankAccounts.find(b => b.id === contractForm.bank_account_id);
-          const clientGroup = clientGroups.find(g => g.id === contractForm.client_group_id);
-          const sourceName = contractForm.invoice 
-            ? `${contractForm.invoice} - ${clientGroup?.nama || 'Unknown'}` 
-            : `Sewa - ${clientGroup?.nama || "Client"}`;
-          
-          await supabase
-            .from("income_sources")
-            .insert([{
-              user_id: user?.id,
-              source_name: sourceName,
-              bank_name: bankAccount?.bank_name || null,
-              amount: jumlahLunas,
-              date: format(contractForm.tanggal_lunas, "yyyy-MM-dd"),
-              contract_id: newContract.id,
-            }]);
-        }
+        // Pemasukan sekarang dikelola melalui contract_payments
 
         toast.success("Kontrak berhasil ditambahkan");
       }
@@ -367,17 +303,14 @@ const RentalContracts = () => {
 
   const handleEditContract = (contract: RentalContract) => {
     setEditingContractId(contract.id);
-    setPaymentStatus(contract.tanggal_lunas ? "sudah_lunas" : "belum_lunas");
     setContractForm({
       client_group_id: contract.client_group_id,
       start_date: new Date(contract.start_date),
       end_date: new Date(contract.end_date),
       tanggal: contract.tanggal ? new Date(contract.tanggal) : undefined,
-      tanggal_lunas: contract.tanggal_lunas ? new Date(contract.tanggal_lunas) : undefined,
       status: contract.status,
       tagihan: contract.tagihan?.toString() || "",
       tagihan_belum_bayar: contract.tagihan_belum_bayar.toString(),
-      jumlah_lunas: contract.jumlah_lunas.toString(),
       invoice: contract.invoice || "",
       keterangan: contract.keterangan || "",
       bank_account_id: contract.bank_account_id || "",
@@ -420,17 +353,14 @@ const RentalContracts = () => {
 
   const resetContractForm = () => {
     setEditingContractId(null);
-    setPaymentStatus("belum_lunas");
     setContractForm({
       client_group_id: "",
       start_date: undefined,
       end_date: undefined,
       tanggal: undefined,
-      tanggal_lunas: undefined,
       status: "masa sewa",
       tagihan: "",
       tagihan_belum_bayar: "",
-      jumlah_lunas: "",
       invoice: "",
       keterangan: "",
       bank_account_id: "",
@@ -538,8 +468,8 @@ const RentalContracts = () => {
           case 'tagihan':
             comparison = (a.tagihan_belum_bayar || 0) - (b.tagihan_belum_bayar || 0);
             break;
-          case 'lunas':
-            comparison = (a.jumlah_lunas || 0) - (b.jumlah_lunas || 0);
+          case 'sisa':
+            comparison = (a.tagihan_belum_bayar || 0) - (b.tagihan_belum_bayar || 0);
             break;
           case 'tanggal':
             const dateA = a.tanggal ? new Date(a.tanggal).getTime() : 0;
@@ -571,7 +501,7 @@ const RentalContracts = () => {
   );
   
   const totalLunas = useMemo(() => 
-    rentalContracts.reduce((sum, c) => sum + (c.jumlah_lunas || 0), 
+    rentalContracts.reduce((sum, c) => sum + ((c.tagihan || 0) - (c.tagihan_belum_bayar || 0)), 
     0), [rentalContracts]
   );
   
@@ -974,68 +904,9 @@ const RentalContracts = () => {
                     placeholder="0"
                   />
                 </div>
-                <div>
-                  <Label>Jumlah Lunas</Label>
-                  <Input
-                    type="number"
-                    value={contractForm.jumlah_lunas}
-                    onChange={(e) => setContractForm({ ...contractForm, jumlah_lunas: e.target.value })}
-                    placeholder="0"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Otomatis masuk ke pendapatan</p>
-                </div>
               </div>
-
-              <div className="space-y-3">
-                <Label>Status Pembayaran</Label>
-                <RadioGroup 
-                  value={paymentStatus} 
-                  onValueChange={(value: "belum_lunas" | "sudah_lunas") => {
-                    setPaymentStatus(value);
-                    if (value === "belum_lunas") {
-                      setContractForm({ ...contractForm, tanggal_lunas: undefined });
-                    }
-                  }}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="belum_lunas" id="belum_lunas" />
-                    <Label htmlFor="belum_lunas" className="font-normal cursor-pointer">Belum Lunas</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="sudah_lunas" id="sudah_lunas" />
-                    <Label htmlFor="sudah_lunas" className="font-normal cursor-pointer">Input Tanggal Lunas</Label>
-                  </div>
-                </RadioGroup>
-
-                {paymentStatus === "sudah_lunas" && (
-                  <div className="mt-2">
-                    <Label>Tanggal Lunas</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !contractForm.tanggal_lunas && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {contractForm.tanggal_lunas ? format(contractForm.tanggal_lunas, "PPP", { locale: localeId }) : "Pilih tanggal lunas"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={contractForm.tanggal_lunas}
-                          onSelect={(date) => setContractForm({ ...contractForm, tanggal_lunas: date })}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                )}
-              </div>
+              
+              <p className="text-xs text-muted-foreground">Pembayaran dikelola melalui kolom "Tanggal Bayar" di tabel kontrak</p>
 
               <div>
                 <Label>Akun Penerima</Label>
@@ -1166,7 +1037,7 @@ const RentalContracts = () => {
                     <SelectItem value="periode">Periode</SelectItem>
                     <SelectItem value="status">Status</SelectItem>
                     <SelectItem value="tagihan">Tagihan</SelectItem>
-                    <SelectItem value="lunas">Lunas</SelectItem>
+                    <SelectItem value="sisa">Sisa Tagihan</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
@@ -1298,7 +1169,7 @@ const RentalContracts = () => {
                 <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Status</TableHead>
                 <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
                 <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Sisa Tagihan</TableHead>
-                <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Jumlah Lunas</TableHead>
+                <TableHead className={cn("text-center font-semibold", isCompactMode && "py-1 text-xs")}>Tanggal Bayar</TableHead>
                 <TableHead className={cn("text-center font-semibold", isCompactMode && "py-1 text-xs")}>Status Bayar</TableHead>
                 <TableHead className={cn("text-center w-24 font-semibold", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
               </TableRow>
@@ -1406,10 +1277,134 @@ const RentalContracts = () => {
                           {formatRupiah(contract.tagihan_belum_bayar)}
                         </span>
                       </TableCell>
-                      <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
-                        <span className="text-emerald-600 font-bold bg-emerald-500/10 px-2 py-1 rounded-md">
-                          {formatRupiah(contract.jumlah_lunas)}
-                        </span>
+                      <TableCell className={cn("text-center", isCompactMode && "py-1 px-2 text-xs")}>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              disabled={isTableLocked}
+                              className={cn(
+                                "justify-start text-left font-normal",
+                                !contract.tanggal_bayar_terakhir && "text-muted-foreground",
+                                isCompactMode ? "h-7 text-xs px-2" : "h-9"
+                              )}
+                            >
+                              <CalendarIcon className={cn("mr-2", isCompactMode ? "h-3 w-3" : "h-4 w-4")} />
+                              {contract.tanggal_bayar_terakhir ? format(new Date(contract.tanggal_bayar_terakhir), "dd/MM/yy") : "Input"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-4" align="start">
+                            <div className="space-y-4">
+                              <div>
+                                <Label className="text-sm font-medium">Tanggal Bayar</Label>
+                                <Calendar
+                                  mode="single"
+                                  selected={paymentContractId === contract.id ? paymentDate : undefined}
+                                  onSelect={(date) => {
+                                    setPaymentContractId(contract.id);
+                                    setPaymentDate(date);
+                                  }}
+                                  initialFocus
+                                  className="pointer-events-auto rounded-md border mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium">Jumlah Dibayar</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={paymentContractId === contract.id ? paymentAmount : ""}
+                                  onChange={(e) => {
+                                    setPaymentContractId(contract.id);
+                                    setPaymentAmount(e.target.value);
+                                  }}
+                                  className="mt-1"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Sisa: {formatRupiah(contract.tagihan_belum_bayar)}
+                                </p>
+                              </div>
+                              <Button
+                                className="w-full bg-gradient-to-r from-emerald-500 to-green-600"
+                                disabled={isSubmittingPayment || !paymentDate || !paymentAmount || paymentContractId !== contract.id}
+                                onClick={async () => {
+                                  if (!paymentDate || !paymentAmount || paymentContractId !== contract.id) return;
+                                  
+                                  try {
+                                    setIsSubmittingPayment(true);
+                                    const amount = parseFloat(paymentAmount);
+                                    
+                                    // Get payment count for this contract (use any until types regenerate)
+                                    const { count } = await (supabase as any)
+                                      .from("contract_payments")
+                                      .select("*", { count: "exact", head: true })
+                                      .eq("contract_id", contract.id);
+                                    
+                                    const paymentNumber = (count || 0) + 1;
+                                    const group = clientGroups.find(g => g.id === contract.client_group_id);
+                                    const bankAccount = bankAccounts.find(b => b.id === contract.bank_account_id);
+                                    const sourceName = `${contract.invoice || "Sewa"} ${contract.keterangan || group?.nama || ""} #${paymentNumber}`.trim();
+                                    
+                                    // Insert to income_sources
+                                    const { data: incomeData, error: incomeError } = await supabase
+                                      .from("income_sources")
+                                      .insert({
+                                        user_id: user?.id,
+                                        source_name: sourceName,
+                                        amount: amount,
+                                        date: format(paymentDate, "yyyy-MM-dd"),
+                                        bank_name: bankAccount?.bank_name || null,
+                                        contract_id: contract.id,
+                                      })
+                                      .select("id")
+                                      .single();
+                                    
+                                    if (incomeError) throw incomeError;
+                                    
+                                    // Insert to contract_payments (use any until types regenerate)
+                                    const { error: paymentError } = await (supabase as any)
+                                      .from("contract_payments")
+                                      .insert({
+                                        user_id: user?.id,
+                                        contract_id: contract.id,
+                                        payment_date: format(paymentDate, "yyyy-MM-dd"),
+                                        amount: amount,
+                                        payment_number: paymentNumber,
+                                        income_source_id: incomeData?.id,
+                                      });
+                                    
+                                    if (paymentError) throw paymentError;
+                                    
+                                    // Update rental_contracts
+                                    const newSisa = contract.tagihan_belum_bayar - amount;
+                                    const { error: updateError } = await supabase
+                                      .from("rental_contracts")
+                                      .update({
+                                        tagihan_belum_bayar: newSisa,
+                                        tanggal_bayar_terakhir: format(paymentDate, "yyyy-MM-dd"),
+                                      })
+                                      .eq("id", contract.id);
+                                    
+                                    if (updateError) throw updateError;
+                                    
+                                    toast.success(`Pembayaran #${paymentNumber} berhasil dicatat`);
+                                    setPaymentContractId(null);
+                                    setPaymentDate(undefined);
+                                    setPaymentAmount("");
+                                    fetchData();
+                                  } catch (error: any) {
+                                    toast.error("Gagal menyimpan pembayaran: " + error.message);
+                                  } finally {
+                                    setIsSubmittingPayment(false);
+                                  }
+                                }}
+                              >
+                                {isSubmittingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                                Simpan Pembayaran
+                              </Button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell className={cn("text-center", isCompactMode && "py-1 px-2")}>
                         {contract.tagihan_belum_bayar > 0 ? (
