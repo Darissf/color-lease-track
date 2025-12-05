@@ -14,6 +14,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageCropper } from "@/components/ImageCropper";
+import { FaviconCropper } from "@/components/FaviconCropper";
 import { compressImage, isCompressibleImage, formatFileSize } from "@/utils/imageCompressor";
 
 // 40+ Fonts categorized
@@ -162,6 +163,9 @@ const VIPDesignSettings = () => {
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [faviconUploading, setFaviconUploading] = useState(false);
+  const [faviconSelectedFile, setFaviconSelectedFile] = useState<File | null>(null);
+  const [showFaviconCropper, setShowFaviconCropper] = useState(false);
+  const [faviconPreviewBg, setFaviconPreviewBg] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
     if (settings) {
@@ -451,8 +455,8 @@ const VIPDesignSettings = () => {
     }
   };
 
-  // Favicon Upload Handler
-  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Favicon Upload Handler - shows cropper for compressible images
+  const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -462,6 +466,28 @@ const VIPDesignSettings = () => {
       return;
     }
 
+    // SVG and ICO don't need cropping, upload directly
+    if (file.type === 'image/svg+xml' || file.type === 'image/x-icon' || file.type === 'image/vnd.microsoft.icon') {
+      uploadFavicon(file);
+      return;
+    }
+
+    // For PNG/JPG/WebP, show cropper
+    setFaviconSelectedFile(file);
+    setShowFaviconCropper(true);
+  };
+
+  // Handle cropped favicon
+  const handleFaviconCropComplete = async (blob: Blob) => {
+    setShowFaviconCropper(false);
+    setFaviconSelectedFile(null);
+    
+    const file = new File([blob], "favicon.png", { type: "image/png" });
+    await uploadFavicon(file);
+  };
+
+  // Actual favicon upload function
+  const uploadFavicon = async (file: File) => {
     setFaviconUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -1242,40 +1268,110 @@ const VIPDesignSettings = () => {
               <Separator className="my-6" />
               <h2 className="text-xl font-bold mb-4">🌐 Favicon Settings</h2>
               
-              {/* Favicon Preview */}
+              {/* Favicon Preview - Enhanced */}
               <Card className="p-6 mb-6">
-                <h3 className="text-lg font-semibold mb-4">Favicon Preview</h3>
-                <div className="flex items-center gap-6">
-                  <div className="space-y-2 text-center">
-                    <p className="text-xs text-muted-foreground font-medium uppercase">32x32</p>
-                    <div className="w-8 h-8 border-2 border-border rounded flex items-center justify-center bg-background overflow-hidden">
-                      {formData.favicon_url ? (
-                        <img src={formData.favicon_url} alt="Favicon" className="w-full h-full object-contain" />
-                      ) : (
-                        <Globe className="w-5 h-5 text-muted-foreground" />
-                      )}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Favicon Preview</h3>
+                  <div className="flex gap-1">
+                    <Button
+                      variant={faviconPreviewBg === 'light' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFaviconPreviewBg('light')}
+                      className="h-8 px-3"
+                    >
+                      ☀️ Light
+                    </Button>
+                    <Button
+                      variant={faviconPreviewBg === 'dark' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFaviconPreviewBg('dark')}
+                      className="h-8 px-3"
+                    >
+                      🌙 Dark
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Multi-size Preview */}
+                <div className={`rounded-lg p-4 mb-4 ${faviconPreviewBg === 'dark' ? 'bg-slate-800' : 'bg-white border-2 border-slate-200'}`}>
+                  <div className="flex items-end gap-4 justify-center">
+                    {/* 16x16 */}
+                    <div className="text-center">
+                      <div className="w-4 h-4 mx-auto overflow-hidden rounded-sm flex items-center justify-center">
+                        {formData.favicon_url ? (
+                          <img src={formData.favicon_url} alt="Favicon 16" className="w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
+                        ) : (
+                          <Globe className={`w-3 h-3 ${faviconPreviewBg === 'dark' ? 'text-slate-500' : 'text-muted-foreground'}`} />
+                        )}
+                      </div>
+                      <span className={`text-[10px] ${faviconPreviewBg === 'dark' ? 'text-slate-400' : 'text-muted-foreground'}`}>16</span>
+                    </div>
+                    {/* 32x32 */}
+                    <div className="text-center">
+                      <div className="w-8 h-8 mx-auto overflow-hidden rounded-sm flex items-center justify-center">
+                        {formData.favicon_url ? (
+                          <img src={formData.favicon_url} alt="Favicon 32" className="w-full h-full object-contain" />
+                        ) : (
+                          <Globe className={`w-5 h-5 ${faviconPreviewBg === 'dark' ? 'text-slate-500' : 'text-muted-foreground'}`} />
+                        )}
+                      </div>
+                      <span className={`text-[10px] ${faviconPreviewBg === 'dark' ? 'text-slate-400' : 'text-muted-foreground'}`}>32</span>
+                    </div>
+                    {/* 64x64 */}
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto overflow-hidden rounded flex items-center justify-center">
+                        {formData.favicon_url ? (
+                          <img src={formData.favicon_url} alt="Favicon 64" className="w-full h-full object-contain" />
+                        ) : (
+                          <Globe className={`w-10 h-10 ${faviconPreviewBg === 'dark' ? 'text-slate-500' : 'text-muted-foreground'}`} />
+                        )}
+                      </div>
+                      <span className={`text-[10px] ${faviconPreviewBg === 'dark' ? 'text-slate-400' : 'text-muted-foreground'}`}>64</span>
+                    </div>
+                    {/* 128x128 */}
+                    <div className="text-center hidden sm:block">
+                      <div className="w-[128px] h-[128px] mx-auto overflow-hidden rounded-lg flex items-center justify-center">
+                        {formData.favicon_url ? (
+                          <img src={formData.favicon_url} alt="Favicon 128" className="w-full h-full object-contain" />
+                        ) : (
+                          <Globe className={`w-20 h-20 ${faviconPreviewBg === 'dark' ? 'text-slate-500' : 'text-muted-foreground'}`} />
+                        )}
+                      </div>
+                      <span className={`text-[10px] ${faviconPreviewBg === 'dark' ? 'text-slate-400' : 'text-muted-foreground'}`}>128</span>
                     </div>
                   </div>
-                  <div className="space-y-2 text-center">
-                    <p className="text-xs text-muted-foreground font-medium uppercase">64x64</p>
-                    <div className="w-16 h-16 border-2 border-border rounded flex items-center justify-center bg-background overflow-hidden">
-                      {formData.favicon_url ? (
-                        <img src={formData.favicon_url} alt="Favicon" className="w-full h-full object-contain" />
-                      ) : (
-                        <Globe className="w-10 h-10 text-muted-foreground" />
-                      )}
+                </div>
+
+                {/* Browser Tab Mockup */}
+                <div className="space-y-2">
+                  <p className={`text-xs font-medium uppercase ${faviconPreviewBg === 'dark' ? 'text-slate-400' : 'text-muted-foreground'}`}>Browser Tab Preview</p>
+                  <div className={`rounded-t-lg overflow-hidden ${faviconPreviewBg === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 ${faviconPreviewBg === 'dark' ? 'bg-slate-600' : 'bg-slate-200'} max-w-[200px] rounded-t-lg`}>
+                      <div className="w-4 h-4 shrink-0 overflow-hidden">
+                        {formData.favicon_url ? (
+                          <img src={formData.favicon_url} alt="Tab" className="w-full h-full object-contain" />
+                        ) : (
+                          <Globe className={`w-4 h-4 ${faviconPreviewBg === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} />
+                        )}
+                      </div>
+                      <span className={`text-xs truncate ${faviconPreviewBg === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>
+                        Sewa Scaffolding Bali
+                      </span>
+                      <X className={`w-3 h-3 shrink-0 ${faviconPreviewBg === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} />
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium mb-1">
-                      {formData.favicon_url ? "Custom Favicon" : "Default Favicon"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formData.favicon_url 
-                        ? `Format: ${formData.favicon_type?.toUpperCase() || 'PNG'}`
-                        : "Menggunakan favicon default scaffolding"}
-                    </p>
-                  </div>
+                </div>
+
+                {/* Status Info */}
+                <div className="mt-4 flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${formData.favicon_url ? 'bg-green-500' : 'bg-slate-400'}`} />
+                  <p className="text-sm">
+                    {formData.favicon_url ? (
+                      <span>Custom Favicon • <span className="text-muted-foreground">{formData.favicon_type?.toUpperCase() || 'PNG'}</span></span>
+                    ) : (
+                      <span className="text-muted-foreground">Menggunakan favicon default</span>
+                    )}
+                  </p>
                 </div>
               </Card>
 
@@ -1299,17 +1395,17 @@ const VIPDesignSettings = () => {
                           {faviconUploading ? "Uploading..." : "Click to upload favicon"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          ICO, PNG, JPG, SVG (Max 1MB)
+                          ICO, PNG, JPG, SVG (Auto-compress jika &gt;1MB)
                         </p>
                       </label>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="relative border-2 border-border rounded-lg p-4 bg-muted/50 flex items-center justify-center">
+                      <div className="relative border-2 border-border rounded-lg p-6 bg-muted/50 flex items-center justify-center">
                         <img
                           src={formData.favicon_url}
                           alt="Favicon"
-                          className="w-16 h-16 object-contain"
+                          className="w-24 h-24 object-contain"
                         />
                         <button
                           onClick={handleDeleteFavicon}
@@ -1340,9 +1436,9 @@ const VIPDesignSettings = () => {
                   <div className="bg-muted/50 rounded-lg p-4 text-sm">
                     <p className="font-medium mb-2">💡 Tips:</p>
                     <ul className="text-xs text-muted-foreground space-y-1">
-                      <li>• Ukuran rekomendasi: 32x32 atau 64x64 pixels</li>
-                      <li>• Format terbaik: PNG atau ICO untuk kompatibilitas</li>
-                      <li>• SVG juga didukung untuk favicon modern</li>
+                      <li>• <strong>PNG/JPG</strong> akan membuka cropper untuk zoom &amp; positioning</li>
+                      <li>• <strong>ICO/SVG</strong> langsung diupload tanpa cropper</li>
+                      <li>• Output: 256x256 pixels (otomatis downscale untuk favicon)</li>
                       <li>• Favicon akan otomatis terupdate setelah save</li>
                     </ul>
                   </div>
@@ -1585,6 +1681,17 @@ const VIPDesignSettings = () => {
           onCancel={() => {
             setShowSidebarCropper(false);
             setSidebarSelectedFile(null);
+          }}
+        />
+      )}
+      {/* Favicon Cropper */}
+      {faviconSelectedFile && showFaviconCropper && (
+        <FaviconCropper
+          file={faviconSelectedFile}
+          onCrop={handleFaviconCropComplete}
+          onCancel={() => {
+            setShowFaviconCropper(false);
+            setFaviconSelectedFile(null);
           }}
         />
       )}
