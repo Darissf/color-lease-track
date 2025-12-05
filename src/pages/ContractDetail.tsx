@@ -808,7 +808,7 @@ export default function ContractDetail() {
               <div className="flex items-center justify-between">
                 <span className="font-medium">Total Tagihan</span>
                 <span className="font-bold text-lg">
-                  {formatRupiah(totalPayment + (contract.tagihan_belum_bayar || 0))}
+                  {formatRupiah(contract.tagihan || 0)}
                 </span>
               </div>
 
