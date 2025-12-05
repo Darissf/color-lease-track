@@ -565,7 +565,7 @@ export default function ContractDetail() {
                   </p>
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/vip/contract-scaffolding-input?edit=${id}`)}
+                    onClick={() => navigate(`/vip/contracts/${id}/scaffolding`)}
                   >
                     <Package className="h-4 w-4 mr-2" />
                     Hubungkan ke Inventory
