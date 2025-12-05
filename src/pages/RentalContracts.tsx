@@ -1297,8 +1297,8 @@ const RentalContracts = () => {
                 <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
                 <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Sisa Tagihan</TableHead>
                 <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Jumlah Lunas</TableHead>
-                <TableHead className={cn("text-center w-24 font-semibold", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
                 <TableHead className={cn("text-center font-semibold", isCompactMode && "py-1 text-xs")}>Status Bayar</TableHead>
+                <TableHead className={cn("text-center w-24 font-semibold", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1409,6 +1409,17 @@ const RentalContracts = () => {
                           {formatRupiah(contract.jumlah_lunas)}
                         </span>
                       </TableCell>
+                      <TableCell className={cn("text-center", isCompactMode && "py-1 px-2")}>
+                        {contract.tagihan_belum_bayar > 0 ? (
+                          <Badge className="bg-amber-500/20 text-amber-700 border-amber-300 hover:bg-amber-500/30">
+                            Belum Lunas
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-emerald-500/20 text-emerald-700 border-emerald-300 hover:bg-emerald-500/30">
+                            Lunas
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className={cn(isCompactMode && "py-1 px-2")}>
                         <div className="flex items-center justify-center gap-1">
                           <Button
@@ -1434,17 +1445,6 @@ const RentalContracts = () => {
                             <Trash2 className={cn(isCompactMode ? "h-3 w-3" : "h-4 w-4")} />
                           </Button>
                         </div>
-                      </TableCell>
-                      <TableCell className={cn("text-center", isCompactMode && "py-1 px-2")}>
-                        {contract.tagihan_belum_bayar > 0 ? (
-                          <Badge className="bg-amber-500/20 text-amber-700 border-amber-300 hover:bg-amber-500/30">
-                            Belum Lunas
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-emerald-500/20 text-emerald-700 border-emerald-300 hover:bg-emerald-500/30">
-                            Lunas
-                          </Badge>
-                        )}
                       </TableCell>
                     </TableRow>
                   );
