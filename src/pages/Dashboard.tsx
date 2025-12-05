@@ -2,20 +2,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, RefreshCw, Search, Filter, ArrowUpRight, CreditCard, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, RefreshCw, Search, ArrowUpRight, BarChart3, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, Tooltip } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { startOfMonth, endOfMonth, startOfYear, endOfYear, format, subMonths
-} from "date-fns";
+import { startOfMonth, endOfMonth, startOfYear, endOfYear, format, subMonths } from "date-fns";
 import { DashboardLoadingSkeleton } from "@/components/SkeletonLoader";
-import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import BankLogo from "@/components/BankLogo";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface DashboardStats {
   totalBalance: number;
@@ -47,8 +44,6 @@ interface Activity {
   category?: string;
 }
 
-const CHART_COLORS = ['#10B981', '#EF4444'];
-
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -61,14 +56,18 @@ export default function Dashboard() {
     remainingBudget: 0,
     totalIncome: 0,
     totalExpenses: 0,
-    balanceChange: 0,
-    savingsChange: 0,
+    balanceChange: 12.5,
+    savingsChange: 8.3,
   });
   const [loading, setLoading] = useState(true);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [cashFlowData, setCashFlowData] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [investmentData] = useState([
+    { value: 30 }, { value: 45 }, { value: 35 }, { value: 50 }, 
+    { value: 40 }, { value: 60 }, { value: 55 }, { value: 70 }
+  ]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -94,7 +93,6 @@ export default function Dashboard() {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
-    // Fetch bank accounts
     const { data: accountsData } = await supabase
       .from("bank_accounts")
       .select("*")
@@ -105,7 +103,6 @@ export default function Dashboard() {
     setBankAccounts(accountsData || []);
     const totalBalance = accountsData?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0;
 
-    // Fetch income from rental contracts
     const { data: incomeData } = await supabase
       .from("rental_contracts")
       .select("jumlah_lunas, tanggal_lunas")
@@ -116,7 +113,6 @@ export default function Dashboard() {
 
     const totalIncome = incomeData?.reduce((sum, contract) => sum + (contract.jumlah_lunas || 0), 0) || 0;
 
-    // Fetch expenses
     const { data: expensesData } = await supabase
       .from("expenses")
       .select("*")
@@ -127,7 +123,6 @@ export default function Dashboard() {
 
     const totalExpenses = expensesData?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
 
-    // Fetch savings
     const { data: savingsData } = await supabase
       .from("savings_plans")
       .select("current_amount, target_amount")
@@ -135,7 +130,6 @@ export default function Dashboard() {
 
     const totalSavings = savingsData?.reduce((sum, plan) => sum + (plan.current_amount || 0), 0) || 0;
 
-    // Fetch budget
     const currentMonth = format(now, 'MMMM');
     const currentYear = now.getFullYear();
     
@@ -150,10 +144,6 @@ export default function Dashboard() {
     const monthlyBudget = budgetData?.target_belanja || 0;
     const remainingBudget = monthlyBudget - totalExpenses;
 
-    // Calculate changes (mock data for now - could be calculated from previous period)
-    const balanceChange = 12.5;
-    const savingsChange = 8.3;
-
     setStats({
       totalBalance,
       totalSavings,
@@ -161,11 +151,10 @@ export default function Dashboard() {
       remainingBudget,
       totalIncome,
       totalExpenses,
-      balanceChange,
-      savingsChange,
+      balanceChange: 12.5,
+      savingsChange: 8.3,
     });
 
-    // Fetch cash flow data (last 6 months)
     const cashFlow = [];
     for (let i = 5; i >= 0; i--) {
       const monthDate = subMonths(now, i);
@@ -198,10 +187,8 @@ export default function Dashboard() {
     }
     setCashFlowData(cashFlow);
 
-    // Fetch recent activities (combined income and expenses)
     const activities: Activity[] = [];
     
-    // Add expenses
     expensesData?.slice(0, 10).forEach(expense => {
       activities.push({
         id: expense.id,
@@ -215,7 +202,6 @@ export default function Dashboard() {
       });
     });
 
-    // Add income from contracts
     incomeData?.slice(0, 10).forEach((contract: any) => {
       activities.push({
         id: contract.id || Math.random().toString(),
@@ -228,7 +214,6 @@ export default function Dashboard() {
       });
     });
 
-    // Sort by date
     activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setRecentActivities(activities.slice(0, 10));
 
@@ -244,322 +229,233 @@ export default function Dashboard() {
   };
 
   const formatShortCurrency = (value: number) => {
-    if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}M`;
-    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}jt`;
-    if (value >= 1000) return `${(value / 1000).toFixed(0)}rb`;
-    return value.toString();
+    if (value >= 1000000000) return `Rp ${(value / 1000000000).toFixed(1)}B`;
+    if (value >= 1000000) return `Rp ${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `Rp ${(value / 1000).toFixed(0)}K`;
+    return formatCurrency(value);
   };
 
-  const handleReset = () => {
-    fetchDashboardData();
-  };
+  const handleReset = () => fetchDashboardData();
 
   const filteredActivities = recentActivities.filter(activity =>
     activity.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) {
-    return <DashboardLoadingSkeleton />;
-  }
+  if (loading) return <DashboardLoadingSkeleton />;
 
   const totalCashFlow = stats.totalIncome - stats.totalExpenses;
 
   return (
-    <div className="relative h-[calc(100vh-104px)] overflow-hidden flex flex-col bg-slate-50/50">
-      {/* Header Section */}
-      <div className="shrink-0 px-4 py-4 md:px-8 md:py-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              Overview
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Here is the summary of overall data
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
-              <SelectTrigger className="w-[140px] bg-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="year">This Year</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button 
-              variant="outline" 
-              onClick={handleReset}
-              className="bg-white"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Reset Data
-            </Button>
-          </div>
+    <div className="h-[calc(100vh-104px)] overflow-hidden flex flex-col bg-[#F8FAFC]">
+      {/* Header */}
+      <div className="shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-800">Overview</h1>
+          <p className="text-slate-500 text-sm">Here is the summary of overall data</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+            <SelectTrigger className="w-[140px] bg-white border-slate-200 text-sm rounded-lg">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="year">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={handleReset} className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reset Data
+          </Button>
         </div>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-6 space-y-6">
+      <div className="flex-1 overflow-y-auto space-y-6 pb-6">
         {/* Top Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* My Balance - Featured Card */}
-          <Card className="bg-gradient-to-br from-emerald-500 to-green-600 text-white border-0 shadow-xl shadow-emerald-500/20 hover:shadow-2xl hover:shadow-emerald-500/30 transition-all duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Card 1: My Balance - Featured Green */}
+          <Card className="bg-gradient-to-br from-emerald-500 to-green-600 border-0 text-white rounded-2xl shadow-lg shadow-emerald-200/50">
             <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Wallet className="h-5 w-5" />
-                    </div>
-                    <span className="text-sm font-medium text-white/90">Saldo Saya</span>
-                  </div>
-                  <p className="text-xs text-white/70 mb-3">Overview Keuangan & Pengeluaran</p>
-                  <h2 className="text-3xl md:text-4xl font-bold mb-2">
-                    {formatCurrency(stats.totalBalance)}
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm bg-white/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <TrendingUp className="h-3 w-3" />
-                      +{stats.balanceChange}%
-                    </span>
-                    <span className="text-xs text-white/70">vs bulan lalu</span>
-                  </div>
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-full bg-white/20 border-2 border-white/30">
+                  <Wallet className="h-6 w-6 text-white" />
                 </div>
+                <Badge className="bg-transparent border border-white/40 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                  <ArrowUpRight className="h-3 w-3 mr-1" />
+                  +{stats.balanceChange}%
+                </Badge>
               </div>
-              <button 
-                onClick={() => navigate("/vip/finances")}
-                className="mt-4 text-sm text-white/90 hover:text-white flex items-center gap-1 transition-colors"
-              >
-                Lihat detail <ArrowUpRight className="h-4 w-4" />
+              <p className="text-white/80 text-sm mb-0.5">My Balance</p>
+              <p className="text-xs text-white/60 mb-4">Overview of Financial & Expenses</p>
+              <p className="text-3xl font-bold mb-5">{formatCurrency(stats.totalBalance)}</p>
+              <button onClick={() => navigate("/vip/finances")} className="text-sm text-white/90 hover:text-white underline underline-offset-4 decoration-white/40">
+                View detail
               </button>
             </CardContent>
           </Card>
 
-          {/* Savings Account */}
-          <Card className="bg-white border shadow-sm hover:shadow-lg transition-all duration-300">
+          {/* Card 2: Savings Account */}
+          <Card className="bg-white border-0 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <PiggyBank className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <span className="text-sm font-medium text-muted-foreground">Tabungan</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3">Pertumbuhan Stabil</p>
-                  <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-                    {formatCurrency(stats.totalSavings)}
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <TrendingUp className="h-3 w-3" />
-                      +{stats.savingsChange}%
-                    </span>
-                    <span className="text-xs text-muted-foreground">pertumbuhan</span>
-                  </div>
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-full bg-amber-50">
+                  <PiggyBank className="h-6 w-6 text-amber-500" />
                 </div>
+                <Badge className="bg-transparent border border-emerald-200 text-emerald-600 text-xs font-medium px-2.5 py-1 rounded-full">
+                  <ArrowUpRight className="h-3 w-3 mr-1" />
+                  +{stats.savingsChange}%
+                </Badge>
               </div>
-              <button 
-                onClick={() => navigate("/vip/settings/savings")}
-                className="mt-4 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-              >
-                Lihat ringkasan <ArrowUpRight className="h-4 w-4" />
+              <p className="text-slate-800 text-sm font-medium mb-0.5">Savings Account</p>
+              <p className="text-xs text-slate-400 mb-4">Stable growth</p>
+              <p className="text-2xl font-bold text-slate-800 mb-5">{formatCurrency(stats.totalSavings)}</p>
+              <button onClick={() => navigate("/vip/settings/savings")} className="text-sm text-emerald-600 hover:text-emerald-700 underline underline-offset-4 decoration-emerald-200">
+                View summary
               </button>
             </CardContent>
           </Card>
 
-          {/* Remaining Budget */}
-          <Card className="bg-white border shadow-sm hover:shadow-lg transition-all duration-300">
+          {/* Card 3: Investment Portfolio with Sparkline */}
+          <Card className="bg-white border-0 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <CreditCard className="h-5 w-5 text-purple-600" />
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-full bg-violet-50">
+                      <BarChart3 className="h-6 w-6 text-violet-500" />
                     </div>
-                    <span className="text-sm font-medium text-muted-foreground">Sisa Budget</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-3">Track Budget Bulanan</p>
-                  <h2 className={cn(
-                    "text-2xl md:text-3xl font-bold mb-2",
-                    stats.remainingBudget >= 0 ? "text-foreground" : "text-red-500"
-                  )}>
-                    {formatCurrency(stats.remainingBudget)}
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    {stats.monthlyBudget > 0 ? (
-                      <>
-                        <span className={cn(
-                          "text-sm px-2 py-0.5 rounded-full flex items-center gap-1",
-                          stats.remainingBudget >= 0 
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        )}>
-                          {((stats.totalExpenses / stats.monthlyBudget) * 100).toFixed(0)}% terpakai
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Budget belum diatur</span>
-                    )}
-                  </div>
+                  <p className="text-slate-800 text-sm font-medium mb-0.5">Investment Portfolio</p>
+                  <p className="text-xs text-slate-400 mb-4">Track monthly budget</p>
+                  <p className="text-2xl font-bold text-slate-800 mb-5">{formatCurrency(stats.remainingBudget)}</p>
+                  <button onClick={() => navigate("/vip/budget-tracker")} className="text-sm text-emerald-600 hover:text-emerald-700 underline underline-offset-4 decoration-emerald-200">
+                    View performance
+                  </button>
+                </div>
+                {/* Sparkline Chart */}
+                <div className="w-24 h-14 mt-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={investmentData}>
+                      <Line type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
-              <button 
-                onClick={() => navigate("/vip/budget-tracker")}
-                className="mt-4 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-              >
-                Lihat performa <ArrowUpRight className="h-4 w-4" />
-              </button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Middle Row - Bank Accounts & Cash Flow */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Bank Accounts */}
-          <Card className="bg-white border shadow-sm">
+        {/* Middle Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* My Wallet */}
+          <Card className="bg-white border-0 rounded-2xl shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-lg font-semibold">Akun Bank Saya</CardTitle>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => navigate("/vip/settings/accounts")}
-                className="h-8"
-              >
+              <CardTitle className="text-lg font-semibold text-slate-800">My Wallet</CardTitle>
+              <Button size="sm" onClick={() => navigate("/vip/settings/accounts")} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs h-8 px-3">
                 <Plus className="h-4 w-4 mr-1" />
-                Tambah Baru
+                Add New
               </Button>
             </CardHeader>
             <CardContent>
-              {bankAccounts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {bankAccounts.slice(0, 4).map((account) => (
-                    <div 
-                      key={account.id}
-                      className="p-4 rounded-xl border bg-slate-50/50 hover:bg-slate-100/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <BankLogo bankName={account.bank_name} size="md" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">{account.bank_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            ****{account.account_number.slice(-4)}
-                          </p>
-                        </div>
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                          Active
-                        </Badge>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {bankAccounts.slice(0, 4).map((account) => (
+                  <div key={account.id} className="relative p-4 bg-slate-50 rounded-xl">
+                    <Badge className={`absolute top-3 right-3 text-[10px] font-medium px-2 py-0.5 rounded-full border-0 ${account.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                      {account.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-white rounded-full shadow-sm">
+                        <BankLogo bankName={account.bank_name} size="sm" />
                       </div>
-                      <p className="text-xl font-bold text-foreground">
-                        {formatCurrency(account.balance || 0)}
-                      </p>
+                      <div>
+                        <p className="font-medium text-slate-800 text-sm">{account.bank_name}</p>
+                        <p className="text-xs text-slate-400">****{account.account_number.slice(-4)}</p>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <CreditCard className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p>Belum ada akun bank</p>
-                  <Button 
-                    variant="link" 
-                    className="mt-2"
-                    onClick={() => navigate("/vip/settings/accounts")}
-                  >
-                    Tambah akun bank pertama
-                  </Button>
-                </div>
-              )}
+                    <p className="text-lg font-bold text-slate-800">{formatShortCurrency(account.balance || 0)}</p>
+                    <p className="text-xs text-slate-400 mt-1">Daily Limit: Rp 5,000,000</p>
+                  </div>
+                ))}
+                {bankAccounts.length === 0 && (
+                  <div className="col-span-2 text-center py-10 text-slate-400">
+                    <Wallet className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                    <p className="text-sm mb-2">No bank accounts yet</p>
+                    <Button variant="link" onClick={() => navigate("/vip/settings/accounts")} className="text-emerald-600 text-sm p-0 h-auto">
+                      Add your first account
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
-          {/* Cash Flow Chart */}
-          <Card className="bg-white border shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <div>
-                <CardTitle className="text-lg font-semibold">Cash Flow</CardTitle>
-                <p className="text-2xl md:text-3xl font-bold mt-2">
-                  <span className={totalCashFlow >= 0 ? "text-emerald-600" : "text-red-600"}>
-                    {totalCashFlow >= 0 ? '+' : ''}{formatCurrency(totalCashFlow)}
-                  </span>
-                </p>
-              </div>
-              <ToggleGroup 
-                type="single" 
-                value={cashFlowPeriod} 
-                onValueChange={(v) => v && setCashFlowPeriod(v as any)}
-                className="bg-slate-100 rounded-lg p-1"
-              >
-                <ToggleGroupItem value="monthly" className="text-xs px-3 h-7 data-[state=on]:bg-white">
+          {/* Cash Flow */}
+          <Card className="bg-white border-0 rounded-2xl shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-lg font-semibold text-slate-800">Cash Flow</CardTitle>
+              <div className="flex bg-slate-100 rounded-lg p-1">
+                <button 
+                  onClick={() => setCashFlowPeriod("monthly")}
+                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${cashFlowPeriod === "monthly" ? "bg-white shadow-sm text-slate-800 font-medium" : "text-slate-500"}`}
+                >
                   Monthly
-                </ToggleGroupItem>
-                <ToggleGroupItem value="yearly" className="text-xs px-3 h-7 data-[state=on]:bg-white">
+                </button>
+                <button 
+                  onClick={() => setCashFlowPeriod("yearly")}
+                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${cashFlowPeriod === "yearly" ? "bg-white shadow-sm text-slate-800 font-medium" : "text-slate-500"}`}
+                >
                   Yearly
-                </ToggleGroupItem>
-              </ToggleGroup>
+                </button>
+              </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={cashFlowData} barCategoryGap="20%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis 
-                    dataKey="month" 
-                    tick={{ fill: '#64748b', fontSize: 12 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    tickFormatter={formatShortCurrency}
-                    tick={{ fill: '#64748b', fontSize: 12 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={50}
-                  />
-                  <Tooltip 
-                    formatter={(value: any, name: string) => [formatCurrency(value), name === 'income' ? 'Pemasukan' : 'Pengeluaran']}
-                    contentStyle={{ 
-                      background: '#ffffff',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
-                  />
-                  <Bar dataKey="income" name="income" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expenses" name="expenses" fill="#EF4444" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="flex items-center justify-center gap-6 mt-4">
+              <p className="text-3xl font-bold text-slate-800 mb-1">{formatCurrency(totalCashFlow)}</p>
+              <p className="text-xs text-slate-400 mb-5">Total cash flow this period</p>
+              <div className="h-[180px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={cashFlowData} barGap={4}>
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} tickFormatter={(value) => value >= 1000000 ? `${(value / 1000000).toFixed(0)}M` : `${(value / 1000).toFixed(0)}K`} width={45} />
+                    <Tooltip 
+                      formatter={(value: number) => formatCurrency(value)}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    />
+                    <Bar dataKey="income" fill="#22C55E" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    <Bar dataKey="expenses" fill="#86EFAC" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex items-center justify-center gap-8 mt-4">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                  <span className="text-sm text-muted-foreground">Pemasukan</span>
+                  <span className="text-xs text-slate-500">Income</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <span className="text-sm text-muted-foreground">Pengeluaran</span>
+                  <div className="w-3 h-3 rounded-full bg-emerald-300" />
+                  <span className="text-xs text-slate-500">Expense</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Activities Table */}
-        <Card className="bg-white border shadow-sm">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-lg font-semibold">Recent Activities</CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Recent Activities */}
+        <Card className="bg-white border-0 rounded-2xl shadow-sm">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
+            <CardTitle className="text-lg font-semibold text-slate-800">Recent Activities</CardTitle>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input 
-                  placeholder="Search..." 
-                  className="pl-9 w-[200px] h-9 bg-slate-50"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search" 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  className="pl-9 bg-slate-50 border-slate-200 text-sm w-full sm:w-[200px] rounded-lg h-9" 
                 />
               </div>
-              <Button variant="outline" size="sm" className="h-9">
-                <Filter className="h-4 w-4 mr-1" />
+              <Button variant="outline" size="sm" className="border-slate-200 text-slate-500 rounded-lg h-9">
+                <SlidersHorizontal className="h-4 w-4 mr-2" />
                 Filter
               </Button>
             </div>
@@ -568,74 +464,56 @@ export default function Dashboard() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs font-medium text-muted-foreground">Activity</TableHead>
-                    <TableHead className="text-xs font-medium text-muted-foreground">Order ID</TableHead>
-                    <TableHead className="text-xs font-medium text-muted-foreground">Date</TableHead>
-                    <TableHead className="text-xs font-medium text-muted-foreground">Time</TableHead>
-                    <TableHead className="text-xs font-medium text-muted-foreground text-right">Price</TableHead>
-                    <TableHead className="text-xs font-medium text-muted-foreground">Status</TableHead>
+                  <TableRow className="border-slate-100 hover:bg-transparent">
+                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Activity</TableHead>
+                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Order ID</TableHead>
+                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Date</TableHead>
+                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Time</TableHead>
+                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Price</TableHead>
+                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredActivities.length > 0 ? (
-                    filteredActivities.map((activity) => (
-                      <TableRow key={activity.id} className="hover:bg-slate-50/50">
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "p-2 rounded-lg",
-                              activity.type === 'income' ? "bg-emerald-100" : "bg-red-100"
-                            )}>
-                              {activity.type === 'income' ? (
-                                <TrendingUp className="h-4 w-4 text-emerald-600" />
-                              ) : (
-                                <TrendingDown className="h-4 w-4 text-red-600" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground">{activity.name}</p>
-                              {activity.category && (
-                                <p className="text-xs text-muted-foreground">{activity.category}</p>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground font-mono">
-                          #{activity.id.slice(0, 8)}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {activity.date}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {activity.time}
-                        </TableCell>
-                        <TableCell className={cn(
-                          "text-sm font-semibold text-right",
-                          activity.type === 'income' ? "text-emerald-600" : "text-red-600"
-                        )}>
-                          {activity.type === 'income' ? '+' : '-'}{formatCurrency(activity.amount)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant="secondary"
-                            className={cn(
-                              "text-xs",
-                              activity.status === 'completed' && "bg-green-100 text-green-700",
-                              activity.status === 'pending' && "bg-yellow-100 text-yellow-700",
-                              activity.status === 'cancelled' && "bg-red-100 text-red-700"
+                  {filteredActivities.map((activity) => (
+                    <TableRow key={activity.id} className="border-slate-100">
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2.5 rounded-full ${activity.type === "income" ? "bg-emerald-50" : "bg-red-50"}`}>
+                            {activity.type === "income" ? (
+                              <TrendingUp className="h-4 w-4 text-emerald-500" />
+                            ) : (
+                              <TrendingDown className="h-4 w-4 text-red-500" />
                             )}
-                          >
-                            {activity.status === 'completed' ? 'Completed' : 
-                             activity.status === 'pending' ? 'Pending' : 'Cancelled'}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-800 text-sm">{activity.name}</p>
+                            <p className="text-xs text-slate-400">{activity.category || activity.type}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-slate-500 text-sm font-mono">
+                        #{activity.id.slice(0, 8).toUpperCase()}
+                      </TableCell>
+                      <TableCell className="text-slate-500 text-sm">{activity.date}</TableCell>
+                      <TableCell className="text-slate-500 text-sm">{activity.time}</TableCell>
+                      <TableCell className={`font-semibold text-sm ${activity.type === "income" ? "text-emerald-600" : "text-red-500"}`}>
+                        {activity.type === "income" ? "+" : "-"}{formatCurrency(activity.amount)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            activity.status === "completed" ? "bg-emerald-500" : 
+                            activity.status === "pending" ? "bg-amber-500" : "bg-red-500"
+                          }`} />
+                          <span className="text-sm text-slate-600 capitalize">{activity.status}</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filteredActivities.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        {searchTerm ? 'Tidak ada aktivitas yang cocok' : 'Belum ada aktivitas'}
+                      <TableCell colSpan={6} className="text-center py-10 text-slate-400">
+                        No recent activities found
                       </TableCell>
                     </TableRow>
                   )}
