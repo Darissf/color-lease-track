@@ -1296,6 +1296,7 @@ const RentalContracts = () => {
                 <TableHead className={cn("font-semibold", isCompactMode && "py-1 text-xs")}>Status</TableHead>
                 <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Tagihan</TableHead>
                 <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Sisa Tagihan</TableHead>
+                <TableHead className={cn("text-right font-semibold", isCompactMode && "py-1 text-xs")}>Jumlah Lunas</TableHead>
                 <TableHead className={cn("text-center w-24 font-semibold", isCompactMode && "py-1 text-xs")}>Aksi</TableHead>
                 <TableHead className={cn("text-center font-semibold", isCompactMode && "py-1 text-xs")}>Status Bayar</TableHead>
               </TableRow>
