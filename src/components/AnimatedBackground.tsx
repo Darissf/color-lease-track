@@ -47,7 +47,7 @@ export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
   const fireplaceGlow = isMobile ? 2 : 5;
 
   return (
-    <div className="h-full relative overflow-hidden flex flex-col">
+    <div className="min-h-full relative flex flex-col">
       {/* Japanese Night Theme Animations */}
       {showJapaneseAnimations && (
         <>
