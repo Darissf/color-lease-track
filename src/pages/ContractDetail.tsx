@@ -12,6 +12,17 @@ import { id as localeId } from "date-fns/locale";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft, 
   FileText, 
   Calendar, 
@@ -25,7 +36,8 @@ import {
   Clock,
   Receipt,
   TrendingUp,
-  Package
+  Package,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,16 +85,20 @@ interface PaymentHistory {
   amount: number;
   payment_number: number;
   notes: string | null;
+  income_source_id: string | null;
 }
 
 export default function ContractDetail() {
   const { activeTheme } = useAppTheme();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const [contract, setContract] = useState<Contract | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState(1);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && id) {
@@ -147,26 +163,91 @@ export default function ContractDetail() {
 
     setContract(processedContract as unknown as Contract);
 
-    // Fetch payment history from income_sources (contract_payments table not yet in types)
+    // Fetch payment history from contract_payments table
     const { data: paymentData, error: paymentError } = await supabase
-      .from("income_sources")
+      .from("contract_payments")
       .select("*")
       .eq("contract_id", id)
       .eq("user_id", user.id)
-      .order("date", { ascending: true });
+      .order("payment_number", { ascending: true });
 
     if (!paymentError && paymentData) {
-      // Convert to PaymentHistory format
-      setPaymentHistory(paymentData.map((p, idx) => ({
+      setPaymentHistory(paymentData.map((p) => ({
         id: p.id,
-        payment_date: p.date || '',
+        payment_date: p.payment_date || '',
         amount: Number(p.amount) || 0,
-        payment_number: idx + 1,
-        notes: p.source_name || null
+        payment_number: p.payment_number,
+        notes: p.notes || null,
+        income_source_id: p.income_source_id || null
       })));
     }
 
     setLoading(false);
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    const payment = paymentHistory.find(p => p.id === paymentId);
+    if (!payment || !contract) return;
+
+    setIsDeleting(true);
+    try {
+      // 1. Delete from contract_payments
+      const { error: cpError } = await supabase
+        .from("contract_payments")
+        .delete()
+        .eq("id", paymentId);
+      if (cpError) throw cpError;
+
+      // 2. Delete from income_sources if linked
+      if (payment.income_source_id) {
+        await supabase
+          .from("income_sources")
+          .delete()
+          .eq("id", payment.income_source_id);
+      }
+
+      // 3. Update sisa_tagihan (add back the deleted amount)
+      const newSisaTagihan = contract.tagihan_belum_bayar + payment.amount;
+      await supabase
+        .from("rental_contracts")
+        .update({ tagihan_belum_bayar: newSisaTagihan })
+        .eq("id", contract.id);
+
+      // 4. Renumber remaining payments
+      const remainingPayments = paymentHistory
+        .filter(p => p.id !== paymentId)
+        .sort((a, b) => a.payment_number - b.payment_number);
+      
+      for (let i = 0; i < remainingPayments.length; i++) {
+        const newNumber = i + 1;
+        const p = remainingPayments[i];
+        
+        // Update contract_payments
+        await supabase
+          .from("contract_payments")
+          .update({ payment_number: newNumber })
+          .eq("id", p.id);
+        
+        // Update income_sources source_name
+        if (p.income_source_id) {
+          const newSourceName = `${contract.invoice || ''} ${contract.keterangan || ''} #${newNumber}`;
+          await supabase
+            .from("income_sources")
+            .update({ source_name: newSourceName.trim() })
+            .eq("id", p.income_source_id);
+        }
+      }
+
+      toast.success("Riwayat pembayaran berhasil dihapus");
+      setDeletePaymentId(null);
+      setDeleteConfirmStep(1);
+      fetchContractDetail(); // Refresh data
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      toast.error("Gagal menghapus riwayat pembayaran");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const capitalizeWords = (str: string) => {
@@ -451,13 +532,105 @@ export default function ContractDetail() {
                               )}
                             </div>
                             
-                            <div className="text-right">
-                              <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">
-                                #{payment.payment_number}
-                              </Badge>
-                              <p className="font-bold text-lg text-green-600 mt-1">
-                                {formatRupiah(payment.amount)}
-                              </p>
+                            <div className="text-right flex items-start gap-2">
+                              <div>
+                                <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">
+                                  #{payment.payment_number}
+                                </Badge>
+                                <p className="font-bold text-lg text-green-600 mt-1">
+                                  {formatRupiah(payment.amount)}
+                                </p>
+                              </div>
+                              
+                              {/* Delete Button - Super Admin Only */}
+                              {isSuperAdmin && (
+                                <AlertDialog 
+                                  open={deletePaymentId === payment.id}
+                                  onOpenChange={(open) => {
+                                    if (!open) {
+                                      setDeletePaymentId(null);
+                                      setDeleteConfirmStep(1);
+                                    }
+                                  }}
+                                >
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100"
+                                      onClick={() => setDeletePaymentId(payment.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    {deleteConfirmStep === 1 ? (
+                                      <>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Hapus Riwayat Pembayaran?</AlertDialogTitle>
+                                          <AlertDialogDescription asChild>
+                                            <div>
+                                              <p>
+                                                Anda akan menghapus <strong>Pembayaran #{payment.payment_number}</strong> 
+                                                sebesar <strong>{formatRupiah(payment.amount)}</strong>.
+                                              </p>
+                                              <p className="mt-2">Tindakan ini akan:</p>
+                                              <ul className="list-disc ml-4 mt-2">
+                                                <li>Menghapus catatan pembayaran</li>
+                                                <li>Menghapus data pemasukan terkait</li>
+                                                <li>Mengembalikan sisa tagihan</li>
+                                                <li>Mengubah nomor pembayaran lainnya</li>
+                                              </ul>
+                                            </div>
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel onClick={() => {
+                                            setDeletePaymentId(null);
+                                            setDeleteConfirmStep(1);
+                                          }}>
+                                            Batal
+                                          </AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              setDeleteConfirmStep(2);
+                                            }}
+                                            className="bg-red-500 hover:bg-red-600"
+                                          >
+                                            Lanjutkan
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle className="text-red-600">
+                                            ⚠️ Konfirmasi Final
+                                          </AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Apakah Anda <strong>YAKIN</strong> ingin menghapus pembayaran ini?
+                                            <br />
+                                            <strong>Tindakan ini tidak dapat dibatalkan!</strong>
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel onClick={() => setDeleteConfirmStep(1)}>
+                                            Kembali
+                                          </AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            onClick={() => handleDeletePayment(payment.id)}
+                                            className="bg-red-600 hover:bg-red-700"
+                                            disabled={isDeleting}
+                                          >
+                                            {isDeleting ? "Menghapus..." : "Ya, Hapus Permanen"}
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </>
+                                    )}
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
                             </div>
                           </div>
                         </div>
