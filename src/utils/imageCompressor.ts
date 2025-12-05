@@ -6,6 +6,24 @@ export interface CompressOptions {
 }
 
 /**
+ * Wrap a promise with a timeout
+ * @param promise - The promise to wrap
+ * @param timeoutMs - Timeout in milliseconds
+ * @param errorMessage - Error message when timeout occurs
+ * @returns Promise that rejects if timeout exceeded
+ */
+export function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string = "Operation timed out"
+): Promise<T> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+  );
+  return Promise.race([promise, timeout]);
+}
+
+/**
  * Compress image using Canvas API
  * @param file - Original file to compress
  * @param options - Compression options
