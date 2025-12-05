@@ -153,6 +153,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <TooltipTrigger asChild>
                      <NavLink
                       to={item.url}
+                      end={item.url === "/vip/"}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-all ${!sidebarOpen ? "justify-center" : "justify-between"}`}
                       activeClassName="bg-[#487FFF] text-white hover:bg-[#487FFF] shadow-sm shadow-blue-200"
                       onClick={() => isMobile && setSidebarOpen(false)}
@@ -196,6 +197,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <TooltipTrigger asChild>
                        <NavLink
                         to={item.url}
+                        end={item.url === "/vip/"}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-all ${!sidebarOpen ? "justify-center" : "justify-between"}`}
                         activeClassName="bg-[#487FFF] text-white hover:bg-[#487FFF] shadow-sm shadow-blue-200"
                         onClick={() => isMobile && setSidebarOpen(false)}
