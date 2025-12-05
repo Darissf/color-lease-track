@@ -1249,6 +1249,60 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_payments: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          id: string
+          income_source_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_number: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          contract_id: string
+          created_at?: string
+          id?: string
+          income_source_id?: string | null
+          notes?: string | null
+          payment_date: string
+          payment_number?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          id?: string
+          income_source_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_number?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_payments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_payments_income_source_id_fkey"
+            columns: ["income_source_id"]
+            isOneToOne: false
+            referencedRelation: "income_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_sharing: {
         Row: {
           conversation_id: string | null
