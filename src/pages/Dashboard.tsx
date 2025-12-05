@@ -246,16 +246,17 @@ export default function Dashboard() {
   const totalCashFlow = stats.totalIncome - stats.totalExpenses;
 
   return (
-    <div className="h-[calc(100vh-104px)] overflow-hidden flex flex-col bg-[#F8FAFC]">
+    <div className="h-[calc(100vh-104px)] overflow-hidden flex flex-col">
       {/* Header */}
       <div className="shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Overview</h1>
-          <p className="text-slate-500 text-sm">Here is the summary of overall data</p>
+          <p className="text-slate-400 text-xs mb-1">Dashboard &gt; Overview</p>
+          <h1 className="text-2xl font-bold text-slate-800">Overview</h1>
+          <p className="text-slate-500 text-sm mt-1">Here is the summary of overall data</p>
         </div>
         <div className="flex items-center gap-3">
           <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
-            <SelectTrigger className="w-[140px] bg-white border-slate-200 text-sm rounded-lg">
+            <SelectTrigger className="w-[140px] bg-white border-slate-200 text-sm rounded-xl h-10 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -263,7 +264,7 @@ export default function Dashboard() {
               <SelectItem value="year">This Year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={handleReset} className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg">
+          <Button variant="outline" size="sm" onClick={handleReset} className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-10 px-4 shadow-sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Reset Data
           </Button>
@@ -275,61 +276,61 @@ export default function Dashboard() {
         {/* Top Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Card 1: My Balance - Featured Green */}
-          <Card className="bg-gradient-to-br from-emerald-500 to-green-600 border-0 text-white rounded-2xl shadow-lg shadow-emerald-200/50">
+          <Card className="bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-500 border-0 text-white rounded-2xl shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-full bg-white/20 border-2 border-white/30">
+                <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30">
                   <Wallet className="h-6 w-6 text-white" />
                 </div>
-                <Badge className="bg-transparent border border-white/40 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                <Badge className="bg-white/20 border-0 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm">
                   <ArrowUpRight className="h-3 w-3 mr-1" />
                   +{stats.balanceChange}%
                 </Badge>
               </div>
-              <p className="text-white/80 text-sm mb-0.5">My Balance</p>
+              <p className="text-white/90 text-sm font-medium mb-0.5">My Balance</p>
               <p className="text-xs text-white/60 mb-4">Overview of Financial & Expenses</p>
-              <p className="text-3xl font-bold mb-5">{formatCurrency(stats.totalBalance)}</p>
-              <button onClick={() => navigate("/vip/finances")} className="text-sm text-white/90 hover:text-white underline underline-offset-4 decoration-white/40">
+              <p className="text-3xl font-bold mb-5 tracking-tight">{formatCurrency(stats.totalBalance)}</p>
+              <button onClick={() => navigate("/vip/finances")} className="text-sm text-white/90 hover:text-white font-medium underline underline-offset-4 decoration-white/40 hover:decoration-white transition-all">
                 View detail
               </button>
             </CardContent>
           </Card>
 
           {/* Card 2: Savings Account */}
-          <Card className="bg-white border-0 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <Card className="bg-white border-0 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 group">
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-full bg-amber-50">
+                <div className="p-3 rounded-xl bg-amber-50 group-hover:bg-amber-100 transition-colors">
                   <PiggyBank className="h-6 w-6 text-amber-500" />
                 </div>
-                <Badge className="bg-transparent border border-emerald-200 text-emerald-600 text-xs font-medium px-2.5 py-1 rounded-full">
+                <Badge className="bg-emerald-50 border-0 text-emerald-600 text-xs font-medium px-3 py-1.5 rounded-full">
                   <ArrowUpRight className="h-3 w-3 mr-1" />
                   +{stats.savingsChange}%
                 </Badge>
               </div>
-              <p className="text-slate-800 text-sm font-medium mb-0.5">Savings Account</p>
+              <p className="text-slate-800 text-sm font-semibold mb-0.5">Savings Account</p>
               <p className="text-xs text-slate-400 mb-4">Stable growth</p>
-              <p className="text-2xl font-bold text-slate-800 mb-5">{formatCurrency(stats.totalSavings)}</p>
-              <button onClick={() => navigate("/vip/settings/savings")} className="text-sm text-emerald-600 hover:text-emerald-700 underline underline-offset-4 decoration-emerald-200">
+              <p className="text-2xl font-bold text-slate-800 mb-5 tracking-tight">{formatCurrency(stats.totalSavings)}</p>
+              <button onClick={() => navigate("/vip/settings/savings")} className="text-sm text-[#487FFF] hover:text-blue-700 font-medium underline underline-offset-4 decoration-blue-200 hover:decoration-blue-400 transition-all">
                 View summary
               </button>
             </CardContent>
           </Card>
 
           {/* Card 3: Investment Portfolio with Sparkline */}
-          <Card className="bg-white border-0 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <Card className="bg-white border-0 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 group">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="p-3 rounded-full bg-violet-50">
+                    <div className="p-3 rounded-xl bg-violet-50 group-hover:bg-violet-100 transition-colors">
                       <BarChart3 className="h-6 w-6 text-violet-500" />
                     </div>
                   </div>
-                  <p className="text-slate-800 text-sm font-medium mb-0.5">Investment Portfolio</p>
+                  <p className="text-slate-800 text-sm font-semibold mb-0.5">Investment Portfolio</p>
                   <p className="text-xs text-slate-400 mb-4">Track monthly budget</p>
-                  <p className="text-2xl font-bold text-slate-800 mb-5">{formatCurrency(stats.remainingBudget)}</p>
-                  <button onClick={() => navigate("/vip/budget-tracker")} className="text-sm text-emerald-600 hover:text-emerald-700 underline underline-offset-4 decoration-emerald-200">
+                  <p className="text-2xl font-bold text-slate-800 mb-5 tracking-tight">{formatCurrency(stats.remainingBudget)}</p>
+                  <button onClick={() => navigate("/vip/budget-tracker")} className="text-sm text-[#487FFF] hover:text-blue-700 font-medium underline underline-offset-4 decoration-blue-200 hover:decoration-blue-400 transition-all">
                     View performance
                   </button>
                 </div>
@@ -337,7 +338,7 @@ export default function Dashboard() {
                 <div className="w-24 h-14 mt-1">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={investmentData}>
-                      <Line type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2.5} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -349,39 +350,41 @@ export default function Dashboard() {
         {/* Middle Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* My Wallet */}
-          <Card className="bg-white border-0 rounded-2xl shadow-sm">
+          <Card className="bg-white border-0 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-lg font-semibold text-slate-800">My Wallet</CardTitle>
-              <Button size="sm" onClick={() => navigate("/vip/settings/accounts")} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs h-8 px-3">
-                <Plus className="h-4 w-4 mr-1" />
+              <CardTitle className="text-lg font-bold text-slate-800">My Wallet</CardTitle>
+              <Button size="sm" onClick={() => navigate("/vip/settings/accounts")} className="bg-[#487FFF] hover:bg-blue-600 text-white rounded-xl text-xs h-9 px-4 shadow-sm shadow-blue-200">
+                <Plus className="h-4 w-4 mr-1.5" />
                 Add New
               </Button>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {bankAccounts.slice(0, 4).map((account) => (
-                  <div key={account.id} className="relative p-4 bg-slate-50 rounded-xl">
-                    <Badge className={`absolute top-3 right-3 text-[10px] font-medium px-2 py-0.5 rounded-full border-0 ${account.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                  <div key={account.id} className="relative p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
+                    <Badge className={`absolute top-3 right-3 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border-0 ${account.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                       {account.is_active ? "Active" : "Inactive"}
                     </Badge>
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 bg-white rounded-full shadow-sm">
+                      <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100">
                         <BankLogo bankName={account.bank_name} size="sm" />
                       </div>
                       <div>
-                        <p className="font-medium text-slate-800 text-sm">{account.bank_name}</p>
+                        <p className="font-semibold text-slate-800 text-sm">{account.bank_name}</p>
                         <p className="text-xs text-slate-400">****{account.account_number.slice(-4)}</p>
                       </div>
                     </div>
-                    <p className="text-lg font-bold text-slate-800">{formatShortCurrency(account.balance || 0)}</p>
+                    <p className="text-xl font-bold text-slate-800">{formatShortCurrency(account.balance || 0)}</p>
                     <p className="text-xs text-slate-400 mt-1">Daily Limit: Rp 5,000,000</p>
                   </div>
                 ))}
                 {bankAccounts.length === 0 && (
-                  <div className="col-span-2 text-center py-10 text-slate-400">
-                    <Wallet className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-                    <p className="text-sm mb-2">No bank accounts yet</p>
-                    <Button variant="link" onClick={() => navigate("/vip/settings/accounts")} className="text-emerald-600 text-sm p-0 h-auto">
+                  <div className="col-span-2 text-center py-12 text-slate-400">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                      <Wallet className="h-8 w-8 text-slate-300" />
+                    </div>
+                    <p className="text-sm font-medium mb-2">No bank accounts yet</p>
+                    <Button variant="link" onClick={() => navigate("/vip/settings/accounts")} className="text-[#487FFF] text-sm p-0 h-auto font-medium">
                       Add your first account
                     </Button>
                   </div>
@@ -391,26 +394,26 @@ export default function Dashboard() {
           </Card>
 
           {/* Cash Flow */}
-          <Card className="bg-white border-0 rounded-2xl shadow-sm">
+          <Card className="bg-white border-0 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-semibold text-slate-800">Cash Flow</CardTitle>
-              <div className="flex bg-slate-100 rounded-lg p-1">
+              <CardTitle className="text-lg font-bold text-slate-800">Cash Flow</CardTitle>
+              <div className="flex bg-slate-100 rounded-xl p-1">
                 <button 
                   onClick={() => setCashFlowPeriod("monthly")}
-                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${cashFlowPeriod === "monthly" ? "bg-white shadow-sm text-slate-800 font-medium" : "text-slate-500"}`}
+                  className={`text-xs px-4 py-2 rounded-lg transition-all font-medium ${cashFlowPeriod === "monthly" ? "bg-white shadow-sm text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
                 >
                   Monthly
                 </button>
                 <button 
                   onClick={() => setCashFlowPeriod("yearly")}
-                  className={`text-xs px-3 py-1.5 rounded-md transition-all ${cashFlowPeriod === "yearly" ? "bg-white shadow-sm text-slate-800 font-medium" : "text-slate-500"}`}
+                  className={`text-xs px-4 py-2 rounded-lg transition-all font-medium ${cashFlowPeriod === "yearly" ? "bg-white shadow-sm text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
                 >
                   Yearly
                 </button>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-slate-800 mb-1">{formatCurrency(totalCashFlow)}</p>
+              <p className="text-3xl font-bold text-slate-800 mb-1 tracking-tight">{formatCurrency(totalCashFlow)}</p>
               <p className="text-xs text-slate-400 mb-5">Total cash flow this period</p>
               <div className="h-[180px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -419,21 +422,21 @@ export default function Dashboard() {
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} tickFormatter={(value) => value >= 1000000 ? `${(value / 1000000).toFixed(0)}M` : `${(value / 1000).toFixed(0)}K`} width={45} />
                     <Tooltip 
                       formatter={(value: number) => formatCurrency(value)}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', padding: '12px 16px' }}
                     />
-                    <Bar dataKey="income" fill="#22C55E" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                    <Bar dataKey="expenses" fill="#86EFAC" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    <Bar dataKey="income" fill="#487FFF" radius={[6, 6, 0, 0]} maxBarSize={32} />
+                    <Bar dataKey="expenses" fill="#E0E7FF" radius={[6, 6, 0, 0]} maxBarSize={32} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
               <div className="flex items-center justify-center gap-8 mt-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                  <span className="text-xs text-slate-500">Income</span>
+                  <div className="w-3 h-3 rounded-full bg-[#487FFF]" />
+                  <span className="text-xs text-slate-500 font-medium">Income</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-emerald-300" />
-                  <span className="text-xs text-slate-500">Expense</span>
+                  <div className="w-3 h-3 rounded-full bg-indigo-200" />
+                  <span className="text-xs text-slate-500 font-medium">Expense</span>
                 </div>
               </div>
             </CardContent>
@@ -443,7 +446,7 @@ export default function Dashboard() {
         {/* Recent Activities */}
         <Card className="bg-white border-0 rounded-2xl shadow-sm">
           <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-lg font-semibold text-slate-800">Recent Activities</CardTitle>
+            <CardTitle className="text-lg font-bold text-slate-800">Recent Activities</CardTitle>
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -451,10 +454,10 @@ export default function Dashboard() {
                   placeholder="Search" 
                   value={searchTerm} 
                   onChange={(e) => setSearchTerm(e.target.value)} 
-                  className="pl-9 bg-slate-50 border-slate-200 text-sm w-full sm:w-[200px] rounded-lg h-9" 
+                  className="pl-10 bg-slate-50 border-slate-200 text-sm w-full sm:w-[220px] rounded-xl h-10 focus:ring-2 focus:ring-[#487FFF]/20 focus:border-[#487FFF]" 
                 />
               </div>
-              <Button variant="outline" size="sm" className="border-slate-200 text-slate-500 rounded-lg h-9">
+              <Button variant="outline" size="sm" className="border-slate-200 text-slate-600 rounded-xl h-10 px-4 hover:bg-slate-50">
                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                 Filter
               </Button>
@@ -465,20 +468,20 @@ export default function Dashboard() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-slate-100 hover:bg-transparent">
-                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Activity</TableHead>
-                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Order ID</TableHead>
-                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Date</TableHead>
-                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Time</TableHead>
-                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Price</TableHead>
-                    <TableHead className="text-slate-400 font-medium text-xs uppercase tracking-wider">Status</TableHead>
+                    <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Activity</TableHead>
+                    <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Order ID</TableHead>
+                    <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Date</TableHead>
+                    <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Time</TableHead>
+                    <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Price</TableHead>
+                    <TableHead className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredActivities.map((activity) => (
-                    <TableRow key={activity.id} className="border-slate-100">
+                    <TableRow key={activity.id} className="border-slate-100 hover:bg-slate-50/50 transition-colors">
                       <TableCell className="py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2.5 rounded-full ${activity.type === "income" ? "bg-emerald-50" : "bg-red-50"}`}>
+                          <div className={`p-2.5 rounded-xl ${activity.type === "income" ? "bg-emerald-50" : "bg-red-50"}`}>
                             {activity.type === "income" ? (
                               <TrendingUp className="h-4 w-4 text-emerald-500" />
                             ) : (
@@ -486,7 +489,7 @@ export default function Dashboard() {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-slate-800 text-sm">{activity.name}</p>
+                            <p className="font-semibold text-slate-800 text-sm">{activity.name}</p>
                             <p className="text-xs text-slate-400">{activity.category || activity.type}</p>
                           </div>
                         </div>
@@ -494,9 +497,9 @@ export default function Dashboard() {
                       <TableCell className="text-slate-500 text-sm font-mono">
                         #{activity.id.slice(0, 8).toUpperCase()}
                       </TableCell>
-                      <TableCell className="text-slate-500 text-sm">{activity.date}</TableCell>
-                      <TableCell className="text-slate-500 text-sm">{activity.time}</TableCell>
-                      <TableCell className={`font-semibold text-sm ${activity.type === "income" ? "text-emerald-600" : "text-red-500"}`}>
+                      <TableCell className="text-slate-600 text-sm">{activity.date}</TableCell>
+                      <TableCell className="text-slate-600 text-sm">{activity.time}</TableCell>
+                      <TableCell className={`font-bold text-sm ${activity.type === "income" ? "text-emerald-600" : "text-red-500"}`}>
                         {activity.type === "income" ? "+" : "-"}{formatCurrency(activity.amount)}
                       </TableCell>
                       <TableCell>
@@ -505,15 +508,20 @@ export default function Dashboard() {
                             activity.status === "completed" ? "bg-emerald-500" : 
                             activity.status === "pending" ? "bg-amber-500" : "bg-red-500"
                           }`} />
-                          <span className="text-sm text-slate-600 capitalize">{activity.status}</span>
+                          <span className="text-sm text-slate-600 capitalize font-medium">{activity.status}</span>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))}
                   {filteredActivities.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10 text-slate-400">
-                        No recent activities found
+                      <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                        <div className="flex flex-col items-center">
+                          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                            <Search className="h-5 w-5 text-slate-300" />
+                          </div>
+                          <p className="font-medium">No recent activities found</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
