@@ -21,6 +21,7 @@ import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 const navItems = [
   { title: "Home", url: "/vip/", icon: Home },
@@ -40,6 +41,7 @@ const navItems = [
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, signOut, isSuperAdmin, isAdmin, isUser } = useAuth();
   const { profile } = useProfile();
+  const { settings: brandSettings } = useBrandSettings();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const notifications = useAdminNotifications(isAdmin || isSuperAdmin);
@@ -124,17 +126,46 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="h-16 flex items-center px-5 border-b border-slate-100">
               {sidebarOpen ? (
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#487FFF] flex items-center justify-center">
-                    <Home className="h-4 w-4 text-white" />
-                  </div>
-                  <h1 className="text-base font-semibold text-slate-800">
-                    Financial Planner
-                  </h1>
+                  {/* Show Logo if mode is 'logo' or 'both' */}
+                  {(brandSettings?.sidebar_display_mode === 'logo' || brandSettings?.sidebar_display_mode === 'both') && brandSettings?.sidebar_logo_url ? (
+                    <img
+                      src={brandSettings.sidebar_logo_url}
+                      alt="Logo"
+                      style={{
+                        height: `${brandSettings.sidebar_logo_height || 32}px`,
+                        maxWidth: `${brandSettings.sidebar_logo_max_width || 150}px`,
+                      }}
+                      className="object-contain"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-[#487FFF] flex items-center justify-center">
+                      <Home className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                  {/* Show Text if mode is 'text' or 'both' */}
+                  {(brandSettings?.sidebar_display_mode === 'text' || brandSettings?.sidebar_display_mode === 'both' || !brandSettings?.sidebar_display_mode) && (
+                    <h1 className="text-base font-semibold text-slate-800">
+                      {brandSettings?.sidebar_text || 'Admin Area'}
+                    </h1>
+                  )}
                 </div>
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-[#487FFF] flex items-center justify-center mx-auto">
-                  <Home className="h-4 w-4 text-white" />
-                </div>
+                // Collapsed state - show only logo or icon
+                (brandSettings?.sidebar_display_mode !== 'text' && brandSettings?.sidebar_logo_url) ? (
+                  <img
+                    src={brandSettings.sidebar_logo_url}
+                    alt="Logo"
+                    style={{
+                      height: `${Math.min(brandSettings.sidebar_logo_height || 32, 32)}px`,
+                      maxWidth: '32px',
+                    }}
+                    className="object-contain mx-auto"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-[#487FFF] flex items-center justify-center mx-auto">
+                    <Home className="h-4 w-4 text-white" />
+                  </div>
+                )
               )}
             </div>
 
