@@ -16,7 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageCropper } from "@/components/ImageCropper";
 import { FaviconCropper } from "@/components/FaviconCropper";
-import { compressImage, isCompressibleImage, formatFileSize } from "@/utils/imageCompressor";
+import { compressImage, isCompressibleImage, formatFileSize, withTimeout } from "@/utils/imageCompressor";
+
+const UPLOAD_TIMEOUT_MS = 30000; // 30 seconds timeout
 
 // 40+ Fonts categorized
 const FONTS = {
@@ -276,6 +278,12 @@ const VIPDesignSettings = () => {
       return;
     }
 
+    // Network check
+    if (!navigator.onLine) {
+      toast.error("Tidak ada koneksi internet. Silakan cek jaringan Anda.");
+      return;
+    }
+
     setUploading(true);
     try {
       if (!user) throw new Error("Not authenticated");
@@ -303,13 +311,15 @@ const VIPDesignSettings = () => {
         }
       }
 
-      // Upload new image
+      // Upload new image with timeout
       const fileName = `brand-logo-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('brand-images')
-        .upload(filePath, uploadFile);
+      const { error: uploadError } = await withTimeout(
+        supabase.storage.from('brand-images').upload(filePath, uploadFile),
+        UPLOAD_TIMEOUT_MS,
+        "Upload timeout - koneksi terlalu lambat. Silakan coba lagi."
+      );
 
       if (uploadError) throw uploadError;
 
@@ -382,6 +392,12 @@ const VIPDesignSettings = () => {
 
   // Actual upload function
   const uploadSidebarImage = async (file: File) => {
+    // Network check
+    if (!navigator.onLine) {
+      toast.error("Tidak ada koneksi internet. Silakan cek jaringan Anda.");
+      return;
+    }
+
     setSidebarUploading(true);
     try {
       if (!user) throw new Error("Not authenticated");
@@ -412,9 +428,11 @@ const VIPDesignSettings = () => {
       const fileName = `sidebar-logo-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('brand-images')
-        .upload(filePath, uploadFile);
+      const { error: uploadError } = await withTimeout(
+        supabase.storage.from('brand-images').upload(filePath, uploadFile),
+        UPLOAD_TIMEOUT_MS,
+        "Upload timeout - koneksi terlalu lambat. Silakan coba lagi."
+      );
 
       if (uploadError) throw uploadError;
 
@@ -486,6 +504,12 @@ const VIPDesignSettings = () => {
 
   // Actual favicon upload function
   const uploadFavicon = async (file: File) => {
+    // Network check
+    if (!navigator.onLine) {
+      toast.error("Tidak ada koneksi internet. Silakan cek jaringan Anda.");
+      return;
+    }
+
     setFaviconUploading(true);
     try {
       if (!user) throw new Error("Not authenticated");
@@ -516,9 +540,11 @@ const VIPDesignSettings = () => {
       const fileName = `favicon-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('brand-images')
-        .upload(filePath, uploadFile);
+      const { error: uploadError } = await withTimeout(
+        supabase.storage.from('brand-images').upload(filePath, uploadFile),
+        UPLOAD_TIMEOUT_MS,
+        "Upload timeout - koneksi terlalu lambat. Silakan coba lagi."
+      );
 
       if (uploadError) throw uploadError;
 
@@ -732,15 +758,30 @@ const VIPDesignSettings = () => {
                             className="hidden"
                             disabled={uploading}
                           />
-                          <label htmlFor="image-upload" className="cursor-pointer">
-                            <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                            <p className="text-sm font-medium mb-1">
-                              {uploading ? "Uploading..." : "Click to upload or drag and drop"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              PNG, JPG, WebP, SVG (Max 5MB)
-                            </p>
-                          </label>
+                          {uploading ? (
+                            <div className="flex flex-col items-center gap-3">
+                              <Upload className="h-12 w-12 text-primary animate-pulse" />
+                              <p className="text-sm font-medium">Uploading...</p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.preventDefault(); setUploading(false); }}
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                Batalkan
+                              </Button>
+                            </div>
+                          ) : (
+                            <label htmlFor="image-upload" className="cursor-pointer">
+                              <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                              <p className="text-sm font-medium mb-1">
+                                Click to upload or drag and drop
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                PNG, JPG, WebP, SVG (Max 5MB)
+                              </p>
+                            </label>
+                          )}
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -1385,15 +1426,28 @@ const VIPDesignSettings = () => {
                         className="hidden"
                         disabled={faviconUploading}
                       />
-                      <label htmlFor="favicon-upload" className="cursor-pointer">
-                        <Globe className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                        <p className="text-sm font-medium mb-1">
-                          {faviconUploading ? "Uploading..." : "Click to upload favicon"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          ICO, PNG, JPG, SVG (Auto-compress jika &gt;1MB)
-                        </p>
-                      </label>
+                      {faviconUploading ? (
+                        <div className="flex flex-col items-center gap-3">
+                          <Globe className="h-12 w-12 text-primary animate-pulse" />
+                          <p className="text-sm font-medium">Uploading...</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => { e.preventDefault(); setFaviconUploading(false); }}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            Batalkan
+                          </Button>
+                        </div>
+                      ) : (
+                        <label htmlFor="favicon-upload" className="cursor-pointer">
+                          <Globe className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                          <p className="text-sm font-medium mb-1">Click to upload favicon</p>
+                          <p className="text-xs text-muted-foreground">
+                            ICO, PNG, JPG, SVG (Auto-compress jika &gt;1MB)
+                          </p>
+                        </label>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -1556,15 +1610,28 @@ const VIPDesignSettings = () => {
                           className="hidden"
                           disabled={sidebarUploading}
                         />
-                        <label htmlFor="sidebar-image-upload" className="cursor-pointer">
-                          <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                          <p className="text-sm font-medium mb-1">
-                            {sidebarUploading ? "Uploading..." : "Click to upload sidebar logo"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            PNG, JPG, WebP, SVG (Max 5MB)
-                          </p>
-                        </label>
+                        {sidebarUploading ? (
+                          <div className="flex flex-col items-center gap-3">
+                            <Upload className="h-12 w-12 text-primary animate-pulse" />
+                            <p className="text-sm font-medium">Uploading...</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.preventDefault(); setSidebarUploading(false); }}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              Batalkan
+                            </Button>
+                          </div>
+                        ) : (
+                          <label htmlFor="sidebar-image-upload" className="cursor-pointer">
+                            <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                            <p className="text-sm font-medium mb-1">Click to upload sidebar logo</p>
+                            <p className="text-xs text-muted-foreground">
+                              PNG, JPG, WebP, SVG (Max 5MB)
+                            </p>
+                          </label>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-4">
