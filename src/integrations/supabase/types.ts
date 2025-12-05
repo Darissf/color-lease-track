@@ -2730,6 +2730,7 @@ export type Database = {
           status: string
           status_pengambilan: string | null
           status_pengiriman: string | null
+          tagihan: number | null
           tagihan_belum_bayar: number | null
           tanggal: string | null
           tanggal_ambil: string | null
@@ -2760,6 +2761,7 @@ export type Database = {
           status?: string
           status_pengambilan?: string | null
           status_pengiriman?: string | null
+          tagihan?: number | null
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
           tanggal_ambil?: string | null
@@ -2790,6 +2792,7 @@ export type Database = {
           status?: string
           status_pengambilan?: string | null
           status_pengiriman?: string | null
+          tagihan?: number | null
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
           tanggal_ambil?: string | null
