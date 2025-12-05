@@ -1320,9 +1320,23 @@ const RentalContracts = () => {
                                   }}
                                   className="mt-1"
                                 />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Sisa: {formatRupiah(contract.tagihan_belum_bayar)}
-                                </p>
+                                <div className="flex items-center justify-between mt-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    Sisa: {formatRupiah(contract.tagihan_belum_bayar)}
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs"
+                                    onClick={() => {
+                                      setPaymentContractId(contract.id);
+                                      setPaymentAmount(String(contract.tagihan_belum_bayar || 0));
+                                    }}
+                                  >
+                                    100%
+                                  </Button>
+                                </div>
                               </div>
                               <Button
                                 className="w-full bg-gradient-to-r from-emerald-500 to-green-600"
