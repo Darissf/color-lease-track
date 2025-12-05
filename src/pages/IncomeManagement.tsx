@@ -287,7 +287,7 @@ export default function IncomeManagement() {
                   {paginatedIncomeSources.map((income, index) => (
                     <TableRow key={income.id} className="hover:bg-accent/50 transition-colors">
                       <TableCell className="font-medium">{startIndex + index + 1}</TableCell>
-                      <TableCell className="font-medium">{income.keterangan || income.source_name}</TableCell>
+                      <TableCell className="font-medium">{income.source_name}</TableCell>
                       <TableCell>
                         {income.bank_name ? (
                           <div className="flex items-center gap-2">
