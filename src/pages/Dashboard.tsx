@@ -140,7 +140,7 @@ export default function Dashboard() {
       const flowData = [];
       for (let i = months - 1; i >= 0; i--) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthName = date.toLocaleDateString("en", { month: "short" });
+        const monthName = date.toLocaleDateString("id", { month: "short" });
         flowData.push({ month: monthName, income: Math.random() * 50000000 + 20000000, expenses: Math.random() * 30000000 + 10000000 });
       }
       setCashFlowData(flowData);
@@ -176,11 +176,11 @@ export default function Dashboard() {
 
   // Stat cards configuration
   const statCards = [
-    { title: "Total Balance", value: stats.totalBalance, change: stats.balanceChange, icon: Wallet, iconBg: "bg-blue-100", iconColor: "text-[#487FFF]", positive: true },
-    { title: "Total Income", value: stats.totalIncome, change: stats.incomeChange, icon: TrendingUp, iconBg: "bg-emerald-100", iconColor: "text-emerald-600", positive: true },
-    { title: "Total Expense", value: stats.totalExpenses, change: stats.expenseChange, icon: TrendingDown, iconBg: "bg-red-100", iconColor: "text-red-500", positive: false },
-    { title: "Total Savings", value: stats.totalSavings, change: stats.savingsChange, icon: PiggyBank, iconBg: "bg-amber-100", iconColor: "text-amber-600", positive: true },
-    { title: "Budget Left", value: stats.remainingBudget, change: 3.2, icon: Target, iconBg: "bg-violet-100", iconColor: "text-violet-600", positive: true },
+    { title: "Total Saldo", value: stats.totalBalance, change: stats.balanceChange, icon: Wallet, iconBg: "bg-blue-100", iconColor: "text-[#487FFF]", positive: true },
+    { title: "Total Pemasukan", value: stats.totalIncome, change: stats.incomeChange, icon: TrendingUp, iconBg: "bg-emerald-100", iconColor: "text-emerald-600", positive: true },
+    { title: "Total Pengeluaran", value: stats.totalExpenses, change: stats.expenseChange, icon: TrendingDown, iconBg: "bg-red-100", iconColor: "text-red-500", positive: false },
+    { title: "Total Tabungan", value: stats.totalSavings, change: stats.savingsChange, icon: PiggyBank, iconBg: "bg-amber-100", iconColor: "text-amber-600", positive: true },
+    { title: "Sisa Anggaran", value: stats.remainingBudget, change: 3.2, icon: Target, iconBg: "bg-violet-100", iconColor: "text-violet-600", positive: true },
   ];
 
   return (
@@ -188,8 +188,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <p className="text-slate-400 text-xs mb-1">Dashboard &gt; Overview</p>
-          <h1 className="text-2xl font-bold text-slate-800">Overview</h1>
+          <p className="text-slate-400 text-xs mb-1">Dashboard &gt; Ringkasan</p>
+          <h1 className="text-2xl font-bold text-slate-800">Ringkasan</h1>
         </div>
         <div className="flex items-center gap-3">
           <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
@@ -197,8 +197,8 @@ export default function Dashboard() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
+              <SelectItem value="month">Bulan Ini</SelectItem>
+              <SelectItem value="year">Tahun Ini</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={fetchDashboardData} className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-10 px-4 shadow-sm">
@@ -230,7 +230,7 @@ export default function Dashboard() {
                   <span className={`text-xs font-medium ${card.positive ? "text-emerald-500" : "text-red-500"}`}>
                     {card.positive ? "+" : ""}{card.change}%
                   </span>
-                  <span className="text-xs text-slate-400 ml-1">vs last</span>
+                  <span className="text-xs text-slate-400 ml-1">vs sebelumnya</span>
                 </div>
               </CardContent>
             </Card>
@@ -243,17 +243,17 @@ export default function Dashboard() {
           <Card className="bg-white border-0 rounded-2xl shadow-sm lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
-                <CardTitle className="text-lg font-bold text-slate-800">Cash Flow</CardTitle>
-                <p className="text-xs text-slate-400 mt-0.5">Income vs Expense trend</p>
+                <CardTitle className="text-lg font-bold text-slate-800">Arus Kas</CardTitle>
+                <p className="text-xs text-slate-400 mt-0.5">Tren Pemasukan vs Pengeluaran</p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-[#487FFF]" />
-                  <span className="text-xs text-slate-500">Income</span>
+                  <span className="text-xs text-slate-500">Pemasukan</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-[#45B7CD]" />
-                  <span className="text-xs text-slate-500">Expense</span>
+                  <span className="text-xs text-slate-500">Pengeluaran</span>
                 </div>
               </div>
             </CardHeader>
@@ -286,8 +286,8 @@ export default function Dashboard() {
           <Card className="bg-white border-0 rounded-2xl shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
-                <CardTitle className="text-lg font-bold text-slate-800">Expense Overview</CardTitle>
-                <p className="text-xs text-slate-400 mt-0.5">By category</p>
+                <CardTitle className="text-lg font-bold text-slate-800">Ringkasan Pengeluaran</CardTitle>
+                <p className="text-xs text-slate-400 mt-0.5">Berdasarkan kategori</p>
               </div>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
                 <MoreHorizontal className="h-4 w-4" />
@@ -336,13 +336,13 @@ export default function Dashboard() {
                 <Tabs value={activityTab} onValueChange={(v) => setActivityTab(v as any)} className="w-full sm:w-auto">
                   <TabsList className="bg-slate-100 p-1 rounded-xl h-10">
                     <TabsTrigger value="income" className="rounded-lg text-sm px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                      Latest Income
+                      Pemasukan Terbaru
                       <Badge className="ml-2 bg-emerald-100 text-emerald-600 text-[10px] px-1.5 h-5 border-0">
                         {recentActivities.filter(a => a.type === "income").length}
                       </Badge>
                     </TabsTrigger>
                     <TabsTrigger value="expense" className="rounded-lg text-sm px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                      Latest Expense
+                      Pengeluaran Terbaru
                       <Badge className="ml-2 bg-red-100 text-red-500 text-[10px] px-1.5 h-5 border-0">
                         {recentActivities.filter(a => a.type === "expense").length}
                       </Badge>
@@ -352,7 +352,7 @@ export default function Dashboard() {
                 <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input 
-                    placeholder="Search..." 
+                    placeholder="Cari..." 
                     value={searchTerm} 
                     onChange={(e) => setSearchTerm(e.target.value)} 
                     className="pl-10 bg-slate-50 border-slate-200 text-sm w-full sm:w-[200px] rounded-xl h-10" 
@@ -364,9 +364,9 @@ export default function Dashboard() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-slate-100 hover:bg-transparent">
-                    <TableHead className="text-slate-400 font-semibold text-xs uppercase">Activity</TableHead>
-                    <TableHead className="text-slate-400 font-semibold text-xs uppercase">Date</TableHead>
-                    <TableHead className="text-slate-400 font-semibold text-xs uppercase">Amount</TableHead>
+                    <TableHead className="text-slate-400 font-semibold text-xs uppercase">Aktivitas</TableHead>
+                    <TableHead className="text-slate-400 font-semibold text-xs uppercase">Tanggal</TableHead>
+                    <TableHead className="text-slate-400 font-semibold text-xs uppercase">Jumlah</TableHead>
                     <TableHead className="text-slate-400 font-semibold text-xs uppercase">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -394,7 +394,7 @@ export default function Dashboard() {
                       </TableCell>
                       <TableCell>
                         <Badge className={`text-xs font-medium px-2.5 py-1 rounded-full border-0 ${activity.status === "completed" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}>
-                          {activity.status}
+                          {activity.status === "completed" ? "Selesai" : "Tertunda"}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -403,14 +403,14 @@ export default function Dashboard() {
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-10 text-slate-400">
                         <Search className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                        <p className="text-sm">No activities found</p>
+                        <p className="text-sm">Tidak ada aktivitas</p>
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
               <Button variant="link" onClick={() => navigate("/vip/transaction-history")} className="w-full mt-4 text-[#487FFF] hover:text-blue-700 text-sm font-medium">
-                View All Transactions
+                Lihat Semua Transaksi
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </CardContent>
@@ -419,9 +419,9 @@ export default function Dashboard() {
           {/* Top Categories Side Panel */}
           <Card className="bg-white border-0 rounded-2xl shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-lg font-bold text-slate-800">Top Categories</CardTitle>
+              <CardTitle className="text-lg font-bold text-slate-800">Kategori Teratas</CardTitle>
               <Button variant="link" className="text-[#487FFF] text-xs p-0 h-auto font-medium">
-                View All
+                Lihat Semua
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -440,7 +440,7 @@ export default function Dashboard() {
               {topCategories.length === 0 && (
                 <div className="text-center py-8 text-slate-400">
                   <Target className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                  <p className="text-sm">No categories yet</p>
+                  <p className="text-sm">Belum ada kategori</p>
                 </div>
               )}
             </CardContent>
@@ -450,10 +450,10 @@ export default function Dashboard() {
         {/* My Wallet Section */}
         <Card className="bg-white border-0 rounded-2xl shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-lg font-bold text-slate-800">My Wallet</CardTitle>
+            <CardTitle className="text-lg font-bold text-slate-800">Dompet Saya</CardTitle>
             <Button size="sm" onClick={() => navigate("/vip/settings/accounts")} className="bg-[#487FFF] hover:bg-blue-600 text-white rounded-xl text-xs h-9 px-4 shadow-sm">
               <Plus className="h-4 w-4 mr-1.5" />
-              Add Account
+              Tambah Akun
             </Button>
           </CardHeader>
           <CardContent>
@@ -461,7 +461,7 @@ export default function Dashboard() {
               {bankAccounts.slice(0, 4).map((account) => (
                 <div key={account.id} className="relative p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
                   <Badge className={`absolute top-3 right-3 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border-0 ${account.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                    {account.is_active ? "Active" : "Inactive"}
+                    {account.is_active ? "Aktif" : "Tidak Aktif"}
                   </Badge>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100">
@@ -478,9 +478,9 @@ export default function Dashboard() {
               {bankAccounts.length === 0 && (
                 <div className="col-span-full text-center py-10 text-slate-400">
                   <Wallet className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-                  <p className="text-sm font-medium mb-2">No bank accounts yet</p>
+                  <p className="text-sm font-medium mb-2">Belum ada akun bank</p>
                   <Button variant="link" onClick={() => navigate("/vip/settings/accounts")} className="text-[#487FFF] text-sm">
-                    Add your first account
+                    Tambah akun pertama Anda
                   </Button>
                 </div>
               )}
