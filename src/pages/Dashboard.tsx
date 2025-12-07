@@ -160,9 +160,9 @@ export default function Dashboard() {
 
   const formatCurrency = (amount: number) => formatCurrencyLib(amount);
   const formatShort = (amount: number) => {
-    if (amount >= 1000000000) return `Rp ${(amount / 1000000000).toFixed(1)}B`;
-    if (amount >= 1000000) return `Rp ${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `Rp ${(amount / 1000).toFixed(0)}K`;
+    if (amount >= 1000000000) return `Rp ${(amount / 1000000000).toFixed(1)} miliar`;
+    if (amount >= 1000000) return `Rp ${(amount / 1000000).toFixed(1)} juta`;
+    if (amount >= 1000) return `Rp ${(amount / 1000).toFixed(0)} rb`;
     return `Rp ${amount}`;
   };
 
@@ -272,7 +272,7 @@ export default function Dashboard() {
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(0)}M` : `${(v / 1000).toFixed(0)}K`} width={45} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(0)} jt` : `${(v / 1000).toFixed(0)} rb`} width={45} />
                     <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
                     <Area type="monotone" dataKey="income" stroke="#487FFF" strokeWidth={2.5} fill="url(#incomeGradient)" />
                     <Area type="monotone" dataKey="expenses" stroke="#45B7CD" strokeWidth={2.5} fill="url(#expenseGradient)" />
