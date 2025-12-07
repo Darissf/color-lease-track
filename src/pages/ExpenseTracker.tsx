@@ -646,35 +646,38 @@ export default function ExpenseTracker() {
                       <TableCell className="text-center font-medium text-muted-foreground">
                         {startIndex + index + 1}
                       </TableCell>
-                      <TableCell>{format(new Date(expense.date), "dd MMM yyyy")}</TableCell>
-                      <TableCell className="font-medium">{expense.transaction_name || "-"}</TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">{format(new Date(expense.date), "dd MMM yyyy")}</TableCell>
+                      <TableCell className="font-medium max-w-[150px] whitespace-nowrap truncate" title={expense.transaction_name || "-"}>
+                        {expense.transaction_name || "-"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <CategoryBadge category={expense.category} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <span className="text-xs font-semibold text-rose-600">
                           {formatCurrency(expense.amount)}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap max-w-[180px]">
                         {expense.bank_accounts ? (
                           <div className="flex items-center gap-2">
                             <BankLogo bankName={expense.bank_accounts.bank_name} size="sm" />
-                            <div className="text-sm">
-                              <div className="font-medium">{expense.bank_accounts.bank_name}</div>
-                              <div className="text-muted-foreground text-xs">{expense.bank_accounts.account_number}</div>
-                            </div>
+                            <span className="text-sm font-medium truncate" title={`${expense.bank_accounts.bank_name} - ${expense.bank_accounts.account_number}`}>
+                              {expense.bank_accounts.bank_name}
+                            </span>
                           </div>
                         ) : "-"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Checkbox
                           checked={expense.checked}
                           onCheckedChange={() => handleCheckToggle(expense.id, expense.checked)}
                           className="border-2 border-emerald-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-emerald-500 data-[state=checked]:to-green-600"
                         />
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-muted-foreground">{expense.description || "-"}</TableCell>
+                      <TableCell className="max-w-[150px] whitespace-nowrap truncate text-muted-foreground" title={expense.description || "-"}>
+                        {expense.description || "-"}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           <Button
