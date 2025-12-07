@@ -26,13 +26,13 @@ export const CategoryBadge = ({ category, size = "md", showIcon = true }: Catego
     <Badge 
       variant="outline" 
       className={cn(
-        "flex items-center gap-1.5 font-medium border-2 transition-all duration-300",
-        "hover:scale-110 hover:shadow-xl",
-        `${style.bg} ${style.border}`,
+        "flex items-center gap-1.5 font-semibold border-0 text-white shadow-lg",
+        "transition-all duration-300 hover:scale-105 hover:shadow-xl",
+        style.bg,
         sizeClasses[size]
       )}
     >
-      {showIcon && <Icon className={size === "sm" ? "h-3 w-3" : size === "md" ? "h-4 w-4" : "h-5 w-5"} />}
+      {showIcon && <Icon className={cn("text-white", size === "sm" ? "h-3 w-3" : size === "md" ? "h-4 w-4" : "h-5 w-5")} />}
       {category}
     </Badge>
   );
