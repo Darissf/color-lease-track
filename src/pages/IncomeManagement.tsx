@@ -22,15 +22,24 @@ import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
 import { PaginationControls } from "@/components/shared/PaginationControls";
 import { useAppTheme } from "@/contexts/AppThemeContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface BankAccount {
+  id: string;
+  bank_name: string;
+  account_number: string;
+}
 
 interface IncomeSource {
   id: string;
   source_name: string;
   bank_name: string | null;
+  bank_account_id: string | null;
   amount: number | null;
   date: string | null;
   contract_id: string | null;
   keterangan?: string | null;
+  bank_accounts?: BankAccount | null;
 }
 
 export default function IncomeManagement() {
@@ -39,6 +48,7 @@ export default function IncomeManagement() {
   const { activeTheme } = useAppTheme();
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
   const [filteredIncome, setFilteredIncome] = useState<IncomeSource[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,18 +60,30 @@ export default function IncomeManagement() {
   });
   const [formData, setFormData] = useState({
     source_name: "",
-    bank_name: "",
+    bank_account_id: "",
     amount: "",
     date: getNowInJakarta(),
   });
 
   useEffect(() => {
     fetchIncomeSources();
+    fetchBankAccounts();
   }, [user]);
 
   useEffect(() => {
     filterIncomeSources();
   }, [incomeSources, filterMonth]);
+
+  const fetchBankAccounts = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("bank_accounts")
+      .select("id, bank_name, account_number")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("bank_name");
+    setBankAccounts(data || []);
+  };
 
   const fetchIncomeSources = async () => {
     if (!user) return;
@@ -71,7 +93,8 @@ export default function IncomeManagement() {
       .from("income_sources")
       .select(`
         *,
-        rental_contracts!income_sources_contract_id_fkey(keterangan)
+        rental_contracts!income_sources_contract_id_fkey(keterangan),
+        bank_accounts(id, bank_name, account_number)
       `)
       .eq("user_id", user.id)
       .order("date", { ascending: false });
@@ -103,10 +126,14 @@ export default function IncomeManagement() {
     e.preventDefault();
     if (!user) return;
 
+    // Find the selected bank account to get bank_name for backward compatibility
+    const selectedBank = bankAccounts.find(b => b.id === formData.bank_account_id);
+
     const payload = {
       user_id: user.id,
       source_name: formData.source_name,
-      bank_name: formData.bank_name || null,
+      bank_account_id: formData.bank_account_id || null,
+      bank_name: selectedBank?.bank_name || null, // Keep bank_name for backward compatibility
       amount: parseFloat(formData.amount) || null,
       date: getJakartaDateString(formData.date),
     };
@@ -143,7 +170,7 @@ export default function IncomeManagement() {
     setEditingId(income.id);
     setFormData({
       source_name: income.source_name,
-      bank_name: income.bank_name || "",
+      bank_account_id: income.bank_account_id || "",
       amount: income.amount?.toString() || "",
       date: income.date ? new Date(income.date) : getNowInJakarta(),
     });
@@ -169,7 +196,7 @@ export default function IncomeManagement() {
   const resetForm = () => {
     setFormData({
       source_name: "",
-      bank_name: "",
+      bank_account_id: "",
       amount: "",
       date: getNowInJakarta(),
     });
@@ -308,14 +335,25 @@ export default function IncomeManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="bank_name">Nama Bank / Metode</Label>
-                  <Input
-                    id="bank_name"
-                    value={formData.bank_name}
-                    onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                    placeholder="BCA, Mandiri, Cash, dll"
-                    className="border-2 border-emerald-500/20 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/50 transition-all"
-                  />
+                  <Label htmlFor="bank_account_id">Rekening Bank</Label>
+                  <Select
+                    value={formData.bank_account_id}
+                    onValueChange={(value) => setFormData({ ...formData, bank_account_id: value })}
+                  >
+                    <SelectTrigger className="border-2 border-emerald-500/20 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/50 transition-all">
+                      <SelectValue placeholder="Pilih rekening bank" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map((bank) => (
+                        <SelectItem key={bank.id} value={bank.id}>
+                          <div className="flex items-center gap-2">
+                            <BankLogo bankName={bank.bank_name} size="sm" />
+                            <span>{bank.bank_name} - {bank.account_number}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -483,8 +521,15 @@ export default function IncomeManagement() {
                         </TableCell>
                         <TableCell>{income.date ? format(new Date(income.date), "dd MMM yyyy") : "-"}</TableCell>
                         <TableCell className="font-medium">{income.source_name}</TableCell>
-                        <TableCell>
-                          {income.bank_name ? (
+                      <TableCell className="whitespace-nowrap max-w-[180px]">
+                          {income.bank_accounts ? (
+                            <div className="flex items-center gap-2">
+                              <BankLogo bankName={income.bank_accounts.bank_name} size="sm" />
+                              <span className="text-sm font-medium truncate" title={`${income.bank_accounts.bank_name} - ${income.bank_accounts.account_number}`}>
+                                {income.bank_accounts.bank_name}
+                              </span>
+                            </div>
+                          ) : income.bank_name ? (
                             <div className="flex items-center gap-2">
                               <BankLogo bankName={income.bank_name} size="sm" />
                               <span className="text-sm font-medium">{income.bank_name}</span>

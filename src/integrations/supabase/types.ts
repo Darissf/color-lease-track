@@ -1962,6 +1962,7 @@ export type Database = {
       income_sources: {
         Row: {
           amount: number | null
+          bank_account_id: string | null
           bank_name: string | null
           contract_id: string | null
           created_at: string
@@ -1973,6 +1974,7 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          bank_account_id?: string | null
           bank_name?: string | null
           contract_id?: string | null
           created_at?: string
@@ -1984,6 +1986,7 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          bank_account_id?: string | null
           bank_name?: string | null
           contract_id?: string | null
           created_at?: string
@@ -1994,6 +1997,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "income_sources_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "income_sources_contract_id_fkey"
             columns: ["contract_id"]
@@ -4345,6 +4355,10 @@ export type Database = {
         Args: { p_budget_id: string; p_template_id: string; p_user_id: string }
         Returns: undefined
       }
+      calculate_bank_balance: {
+        Args: { p_bank_account_id: string }
+        Returns: number
+      }
       check_user_role: {
         Args: { role_name: string; user_id: string }
         Returns: boolean
@@ -4419,6 +4433,15 @@ export type Database = {
           net_balance: number
           total_expense: number
           total_income: number
+        }[]
+      }
+      get_user_bank_balances: {
+        Args: { p_user_id: string }
+        Returns: {
+          account_number: string
+          bank_account_id: string
+          bank_name: string
+          calculated_balance: number
         }[]
       }
       get_users_with_roles: {
