@@ -415,7 +415,7 @@ export default function ExpenseTracker() {
                   <SelectTrigger className="border-2 border-orange-500/20 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/50">
                     <SelectValue placeholder="Pilih kategori" />
                   </SelectTrigger>
-                  <SelectContent>
+                <SelectContent className="max-h-[280px] overflow-y-auto">
                     {EXPENSE_CATEGORIES.map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
