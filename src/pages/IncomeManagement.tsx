@@ -492,11 +492,9 @@ export default function IncomeManagement() {
                           ) : "-"}
                         </TableCell>
                         <TableCell>
-                          <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                            <span className="text-sm font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent">
-                              {formatCurrency(income.amount)}
-                            </span>
-                          </div>
+                          <span className="text-xs font-semibold text-emerald-600">
+                            {formatCurrency(income.amount)}
+                          </span>
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">{income.keterangan || "-"}</TableCell>
                         <TableCell className="text-right">
