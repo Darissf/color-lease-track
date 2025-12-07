@@ -27,6 +27,7 @@ import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
 import { PaginationControls } from "@/components/shared/PaginationControls";
 import { useAppTheme } from "@/contexts/AppThemeContext";
+import { getCategoryStyle } from "@/lib/categoryColors";
 
 // KATEGORI PENGELUARAN
 const EXPENSE_CATEGORIES = [
@@ -415,10 +416,21 @@ export default function ExpenseTracker() {
                   <SelectTrigger className="border-2 border-orange-500/20 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/50">
                     <SelectValue placeholder="Pilih kategori" />
                   </SelectTrigger>
-                <SelectContent className="max-h-[280px] overflow-y-auto">
-                    {EXPENSE_CATEGORIES.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
+                  <SelectContent className="max-h-[280px] overflow-y-auto">
+                    {EXPENSE_CATEGORIES.map(cat => {
+                      const style = getCategoryStyle(cat);
+                      const Icon = style.icon;
+                      return (
+                        <SelectItem key={cat} value={cat}>
+                          <div className="flex items-center gap-2">
+                            <div className={cn("w-6 h-6 rounded-full flex items-center justify-center shadow-md", style.bg)}>
+                              <Icon className="h-3 w-3 text-white" />
+                            </div>
+                            <span>{cat}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
