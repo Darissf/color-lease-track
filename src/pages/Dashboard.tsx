@@ -135,13 +135,27 @@ export default function Dashboard() {
       setStats({ totalBalance, totalIncome, totalExpenses, totalSavings, remainingBudget, balanceChange: 8.5, incomeChange: 12.5, expenseChange: -5.2, savingsChange: 15.3 });
       setBankAccounts(bankRes.data || []);
 
-      // Generate cash flow data
+      // Generate cash flow data from actual database data
       const months = period === "month" ? 7 : 12;
       const flowData = [];
       for (let i = months - 1; i >= 0; i--) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
         const monthName = date.toLocaleDateString("id", { month: "short" });
-        flowData.push({ month: monthName, income: Math.random() * 50000000 + 20000000, expenses: Math.random() * 30000000 + 10000000 });
+        
+        // Calculate income and expense per month from fetched data
+        const monthIncome = incomeRes.data?.filter(inc => {
+          const incDate = new Date(inc.date);
+          return incDate >= monthStart && incDate <= monthEnd;
+        }).reduce((sum, inc) => sum + (inc.amount || 0), 0) || 0;
+        
+        const monthExpense = expenseRes.data?.filter(exp => {
+          const expDate = new Date(exp.date);
+          return expDate >= monthStart && expDate <= monthEnd;
+        }).reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
+        
+        flowData.push({ month: monthName, income: monthIncome, expenses: monthExpense });
       }
       setCashFlowData(flowData);
 
@@ -163,11 +177,22 @@ export default function Dashboard() {
     return `Rp ${amount.toLocaleString('id-ID')}`;
   };
 
-  const filteredActivities = recentActivities.filter(a => 
-    a.type === activityTab && a.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredActivities = useMemo(() => 
+    recentActivities.filter(a => 
+      a.type === activityTab && a.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ), 
+    [recentActivities, activityTab, searchTerm]
   );
 
   const topCategories = useMemo(() => expenseCategories.slice(0, 5), [expenseCategories]);
+
+  // Memoize PieChart data to prevent re-creation on every render
+  const pieChartData = useMemo(() => 
+    expenseCategories.length > 0 
+      ? expenseCategories 
+      : [{ name: "No Data", value: 1, color: "#E2E8F0" }], 
+    [expenseCategories]
+  );
 
   if (loading) return <DashboardLoadingSkeleton />;
 
@@ -295,7 +320,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={expenseCategories.length > 0 ? expenseCategories : [{ name: "No Data", value: 1, color: "#E2E8F0" }]}
+                      data={pieChartData}
                       cx="50%"
                       cy="50%"
                       innerRadius={50}
@@ -303,7 +328,7 @@ export default function Dashboard() {
                       paddingAngle={3}
                       dataKey="value"
                     >
-                      {(expenseCategories.length > 0 ? expenseCategories : [{ name: "No Data", value: 1, color: "#E2E8F0" }]).map((entry, index) => (
+                      {pieChartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
