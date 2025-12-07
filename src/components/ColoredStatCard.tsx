@@ -56,11 +56,13 @@ export const ColoredStatCard = ({ title, value, icon: Icon, gradient, trend, sub
       )}>
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <p className={cn(
-              "text-sm font-medium mb-1",
-              activeTheme === 'japanese' ? "text-white/80" : "text-muted-foreground"
-            )}>{title}</p>
-            <div className="text-xl font-semibold">{value}</div>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <p className={cn(
+                "text-sm font-medium",
+                activeTheme === 'japanese' ? "text-white/80" : "text-muted-foreground"
+              )}>{title}</p>
+              <div className="text-base font-semibold">{value}</div>
+            </div>
             {subtitle && <p className={cn(
               "text-xs mt-1",
               activeTheme === 'japanese' ? "text-white/70" : "text-muted-foreground"
