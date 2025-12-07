@@ -487,7 +487,15 @@ export default function Login() {
           
           {!show2FA && !showForgotPassword && !showTempCodeInput && (
             <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
-              Untuk bantuan lebih lanjut, hubungi administrator
+              Untuk bantuan lebih lanjut, hubungi{' '}
+              <a 
+                href="https://wa.me/6289666666632" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                +6289666666632
+              </a>
             </div>
           )}
         </CardContent>
