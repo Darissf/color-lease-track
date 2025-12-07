@@ -60,7 +60,7 @@ export const ColoredStatCard = ({ title, value, icon: Icon, gradient, trend, sub
               "text-sm font-medium mb-1",
               activeTheme === 'japanese' ? "text-white/80" : "text-muted-foreground"
             )}>{title}</p>
-            <div className="text-3xl font-bold">{value}</div>
+            <div className="text-xl font-semibold">{value}</div>
             {subtitle && <p className={cn(
               "text-xs mt-1",
               activeTheme === 'japanese' ? "text-white/70" : "text-muted-foreground"
