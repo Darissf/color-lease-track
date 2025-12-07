@@ -349,50 +349,24 @@ export default function IncomeManagement() {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4 space-y-4 md:space-y-6">
-        {/* Filter Section */}
-        <div className="flex flex-wrap items-center gap-2 md:gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Input
-              type="month"
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(e.target.value)}
-              className="w-40 border-2 border-emerald-500/20 focus:border-emerald-500"
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setFilterMonth(getJakartaDateString().slice(0, 7))}
-            className="border-emerald-500/30 hover:bg-emerald-50 hover:border-emerald-500"
-          >
-            Reset
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportToCSV}
-            className="ml-auto border-emerald-500/30 hover:bg-emerald-50 hover:border-emerald-500"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-        </div>
-
-        {/* 4 Stat Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+      <div className="flex-1 overflow-y-auto px-2 md:px-8 pb-4 space-y-4">
+        
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <ColoredStatCard
             title="Total Pemasukan"
             value={formatCurrency(totalIncome)}
             icon={TrendingUp}
             gradient="income"
+            subtitle={`${filteredIncome.length} transaksi`}
+            trend={filteredIncome.length > 0 ? { value: `${filteredIncome.length} item`, isPositive: true } : undefined}
           />
           <ColoredStatCard
             title="Rata-rata Harian"
             value={formatCurrency(avgDaily)}
             icon={Receipt}
             gradient="budget"
+            subtitle={`Periode ${filterMonth}`}
           />
           <ColoredStatCard
             title="Sumber Tertinggi"
@@ -403,72 +377,145 @@ export default function IncomeManagement() {
           />
           <ColoredStatCard
             title="Jumlah Transaksi"
-            value={filteredIncome.length.toString()}
+            value={`${filteredIncome.length}`}
             icon={Receipt}
-            gradient="budget"
+            gradient="income"
             subtitle={`Dari ${incomeSources.length} total`}
           />
         </div>
 
+        {/* Filters Card */}
+        <Card className={cn(
+          "border-2 border-emerald-500/20 shadow-lg",
+          activeTheme === 'japanese' && "bg-slate-900/90 border-slate-700"
+        )}>
+          <CardHeader className="bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 border-b-2 border-emerald-500/20">
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+              <CardTitle className={cn(
+                "flex items-center gap-3",
+                activeTheme === 'japanese' && 'text-white'
+              )}>
+                <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600">
+                  <Filter className="h-5 w-5 text-white" />
+                </div>
+                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Filter & Export</span>
+              </CardTitle>
+              <GradientButton onClick={exportToCSV} variant="income" size="sm" icon={Download}>
+                Export CSV
+              </GradientButton>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Bulan</Label>
+                <Input
+                  type="month"
+                  value={filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  className="border-2 border-emerald-500/20 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/50"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setFilterMonth(getJakartaDateString().slice(0, 7))}
+                  className="border-2 border-emerald-500/20 hover:bg-emerald-500/10 hover:border-emerald-500"
+                >
+                  Reset ke Bulan Ini
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Income Sources Table */}
-        <Card className="bg-card border shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <Receipt className="h-5 w-5 text-emerald-600" />
-              Daftar Sumber Pemasukan
+        <Card className="border-2 border-emerald-500/20 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 border-b-2 border-emerald-500/20">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600">
+                <Receipt className="h-5 w-5 text-white" />
+              </div>
+              <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Daftar Sumber Pemasukan</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {loading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading...</div>
-            ) : filteredIncome.length > 0 ? (
-              <>
+              <p>Loading...</p>
+            ) : filteredIncome.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Belum ada data pemasukan. Klik tombol "Tambah Pemasukan" untuk memulai.</p>
+            ) : (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">No</TableHead>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>Keterangan</TableHead>
-                      <TableHead>Bank/Metode</TableHead>
-                      <TableHead className="text-right">Jumlah</TableHead>
-                      <TableHead className="hidden md:table-cell">Catatan</TableHead>
-                      <TableHead className="text-right w-24">Aksi</TableHead>
+                    <TableRow className="bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 border-b-2 border-emerald-500/20">
+                      <TableHead className="font-semibold w-[60px]">
+                        <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">No</span>
+                      </TableHead>
+                      <TableHead className="font-semibold">
+                        <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Tanggal</span>
+                      </TableHead>
+                      <TableHead className="font-semibold">
+                        <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Sumber</span>
+                      </TableHead>
+                      <TableHead className="font-semibold">
+                        <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Bank/Metode</span>
+                      </TableHead>
+                      <TableHead className="font-semibold">
+                        <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Jumlah</span>
+                      </TableHead>
+                      <TableHead className="font-semibold">
+                        <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Keterangan</span>
+                      </TableHead>
+                      <TableHead className="text-right font-semibold">
+                        <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Aksi</span>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedIncomeSources.map((income, index) => (
-                      <TableRow key={income.id} className="hover:bg-accent/50 transition-colors">
-                        <TableCell className="font-medium">{startIndex + index + 1}</TableCell>
-                        <TableCell>{income.date ? new Date(income.date).toLocaleDateString('id-ID') : "-"}</TableCell>
+                      <TableRow 
+                        key={income.id}
+                        className="hover:bg-gradient-to-r hover:from-emerald-500/5 hover:to-teal-500/5 transition-all duration-300 hover:shadow-md"
+                      >
+                        <TableCell className="text-center font-medium text-muted-foreground">
+                          {startIndex + index + 1}
+                        </TableCell>
+                        <TableCell>{income.date ? format(new Date(income.date), "dd MMM yyyy") : "-"}</TableCell>
                         <TableCell className="font-medium">{income.source_name}</TableCell>
                         <TableCell>
                           {income.bank_name ? (
                             <div className="flex items-center gap-2">
                               <BankLogo bankName={income.bank_name} size="sm" />
-                              <span>{income.bank_name}</span>
+                              <span className="text-sm font-medium">{income.bank_name}</span>
                             </div>
                           ) : "-"}
                         </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          <span className={cn(
-                            activeTheme === 'japanese' ? "text-gradient-income" : "text-emerald-600"
-                          )}>{formatCurrency(income.amount)}</span>
+                        <TableCell>
+                          <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                            <span className="text-sm font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent">
+                              {formatCurrency(income.amount)}
+                            </span>
+                          </div>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px] truncate">
-                          {income.keterangan || "-"}
-                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground">{income.keterangan || "-"}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button size="sm" variant="ghost" onClick={() => handleEdit(income)}>
-                              <Edit className="h-4 w-4" />
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(income)}
+                              className="hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white hover:border-transparent transition-all group"
+                            >
+                              <Edit className="h-4 w-4 group-hover:scale-110 transition-transform" />
                             </Button>
                             <Button
                               size="sm"
-                              variant="ghost"
+                              variant="destructive"
                               onClick={() => handleDelete(income.id)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                              className="hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all group"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
                             </Button>
                           </div>
                         </TableCell>
@@ -489,10 +536,6 @@ export default function IncomeManagement() {
                   }}
                   storageKey="incomeManagement"
                 />
-              </>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                Belum ada sumber pemasukan. Klik tombol "Tambah Pemasukan" untuk memulai.
               </div>
             )}
           </CardContent>
