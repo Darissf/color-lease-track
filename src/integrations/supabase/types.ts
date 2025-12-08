@@ -1024,6 +1024,7 @@ export type Database = {
           ktp_files: Json | null
           nama: string
           nomor_telepon: string
+          phone_numbers: Json | null
           updated_at: string
           user_id: string
           whatsapp_checked_at: string | null
@@ -1036,6 +1037,7 @@ export type Database = {
           ktp_files?: Json | null
           nama: string
           nomor_telepon: string
+          phone_numbers?: Json | null
           updated_at?: string
           user_id: string
           whatsapp_checked_at?: string | null
@@ -1048,6 +1050,7 @@ export type Database = {
           ktp_files?: Json | null
           nama?: string
           nomor_telepon?: string
+          phone_numbers?: Json | null
           updated_at?: string
           user_id?: string
           whatsapp_checked_at?: string | null

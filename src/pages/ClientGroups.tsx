@@ -26,10 +26,17 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
+interface PhoneEntry {
+  nomor: string;
+  label: string;
+  has_whatsapp: boolean | null;
+}
+
 interface ClientGroup {
   id: string;
   nama: string;
   nomor_telepon: string;
+  phone_numbers: PhoneEntry[];
   icon: string;
   ktp_files: Array<{ name: string; url: string }>;
   has_whatsapp: boolean | null;
@@ -221,11 +228,11 @@ const ClientGroups = () => {
 
   const [groupForm, setGroupForm] = useState({
     nama: "",
-    nomor_telepon: "",
     icon: "👤",
-    ktp_files: [] as Array<{ name: string; url: string }>
+    ktp_files: [] as Array<{ name: string; url: string }>,
+    phone_numbers: [{ nomor: "", label: "Utama", has_whatsapp: null }] as PhoneEntry[]
   });
-  const [phoneError, setPhoneError] = useState<string>("");
+  const [phoneErrors, setPhoneErrors] = useState<Record<number, string>>({});
   const [ktpFiles, setKtpFiles] = useState<File[]>([]);
   const [iconImageFile, setIconImageFile] = useState<File | null>(null);
   const [iconImagePreview, setIconImagePreview] = useState<string | null>(null);
@@ -237,19 +244,25 @@ const ClientGroups = () => {
     }
   }, [user]);
 
-  // Debounced WhatsApp validation
+  // Debounced WhatsApp validation for each phone number
   useEffect(() => {
-    if (!groupForm.nomor_telepon || phoneError) {
-      setWhatsappStatus(null);
+    const validPhones = groupForm.phone_numbers.filter(p => p.nomor.trim() && !phoneErrors[groupForm.phone_numbers.indexOf(p)]);
+    if (validPhones.length === 0) {
       return;
     }
 
     const timer = setTimeout(async () => {
-      await validateWhatsApp(groupForm.nomor_telepon);
+      // Validate each phone number
+      for (let i = 0; i < groupForm.phone_numbers.length; i++) {
+        const phone = groupForm.phone_numbers[i];
+        if (phone.nomor.trim() && !phoneErrors[i]) {
+          await validateWhatsAppForPhone(i, phone.nomor);
+        }
+      }
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [groupForm.nomor_telepon, phoneError]);
+  }, [groupForm.phone_numbers]);
 
   const fetchData = async () => {
     try {
@@ -265,6 +278,7 @@ const ClientGroups = () => {
       setClientGroups((groups || []).map(g => ({
         ...g,
         ktp_files: (g.ktp_files as any) || [],
+        phone_numbers: Array.isArray(g.phone_numbers) ? (g.phone_numbers as unknown as PhoneEntry[]) : [],
         has_whatsapp: g.has_whatsapp,
         whatsapp_checked_at: g.whatsapp_checked_at
       })));
@@ -389,10 +403,9 @@ const ClientGroups = () => {
     return uploadedFiles;
   };
 
-  const validateWhatsApp = async (phoneNumber: string) => {
+  const validateWhatsAppForPhone = async (index: number, phoneNumber: string) => {
     try {
       setValidatingWhatsApp(true);
-      setWhatsappStatus(null);
 
       const { data, error } = await supabase.functions.invoke("validate-whatsapp", {
         body: { phoneNumber }
@@ -407,16 +420,15 @@ const ClientGroups = () => {
         return;
       }
 
-      setWhatsappStatus({
-        has_whatsapp: data.has_whatsapp,
-        confidence: data.confidence,
-        reason: data.reason
-      });
+      // Update specific phone's has_whatsapp status
+      const updated = [...groupForm.phone_numbers];
+      updated[index] = { ...updated[index], has_whatsapp: data.has_whatsapp };
+      setGroupForm({ ...groupForm, phone_numbers: updated });
 
       if (data.has_whatsapp) {
-        toast.success(`✅ ${data.confidence === "high" ? "Kemungkinan besar" : "Mungkin"} ada WhatsApp`);
+        toast.success(`✅ Nomor ${index + 1}: ${data.confidence === "high" ? "Kemungkinan besar" : "Mungkin"} ada WhatsApp`);
       } else {
-        toast.info(`❌ ${data.confidence === "high" ? "Kemungkinan besar" : "Mungkin"} tidak ada WhatsApp`);
+        toast.info(`❌ Nomor ${index + 1}: ${data.confidence === "high" ? "Kemungkinan besar" : "Mungkin"} tidak ada WhatsApp`);
       }
     } catch (error: any) {
       console.error("Error validating WhatsApp:", error);
@@ -425,20 +437,66 @@ const ClientGroups = () => {
     }
   };
 
+  // Helper functions for phone management
+  const addPhoneNumber = () => {
+    setGroupForm({
+      ...groupForm,
+      phone_numbers: [...groupForm.phone_numbers, { nomor: "", label: "", has_whatsapp: null }]
+    });
+  };
+
+  const removePhoneNumber = (index: number) => {
+    if (groupForm.phone_numbers.length <= 1) return;
+    const updated = groupForm.phone_numbers.filter((_, i) => i !== index);
+    setGroupForm({ ...groupForm, phone_numbers: updated });
+    // Clear error for removed phone
+    const newErrors = { ...phoneErrors };
+    delete newErrors[index];
+    setPhoneErrors(newErrors);
+  };
+
+  const updatePhoneNumber = (index: number, field: keyof PhoneEntry, value: string | boolean | null) => {
+    const updated = [...groupForm.phone_numbers];
+    updated[index] = { ...updated[index], [field]: value };
+    setGroupForm({ ...groupForm, phone_numbers: updated });
+    
+    // Clear error when typing
+    if (field === 'nomor') {
+      const newErrors = { ...phoneErrors };
+      delete newErrors[index];
+      setPhoneErrors(newErrors);
+    }
+  };
+
   const handleSaveGroup = async () => {
     try {
-      if (!groupForm.nama || !groupForm.nomor_telepon) {
-        toast.error("Mohon lengkapi semua field");
+      // Validate phone numbers
+      const validPhones = groupForm.phone_numbers.filter(p => p.nomor.trim());
+      if (!groupForm.nama || validPhones.length === 0) {
+        toast.error("Mohon lengkapi nama dan minimal satu nomor telepon");
         return;
       }
 
-      const phoneValidation = phoneSchema.safeParse(groupForm.nomor_telepon);
-      if (!phoneValidation.success) {
-        setPhoneError(phoneValidation.error.errors[0].message);
-        toast.error(phoneValidation.error.errors[0].message);
+      // Validate each phone number format
+      let hasErrors = false;
+      const newErrors: Record<number, string> = {};
+      
+      groupForm.phone_numbers.forEach((phone, index) => {
+        if (phone.nomor.trim()) {
+          const phoneValidation = phoneSchema.safeParse(phone.nomor);
+          if (!phoneValidation.success) {
+            newErrors[index] = phoneValidation.error.errors[0].message;
+            hasErrors = true;
+          }
+        }
+      });
+
+      if (hasErrors) {
+        setPhoneErrors(newErrors);
+        toast.error("Format nomor telepon tidak valid");
         return;
       }
-      setPhoneError("");
+      setPhoneErrors({});
 
       let ktpFileUrls: Array<{ name: string; url: string }> = [];
       
@@ -463,14 +521,18 @@ const ClientGroups = () => {
         iconUrl = iconFiles[0].url;
       }
 
+      // Primary phone for backward compatibility
+      const primaryPhone = validPhones[0];
+
       const groupData = {
         user_id: user?.id,
         nama: groupForm.nama,
-        nomor_telepon: groupForm.nomor_telepon,
+        nomor_telepon: primaryPhone.nomor, // Backward compatibility
+        phone_numbers: validPhones as unknown as any, // Cast for Supabase JSON type
         icon: iconUrl,
         ktp_files: ktpFileUrls,
-        has_whatsapp: whatsappStatus?.has_whatsapp || null,
-        whatsapp_checked_at: whatsappStatus ? new Date().toISOString() : null,
+        has_whatsapp: primaryPhone.has_whatsapp ?? null,
+        whatsapp_checked_at: new Date().toISOString(),
       };
 
       if (editingGroupId) {
@@ -500,11 +562,16 @@ const ClientGroups = () => {
 
   const handleEditGroup = (group: ClientGroup) => {
     setEditingGroupId(group.id);
+    // Use phone_numbers if available, fallback to nomor_telepon for backward compatibility
+    const phoneNumbers = group.phone_numbers?.length > 0 
+      ? group.phone_numbers 
+      : [{ nomor: group.nomor_telepon, label: "Utama", has_whatsapp: group.has_whatsapp }];
+    
     setGroupForm({
       nama: group.nama,
-      nomor_telepon: group.nomor_telepon,
       icon: group.icon || "👤",
-      ktp_files: group.ktp_files || []
+      ktp_files: group.ktp_files || [],
+      phone_numbers: phoneNumbers
     });
     // Set preview if icon is an image URL
     if (group.icon?.startsWith('http')) {
@@ -566,14 +633,14 @@ const ClientGroups = () => {
     setEditingGroupId(null);
     setGroupForm({
       nama: "",
-      nomor_telepon: "",
       icon: "👤",
-      ktp_files: []
+      ktp_files: [],
+      phone_numbers: [{ nomor: "", label: "Utama", has_whatsapp: null }]
     });
     setKtpFiles([]);
     setIconImageFile(null);
     setIconImagePreview(null);
-    setPhoneError("");
+    setPhoneErrors({});
     setWhatsappStatus(null);
   };
 
@@ -587,7 +654,8 @@ const ClientGroups = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(group => 
         group.nama.toLowerCase().includes(query) || 
-        group.nomor_telepon.includes(query)
+        group.nomor_telepon.includes(query) ||
+        group.phone_numbers?.some(p => p.nomor.includes(query))
       );
     }
     
@@ -682,8 +750,13 @@ const ClientGroups = () => {
                 icon={Plus}
                 onClick={() => {
                   setEditingGroupId(null);
-                  setGroupForm({ nama: "", nomor_telepon: "", icon: "👤", ktp_files: [] });
-                  setPhoneError("");
+                  setGroupForm({ 
+                    nama: "", 
+                    icon: "👤", 
+                    ktp_files: [],
+                    phone_numbers: [{ nomor: "", label: "Utama", has_whatsapp: null }]
+                  });
+                  setPhoneErrors({});
                   setWhatsappStatus(null);
                   setIconImageFile(null);
                   setIconImagePreview(null);
@@ -815,43 +888,71 @@ const ClientGroups = () => {
                 </div>
               </div>
               <div>
-                <Label className="text-sm font-medium">Nomor Telepon</Label>
-                <div className="relative">
-                  <Input
-                    value={groupForm.nomor_telepon}
-                    onChange={(e) => {
-                      setGroupForm({ ...groupForm, nomor_telepon: e.target.value });
-                      setPhoneError("");
-                    }}
-                    placeholder="+62812345678 atau 08123456789"
-                    className={cn(
-                      "pr-10 transition-all",
-                      phoneError && "border-rose-500 focus:ring-rose-500/20",
-                      whatsappStatus?.has_whatsapp !== null && !phoneError && "border-emerald-500 focus:ring-emerald-500/20",
-                      !phoneError && !whatsappStatus && "focus:border-purple-500 focus:ring-purple-500/20"
-                    )}
-                  />
-                  {validatingWhatsApp && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                  )}
-                  {whatsappStatus && !validatingWhatsApp && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {whatsappStatus.has_whatsapp ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Nomor Telepon</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addPhoneNumber}
+                    className="h-7 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Tambah Nomor
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {groupForm.phone_numbers.map((phone, index) => (
+                    <div key={index} className="space-y-1">
+                      <div className="flex gap-2">
+                        <Input
+                          value={phone.label}
+                          onChange={(e) => updatePhoneNumber(index, 'label', e.target.value)}
+                          placeholder="Label"
+                          className="w-24 text-sm"
+                        />
+                        <div className="relative flex-1">
+                          <Input
+                            value={phone.nomor}
+                            onChange={(e) => updatePhoneNumber(index, 'nomor', e.target.value)}
+                            placeholder="+62812345678 atau 08123456789"
+                            className={cn(
+                              "pr-10 transition-all",
+                              phoneErrors[index] && "border-rose-500 focus:ring-rose-500/20",
+                              phone.has_whatsapp === true && !phoneErrors[index] && "border-emerald-500",
+                              phone.has_whatsapp === false && !phoneErrors[index] && "border-orange-500"
+                            )}
+                          />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            {validatingWhatsApp ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : phone.has_whatsapp === true ? (
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            ) : phone.has_whatsapp === false ? (
+                              <XCircle className="h-4 w-4 text-orange-500" />
+                            ) : null}
+                          </div>
+                        </div>
+                        {groupForm.phone_numbers.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removePhoneNumber(index)}
+                            className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {phoneErrors[index] && (
+                        <p className="text-xs text-destructive ml-26">{phoneErrors[index]}</p>
                       )}
                     </div>
-                  )}
+                  ))}
                 </div>
-                {phoneError && (
-                  <p className="text-xs text-destructive mt-1">{phoneError}</p>
-                )}
-                {whatsappStatus && !phoneError && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {whatsappStatus.reason}
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Nomor pertama akan digunakan sebagai nomor utama
+                </p>
               </div>
               <div>
                 <Label>Upload KTP (Multiple)</Label>
@@ -925,7 +1026,6 @@ const ClientGroups = () => {
                 <TableHead className="text-center w-20">No</TableHead>
                 <TableHead>Nama Client</TableHead>
                 <TableHead>Nomor Telepon</TableHead>
-                <TableHead className="text-center">WhatsApp</TableHead>
                 <TableHead className="text-center">Dokumen KTP</TableHead>
                 <TableHead>Tanggal Dibuat</TableHead>
                 <TableHead className="text-center w-24">Aksi</TableHead>
@@ -934,7 +1034,7 @@ const ClientGroups = () => {
             <TableBody>
               {paginatedGroups.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p>Belum ada client</p>
                   </TableCell>
@@ -999,41 +1099,30 @@ const ClientGroups = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="font-mono text-sm">{group.nomor_telepon}</span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {group.has_whatsapp !== null ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  {group.has_whatsapp ? (
-                                    <CheckCircle className="h-5 w-5 mx-auto text-green-600 dark:text-green-400" />
-                                  ) : (
-                                    <XCircle className="h-5 w-5 mx-auto text-red-600 dark:text-red-400" />
+                          <div className="flex flex-col gap-1">
+                            {group.phone_numbers?.length > 0 ? (
+                              group.phone_numbers.map((phone, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  {phone.label && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                      {phone.label}
+                                    </Badge>
                                   )}
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">
-                                    {group.has_whatsapp 
-                                      ? "Kemungkinan ada WhatsApp" 
-                                      : "Kemungkinan tidak ada WhatsApp"}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <AlertCircle className="h-5 w-5 mx-auto text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Status WhatsApp belum dicek</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
+                                  <span className="font-mono text-sm">{phone.nomor}</span>
+                                  {phone.has_whatsapp === true && (
+                                    <CheckCircle className="h-3 w-3 text-green-600" />
+                                  )}
+                                  {phone.has_whatsapp === false && (
+                                    <XCircle className="h-3 w-3 text-orange-500" />
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <span className="font-mono text-sm">{group.nomor_telepon}</span>
+                            )}
+                          </div>
                         </TableCell>
+                        {/* WhatsApp status now shown inline with phone numbers above */}
                         <TableCell className="text-center">
                           {group.ktp_files && group.ktp_files.length > 0 ? (
                             <div className="flex items-center justify-center gap-1">
