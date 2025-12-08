@@ -18,6 +18,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, A
 import BankLogo from "@/components/BankLogo";
 import { formatCurrency as formatCurrencyLib } from "@/lib/currency";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getNowInJakarta, getJakartaYear, getJakartaMonth, getJakartaDay, formatInJakarta } from "@/lib/timezone";
 
 interface DashboardStats {
   totalBalance: number;
@@ -80,7 +81,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<"month" | "year">("month");
+  const [period, setPeriod] = useState<"week" | "month" | "year">("month");
   const [searchTerm, setSearchTerm] = useState("");
   const [activityTab, setActivityTab] = useState<"income" | "expense">("income");
   
@@ -101,10 +102,22 @@ export default function Dashboard() {
     if (!user) return;
     setLoading(true);
     try {
-      const now = new Date();
-      const startDate = period === "month" 
-        ? new Date(now.getFullYear(), now.getMonth(), 1)
-        : new Date(now.getFullYear(), 0, 1);
+      const now = getNowInJakarta();
+      const year = getJakartaYear();
+      const month = getJakartaMonth();
+      const day = getJakartaDay();
+
+      let startDate: Date;
+      if (period === "week") {
+        // Senin minggu ini (0 = Minggu, jadi kita hitung mundur ke Senin)
+        const dayOfWeek = now.getDay();
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        startDate = new Date(year, month, day - daysToMonday);
+      } else if (period === "month") {
+        startDate = new Date(year, month, 1);
+      } else {
+        startDate = new Date(year, 0, 1);
+      }
 
       const [bankRes, incomeRes, expenseRes, savingsRes, budgetRes] = await Promise.all([
         supabase.from("bank_accounts").select("*").eq("user_id", user.id).eq("is_active", true),
@@ -136,26 +149,49 @@ export default function Dashboard() {
       setBankAccounts(bankRes.data || []);
 
       // Generate cash flow data from actual database data
-      const months = period === "month" ? 7 : 12;
       const flowData = [];
-      for (let i = months - 1; i >= 0; i--) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-        const monthName = date.toLocaleDateString("id", { month: "short" });
-        
-        // Calculate income and expense per month from fetched data
-        const monthIncome = incomeRes.data?.filter(inc => {
-          const incDate = new Date(inc.date);
-          return incDate >= monthStart && incDate <= monthEnd;
-        }).reduce((sum, inc) => sum + (inc.amount || 0), 0) || 0;
-        
-        const monthExpense = expenseRes.data?.filter(exp => {
-          const expDate = new Date(exp.date);
-          return expDate >= monthStart && expDate <= monthEnd;
-        }).reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
-        
-        flowData.push({ month: monthName, income: monthIncome, expenses: monthExpense });
+      
+      if (period === "week") {
+        // Untuk minggu: tampilkan 7 hari (Senin-Minggu)
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(year, month, day - i);
+          const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+          const dayName = date.toLocaleDateString("id", { weekday: "short" });
+          
+          const dayIncome = incomeRes.data?.filter(inc => {
+            const incDate = new Date(inc.date);
+            return incDate >= dayStart && incDate <= dayEnd;
+          }).reduce((sum, inc) => sum + (inc.amount || 0), 0) || 0;
+          
+          const dayExpense = expenseRes.data?.filter(exp => {
+            const expDate = new Date(exp.date);
+            return expDate >= dayStart && expDate <= dayEnd;
+          }).reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
+          
+          flowData.push({ month: dayName, income: dayIncome, expenses: dayExpense });
+        }
+      } else {
+        // Untuk bulan/tahun: tampilkan per bulan
+        const months = period === "month" ? 7 : 12;
+        for (let i = months - 1; i >= 0; i--) {
+          const date = new Date(year, month - i, 1);
+          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+          const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+          const monthName = date.toLocaleDateString("id", { month: "short" });
+          
+          const monthIncome = incomeRes.data?.filter(inc => {
+            const incDate = new Date(inc.date);
+            return incDate >= monthStart && incDate <= monthEnd;
+          }).reduce((sum, inc) => sum + (inc.amount || 0), 0) || 0;
+          
+          const monthExpense = expenseRes.data?.filter(exp => {
+            const expDate = new Date(exp.date);
+            return expDate >= monthStart && expDate <= monthEnd;
+          }).reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
+          
+          flowData.push({ month: monthName, income: monthIncome, expenses: monthExpense });
+        }
       }
       setCashFlowData(flowData);
 
@@ -214,11 +250,12 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-slate-800">Ringkasan</h1>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
-            <SelectTrigger className="w-[130px] bg-white border-slate-200 text-sm rounded-xl h-10 shadow-sm">
+          <Select value={period} onValueChange={(v) => setPeriod(v as "week" | "month" | "year")}>
+            <SelectTrigger className="w-[140px] bg-white border-slate-200 text-sm rounded-xl h-10 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="week">Minggu Ini</SelectItem>
               <SelectItem value="month">Bulan Ini</SelectItem>
               <SelectItem value="year">Tahun Ini</SelectItem>
             </SelectContent>
@@ -266,7 +303,9 @@ export default function Dashboard() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
                 <CardTitle className="text-lg font-bold text-slate-800">Arus Kas</CardTitle>
-                <p className="text-xs text-slate-400 mt-0.5">Tren Pemasukan vs Pengeluaran</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {period === "week" ? "Tren Harian" : "Tren Bulanan"} Pemasukan vs Pengeluaran
+                </p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
