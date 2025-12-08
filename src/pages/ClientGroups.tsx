@@ -420,10 +420,17 @@ const ClientGroups = () => {
         return;
       }
 
-      // Update specific phone's has_whatsapp status
-      const updated = [...groupForm.phone_numbers];
-      updated[index] = { ...updated[index], has_whatsapp: data.has_whatsapp };
-      setGroupForm({ ...groupForm, phone_numbers: updated });
+      // Use functional update to avoid stale closure issue
+      setGroupForm(prevForm => {
+        // Check if the phone number is still the same (user hasn't changed it)
+        if (prevForm.phone_numbers[index]?.nomor === phoneNumber) {
+          const updated = [...prevForm.phone_numbers];
+          updated[index] = { ...updated[index], has_whatsapp: data.has_whatsapp };
+          return { ...prevForm, phone_numbers: updated };
+        }
+        // If number has changed, don't update (user is still typing)
+        return prevForm;
+      });
 
       if (data.has_whatsapp) {
         toast.success(`✅ Nomor ${index + 1}: ${data.confidence === "high" ? "Kemungkinan besar" : "Mungkin"} ada WhatsApp`);
