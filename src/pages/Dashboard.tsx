@@ -81,7 +81,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<"week" | "month" | "year">("month");
+  const [period, setPeriod] = useState<"all" | "week" | "month" | "year">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [activityTab, setActivityTab] = useState<"income" | "expense">("income");
   
@@ -107,7 +107,7 @@ export default function Dashboard() {
       const month = getJakartaMonth();
       const day = getJakartaDay();
 
-      let startDate: Date;
+      let startDate: Date | null = null;
       if (period === "week") {
         // Senin minggu ini (0 = Minggu, jadi kita hitung mundur ke Senin)
         const dayOfWeek = now.getDay();
@@ -115,22 +115,40 @@ export default function Dashboard() {
         startDate = new Date(year, month, day - daysToMonday);
       } else if (period === "month") {
         startDate = new Date(year, month, 1);
-      } else {
+      } else if (period === "year") {
         startDate = new Date(year, 0, 1);
       }
+      // period === "all" -> startDate tetap null (tanpa filter tanggal)
 
-      const [bankRes, incomeRes, expenseRes, savingsRes, budgetRes] = await Promise.all([
+      // Build queries with conditional date filter
+      let incomeQuery = supabase.from("income_sources").select("*").eq("user_id", user.id);
+      let expenseQuery = supabase.from("expenses").select("*").eq("user_id", user.id);
+      let savingsTransQuery = supabase.from("savings_transactions").select("*").eq("user_id", user.id);
+      
+      if (startDate) {
+        incomeQuery = incomeQuery.gte("date", startDate.toISOString());
+        expenseQuery = expenseQuery.gte("date", startDate.toISOString());
+        savingsTransQuery = savingsTransQuery.gte("transaction_date", startDate.toISOString());
+      }
+
+      const [bankRes, incomeRes, expenseRes, savingsTransRes, budgetRes] = await Promise.all([
         supabase.from("bank_accounts").select("*").eq("user_id", user.id).eq("is_active", true),
-        supabase.from("income_sources").select("*").eq("user_id", user.id).gte("date", startDate.toISOString()),
-        supabase.from("expenses").select("*").eq("user_id", user.id).gte("date", startDate.toISOString()),
-        supabase.from("savings_plans").select("*").eq("user_id", user.id),
+        incomeQuery,
+        expenseQuery,
+        savingsTransQuery,
         supabase.from("monthly_budgets").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1)
       ]);
 
-      const totalBalance = bankRes.data?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0;
       const totalIncome = incomeRes.data?.reduce((sum, inc) => sum + (inc.amount || 0), 0) || 0;
       const totalExpenses = expenseRes.data?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
-      const totalSavings = savingsRes.data?.reduce((sum, sav) => sum + (sav.current_amount || 0), 0) || 0;
+      // Total Saldo = Net (Pemasukan - Pengeluaran) sesuai filter periode
+      const totalBalance = totalIncome - totalExpenses;
+      // Total Tabungan dari transaksi tabungan sesuai filter periode
+      const totalSavings = savingsTransRes.data?.reduce((sum, trans) => {
+        if (trans.transaction_type === 'deposit') return sum + (trans.amount || 0);
+        if (trans.transaction_type === 'withdraw') return sum - (trans.amount || 0);
+        return sum;
+      }, 0) || 0;
       const remainingBudget = (budgetRes.data?.[0]?.target_belanja || 0) - totalExpenses;
 
       // Calculate expense categories for donut chart
@@ -172,7 +190,7 @@ export default function Dashboard() {
           flowData.push({ month: dayName, income: dayIncome, expenses: dayExpense });
         }
       } else {
-        // Untuk bulan/tahun: tampilkan per bulan
+        // Untuk bulan/tahun/all: tampilkan per bulan
         const months = period === "month" ? 7 : 12;
         for (let i = months - 1; i >= 0; i--) {
           const date = new Date(year, month - i, 1);
@@ -250,11 +268,12 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-slate-800">Ringkasan</h1>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={period} onValueChange={(v) => setPeriod(v as "week" | "month" | "year")}>
-            <SelectTrigger className="w-[140px] bg-white border-slate-200 text-sm rounded-xl h-10 shadow-sm">
+          <Select value={period} onValueChange={(v) => setPeriod(v as "all" | "week" | "month" | "year")}>
+            <SelectTrigger className="w-[150px] bg-white border-slate-200 text-sm rounded-xl h-10 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Semua Waktu</SelectItem>
               <SelectItem value="week">Minggu Ini</SelectItem>
               <SelectItem value="month">Bulan Ini</SelectItem>
               <SelectItem value="year">Tahun Ini</SelectItem>
