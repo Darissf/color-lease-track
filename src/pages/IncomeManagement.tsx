@@ -40,6 +40,11 @@ interface IncomeSource {
   contract_id: string | null;
   keterangan?: string | null;
   bank_accounts?: BankAccount | null;
+  // Data from rental_contracts for display
+  client_name?: string | null;
+  client_icon?: string | null;
+  invoice?: string | null;
+  contract_keterangan?: string | null;
 }
 
 export default function IncomeManagement() {
@@ -93,7 +98,11 @@ export default function IncomeManagement() {
       .from("income_sources")
       .select(`
         *,
-        rental_contracts!income_sources_contract_id_fkey(keterangan),
+        rental_contracts!income_sources_contract_id_fkey(
+          invoice,
+          keterangan,
+          client_groups(nama, icon)
+        ),
         bank_accounts(id, bank_name, account_number)
       `)
       .eq("user_id", user.id)
@@ -104,7 +113,11 @@ export default function IncomeManagement() {
     } else {
       const formattedData = (data || []).map((item: any) => ({
         ...item,
-        keterangan: item.rental_contracts?.keterangan || null,
+        // Untuk kontrak sewa: ambil data klien dan invoice
+        client_name: item.rental_contracts?.client_groups?.nama || null,
+        client_icon: item.rental_contracts?.client_groups?.icon || null,
+        invoice: item.rental_contracts?.invoice || null,
+        contract_keterangan: item.rental_contracts?.keterangan || null,
       }));
       setIncomeSources(formattedData);
     }
@@ -520,8 +533,16 @@ export default function IncomeManagement() {
                           {startIndex + index + 1}
                         </TableCell>
                         <TableCell>{income.date ? format(new Date(income.date), "dd MMM yyyy") : "-"}</TableCell>
-                        <TableCell className="font-medium">{income.source_name}</TableCell>
-                      <TableCell className="whitespace-nowrap max-w-[180px]">
+                        <TableCell className="font-medium max-w-[180px] truncate" title={income.contract_id && income.client_name ? income.client_name : income.source_name}>
+                          {/* Jika dari kontrak, tampilkan nama klien. Jika tidak, tampilkan source_name */}
+                          {income.contract_id && income.client_name ? (
+                            <span className="flex items-center gap-1">
+                              {income.client_icon && <span>{income.client_icon}</span>}
+                              <span>{income.client_name}</span>
+                            </span>
+                          ) : income.source_name}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap max-w-[180px]">
                           {income.bank_accounts ? (
                             <div className="flex items-center gap-2">
                               <BankLogo bankName={income.bank_accounts.bank_name} size="sm" />
@@ -541,7 +562,12 @@ export default function IncomeManagement() {
                             {formatCurrency(income.amount)}
                           </span>
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-muted-foreground">{income.keterangan || "-"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground" title={income.contract_id ? `${income.invoice || ""} - ${income.contract_keterangan || ""}` : "-"}>
+                          {/* Jika dari kontrak, tampilkan invoice + keterangan. Jika tidak, tampilkan "-" */}
+                          {income.contract_id 
+                            ? `${income.invoice || ""} - ${income.contract_keterangan || ""}`.replace(/^- |- $|^-$/g, "").trim() || "-"
+                            : "-"}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
                             <Button
