@@ -85,9 +85,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   // Different menu for regular users vs admins
   const pagesItems = (isUser && !isAdmin && !isSuperAdmin) ? [
-    { title: "Home", url: "/vip/", icon: Home, description: "Kembali ke halaman utama" },
-    { title: "Dashboard Saya", url: "/vip/client-dashboard", icon: LayoutDashboard, description: "Lihat ringkasan dan statistik akun Anda" },
-    { title: "Kontrak Saya", url: "/vip/rental-contracts", icon: ClipboardList, description: "Kelola kontrak sewa properti Anda" },
+    { title: "Beranda", url: "/vip/", icon: Home, description: "Halaman utama" },
+    { title: "Dashboard Saya", url: "/vip/client-dashboard", icon: LayoutDashboard, description: "Ringkasan akun dan statistik Anda" },
+    { title: "Kontrak Saya", url: "/vip/my-contracts", icon: ClipboardList, description: "Lihat semua kontrak sewa Anda" },
+    { title: "Tagihan Saya", url: "/vip/my-invoices", icon: Receipt, description: "Lihat tagihan dan status pembayaran" },
+    { title: "Riwayat Pembayaran", url: "/vip/my-payments", icon: DollarSign, description: "Timeline pembayaran Anda" },
   ] : [
     { title: "Home", url: "/vip/", icon: FileText, description: "Halaman utama aplikasi" },
     { title: "Dashboard", url: "/vip/dashboard", icon: Home, description: "Lihat ringkasan keuangan dan aktivitas terkini" },
@@ -218,8 +220,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </>
           )}
 
-          {/* Admin Section */}
-          {(isSuperAdmin || user) && adminNavItems.length > 0 && (
+          {/* Admin Section - Hide for regular users */}
+          {(isAdmin || isSuperAdmin) && adminNavItems.length > 0 && (
             <>
               <div className="h-px bg-slate-100 my-3" />
               {sidebarOpen && (
