@@ -105,9 +105,14 @@ Deno.serve(async (req) => {
 
     // Update email in auth if changed
     if (email && currentProfile) {
-      const { data: authUser } = await supabaseClient.auth.admin.getUserById(user_id)
+      const { data: authUser, error: authUserError } = await supabaseClient.auth.admin.getUserById(user_id)
       
-      if (authUser.user && authUser.user.email !== email) {
+      if (authUserError) {
+        console.error('Error fetching auth user:', authUserError)
+        throw authUserError
+      }
+      
+      if (authUser?.user && authUser.user.email !== email) {
         const { error: emailError } = await supabaseClient.auth.admin.updateUserById(
           user_id,
           { email }
