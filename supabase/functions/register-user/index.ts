@@ -96,11 +96,104 @@ Deno.serve(async (req) => {
 
     if (roleError) throw roleError
 
+    // For 'user' role, try to link to client_group by phone number
+    let linkedClientGroup = null
+    if (role === 'user' && nomor_telepon) {
+      // Clean the phone number for matching
+      const cleanedPhone = nomor_telepon.replace(/\D/g, '')
+      
+      // Search for client group with matching phone number in phone_numbers JSONB array
+      const { data: clientGroups, error: clientError } = await supabaseClient
+        .from('client_groups')
+        .select('id, nama, nomor_telepon, phone_numbers')
+        .is('linked_user_id', null) // Only unlinked clients
+
+      if (!clientError && clientGroups) {
+        // Find matching client group by phone number
+        for (const clientGroup of clientGroups) {
+          const phoneNumbers = clientGroup.phone_numbers || []
+          const nomor_utama = clientGroup.nomor_telepon?.replace(/\D/g, '') || ''
+          
+          // Check main phone or phone_numbers array
+          let matched = cleanedPhone === nomor_utama || 
+            cleanedPhone.endsWith(nomor_utama) || 
+            nomor_utama.endsWith(cleanedPhone)
+          
+          if (!matched && Array.isArray(phoneNumbers)) {
+            for (const phoneEntry of phoneNumbers) {
+              const phoneNum = (phoneEntry.nomor || '').replace(/\D/g, '')
+              if (cleanedPhone === phoneNum || cleanedPhone.endsWith(phoneNum) || phoneNum.endsWith(cleanedPhone)) {
+                matched = true
+                break
+              }
+            }
+          }
+
+          if (matched) {
+            // Link this client group to the new user
+            const { error: linkError } = await supabaseClient
+              .from('client_groups')
+              .update({ linked_user_id: newUser.user.id })
+              .eq('id', clientGroup.id)
+
+            if (!linkError) {
+              linkedClientGroup = { id: clientGroup.id, nama: clientGroup.nama }
+              console.log(`Linked user ${newUser.user.id} to client group ${clientGroup.nama}`)
+            }
+            break
+          }
+        }
+      }
+
+      // Send credentials via WhatsApp if phone number is provided
+      try {
+        const appUrl = Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '') || 'https://sewascaffoldingbali.com'
+        
+        const message = `🎉 *Selamat Datang di Sewa Scaffolding Bali!*
+
+Halo *${full_name}*,
+
+Akun Anda telah berhasil dibuat.
+
+📧 *Login dengan:* ${finalEmail}
+🔑 *Password:* ${password}
+
+🔗 Silakan login di:
+${appUrl}/vip/login
+
+${linkedClientGroup ? `\n✅ Akun Anda terhubung dengan: *${linkedClientGroup.nama}*\n` : ''}
+⚠️ Segera ganti password setelah login pertama.
+
+Terima kasih! 🙏`
+
+        // Try to send via WhatsApp
+        const { error: waError } = await supabaseClient.functions.invoke('send-whatsapp-unified', {
+          body: {
+            phoneNumber: nomor_telepon,
+            message: message,
+            notificationType: 'welcome'
+          }
+        })
+
+        if (waError) {
+          console.error('Failed to send WhatsApp notification:', waError)
+        } else {
+          console.log('WhatsApp credentials sent successfully')
+        }
+      } catch (waErr) {
+        console.error('Error sending WhatsApp:', waErr)
+        // Don't fail the registration if WhatsApp fails
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         user_id: newUser.user.id,
-        message: 'User registered successfully' 
+        linked_client_group: linkedClientGroup,
+        message: linkedClientGroup 
+          ? `User registered and linked to ${linkedClientGroup.nama}` 
+          : 'User registered successfully'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -109,6 +202,7 @@ Deno.serve(async (req) => {
     )
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    console.error('Register user error:', errorMessage)
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { 

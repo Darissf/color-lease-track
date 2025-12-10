@@ -1022,6 +1022,7 @@ export type Database = {
           icon: string | null
           id: string
           ktp_files: Json | null
+          linked_user_id: string | null
           nama: string
           nomor_telepon: string
           phone_numbers: Json | null
@@ -1035,6 +1036,7 @@ export type Database = {
           icon?: string | null
           id?: string
           ktp_files?: Json | null
+          linked_user_id?: string | null
           nama: string
           nomor_telepon: string
           phone_numbers?: Json | null
@@ -1048,6 +1050,7 @@ export type Database = {
           icon?: string | null
           id?: string
           ktp_files?: Json | null
+          linked_user_id?: string | null
           nama?: string
           nomor_telepon?: string
           phone_numbers?: Json | null
