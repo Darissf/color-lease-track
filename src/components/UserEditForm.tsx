@@ -146,14 +146,14 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
             Perbarui informasi user di bawah ini
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto space-y-4 pr-2">
           <div className="space-y-2">
             <Label htmlFor="edit_full_name">Nama Lengkap *</Label>
             <Input
@@ -288,7 +288,7 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
             </div>
           </div>
 
-          <div className="flex gap-2 pt-4">
+          <div className="flex gap-2 pt-4 sticky bottom-0 bg-background pb-1">
             <Button
               type="button"
               variant="outline"
