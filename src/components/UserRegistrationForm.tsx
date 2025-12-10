@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,8 +20,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { UserPlus } from "lucide-react";
+import { UserPlus, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useAuditLog } from "@/hooks/useAuditLog";
+import { cn } from "@/lib/utils";
 
 interface UserRegistrationData {
   full_name: string;
@@ -32,14 +33,81 @@ interface UserRegistrationData {
   role: string;
 }
 
+interface MatchedClient {
+  id: string;
+  nama: string;
+  icon?: string;
+}
+
 export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [matchedClient, setMatchedClient] = useState<MatchedClient | null>(null);
+  const [checkingClient, setCheckingClient] = useState(false);
   const { toast } = useToast();
   const { logAction } = useAuditLog();
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<UserRegistrationData>();
 
   const selectedRole = watch("role");
+  const watchedPhone = watch("nomor_telepon");
+
+  // Auto-check client group when phone number changes
+  useEffect(() => {
+    const checkClientGroup = async () => {
+      if (!watchedPhone || watchedPhone.length < 10 || selectedRole !== 'user') {
+        setMatchedClient(null);
+        return;
+      }
+
+      setCheckingClient(true);
+      try {
+        // Normalize phone number
+        let cleanedPhone = watchedPhone.replace(/\D/g, '');
+        if (cleanedPhone.startsWith('0')) {
+          cleanedPhone = '62' + cleanedPhone.substring(1);
+        } else if (!cleanedPhone.startsWith('62')) {
+          cleanedPhone = '62' + cleanedPhone;
+        }
+
+        // Query client_groups with matching phone number that is not yet linked
+        const { data } = await supabase
+          .from('client_groups')
+          .select('id, nama, icon, nomor_telepon, phone_numbers')
+          .is('linked_user_id', null)
+          .limit(50);
+
+        if (data) {
+          // Search through results for matching phone
+          const match = data.find(client => {
+            // Check main phone number
+            const mainPhone = client.nomor_telepon?.replace(/\D/g, '');
+            if (mainPhone === cleanedPhone || mainPhone === watchedPhone.replace(/\D/g, '')) {
+              return true;
+            }
+            
+            // Check phone_numbers array
+            const phoneNumbers = client.phone_numbers as Array<{ nomor: string }> | null;
+            if (phoneNumbers) {
+              return phoneNumbers.some(p => {
+                const num = p.nomor?.replace(/\D/g, '');
+                return num === cleanedPhone || num === watchedPhone.replace(/\D/g, '');
+              });
+            }
+            return false;
+          });
+
+          setMatchedClient(match ? { id: match.id, nama: match.nama, icon: match.icon || undefined } : null);
+        }
+      } catch (error) {
+        console.error('Error checking client group:', error);
+      } finally {
+        setCheckingClient(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(checkClientGroup, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [watchedPhone, selectedRole]);
 
   const onSubmit = async (data: UserRegistrationData) => {
     setLoading(true);
@@ -73,6 +141,7 @@ export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) =
       });
 
       reset();
+      setMatchedClient(null);
       setOpen(false);
       onSuccess();
     } catch (error: any) {
@@ -94,7 +163,7 @@ export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) =
           Daftarkan User Baru
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Daftarkan User Baru</DialogTitle>
           <DialogDescription>
@@ -102,6 +171,31 @@ export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) =
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="role">Role *</Label>
+            <Select
+              value={selectedRole}
+              onValueChange={(value) => setValue("role", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">User (Client Portal)</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+              </SelectContent>
+            </Select>
+            {!selectedRole && (
+              <p className="text-sm text-destructive">Role wajib dipilih</p>
+            )}
+            {selectedRole === 'user' && (
+              <p className="text-xs text-muted-foreground">
+                User akan terhubung dengan Client Group berdasarkan nomor telepon
+              </p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="full_name">Nama Lengkap *</Label>
             <Input
@@ -167,25 +261,36 @@ export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) =
             {errors.nomor_telepon && (
               <p className="text-sm text-destructive">{errors.nomor_telepon.message}</p>
             )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role">Role *</Label>
-            <Select
-              value={selectedRole}
-              onValueChange={(value) => setValue("role", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="user">User</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="super_admin">Super Admin</SelectItem>
-              </SelectContent>
-            </Select>
-            {!selectedRole && (
-              <p className="text-sm text-destructive">Role wajib dipilih</p>
+            
+            {/* Client Group Match Preview - Only show for 'user' role */}
+            {selectedRole === 'user' && watchedPhone && watchedPhone.length >= 10 && (
+              <div className={cn(
+                "p-3 rounded-lg border mt-2",
+                matchedClient 
+                  ? "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800" 
+                  : checkingClient 
+                    ? "bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                    : "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800"
+              )}>
+                {checkingClient ? (
+                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Mencari client group...
+                  </div>
+                ) : matchedClient ? (
+                  <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>
+                      Akan terhubung dengan: <strong>{matchedClient.icon} {matchedClient.nama}</strong>
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-yellow-700 dark:text-yellow-300">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Tidak ditemukan client dengan nomor ini (atau sudah terhubung)</span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -195,6 +300,7 @@ export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) =
               variant="outline"
               onClick={() => {
                 reset();
+                setMatchedClient(null);
                 setOpen(false);
               }}
               className="flex-1"

@@ -73,6 +73,12 @@ const UserManagement = lazy(() => import("./pages/UserManagement"));
 const Mail = lazy(() => import("./pages/Mail"));
 const TransactionHistory = lazy(() => import("./pages/TransactionHistory"));
 
+// Client Portal Pages
+const MyContracts = lazy(() => import("./pages/MyContracts"));
+const MyInvoices = lazy(() => import("./pages/MyInvoices"));
+const MyPayments = lazy(() => import("./pages/MyPayments"));
+const MyContractDetail = lazy(() => import("./pages/MyContractDetail"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -153,6 +159,12 @@ const App = () => (
                                   <Route path="/mail" element={<Mail />} />
                                   <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
                                   <Route path="/transaction-history" element={<TransactionHistory />} />
+                                  {/* Client Portal Routes */}
+                                  <Route path="/client-dashboard" element={<ClientDashboard />} />
+                                  <Route path="/my-contracts" element={<MyContracts />} />
+                                  <Route path="/my-contracts/:id" element={<MyContractDetail />} />
+                                  <Route path="/my-invoices" element={<MyInvoices />} />
+                                  <Route path="/my-payments" element={<MyPayments />} />
                                   <Route path="*" element={<NotFound />} />
                                 </Routes>
                               </Suspense>
