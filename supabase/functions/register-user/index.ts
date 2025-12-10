@@ -201,8 +201,15 @@ Terima kasih! 🙏`
       }
     )
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-    console.error('Register user error:', errorMessage)
+    let errorMessage = 'Unknown error occurred';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      errorMessage = String((error as any).message);
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    console.error('Register user error:', errorMessage, error)
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { 
