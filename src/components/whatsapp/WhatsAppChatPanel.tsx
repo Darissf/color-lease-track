@@ -125,7 +125,6 @@ export const WhatsAppChatPanel = ({ conversationId }: WhatsAppChatPanelProps) =>
           description: 'Ukuran gambar telah dikurangi untuk pengiriman.',
         });
       }
-      }
 
       // Upload to storage
       const fileName = `whatsapp-media/${Date.now()}_${file.name}`;
