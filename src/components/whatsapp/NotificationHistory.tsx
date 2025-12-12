@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, RefreshCw, Eye, TrendingUp, Send, XCircle, Clock } from 'lucide-react';
+import { Loader2, RefreshCw, Eye, TrendingUp, Send, XCircle, Clock, RotateCcw } from 'lucide-react';
 import { useNotificationLogs } from '@/hooks/useNotificationLogs';
 import { NotificationDetailDialog } from './NotificationDetailDialog';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { PaginationControls } from "@/components/shared/PaginationControls";
+import { useToast } from '@/hooks/use-toast';
 
 export const NotificationHistory = () => {
   const [filters, setFilters] = useState({
@@ -19,13 +21,117 @@ export const NotificationHistory = () => {
     type: 'all',
     status: 'all',
   });
-  const { logs, stats, loading, fetchLogs } = useNotificationLogs(filters);
+  const { logs, stats, loading, fetchLogs, retryNotification } = useNotificationLogs(filters);
   const [selectedLog, setSelectedLog] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(() => {
     const saved = localStorage.getItem('notificationHistory_itemsPerPage');
     return saved ? parseInt(saved) : 10;
   });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkRetrying, setBulkRetrying] = useState(false);
+  const { toast } = useToast();
+
+  // Calculate paginated data
+  const paginatedLogs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return logs.slice(startIndex, endIndex);
+  }, [logs, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(logs.length / itemsPerPage);
+
+  // Failed logs for bulk retry
+  const failedLogs = useMemo(() => 
+    logs.filter(l => l.status === 'failed'),
+    [logs]
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value);
+    setCurrentPage(1);
+    localStorage.setItem('notificationHistory_itemsPerPage', value.toString());
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const pageFailedIds = paginatedLogs
+        .filter(l => l.status === 'failed')
+        .map(l => l.id);
+      setSelectedIds(new Set(pageFailedIds));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    const newSet = new Set(selectedIds);
+    if (checked) {
+      newSet.add(id);
+    } else {
+      newSet.delete(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const handleBulkRetry = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setBulkRetrying(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const id of selectedIds) {
+      const result = await retryNotification(id);
+      if (result) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+
+    setBulkRetrying(false);
+    setSelectedIds(new Set());
+    
+    toast({
+      title: 'Bulk Retry Selesai',
+      description: `${successCount} berhasil, ${failCount} gagal`,
+      variant: failCount > 0 ? 'destructive' : 'default',
+    });
+
+    fetchLogs();
+  };
+
+  const handleRetryAllFailed = async () => {
+    if (failedLogs.length === 0) return;
+    
+    setBulkRetrying(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const log of failedLogs) {
+      const result = await retryNotification(log.id);
+      if (result) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+
+    setBulkRetrying(false);
+    
+    toast({
+      title: 'Retry Semua Gagal Selesai',
+      description: `${successCount} berhasil, ${failCount} tetap gagal`,
+      variant: failCount > 0 ? 'destructive' : 'default',
+    });
+
+    fetchLogs();
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -158,7 +264,39 @@ export const NotificationHistory = () => {
             </Select>
           </div>
         </div>
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-between items-center mt-4">
+          <div className="flex gap-2">
+            {selectedIds.size > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleBulkRetry}
+                disabled={bulkRetrying}
+              >
+                {bulkRetrying ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                )}
+                Retry Terpilih ({selectedIds.size})
+              </Button>
+            )}
+            {failedLogs.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetryAllFailed}
+                disabled={bulkRetrying}
+              >
+                {bulkRetrying ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                )}
+                Retry Semua Gagal ({failedLogs.length})
+              </Button>
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={fetchLogs}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -171,6 +309,17 @@ export const NotificationHistory = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={
+                    paginatedLogs.filter(l => l.status === 'failed').length > 0 &&
+                    paginatedLogs
+                      .filter(l => l.status === 'failed')
+                      .every(l => selectedIds.has(l.id))
+                  }
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
               <TableHead>Waktu</TableHead>
               <TableHead>Tipe</TableHead>
               <TableHead>Penerima</TableHead>
@@ -182,19 +331,27 @@ export const NotificationHistory = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12">
+                <TableCell colSpan={7} className="text-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                 </TableCell>
               </TableRow>
-            ) : logs.length === 0 ? (
+            ) : paginatedLogs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                   Tidak ada data
                 </TableCell>
               </TableRow>
             ) : (
-              logs.map((log) => (
+              paginatedLogs.map((log) => (
                 <TableRow key={log.id}>
+                  <TableCell>
+                    {log.status === 'failed' && (
+                      <Checkbox
+                        checked={selectedIds.has(log.id)}
+                        onCheckedChange={(checked) => handleSelectOne(log.id, !!checked)}
+                      />
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm">
                     {format(new Date(log.created_at), 'dd MMM yyyy HH:mm', { locale: idLocale })}
                   </TableCell>
@@ -210,19 +367,44 @@ export const NotificationHistory = () => {
                   <TableCell>{getStatusBadge(log.status)}</TableCell>
                   <TableCell className="text-sm">{log.contract_id ? 'Yes' : 'No'}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedLog(log.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      {log.status === 'failed' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => retryNotification(log.id)}
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedLog(log.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
+
+        {/* Pagination */}
+        {logs.length > 0 && (
+          <div className="p-4 border-t">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={logs.length}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          </div>
+        )}
       </Card>
 
       {/* Detail Dialog */}
