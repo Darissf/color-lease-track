@@ -3045,6 +3045,42 @@ export type Database = {
         }
         Relationships: []
       }
+      short_links: {
+        Row: {
+          click_count: number | null
+          created_at: string | null
+          destination_url: string
+          id: string
+          is_active: boolean | null
+          slug: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          click_count?: number | null
+          created_at?: string | null
+          destination_url: string
+          id?: string
+          is_active?: boolean | null
+          slug: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          click_count?: number | null
+          created_at?: string | null
+          destination_url?: string
+          id?: string
+          is_active?: boolean | null
+          slug?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       smtp_settings: {
         Row: {
           api_key_encrypted: string | null
@@ -4467,6 +4503,10 @@ export type Database = {
       }
       increment_provider_usage: {
         Args: { p_provider_id: string }
+        Returns: undefined
+      }
+      increment_short_link_clicks: {
+        Args: { link_id: string }
         Returns: undefined
       }
       increment_template_usage: {

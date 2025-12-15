@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.ai-generate-image]
 verify_jwt = true
+
+[functions.redirect-short-link]
+verify_jwt = false
