@@ -212,7 +212,9 @@ export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) =
             <Label htmlFor="username">Username</Label>
             <Input
               id="username"
-              {...register("username")}
+              {...register("username", {
+                setValueAs: (value) => value?.trim() || undefined
+              })}
               placeholder="johndoe"
             />
           </div>

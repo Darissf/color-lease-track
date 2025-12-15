@@ -82,17 +82,21 @@ Deno.serve(async (req) => {
       // Sanitize username input
       const sanitizedUsername = identifier.trim().slice(0, 50);
       
+      // Use raw PostgreSQL filter with TRIM to handle any whitespace in DB
       const { data, error } = await supabaseClient
         .from('profiles')
-        .select('id')
-        .ilike('username', sanitizedUsername)
-        .maybeSingle()
+        .select('id, username')
+        .not('username', 'is', null)
 
       if (error) {
         console.error('[get-user-by-phone] Database error:', error);
         throw error;
       }
-      profile = data
+      
+      // Find matching username (case-insensitive, trimmed)
+      profile = data?.find(p => 
+        p.username?.trim().toLowerCase() === sanitizedUsername.toLowerCase()
+      ) || null;
     }
 
     // SECURITY: Return consistent response regardless of user existence
