@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Link, Plus, Copy, Pencil, Trash2, ExternalLink, ToggleLeft, ToggleRight, Check, Search } from 'lucide-react';
+import { ArrowLeft, Link, Plus, Copy, Pencil, Trash2, ExternalLink, ToggleLeft, ToggleRight, Check, Search, QrCode, Download, Printer } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,9 @@ const ShortLinkManager = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<ShortLink | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [qrLink, setQrLink] = useState<ShortLink | null>(null);
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+  const qrRef = useRef<HTMLDivElement>(null);
 
   // Form state
   const [formSlug, setFormSlug] = useState('');
@@ -190,6 +194,108 @@ const ShortLinkManager = () => {
     setFormSlug('');
     setFormDestination('');
     setFormTitle('');
+  };
+
+  const openQrDialog = (link: ShortLink) => {
+    setQrLink(link);
+    setIsQrDialogOpen(true);
+  };
+
+  const downloadQrCode = () => {
+    if (!qrRef.current || !qrLink) return;
+    
+    const svg = qrRef.current.querySelector('svg');
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+
+    img.onload = () => {
+      canvas.width = 512;
+      canvas.height = 512;
+      if (ctx) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        const pngUrl = canvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = `qr-${qrLink.slug}.png`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        toast.success('QR Code berhasil didownload');
+      }
+    };
+
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  };
+
+  const printQrCode = () => {
+    if (!qrLink) return;
+    
+    const fullUrl = `${baseUrl}/${qrLink.slug}`;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Popup diblokir, mohon izinkan popup');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>QR Code - ${qrLink.title || qrLink.slug}</title>
+          <style>
+            body {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              margin: 0;
+              font-family: system-ui, -apple-system, sans-serif;
+            }
+            .container {
+              text-align: center;
+              padding: 40px;
+            }
+            h1 { font-size: 24px; margin-bottom: 10px; }
+            .url { font-size: 14px; color: #666; margin-bottom: 30px; word-break: break-all; }
+            .qr { margin: 20px 0; }
+            @media print {
+              body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>${qrLink.title || qrLink.slug}</h1>
+            <div class="url">${fullUrl}</div>
+            <div class="qr" id="qr-container"></div>
+          </div>
+          <script src="https://unpkg.com/react-qr-code@2.0.12/lib/index.js"></script>
+        </body>
+      </html>
+    `);
+
+    // Insert the SVG directly
+    const svg = qrRef.current?.querySelector('svg');
+    if (svg) {
+      const svgClone = svg.cloneNode(true) as SVGElement;
+      svgClone.setAttribute('width', '256');
+      svgClone.setAttribute('height', '256');
+      printWindow.document.getElementById('qr-container')?.appendChild(svgClone);
+    }
+
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   };
 
   const filteredLinks = links.filter(link => 
@@ -354,6 +460,14 @@ const ShortLinkManager = () => {
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => openQrDialog(link)}
+                              title="QR Code"
+                            >
+                              <QrCode className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => copyToClipboard(link)}
                               title="Salin link"
                             >
@@ -464,6 +578,49 @@ const ShortLinkManager = () => {
             </Button>
             <Button onClick={handleEditLink} disabled={formSubmitting}>
               {formSubmitting ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
+        <DialogContent className={`max-w-sm ${isJapaneseTheme ? 'bg-slate-900 border-slate-800 text-white' : ''}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              QR Code: /{qrLink?.slug}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center py-6 space-y-4">
+            <div ref={qrRef} className="bg-white p-4 rounded-lg">
+              {qrLink && (
+                <QRCode
+                  value={`${baseUrl}/${qrLink.slug}`}
+                  size={200}
+                  level="H"
+                  bgColor="#FFFFFF"
+                  fgColor="#000000"
+                />
+              )}
+            </div>
+            <div className="text-center space-y-1">
+              <p className={`font-medium ${isJapaneseTheme ? 'text-white' : ''}`}>
+                {qrLink?.title || qrLink?.slug}
+              </p>
+              <p className={`text-xs break-all ${isJapaneseTheme ? 'text-slate-400' : 'text-muted-foreground'}`}>
+                {qrLink && `${baseUrl}/${qrLink.slug}`}
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={downloadQrCode} className="w-full sm:w-auto">
+              <Download className="h-4 w-4 mr-2" />
+              Download PNG
+            </Button>
+            <Button onClick={printQrCode} className="w-full sm:w-auto">
+              <Printer className="h-4 w-4 mr-2" />
+              Print
             </Button>
           </DialogFooter>
         </DialogContent>
