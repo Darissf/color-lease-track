@@ -310,11 +310,19 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
                 </SelectItem>
                 {availableClients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{client.icon || '👤'}</span>
-                      <span>{client.nama}</span>
+                    <div className="flex items-center gap-2 max-w-full overflow-hidden">
+                      {client.icon?.startsWith('http') ? (
+                        <img 
+                          src={client.icon} 
+                          alt={client.nama}
+                          className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <span className="flex-shrink-0">{client.icon || '👤'}</span>
+                      )}
+                      <span className="truncate">{client.nama}</span>
                       {client.linked_user_id === userId && (
-                        <Badge variant="secondary" className="ml-2 text-xs">Saat ini</Badge>
+                        <Badge variant="secondary" className="ml-2 text-xs flex-shrink-0">Saat ini</Badge>
                       )}
                     </div>
                   </SelectItem>
