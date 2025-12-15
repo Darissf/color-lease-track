@@ -182,7 +182,7 @@ const LandingPage = () => {
               </a>
               <Link to="/vip/login">
                 <Button className="bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white shadow-lg">
-                  Portal Admin
+                  Client Area
                 </Button>
               </Link>
             </div>
@@ -214,7 +214,7 @@ const LandingPage = () => {
                 </a>
                 <Link to="/vip/login">
                   <Button className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 text-white">
-                    Portal Admin
+                    Client Area
                   </Button>
                 </Link>
               </div>
