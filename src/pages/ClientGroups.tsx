@@ -5,12 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PaginationControls } from "@/components/shared/PaginationControls";
-import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText, ChevronDown, ChevronRight, Calendar, Wallet, Sparkles } from "lucide-react";
+import { Plus, Users, Trash2, Edit, CheckCircle, XCircle, AlertCircle, Loader2, ExternalLink, FileText, ChevronDown, ChevronRight, Calendar, Wallet, Sparkles, Link, Unlink, UserCheck } from "lucide-react";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { GradientButton } from "@/components/GradientButton";
@@ -42,6 +42,14 @@ interface ClientGroup {
   has_whatsapp: boolean | null;
   whatsapp_checked_at: string | null;
   created_at: string;
+  linked_user_id: string | null;
+}
+
+interface AvailableUser {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  nomor_telepon: string | null;
 }
 
 interface Contract {
@@ -92,6 +100,14 @@ const ClientGroups = () => {
   const [loadingContracts, setLoadingContracts] = useState<Set<string>>(new Set());
   const [contractCounts, setContractCounts] = useState<Record<string, number>>({});
   const [contractStatusBreakdown, setContractStatusBreakdown] = useState<Record<string, { active: number; completed: number }>>({});
+  
+  // Link user states
+  const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
+  const [linkedUserNames, setLinkedUserNames] = useState<Record<string, string>>({});
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkingClientId, setLinkingClientId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [linkingInProgress, setLinkingInProgress] = useState(false);
   
   const navigate = useNavigate();
 
@@ -280,7 +296,8 @@ const ClientGroups = () => {
         ktp_files: (g.ktp_files as any) || [],
         phone_numbers: Array.isArray(g.phone_numbers) ? (g.phone_numbers as unknown as PhoneEntry[]) : [],
         has_whatsapp: g.has_whatsapp,
-        whatsapp_checked_at: g.whatsapp_checked_at
+        whatsapp_checked_at: g.whatsapp_checked_at,
+        linked_user_id: g.linked_user_id
       })));
       
       // Fetch contract counts for all clients
@@ -313,11 +330,78 @@ const ClientGroups = () => {
           setContractCounts(counts);
           setContractStatusBreakdown(statusBreakdown);
         }
+        
+        // Fetch linked user names
+        const linkedUserIds = groups
+          .filter(g => g.linked_user_id)
+          .map(g => g.linked_user_id);
+        
+        if (linkedUserIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, full_name, username")
+            .in("id", linkedUserIds);
+          
+          if (profiles) {
+            const names: Record<string, string> = {};
+            profiles.forEach(p => {
+              names[p.id] = p.full_name || p.username || 'Unknown';
+            });
+            setLinkedUserNames(names);
+          }
+        }
       }
+      
+      // Fetch available users (users with role 'user' not already linked)
+      await fetchAvailableUsers();
+      
     } catch (error: any) {
       toast.error("Gagal memuat data: " + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const fetchAvailableUsers = async () => {
+    try {
+      // Get all users with 'user' role
+      const { data: userRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "user");
+      
+      if (!userRoles || userRoles.length === 0) {
+        setAvailableUsers([]);
+        return;
+      }
+      
+      const userIds = userRoles.map(r => r.user_id);
+      
+      // Get already linked user IDs
+      const { data: linkedClients } = await supabase
+        .from("client_groups")
+        .select("linked_user_id")
+        .not("linked_user_id", "is", null);
+      
+      const linkedIds = new Set(linkedClients?.map(c => c.linked_user_id) || []);
+      
+      // Filter out already linked users
+      const availableUserIds = userIds.filter(id => !linkedIds.has(id));
+      
+      if (availableUserIds.length === 0) {
+        setAvailableUsers([]);
+        return;
+      }
+      
+      // Get profiles for available users
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, username, nomor_telepon")
+        .in("id", availableUserIds);
+      
+      setAvailableUsers(profiles || []);
+    } catch (error: any) {
+      console.error("Error fetching available users:", error);
     }
   };
 
@@ -649,6 +733,53 @@ const ClientGroups = () => {
     setIconImagePreview(null);
     setPhoneErrors({});
     setWhatsappStatus(null);
+  };
+
+  const openLinkDialog = (clientId: string) => {
+    setLinkingClientId(clientId);
+    setSelectedUserId("");
+    setLinkDialogOpen(true);
+  };
+
+  const handleLinkUser = async () => {
+    if (!linkingClientId || !selectedUserId) return;
+    
+    try {
+      setLinkingInProgress(true);
+      
+      const { error } = await supabase
+        .from("client_groups")
+        .update({ linked_user_id: selectedUserId })
+        .eq("id", linkingClientId);
+      
+      if (error) throw error;
+      
+      toast.success("User berhasil dihubungkan ke client");
+      setLinkDialogOpen(false);
+      setLinkingClientId(null);
+      setSelectedUserId("");
+      fetchData();
+    } catch (error: any) {
+      toast.error("Gagal menghubungkan: " + error.message);
+    } finally {
+      setLinkingInProgress(false);
+    }
+  };
+
+  const handleUnlinkUser = async (clientId: string) => {
+    try {
+      const { error } = await supabase
+        .from("client_groups")
+        .update({ linked_user_id: null })
+        .eq("id", clientId);
+      
+      if (error) throw error;
+      
+      toast.success("User berhasil diputus dari client");
+      fetchData();
+    } catch (error: any) {
+      toast.error("Gagal memutus hubungan: " + error.message);
+    }
   };
 
   const sortedGroups = React.useMemo(() => {
@@ -1034,6 +1165,7 @@ const ClientGroups = () => {
                 <TableHead>Nama Client</TableHead>
                 <TableHead>Nomor Telepon</TableHead>
                 <TableHead className="text-center">Dokumen KTP</TableHead>
+                <TableHead className="text-center">Linked User</TableHead>
                 <TableHead>Tanggal Dibuat</TableHead>
                 <TableHead className="text-center w-24">Aksi</TableHead>
               </TableRow>
@@ -1041,7 +1173,7 @@ const ClientGroups = () => {
             <TableBody>
               {paginatedGroups.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p>Belum ada client</p>
                   </TableCell>
@@ -1189,6 +1321,52 @@ const ClientGroups = () => {
                             </div>
                           ) : (
                             <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        {/* Linked User cell */}
+                        <TableCell className="text-center">
+                          {group.linked_user_id ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs flex items-center gap-1 cursor-help">
+                                      <UserCheck className="h-3 w-3" />
+                                      {linkedUserNames[group.linked_user_id]?.slice(0, 12) || 'Linked'}
+                                      {(linkedUserNames[group.linked_user_id]?.length || 0) > 12 && '...'}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Terhubung dengan: {linkedUserNames[group.linked_user_id] || 'User'}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUnlinkUser(group.id);
+                                }}
+                              >
+                                <Unlink className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openLinkDialog(group.id);
+                              }}
+                              disabled={availableUsers.length === 0}
+                            >
+                              <Link className="h-3 w-3 mr-1" />
+                              Link User
+                            </Button>
                           )}
                         </TableCell>
                         <TableCell>
@@ -1379,6 +1557,82 @@ const ClientGroups = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Link User Dialog */}
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader className="bg-gradient-to-r from-blue-500 to-purple-600 -m-6 mb-6 p-6 rounded-t-lg">
+            <DialogTitle className="text-white text-xl flex items-center gap-2">
+              <Link className="h-5 w-5" />
+              Hubungkan User ke Client
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Client</Label>
+              <p className="text-lg font-medium mt-1">
+                {clientGroups.find(g => g.id === linkingClientId)?.icon} {clientGroups.find(g => g.id === linkingClientId)?.nama || '-'}
+              </p>
+            </div>
+            <div>
+              <Label>Pilih User</Label>
+              {availableUsers.length === 0 ? (
+                <div className="text-sm text-muted-foreground mt-2 p-4 border rounded-md bg-muted/20">
+                  <p>Tidak ada user tersedia untuk dihubungkan.</p>
+                  <p className="text-xs mt-1">Semua user dengan role "user" sudah terhubung ke client lain.</p>
+                </div>
+              ) : (
+                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Pilih user yang akan dihubungkan..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{u.full_name || u.username || 'Unknown'}</span>
+                          <span className="text-xs text-muted-foreground">{u.nomor_telepon || 'No phone'}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            {selectedUserId && (
+              <div className="p-3 border rounded-md bg-muted/20">
+                <p className="text-sm text-muted-foreground">User yang dipilih:</p>
+                <p className="font-medium">
+                  {availableUsers.find(u => u.id === selectedUserId)?.full_name || 
+                   availableUsers.find(u => u.id === selectedUserId)?.username || 'Unknown'}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button 
+              onClick={handleLinkUser} 
+              disabled={!selectedUserId || linkingInProgress}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            >
+              {linkingInProgress ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Menghubungkan...
+                </>
+              ) : (
+                <>
+                  <Link className="h-4 w-4 mr-2" />
+                  Hubungkan
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
       </div>
     </AnimatedBackground>
