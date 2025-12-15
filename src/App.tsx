@@ -72,6 +72,7 @@ const AIChat = lazy(() => import("./pages/AIChat"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
 const Mail = lazy(() => import("./pages/Mail"));
 const TransactionHistory = lazy(() => import("./pages/TransactionHistory"));
+const ShortLinkManager = lazy(() => import("./pages/ShortLinkManager"));
 
 // Client Portal Pages
 const MyContracts = lazy(() => import("./pages/MyContracts"));
@@ -159,6 +160,7 @@ const App = () => (
                                   <Route path="/mail" element={<Mail />} />
                                   <Route path="/cloud-usage" element={<CloudUsageDashboard />} />
                                   <Route path="/transaction-history" element={<TransactionHistory />} />
+                                  <Route path="/settings/short-links" element={<ShortLinkManager />} />
                                   {/* Client Portal Routes */}
                                   <Route path="/client-dashboard" element={<ClientDashboard />} />
                                   <Route path="/my-contracts" element={<MyContracts />} />
