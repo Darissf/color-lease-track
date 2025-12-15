@@ -537,7 +537,17 @@ export default function IncomeManagement() {
                           {/* Jika dari kontrak, tampilkan nama klien. Jika tidak, tampilkan source_name */}
                           {income.contract_id && income.client_name ? (
                             <span className="flex items-center gap-1">
-                              {income.client_icon && <span>{income.client_icon}</span>}
+                              {income.client_icon && (
+                                income.client_icon.startsWith('http') ? (
+                                  <img 
+                                    src={income.client_icon} 
+                                    alt={income.client_name}
+                                    className="h-6 w-6 rounded-full object-cover border border-border"
+                                  />
+                                ) : (
+                                  <span>{income.client_icon}</span>
+                                )
+                              )}
                               <span>{income.client_name}</span>
                             </span>
                           ) : income.source_name}
