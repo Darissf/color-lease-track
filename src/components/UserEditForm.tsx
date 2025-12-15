@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuditLog } from "@/hooks/useAuditLog";
-import { Eye, EyeOff, CheckCircle2, XCircle } from "lucide-react";
+import { Eye, EyeOff, CheckCircle2, XCircle, Link2, Link2Off, Info } from "lucide-react";
 
 interface UserEditData {
   full_name: string;
@@ -32,6 +32,13 @@ interface UserEditData {
   nomor_telepon?: string;
   role: string;
   new_password?: string;
+}
+
+interface ClientGroup {
+  id: string;
+  nama: string;
+  icon: string | null;
+  linked_user_id: string | null;
 }
 
 interface UserEditFormProps {
@@ -55,6 +62,9 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
   const [showPassword, setShowPassword] = useState(false);
   const [forceVerifyEmail, setForceVerifyEmail] = useState(false);
   const [sendPasswordEmail, setSendPasswordEmail] = useState(false);
+  const [availableClients, setAvailableClients] = useState<ClientGroup[]>([]);
+  const [currentLinkedClientId, setCurrentLinkedClientId] = useState<string | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string>("none");
   const { toast } = useToast();
   const { logAction } = useAuditLog();
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<UserEditData>({
@@ -71,6 +81,40 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
   const selectedRole = watch("role");
   const newPassword = watch("new_password");
   const isEmailVerified = currentData.email_verified && !currentData.temp_email;
+
+  // Fetch available clients when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchAvailableClients();
+    }
+  }, [open, userId]);
+
+  const fetchAvailableClients = async () => {
+    try {
+      // Fetch all clients: unlinked OR linked to this user
+      const { data: clients, error } = await supabase
+        .from('client_groups')
+        .select('id, nama, icon, linked_user_id')
+        .or(`linked_user_id.is.null,linked_user_id.eq.${userId}`)
+        .order('nama');
+
+      if (error) throw error;
+
+      setAvailableClients(clients || []);
+
+      // Find if this user is already linked to a client
+      const linkedClient = clients?.find(c => c.linked_user_id === userId);
+      if (linkedClient) {
+        setCurrentLinkedClientId(linkedClient.id);
+        setSelectedClientId(linkedClient.id);
+      } else {
+        setCurrentLinkedClientId(null);
+        setSelectedClientId("none");
+      }
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+    }
+  };
 
   // Update form when currentData changes
   useEffect(() => {
@@ -118,12 +162,33 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
 
       if (response.error) throw response.error;
 
+      // Handle client linking/unlinking
+      const newClientId = selectedClientId === "none" ? null : selectedClientId;
+      
+      if (newClientId !== currentLinkedClientId) {
+        // Unlink from old client if there was one
+        if (currentLinkedClientId) {
+          await supabase
+            .from('client_groups')
+            .update({ linked_user_id: null })
+            .eq('id', currentLinkedClientId);
+        }
+        
+        // Link to new client if selected
+        if (newClientId) {
+          await supabase
+            .from('client_groups')
+            .update({ linked_user_id: userId })
+            .eq('id', newClientId);
+        }
+      }
+
       await logAction(
         "update",
         "user",
         userId,
         currentData,
-        { ...data, new_password: data.new_password ? "[PASSWORD_CHANGED]" : undefined }
+        { ...data, new_password: data.new_password ? "[PASSWORD_CHANGED]" : undefined, linked_client_id: newClientId }
       );
 
       toast({
@@ -218,6 +283,51 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
                 <SelectItem value="super_admin">Super Admin</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Client Linking Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-sm font-semibold">Hubungkan ke Client</Label>
+            </div>
+            
+            <Select
+              value={selectedClientId}
+              onValueChange={setSelectedClientId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih client..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <div className="flex items-center gap-2">
+                    <Link2Off className="h-4 w-4 text-muted-foreground" />
+                    <span>Tidak ada (unlink)</span>
+                  </div>
+                </SelectItem>
+                {availableClients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{client.icon || '👤'}</span>
+                      <span>{client.nama}</span>
+                      {client.linked_user_id === userId && (
+                        <Badge variant="secondary" className="ml-2 text-xs">Saat ini</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md">
+              <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                Satu client hanya bisa dihubungkan ke satu user. Client yang sudah ter-link ke user lain tidak akan muncul dalam daftar.
+              </p>
+            </div>
           </div>
 
           <Separator className="my-4" />
