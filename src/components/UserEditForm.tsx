@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuditLog } from "@/hooks/useAuditLog";
-import { Eye, EyeOff, CheckCircle2, XCircle, Link2, Link2Off, Info } from "lucide-react";
+import { Eye, EyeOff, CheckCircle2, XCircle, Link2, Link2Off, Info, Phone, Sparkles } from "lucide-react";
 
 interface UserEditData {
   full_name: string;
@@ -34,12 +34,36 @@ interface UserEditData {
   new_password?: string;
 }
 
+interface PhoneNumberEntry {
+  nomor: string;
+  label: string;
+  has_whatsapp: boolean;
+}
+
 interface ClientGroup {
   id: string;
   nama: string;
   icon: string | null;
   linked_user_id: string | null;
+  nomor_telepon: string | null;
+  phone_numbers: PhoneNumberEntry[] | null;
 }
+
+// Helper function to normalize phone numbers for comparison
+const normalizePhone = (phone: string): string => {
+  if (!phone) return '';
+  // Remove spaces, dashes, and non-digit characters
+  let normalized = phone.replace(/[\s\-\(\)]/g, '');
+  // Convert +62 to 0
+  if (normalized.startsWith('+62')) {
+    normalized = '0' + normalized.slice(3);
+  }
+  // Convert 62 to 0 (if starts with 62 and has enough digits)
+  if (normalized.startsWith('62') && normalized.length > 10) {
+    normalized = '0' + normalized.slice(2);
+  }
+  return normalized;
+};
 
 interface UserEditFormProps {
   userId: string;
@@ -65,6 +89,7 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
   const [availableClients, setAvailableClients] = useState<ClientGroup[]>([]);
   const [currentLinkedClientId, setCurrentLinkedClientId] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string>("none");
+  const [matchedClient, setMatchedClient] = useState<ClientGroup | null>(null);
   const { toast } = useToast();
   const { logAction } = useAuditLog();
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<UserEditData>({
@@ -94,22 +119,49 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
       // Fetch all clients: unlinked OR linked to this user
       const { data: clients, error } = await supabase
         .from('client_groups')
-        .select('id, nama, icon, linked_user_id')
+        .select('id, nama, icon, linked_user_id, nomor_telepon, phone_numbers')
         .or(`linked_user_id.is.null,linked_user_id.eq.${userId}`)
         .order('nama');
 
       if (error) throw error;
 
-      setAvailableClients(clients || []);
+      // Parse phone_numbers from JSON if needed
+      const parsedClients: ClientGroup[] = (clients || []).map(c => ({
+        ...c,
+        phone_numbers: Array.isArray(c.phone_numbers) ? c.phone_numbers as unknown as PhoneNumberEntry[] : null
+      }));
+
+      setAvailableClients(parsedClients);
 
       // Find if this user is already linked to a client
-      const linkedClient = clients?.find(c => c.linked_user_id === userId);
+      const linkedClient = parsedClients.find(c => c.linked_user_id === userId);
       if (linkedClient) {
         setCurrentLinkedClientId(linkedClient.id);
         setSelectedClientId(linkedClient.id);
       } else {
         setCurrentLinkedClientId(null);
         setSelectedClientId("none");
+      }
+
+      // Find matching client by phone number
+      const userPhone = normalizePhone(currentData.nomor_telepon || '');
+      if (userPhone && !linkedClient) {
+        const matched = parsedClients.find(client => {
+          // Check nomor_telepon
+          if (normalizePhone(client.nomor_telepon || '') === userPhone) {
+            return true;
+          }
+          // Check phone_numbers array
+          if (client.phone_numbers && Array.isArray(client.phone_numbers)) {
+            return client.phone_numbers.some(
+              (p) => normalizePhone(p.nomor) === userPhone
+            );
+          }
+          return false;
+        });
+        setMatchedClient(matched || null);
+      } else {
+        setMatchedClient(null);
       }
     } catch (error) {
       console.error('Error fetching clients:', error);
@@ -294,6 +346,51 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
               <Label className="text-sm font-semibold">Hubungkan ke Client</Label>
             </div>
             
+            {/* Phone Number Match Recommendation */}
+            {matchedClient && selectedClientId !== matchedClient.id && (
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Rekomendasi Berdasarkan No. HP</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-background rounded-md">
+                  <div className="flex-shrink-0">
+                    {matchedClient.icon?.startsWith('http') ? (
+                      <img 
+                        src={matchedClient.icon} 
+                        alt={matchedClient.nama}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xl">{matchedClient.icon || '👤'}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{matchedClient.nama}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      Nomor HP cocok dengan user
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setSelectedClientId(matchedClient.id)}
+                  >
+                    Hubungkan
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Show confirmation if matched client is selected */}
+            {matchedClient && selectedClientId === matchedClient.id && (
+              <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                <span>Client yang cocok akan dihubungkan saat simpan</span>
+              </div>
+            )}
+
             <Select
               value={selectedClientId}
               onValueChange={setSelectedClientId}
@@ -323,6 +420,12 @@ export const UserEditForm = ({ userId, currentData, open, onOpenChange, onSucces
                       <span className="truncate">{client.nama}</span>
                       {client.linked_user_id === userId && (
                         <Badge variant="secondary" className="ml-2 text-xs flex-shrink-0">Saat ini</Badge>
+                      )}
+                      {matchedClient?.id === client.id && client.linked_user_id !== userId && (
+                        <Badge variant="default" className="ml-2 text-xs flex-shrink-0 gap-1">
+                          <Phone className="h-3 w-3" />
+                          Match
+                        </Badge>
                       )}
                     </div>
                   </SelectItem>
