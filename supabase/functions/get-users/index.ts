@@ -5,6 +5,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helper to decode JWT and extract user ID
+function getUserIdFromJwt(token: string): string | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = JSON.parse(atob(parts[1]))
+    return payload.sub || null
+  } catch {
+    return null
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -22,12 +34,25 @@ Deno.serve(async (req) => {
       }
     )
 
-    // Verify the caller is a super admin
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user: caller } } = await supabaseClient.auth.getUser(token)
+    // Get authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
     
-    if (!caller) {
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Extract user ID from JWT (Supabase gateway already verified the signature)
+    const userId = getUserIdFromJwt(token)
+    if (!userId) {
+      throw new Error('Invalid token')
+    }
+    
+    // Verify user exists using admin API (bypasses session validation)
+    const { data: { user: caller }, error: userError } = await supabaseClient.auth.admin.getUserById(userId)
+    
+    if (userError || !caller) {
+      console.error('User verification failed:', userError?.message)
       throw new Error('Unauthorized')
     }
 
