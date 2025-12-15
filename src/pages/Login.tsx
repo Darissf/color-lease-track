@@ -131,8 +131,20 @@ export default function Login() {
         return;
       }
 
+      // Get user role for redirect
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+
       toast.success("Login berhasil!");
-      navigate('/vip/');
+      // Redirect based on role
+      if (roleData?.role === 'user') {
+        navigate('/vip/client-dashboard');
+      } else {
+        navigate('/vip/');
+      }
     } catch (error: any) {
       toast.error(error.message || "Login gagal");
     } finally {
@@ -174,7 +186,19 @@ export default function Login() {
         toast.info("Silakan ganti password Anda");
         navigate('/vip/settings/account');
       } else {
-        navigate('/vip/');
+        // Get user role for redirect
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', currentUser?.id)
+          .maybeSingle();
+        
+        if (roleData?.role === 'user') {
+          navigate('/vip/client-dashboard');
+        } else {
+          navigate('/vip/');
+        }
       }
 
       toast.success("Login berhasil!");
@@ -198,8 +222,19 @@ export default function Login() {
         throw new Error("Kode 2FA tidak valid");
       }
 
+      // Get user role for redirect
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', pendingUserId)
+        .maybeSingle();
+
       toast.success("Login berhasil!");
-      navigate('/vip/');
+      if (roleData?.role === 'user') {
+        navigate('/vip/client-dashboard');
+      } else {
+        navigate('/vip/');
+      }
     } catch (error: any) {
       toast.error(error.message || "Verifikasi 2FA gagal");
     } finally {

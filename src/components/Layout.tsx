@@ -85,7 +85,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   // Different menu for regular users vs admins
   const pagesItems = (isUser && !isAdmin && !isSuperAdmin) ? [
-    { title: "Beranda", url: "/vip/", icon: Home, description: "Halaman utama" },
     { title: "Dashboard Saya", url: "/vip/client-dashboard", icon: LayoutDashboard, description: "Ringkasan akun dan statistik Anda" },
     { title: "Kontrak Saya", url: "/vip/my-contracts", icon: ClipboardList, description: "Lihat semua kontrak sewa Anda" },
     { title: "Tagihan Saya", url: "/vip/my-invoices", icon: Receipt, description: "Lihat tagihan dan status pembayaran" },
