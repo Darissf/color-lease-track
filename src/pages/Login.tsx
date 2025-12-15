@@ -268,9 +268,9 @@ export default function Login() {
             <Building2 className="h-9 w-9 text-white" />
           </div>
           <div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Financial Tracker
-            </CardTitle>
+        <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          Client Area
+        </CardTitle>
             <CardDescription className="mt-2">
               {show2FA
                 ? "Masukkan kode 2FA yang dikirim ke WhatsApp Anda"
