@@ -132,10 +132,11 @@ async function ensureMinResponseTime(startTime: number, minMs: number) {
   }
 }
 
-// Generic not found response - same for all "not found" scenarios
+// Generic "not found" response - always 200 to avoid client-side hard errors
+// Response body is intentionally generic to prevent user enumeration.
 function genericNotFoundResponse() {
   return new Response(
-    JSON.stringify({ error: 'User not found' }),
-    { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    JSON.stringify({ email: null }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   )
 }
