@@ -153,7 +153,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   {/* Show Text if mode is 'text' or 'both' */}
                   {(brandSettings?.sidebar_display_mode === 'text' || brandSettings?.sidebar_display_mode === 'both' || !brandSettings?.sidebar_display_mode) && (
                     <h1 className="text-base font-semibold text-slate-800">
-                      {brandSettings?.sidebar_text || 'Admin Area'}
+                      {brandSettings?.sidebar_text || ((isUser && !isAdmin && !isSuperAdmin) ? 'Client Area' : 'Admin Area')}
                     </h1>
                   )}
                 </div>
