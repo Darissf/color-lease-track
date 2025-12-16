@@ -576,7 +576,7 @@ export default function IncomeManagement() {
                             {formatCurrency(income.amount)}
                           </span>
                         </TableCell>
-                        <TableCell className="max-w-[280px] text-muted-foreground">
+                        <TableCell className="max-w-[200px] text-muted-foreground">
                           {income.contract_id ? (
                             <span className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-muted-foreground text-xs">Invoice</span>
@@ -586,7 +586,6 @@ export default function IncomeManagement() {
                               >
                                 {income.invoice || "-"}
                               </Link>
-                              <span className="truncate max-w-[120px]">{income.client_name || "-"}</span>
                               {income.source_name.match(/#(\d+)$/) && (
                                 <span className="text-xs font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded">
                                   #{income.source_name.match(/#(\d+)$/)?.[1]}
