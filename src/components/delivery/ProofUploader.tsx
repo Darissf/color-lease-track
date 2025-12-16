@@ -33,7 +33,7 @@ export const ProofUploader: React.FC<ProofUploaderProps> = ({
     try {
       for (const file of Array.from(files)) {
         // Compress image
-        const compressed = await compressImage(file, 1024 * 1024); // 1MB max
+        const compressed = await compressImage(file, { maxSizeKB: 1024, maxWidth: 1920, maxHeight: 1920 });
         
         const fileName = `delivery-proof/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
         
