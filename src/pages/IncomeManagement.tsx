@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -575,11 +576,26 @@ export default function IncomeManagement() {
                             {formatCurrency(income.amount)}
                           </span>
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-muted-foreground" title={income.contract_id ? `${income.invoice || ""} - ${income.contract_keterangan || ""}` : "-"}>
-                          {/* Jika dari kontrak, tampilkan invoice + keterangan. Jika tidak, tampilkan "-" */}
-                          {income.contract_id 
-                            ? `${income.invoice || ""} - ${income.contract_keterangan || ""}`.replace(/^- |- $|^-$/g, "").trim() || "-"
-                            : "-"}
+                        <TableCell className="max-w-[280px] text-muted-foreground">
+                          {income.contract_id ? (
+                            <span className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-muted-foreground text-xs">Invoice</span>
+                              <Link 
+                                to={`/vip/contracts/${income.contract_id}`}
+                                className="text-emerald-600 hover:text-emerald-700 hover:underline font-semibold"
+                              >
+                                {income.invoice || "-"}
+                              </Link>
+                              <span className="truncate max-w-[120px]">{income.client_name || "-"}</span>
+                              {income.source_name.match(/#(\d+)$/) && (
+                                <span className="text-xs font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded">
+                                  #{income.source_name.match(/#(\d+)$/)?.[1]}
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            "-"
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
