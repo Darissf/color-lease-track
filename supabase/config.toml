@@ -125,3 +125,9 @@ verify_jwt = true
 
 [functions.redirect-short-link]
 verify_jwt = false
+
+[functions.delivery-tracking]
+verify_jwt = true
+
+[functions.delivery-public-tracking]
+verify_jwt = false

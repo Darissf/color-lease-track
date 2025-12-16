@@ -1383,6 +1383,191 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_location_history: {
+        Row: {
+          accuracy: number | null
+          heading: number | null
+          id: string
+          lat: number
+          lng: number
+          recorded_at: string | null
+          speed: number | null
+          trip_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          heading?: number | null
+          id?: string
+          lat: number
+          lng: number
+          recorded_at?: string | null
+          speed?: number | null
+          trip_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          heading?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          recorded_at?: string | null
+          speed?: number | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_location_history_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_stops: {
+        Row: {
+          actual_arrival: string | null
+          completed_at: string | null
+          contract_id: string | null
+          created_at: string | null
+          delivery_notes: string | null
+          destination_address: string | null
+          destination_lat: number
+          destination_lng: number
+          driver_notes: string | null
+          estimated_arrival: string | null
+          id: string
+          proof_photos: string[] | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          status: string | null
+          stop_order: number
+          tracking_code: string
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          actual_arrival?: string | null
+          completed_at?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          delivery_notes?: string | null
+          destination_address?: string | null
+          destination_lat: number
+          destination_lng: number
+          driver_notes?: string | null
+          estimated_arrival?: string | null
+          id?: string
+          proof_photos?: string[] | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          status?: string | null
+          stop_order: number
+          tracking_code: string
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          actual_arrival?: string | null
+          completed_at?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          delivery_notes?: string | null
+          destination_address?: string | null
+          destination_lat?: number
+          destination_lng?: number
+          driver_notes?: string | null
+          estimated_arrival?: string | null
+          id?: string
+          proof_photos?: string[] | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          status?: string | null
+          stop_order?: number
+          tracking_code?: string
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_stops_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_stops_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_trips: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          current_lat: number | null
+          current_lng: number | null
+          current_location_updated_at: string | null
+          driver_name: string
+          driver_phone: string | null
+          id: string
+          notes: string | null
+          started_at: string | null
+          status: string | null
+          trip_code: string
+          updated_at: string | null
+          user_id: string
+          vehicle_info: string | null
+          warehouse_address: string | null
+          warehouse_lat: number
+          warehouse_lng: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          current_location_updated_at?: string | null
+          driver_name: string
+          driver_phone?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+          trip_code: string
+          updated_at?: string | null
+          user_id: string
+          vehicle_info?: string | null
+          warehouse_address?: string | null
+          warehouse_lat: number
+          warehouse_lng: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_lat?: number | null
+          current_lng?: number | null
+          current_location_updated_at?: string | null
+          driver_name?: string
+          driver_phone?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+          trip_code?: string
+          updated_at?: string | null
+          user_id?: string
+          vehicle_info?: string | null
+          warehouse_address?: string | null
+          warehouse_lat?: number
+          warehouse_lng?: number
+        }
+        Relationships: []
+      }
       editable_content: {
         Row: {
           category: string | null
@@ -3727,6 +3912,42 @@ export type Database = {
           },
         ]
       }
+      warehouse_settings: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          lat: number
+          lng: number
+          name: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          lat: number
+          lng: number
+          name?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          lat?: number
+          lng?: number
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_analytics: {
         Row: {
           avg_response_time_seconds: number | null
@@ -4492,6 +4713,8 @@ export type Database = {
       cleanup_old_agent_logs: { Args: never; Returns: number }
       cleanup_old_agent_outputs: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      generate_tracking_code: { Args: never; Returns: string }
+      generate_trip_code: { Args: never; Returns: string }
       get_available_years: {
         Args: { p_user_id: string }
         Returns: {
