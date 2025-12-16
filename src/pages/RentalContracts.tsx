@@ -12,7 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PaginationControls } from "@/components/shared/PaginationControls";
-import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users, Package } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users, Package, HelpCircle, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
@@ -69,7 +70,7 @@ interface BankAccount {
 }
 
 const RentalContracts = () => {
-  const { user } = useAuth();
+  const { user, isSuperAdmin, isAdmin } = useAuth();
   const { activeTheme } = useAppTheme();
   const navigate = useNavigate();
   const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
@@ -93,6 +94,7 @@ const RentalContracts = () => {
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
   const [invoiceSearch, setInvoiceSearch] = useState("");
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   
   // Payment popover states
   const [paymentContractId, setPaymentContractId] = useState<string | null>(null);
@@ -1475,6 +1477,141 @@ const RentalContracts = () => {
           onItemsPerPageChange={setItemsPerPage}
           storageKey="rentalContracts"
         />
+
+        {/* Tutorial Section - Only for Super Admin & Admin */}
+        {(isSuperAdmin || isAdmin) && (
+          <Collapsible open={isTutorialOpen} onOpenChange={setIsTutorialOpen} className="mt-6">
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="w-full flex items-center justify-between p-4 rounded-xl border border-border/50 bg-muted/30 hover:bg-muted/50"
+              >
+                <div className="flex items-center gap-2">
+                  <HelpCircle className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Panduan Penggunaan List Kontrak Sewa</span>
+                </div>
+                <ChevronDown className={cn("h-5 w-5 transition-transform duration-200", isTutorialOpen && "rotate-180")} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3">
+              <div className="p-5 rounded-xl border border-border/50 bg-muted/20 space-y-5">
+                {/* Penjelasan Kolom */}
+                <div>
+                  <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    Penjelasan Kolom
+                  </h4>
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex gap-3">
+                      <span className="font-medium text-primary min-w-[100px]">Invoice</span>
+                      <span className="text-muted-foreground">Nomor unik kontrak. <span className="text-foreground font-medium">Klik untuk melihat detail lengkap</span> termasuk riwayat pembayaran, info klien, dan progress.</span>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="font-medium text-primary min-w-[100px]">Kelompok</span>
+                      <span className="text-muted-foreground">Nama klien/pelanggan yang menyewa scaffolding.</span>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="font-medium text-primary min-w-[100px]">Periode</span>
+                      <span className="text-muted-foreground">Tanggal mulai dan selesai masa sewa.</span>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="font-medium text-primary min-w-[100px]">Status</span>
+                      <span className="text-muted-foreground">Status kontrak: Masa Sewa (aktif), Selesai, Pending, atau Perpanjangan.</span>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="font-medium text-primary min-w-[100px]">Tagihan</span>
+                      <span className="text-muted-foreground">Total nilai tagihan kontrak.</span>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="font-medium text-primary min-w-[100px]">Sisa</span>
+                      <span className="text-muted-foreground">Sisa tagihan yang belum dibayar. <span className="text-foreground font-medium">Klik untuk input pembayaran baru.</span></span>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="font-medium text-primary min-w-[100px]">Bayar Terakhir</span>
+                      <span className="text-muted-foreground">Tanggal terakhir pembayaran diterima.</span>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="font-medium text-primary min-w-[100px]">Status Bayar</span>
+                      <span className="text-muted-foreground"><Badge variant="default" className="mr-1">Lunas</Badge> = sudah dibayar penuh, <Badge variant="outline" className="mr-1">Belum Lunas</Badge> = masih ada sisa.</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Isi Halaman Detail Invoice */}
+                <div>
+                  <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-primary" />
+                    Isi Halaman Detail Invoice (Klik Invoice)
+                  </h4>
+                  <ul className="grid gap-1.5 text-sm text-muted-foreground ml-1">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                      Informasi kontrak lengkap (invoice, status, tanggal, keterangan)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                      Data klien beserta nomor telepon
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                      Progress pembayaran dengan bar persentase
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                      Timeline riwayat pembayaran (#1, #2, dst)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                      Status pengiriman dan pengambilan scaffolding
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                      Link Google Maps lokasi proyek
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                      Rincian stok barang (jika terhubung inventory)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                      File bukti pembayaran yang diupload
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Tips Penggunaan */}
+                <div>
+                  <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-primary" />
+                    Tips Penggunaan
+                  </h4>
+                  <ul className="grid gap-1.5 text-sm text-muted-foreground ml-1">
+                    <li className="flex items-center gap-2">
+                      <span className="text-primary">🔍</span>
+                      Gunakan filter tanggal untuk mencari kontrak pada periode tertentu
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-primary">🔤</span>
+                      Ketik nomor invoice di kolom pencarian untuk menemukan kontrak
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-primary">📊</span>
+                      Klik header kolom untuk mengurutkan data (sorting)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-primary">🔒</span>
+                      Mode terkunci mencegah edit/hapus tidak sengaja
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-primary">💳</span>
+                      Input pembayaran langsung dari kolom "Sisa" tanpa masuk detail
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </Card>
       </div>
     </div>
