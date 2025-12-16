@@ -1568,6 +1568,54 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_templates: {
+        Row: {
+          created_at: string | null
+          driver_name: string
+          driver_phone: string | null
+          id: string
+          is_default: boolean | null
+          template_name: string
+          updated_at: string | null
+          user_id: string
+          vehicle_info: string | null
+          warehouse_address: string | null
+          warehouse_gmaps_link: string | null
+          warehouse_lat: number | null
+          warehouse_lng: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          driver_name: string
+          driver_phone?: string | null
+          id?: string
+          is_default?: boolean | null
+          template_name: string
+          updated_at?: string | null
+          user_id: string
+          vehicle_info?: string | null
+          warehouse_address?: string | null
+          warehouse_gmaps_link?: string | null
+          warehouse_lat?: number | null
+          warehouse_lng?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          driver_name?: string
+          driver_phone?: string | null
+          id?: string
+          is_default?: boolean | null
+          template_name?: string
+          updated_at?: string | null
+          user_id?: string
+          vehicle_info?: string | null
+          warehouse_address?: string | null
+          warehouse_gmaps_link?: string | null
+          warehouse_lat?: number | null
+          warehouse_lng?: number | null
+        }
+        Relationships: []
+      }
       editable_content: {
         Row: {
           category: string | null
