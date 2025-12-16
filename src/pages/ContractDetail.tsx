@@ -38,9 +38,11 @@ import {
   Receipt,
   Package,
   Trash2,
-  Pencil
+  Pencil,
+  StickyNote
 } from "lucide-react";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
 import { PaymentEditDialog } from "@/components/contracts/PaymentEditDialog";
 import { EditRequestDialog } from "@/components/contracts/EditRequestDialog";
 import { PendingEditRequests } from "@/components/contracts/PendingEditRequests";
@@ -64,6 +66,9 @@ interface Contract {
   jumlah_unit: number | null;
   jenis_scaffolding: string | null;
   tanggal_bayar_terakhir?: string | null;
+  admin_notes: string | null;
+  admin_notes_edited_by: string | null;
+  admin_notes_edited_at: string | null;
   client_groups?: {
     nama: string;
     nomor_telepon: string;
@@ -80,6 +85,10 @@ interface Contract {
     unit_price: number;
     unit_type: string;
     description: string | null;
+  };
+  editor_profile?: {
+    full_name: string | null;
+    username: string | null;
   };
 }
 
@@ -129,6 +138,11 @@ export default function ContractDetail() {
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [isEditLoading, setIsEditLoading] = useState(false);
   const [editRequests, setEditRequests] = useState<EditRequest[]>([]);
+  
+  // Admin notes states
+  const [adminNotes, setAdminNotes] = useState<string>("");
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   useEffect(() => {
     if (user && id) {
@@ -144,7 +158,7 @@ export default function ContractDetail() {
 
     setLoading(true);
 
-    // Fetch contract details
+    // Fetch contract details with editor profile join
     const { data: contractData, error: contractError } = await supabase
       .from("rental_contracts")
       .select(`
@@ -174,8 +188,6 @@ export default function ContractDetail() {
     // Debug logging
     console.log('Contract Data:', contractData);
     console.log('Contract Error:', contractError);
-    console.log('Inventory Items:', contractData?.inventory_items);
-    console.log('Inventory Item ID:', contractData?.inventory_item_id);
 
     if (contractError) {
       console.error("Error fetching contract:", contractError);
@@ -189,12 +201,25 @@ export default function ContractDetail() {
       ? (contractData.bukti_pembayaran_files as Array<{ name: string; url: string }>)
       : [];
 
+    // Fetch editor profile if admin_notes_edited_by exists
+    let editorProfile = null;
+    if (contractData.admin_notes_edited_by) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, username")
+        .eq("id", contractData.admin_notes_edited_by)
+        .single();
+      editorProfile = profileData;
+    }
+
     const processedContract: Contract = {
       ...contractData,
-      bukti_pembayaran_files: buktiPembayaran
+      bukti_pembayaran_files: buktiPembayaran,
+      editor_profile: editorProfile
     };
 
     setContract(processedContract as unknown as Contract);
+    setAdminNotes(contractData.admin_notes || "");
 
     // Fetch payment history from contract_payments table
     const { data: paymentData, error: paymentError } = await supabase
@@ -216,6 +241,34 @@ export default function ContractDetail() {
     }
 
     setLoading(false);
+  };
+
+  // Handle save admin notes
+  const handleSaveNotes = async () => {
+    if (!contract || !user) return;
+    
+    setIsSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from("rental_contracts")
+        .update({
+          admin_notes: adminNotes || null,
+          admin_notes_edited_by: user.id,
+          admin_notes_edited_at: new Date().toISOString()
+        })
+        .eq("id", contract.id);
+
+      if (error) throw error;
+
+      toast.success("Catatan berhasil disimpan");
+      setIsEditingNotes(false);
+      fetchContractDetail(); // Refresh to get updated editor info
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      toast.error("Gagal menyimpan catatan");
+    } finally {
+      setIsSavingNotes(false);
+    }
   };
 
   const fetchEditRequests = async () => {
@@ -1135,6 +1188,65 @@ export default function ContractDetail() {
         </div>
       </div>
 
+      {/* Catatan Admin - Only for Admin/Super Admin */}
+      {(isSuperAdmin || isAdmin) && (
+        <Card className="mt-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <StickyNote className="h-4 w-4" />
+              Catatan Admin
+            </CardTitle>
+            {contract.admin_notes_edited_at && contract.editor_profile && (
+              <span className="text-xs text-muted-foreground">
+                Terakhir diedit oleh: {contract.editor_profile.full_name || contract.editor_profile.username || "Unknown"} 
+                {" • "}
+                {format(new Date(contract.admin_notes_edited_at), "dd MMM yyyy HH:mm", { locale: localeId })}
+              </span>
+            )}
+          </CardHeader>
+          <CardContent>
+            {isEditingNotes ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Tulis catatan untuk kontrak ini..."
+                  rows={4}
+                  className="resize-none"
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setIsEditingNotes(false);
+                      setAdminNotes(contract.admin_notes || "");
+                    }}
+                  >
+                    Batal
+                  </Button>
+                  <Button size="sm" onClick={handleSaveNotes} disabled={isSavingNotes}>
+                    {isSavingNotes ? "Menyimpan..." : "Simpan"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div 
+                className="min-h-[80px] p-3 rounded-md border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setIsEditingNotes(true)}
+              >
+                {contract.admin_notes ? (
+                  <p className="text-sm whitespace-pre-wrap">{contract.admin_notes}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    Klik untuk menambahkan catatan...
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
       {/* Edit Payment Dialog - Super Admin */}
       <PaymentEditDialog
         open={isEditDialogOpen}

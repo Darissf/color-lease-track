@@ -2854,6 +2854,9 @@ export type Database = {
       }
       rental_contracts: {
         Row: {
+          admin_notes: string | null
+          admin_notes_edited_at: string | null
+          admin_notes_edited_by: string | null
           bank_account_id: string | null
           biaya_kirim: number | null
           bukti_pembayaran_files: Json | null
@@ -2884,6 +2887,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_notes?: string | null
+          admin_notes_edited_at?: string | null
+          admin_notes_edited_by?: string | null
           bank_account_id?: string | null
           biaya_kirim?: number | null
           bukti_pembayaran_files?: Json | null
@@ -2914,6 +2920,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_notes?: string | null
+          admin_notes_edited_at?: string | null
+          admin_notes_edited_by?: string | null
           bank_account_id?: string | null
           biaya_kirim?: number | null
           bukti_pembayaran_files?: Json | null
