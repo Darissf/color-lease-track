@@ -2524,6 +2524,81 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_edit_requests: {
+        Row: {
+          contract_id: string
+          created_at: string
+          current_amount: number
+          current_notes: string | null
+          current_payment_date: string
+          id: string
+          new_amount: number
+          new_notes: string | null
+          new_payment_date: string
+          payment_id: string
+          rejection_reason: string | null
+          request_reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          current_amount: number
+          current_notes?: string | null
+          current_payment_date: string
+          id?: string
+          new_amount: number
+          new_notes?: string | null
+          new_payment_date: string
+          payment_id: string
+          rejection_reason?: string | null
+          request_reason: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          current_amount?: number
+          current_notes?: string | null
+          current_payment_date?: string
+          id?: string
+          new_amount?: number
+          new_notes?: string | null
+          new_payment_date?: string
+          payment_id?: string
+          rejection_reason?: string | null
+          request_reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_edit_requests_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_edit_requests_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments_tracking: {
         Row: {
           amount: number

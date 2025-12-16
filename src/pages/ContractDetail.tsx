@@ -37,9 +37,13 @@ import {
   Clock,
   Receipt,
   Package,
-  Trash2
+  Trash2,
+  Pencil
 } from "lucide-react";
 import { toast } from "sonner";
+import { PaymentEditDialog } from "@/components/contracts/PaymentEditDialog";
+import { EditRequestDialog } from "@/components/contracts/EditRequestDialog";
+import { PendingEditRequests } from "@/components/contracts/PendingEditRequests";
 
 interface Contract {
   id: string;
@@ -88,23 +92,52 @@ interface PaymentHistory {
   income_source_id: string | null;
 }
 
+interface EditRequest {
+  id: string;
+  user_id: string;
+  payment_id: string;
+  contract_id: string;
+  current_amount: number;
+  current_payment_date: string;
+  current_notes: string | null;
+  new_amount: number;
+  new_payment_date: string;
+  new_notes: string | null;
+  request_reason: string;
+  status: string;
+  created_at: string;
+  profiles?: {
+    full_name: string | null;
+  };
+}
+
 export default function ContractDetail() {
   const { activeTheme } = useAppTheme();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin, isAdmin } = useAuth();
   const [contract, setContract] = useState<Contract | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmStep, setDeleteConfirmStep] = useState(1);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
+  
+  // Edit payment states
+  const [editPayment, setEditPayment] = useState<PaymentHistory | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [isEditLoading, setIsEditLoading] = useState(false);
+  const [editRequests, setEditRequests] = useState<EditRequest[]>([]);
 
   useEffect(() => {
     if (user && id) {
       fetchContractDetail();
+      if (isSuperAdmin) {
+        fetchEditRequests();
+      }
     }
-  }, [user, id]);
+  }, [user, id, isSuperAdmin]);
 
   const fetchContractDetail = async () => {
     if (!user || !id) return;
@@ -183,6 +216,213 @@ export default function ContractDetail() {
     }
 
     setLoading(false);
+  };
+
+  const fetchEditRequests = async () => {
+    if (!id) return;
+
+    const { data, error } = await supabase
+      .from("payment_edit_requests")
+      .select(`
+        *,
+        profiles:user_id (full_name)
+      `)
+      .eq("contract_id", id)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setEditRequests(data as unknown as EditRequest[]);
+    }
+  };
+
+  // Handle direct edit (Super Admin)
+  const handleDirectEdit = async (data: {
+    amount: number;
+    payment_date: string;
+    notes: string;
+  }) => {
+    if (!editPayment || !contract) return;
+
+    setIsEditLoading(true);
+    try {
+      const amountDiff = data.amount - editPayment.amount;
+
+      // 1. Update contract_payments
+      const { error: cpError } = await supabase
+        .from("contract_payments")
+        .update({
+          amount: data.amount,
+          payment_date: data.payment_date,
+          notes: data.notes || null,
+        })
+        .eq("id", editPayment.id);
+
+      if (cpError) throw cpError;
+
+      // 2. Update income_sources if linked
+      if (editPayment.income_source_id) {
+        await supabase
+          .from("income_sources")
+          .update({
+            amount: data.amount,
+            date: data.payment_date,
+          })
+          .eq("id", editPayment.income_source_id);
+      }
+
+      // 3. Update tagihan_belum_bayar (adjust by the difference)
+      const newSisaTagihan = contract.tagihan_belum_bayar - amountDiff;
+      await supabase
+        .from("rental_contracts")
+        .update({ tagihan_belum_bayar: newSisaTagihan })
+        .eq("id", contract.id);
+
+      toast.success("Pembayaran berhasil diperbarui");
+      setIsEditDialogOpen(false);
+      setEditPayment(null);
+      fetchContractDetail();
+    } catch (error) {
+      console.error("Error updating payment:", error);
+      toast.error("Gagal memperbarui pembayaran");
+    } finally {
+      setIsEditLoading(false);
+    }
+  };
+
+  // Handle submit edit request (Admin)
+  const handleSubmitEditRequest = async (data: {
+    new_amount: number;
+    new_payment_date: string;
+    new_notes: string;
+    request_reason: string;
+  }) => {
+    if (!editPayment || !contract || !user) return;
+
+    setIsEditLoading(true);
+    try {
+      const { error } = await supabase
+        .from("payment_edit_requests")
+        .insert({
+          user_id: user.id,
+          payment_id: editPayment.id,
+          contract_id: contract.id,
+          current_amount: editPayment.amount,
+          current_payment_date: editPayment.payment_date,
+          current_notes: editPayment.notes,
+          new_amount: data.new_amount,
+          new_payment_date: data.new_payment_date,
+          new_notes: data.new_notes || null,
+          request_reason: data.request_reason,
+          status: "pending",
+        });
+
+      if (error) throw error;
+
+      toast.success("Permintaan edit berhasil dikirim. Menunggu approval Super Admin.");
+      setIsRequestDialogOpen(false);
+      setEditPayment(null);
+    } catch (error) {
+      console.error("Error submitting edit request:", error);
+      toast.error("Gagal mengirim permintaan edit");
+    } finally {
+      setIsEditLoading(false);
+    }
+  };
+
+  // Handle approve request (Super Admin)
+  const handleApproveRequest = async (requestId: string) => {
+    const request = editRequests.find((r) => r.id === requestId);
+    if (!request || !contract || !user) return;
+
+    try {
+      const amountDiff = request.new_amount - request.current_amount;
+
+      // 1. Update contract_payments
+      const { error: cpError } = await supabase
+        .from("contract_payments")
+        .update({
+          amount: request.new_amount,
+          payment_date: request.new_payment_date,
+          notes: request.new_notes,
+        })
+        .eq("id", request.payment_id);
+
+      if (cpError) throw cpError;
+
+      // 2. Find and update income_sources if linked
+      const { data: paymentData } = await supabase
+        .from("contract_payments")
+        .select("income_source_id")
+        .eq("id", request.payment_id)
+        .single();
+
+      if (paymentData?.income_source_id) {
+        await supabase
+          .from("income_sources")
+          .update({
+            amount: request.new_amount,
+            date: request.new_payment_date,
+          })
+          .eq("id", paymentData.income_source_id);
+      }
+
+      // 3. Update tagihan_belum_bayar
+      const newSisaTagihan = contract.tagihan_belum_bayar - amountDiff;
+      await supabase
+        .from("rental_contracts")
+        .update({ tagihan_belum_bayar: newSisaTagihan })
+        .eq("id", contract.id);
+
+      // 4. Update request status
+      await supabase
+        .from("payment_edit_requests")
+        .update({
+          status: "approved",
+          reviewed_by: user.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", requestId);
+
+      toast.success("Permintaan edit disetujui");
+      fetchContractDetail();
+      fetchEditRequests();
+    } catch (error) {
+      console.error("Error approving request:", error);
+      toast.error("Gagal menyetujui permintaan");
+    }
+  };
+
+  // Handle reject request (Super Admin)
+  const handleRejectRequest = async (requestId: string, reason: string) => {
+    if (!user) return;
+
+    try {
+      await supabase
+        .from("payment_edit_requests")
+        .update({
+          status: "rejected",
+          reviewed_by: user.id,
+          reviewed_at: new Date().toISOString(),
+          rejection_reason: reason,
+        })
+        .eq("id", requestId);
+
+      toast.success("Permintaan edit ditolak");
+      fetchEditRequests();
+    } catch (error) {
+      console.error("Error rejecting request:", error);
+      toast.error("Gagal menolak permintaan");
+    }
+  };
+
+  // Handle edit button click
+  const handleEditClick = (payment: PaymentHistory) => {
+    setEditPayment(payment);
+    if (isSuperAdmin) {
+      setIsEditDialogOpen(true);
+    } else if (isAdmin) {
+      setIsRequestDialogOpen(true);
+    }
   };
 
   const handleDeletePayment = async (paymentId: string) => {
@@ -491,6 +731,15 @@ export default function ContractDetail() {
             </CardContent>
           </Card>
 
+          {/* Pending Edit Requests - Super Admin Only */}
+          {isSuperAdmin && editRequests.filter(r => r.status === 'pending').length > 0 && (
+            <PendingEditRequests
+              requests={editRequests}
+              onApprove={handleApproveRequest}
+              onReject={handleRejectRequest}
+            />
+          )}
+
           {/* Payment History Timeline */}
           <Card>
             <CardHeader>
@@ -565,6 +814,18 @@ export default function ContractDetail() {
                                   {formatRupiah(payment.amount)}
                                 </p>
                               </div>
+                              
+                              {/* Edit Button - Super Admin & Admin */}
+                              {(isSuperAdmin || isAdmin) && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+                                  onClick={() => handleEditClick(payment)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
                               
                               {/* Delete Button - Super Admin Only */}
                               {isSuperAdmin && (
@@ -873,6 +1134,24 @@ export default function ContractDetail() {
           )}
         </div>
       </div>
+
+      {/* Edit Payment Dialog - Super Admin */}
+      <PaymentEditDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        payment={editPayment}
+        onSave={handleDirectEdit}
+        isLoading={isEditLoading}
+      />
+
+      {/* Edit Request Dialog - Admin */}
+      <EditRequestDialog
+        open={isRequestDialogOpen}
+        onOpenChange={setIsRequestDialogOpen}
+        payment={editPayment}
+        onSubmit={handleSubmitEditRequest}
+        isLoading={isEditLoading}
+      />
     </div>
   );
 }
