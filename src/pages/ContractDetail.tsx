@@ -1194,7 +1194,7 @@ export default function ContractDetail() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <StickyNote className="h-4 w-4" />
-              Catatan Admin
+              Catatan
             </CardTitle>
             {contract.admin_notes_edited_at && contract.editor_profile && (
               <span className="text-xs text-muted-foreground">
