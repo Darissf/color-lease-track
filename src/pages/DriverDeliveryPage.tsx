@@ -25,8 +25,8 @@ const DriverDeliveryPage = () => {
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
 
   // Get current active stop (first pending stop)
-  const currentStop = trip?.stops?.find(s => s.status === 'in_progress') || 
-    trip?.stops?.find(s => s.status === 'pending');
+  const currentStop = trip?.delivery_stops?.find(s => s.status === 'in_progress') || 
+    trip?.delivery_stops?.find(s => s.status === 'pending');
 
   const handleArrival = async (stopId: string) => {
     try {
@@ -120,8 +120,8 @@ const DriverDeliveryPage = () => {
     );
   }
 
-  const completedStops = trip.stops?.filter(s => s.status === 'completed').length || 0;
-  const totalStops = trip.stops?.length || 0;
+  const completedStops = trip.delivery_stops?.filter(s => s.status === 'completed').length || 0;
+  const totalStops = trip.delivery_stops?.length || 0;
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -174,7 +174,7 @@ const DriverDeliveryPage = () => {
 
       {/* Stops List */}
       <div className="max-w-lg mx-auto p-4 space-y-4">
-        {trip.stops?.sort((a, b) => a.stop_order - b.stop_order).map((stop) => (
+        {trip.delivery_stops?.sort((a, b) => a.stop_order - b.stop_order).map((stop) => (
           <Card key={stop.id} className={`bg-white ${stop.status === 'completed' ? 'opacity-60' : ''}`}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-3">

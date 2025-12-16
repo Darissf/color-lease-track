@@ -1,4 +1,4 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat, MessageSquare, Package, Receipt, CalendarClock, Mail, Search } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat, MessageSquare, Package, Receipt, CalendarClock, Mail, Search, Truck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -89,12 +89,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { title: "Kontrak Saya", url: "/vip/my-contracts", icon: ClipboardList, description: "Lihat semua kontrak sewa Anda" },
     { title: "Tagihan Saya", url: "/vip/my-invoices", icon: Receipt, description: "Lihat tagihan dan status pembayaran" },
     { title: "Riwayat Pembayaran", url: "/vip/my-payments", icon: DollarSign, description: "Timeline pembayaran Anda" },
+    { title: "Pengiriman Saya", url: "/vip/my-deliveries", icon: Truck, description: "Lacak status pengiriman Anda" },
   ] : [
     { title: "Home", url: "/vip/", icon: FileText, description: "Halaman utama aplikasi" },
     { title: "Dashboard", url: "/vip/dashboard", icon: Home, description: "Lihat ringkasan keuangan dan aktivitas terkini" },
     { title: "ChatBot AI", url: "/vip/chatbot", icon: Bot, badge: "AI", badgeVariant: "ai" as const, description: "Chat dengan asisten AI untuk bantuan keuangan" },
     { title: "List Client", url: "/vip/client-groups", icon: Users, description: "Kelola data klien dan grup klien" },
     { title: "List Kontrak Sewa", url: "/vip/rental-contracts", icon: ClipboardList, badge: notifications.total > 0 ? `${notifications.total}` : undefined, badgeVariant: notifications.total > 0 ? "destructive" as const : undefined, description: "Kelola kontrak sewa properti dan pembayaran" },
+    { title: "Live Tracking", url: "/vip/delivery", icon: Truck, badge: "New", badgeVariant: "default" as const, description: "Pantau pengiriman real-time" },
     { title: "Pemasukan", url: "/vip/income", icon: DollarSign, description: "Catat dan kelola sumber pemasukan" },
     { title: "Pengeluaran", url: "/vip/expenses", icon: TrendingDown, description: "Catat dan pantau pengeluaran harian" },
     { title: "Pemasukan Tetap", url: "/vip/recurring-income", icon: CalendarClock, description: "Kelola pemasukan berulang setiap bulan" },

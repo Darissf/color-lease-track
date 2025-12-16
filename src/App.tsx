@@ -79,6 +79,14 @@ const MyContracts = lazy(() => import("./pages/MyContracts"));
 const MyInvoices = lazy(() => import("./pages/MyInvoices"));
 const MyPayments = lazy(() => import("./pages/MyPayments"));
 const MyContractDetail = lazy(() => import("./pages/MyContractDetail"));
+const MyDeliveries = lazy(() => import("./pages/MyDeliveries"));
+
+// Delivery Tracking Pages
+const DeliveryDashboard = lazy(() => import("./pages/DeliveryDashboard"));
+const CreateDeliveryTrip = lazy(() => import("./pages/CreateDeliveryTrip"));
+const DeliveryTripDetail = lazy(() => import("./pages/DeliveryTripDetail"));
+const DriverDeliveryPage = lazy(() => import("./pages/DriverDeliveryPage"));
+const PublicTrackingPage = lazy(() => import("./pages/PublicTrackingPage"));
 
 const queryClient = new QueryClient();
 
@@ -101,6 +109,10 @@ const App = () => (
                     <Route path="/blog" element={<Blog />} />
                     <Route path="/blog/:slug" element={<BlogDetail />} />
                     <Route path="/install" element={<InstallApp />} />
+                    
+                    {/* Public Delivery Tracking Routes */}
+                    <Route path="/delivery/driver/:tripId" element={<DriverDeliveryPage />} />
+                    <Route path="/track/:trackingCode" element={<PublicTrackingPage />} />
                     
                     {/* VIP Auth Routes */}
                     <Route path="/vip/login" element={<Login />} />
@@ -167,6 +179,11 @@ const App = () => (
                                   <Route path="/my-contracts/:id" element={<MyContractDetail />} />
                                   <Route path="/my-invoices" element={<MyInvoices />} />
                                   <Route path="/my-payments" element={<MyPayments />} />
+                                  <Route path="/my-deliveries" element={<MyDeliveries />} />
+                                  {/* Delivery Management Routes (Admin) */}
+                                  <Route path="/delivery" element={<DeliveryDashboard />} />
+                                  <Route path="/delivery/create" element={<CreateDeliveryTrip />} />
+                                  <Route path="/delivery/trip/:id" element={<DeliveryTripDetail />} />
                                   <Route path="*" element={<NotFound />} />
                                 </Routes>
                               </Suspense>
