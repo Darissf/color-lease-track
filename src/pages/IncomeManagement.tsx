@@ -536,19 +536,22 @@ export default function IncomeManagement() {
                         <TableCell className="font-medium max-w-[180px] truncate" title={income.contract_id && income.client_name ? income.client_name : income.source_name}>
                           {/* Jika dari kontrak, tampilkan nama klien. Jika tidak, tampilkan source_name */}
                           {income.contract_id && income.client_name ? (
-                            <span className="flex items-center gap-1">
-                              {income.client_icon && (
-                                income.client_icon.startsWith('http') ? (
+                            <span className="flex items-center gap-2">
+                              {income.client_icon ? (
+                                typeof income.client_icon === 'string' && income.client_icon.startsWith('http') ? (
                                   <img 
                                     src={income.client_icon} 
-                                    alt={income.client_name}
-                                    className="h-6 w-6 rounded-full object-cover border border-border"
+                                    alt=""
+                                    className="h-6 w-6 rounded-full object-cover border border-border flex-shrink-0"
+                                    onError={(e) => { e.currentTarget.style.display = 'none' }}
                                   />
                                 ) : (
-                                  <span>{income.client_icon}</span>
+                                  <span className="flex-shrink-0">{income.client_icon}</span>
                                 )
+                              ) : (
+                                <span className="flex-shrink-0">🏢</span>
                               )}
-                              <span>{income.client_name}</span>
+                              <span className="truncate">{income.client_name}</span>
                             </span>
                           ) : income.source_name}
                         </TableCell>
