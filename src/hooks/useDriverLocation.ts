@@ -17,7 +17,13 @@ export const useDriverLocation = (tripId: string, isActive: boolean = false) => 
   const [isTracking, setIsTracking] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const locationRef = useRef<LocationState | null>(null);
   const { toast } = useToast();
+
+  // Keep locationRef in sync with location state
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
 
   const sendLocationUpdate = useCallback(async (loc: LocationState) => {
     try {
@@ -83,10 +89,10 @@ export const useDriverLocation = (tripId: string, isActive: boolean = false) => 
       }
     );
 
-    // Send updates every 10 seconds
+    // Send updates every 10 seconds using ref to avoid stale closure
     intervalRef.current = setInterval(() => {
-      if (location) {
-        sendLocationUpdate(location);
+      if (locationRef.current) {
+        sendLocationUpdate(locationRef.current);
       }
     }, 10000);
 
@@ -113,7 +119,7 @@ export const useDriverLocation = (tripId: string, isActive: boolean = false) => 
         timeout: 10000,
       }
     );
-  }, [location, sendLocationUpdate, toast]);
+  }, [sendLocationUpdate, toast]);
 
   const stopTracking = useCallback(() => {
     setIsTracking(false);

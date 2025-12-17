@@ -127,7 +127,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.delivery-tracking]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delivery-public-tracking]
 verify_jwt = false
