@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { SITE_URL } from "@/lib/seo";
 
 const DeliveryTripDetail = () => {
   const { id: tripId } = useParams<{ id: string }>();
@@ -49,7 +50,7 @@ const DeliveryTripDetail = () => {
 
   const copyDriverLink = () => {
     if (trip) {
-      const driverUrl = `${window.location.origin}/delivery/driver/${trip.id}`;
+      const driverUrl = `${SITE_URL}/delivery/driver/${trip.id}`;
       navigator.clipboard.writeText(driverUrl);
       toast.success('Link driver berhasil disalin');
     }
@@ -108,7 +109,7 @@ const DeliveryTripDetail = () => {
           <Button variant="outline" onClick={copyDriverLink}>
             <Copy className="h-4 w-4 mr-2" />Salin Link Driver
           </Button>
-          <Button variant="outline" onClick={() => window.open(`/delivery/driver/${trip.id}`, '_blank')}>
+          <Button variant="outline" onClick={() => window.open(`${SITE_URL}/delivery/driver/${trip.id}`, '_blank')}>
             <ExternalLink className="h-4 w-4 mr-2" />Buka Halaman Driver
           </Button>
         </div>
