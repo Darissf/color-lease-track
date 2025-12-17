@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,24 +9,77 @@ import { MapPin, Navigation, CheckCircle, Clock, Camera, Phone, AlertCircle, Loa
 import { useDeliveryTracking } from "@/hooks/useDeliveryTracking";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
 import { ProofUploader } from "@/components/delivery/ProofUploader";
+import { DeliveryMap } from "@/components/delivery/DeliveryMap";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const DriverDeliveryPage = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const { currentTrip: trip, loading, updateStopStatus } = useDeliveryTracking(tripId);
-  const { location, error: locationError, isTracking, startTracking, stopTracking } = useDriverLocation(tripId || '', trip?.status === 'in_progress');
+  const { location, error: locationError, isTracking } = useDriverLocation(tripId || '', trip?.status === 'in_progress');
   
   const [selectedStop, setSelectedStop] = useState<string | null>(null);
   const [driverNotes, setDriverNotes] = useState("");
   const [proofPhotos, setProofPhotos] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const [eta, setEta] = useState<string | null>(null);
+
+  // Fetch Mapbox token
+  useEffect(() => {
+    const fetchToken = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-mapbox-token');
+        if (data?.token) {
+          setMapboxToken(data.token);
+        }
+      } catch (err) {
+        console.error('Failed to fetch mapbox token:', err);
+      }
+    };
+    fetchToken();
+  }, []);
 
   // Get current active stop (first pending stop)
   const currentStop = trip?.delivery_stops?.find(s => s.status === 'in_progress') || 
     trip?.delivery_stops?.find(s => s.status === 'pending');
+
+  // Calculate ETA when driver location or current stop changes
+  useEffect(() => {
+    if (!location || !currentStop || !mapboxToken) {
+      setEta(null);
+      return;
+    }
+
+    const fetchETA = async () => {
+      try {
+        const response = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${location.lng},${location.lat};${currentStop.destination_lng},${currentStop.destination_lat}?access_token=${mapboxToken}`
+        );
+        const data = await response.json();
+        if (data.routes?.[0]?.duration) {
+          const minutes = Math.round(data.routes[0].duration / 60);
+          if (minutes < 60) {
+            setEta(`${minutes} menit`);
+          } else {
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = minutes % 60;
+            setEta(`${hours} jam ${remainingMinutes} menit`);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch ETA:', err);
+      }
+    };
+
+    fetchETA();
+    // Refresh ETA every 30 seconds
+    const interval = setInterval(fetchETA, 30000);
+    return () => clearInterval(interval);
+  }, [location, currentStop, mapboxToken]);
 
   const handleArrival = async (stopId: string) => {
     try {
@@ -123,6 +176,14 @@ const DriverDeliveryPage = () => {
   const completedStops = trip.delivery_stops?.filter(s => s.status === 'completed').length || 0;
   const totalStops = trip.delivery_stops?.length || 0;
 
+  // Prepare stops for map
+  const mapStops = trip.delivery_stops?.map(stop => ({
+    lat: stop.destination_lat,
+    lng: stop.destination_lng,
+    label: stop.recipient_name || `Stop ${stop.stop_order}`,
+    status: stop.status,
+  })) || [];
+
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Header */}
@@ -162,6 +223,43 @@ const DriverDeliveryPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Map Section */}
+      {mapboxToken && (
+        <div className="max-w-lg mx-auto px-4 pt-4">
+          <Card className="bg-white overflow-hidden">
+            <DeliveryMap
+              mapboxToken={mapboxToken}
+              warehouse={{ 
+                lat: trip.warehouse_lat, 
+                lng: trip.warehouse_lng
+              }}
+              stops={mapStops}
+              driverLocation={location ? { 
+                lat: location.lat, 
+                lng: location.lng 
+              } : undefined}
+              showRoute={true}
+              className="h-[200px]"
+            />
+            {/* ETA Display */}
+            {eta && currentStop && (
+              <div className="p-3 bg-blue-50 border-t border-blue-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-sm font-medium">Estimasi Tiba</span>
+                  </div>
+                  <span className="text-sm font-bold text-blue-800">{eta}</span>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">
+                  Menuju: {currentStop.recipient_name || 'Tujuan'}
+                </p>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
 
       {/* Location Error Alert */}
       {locationError && (
