@@ -6,6 +6,37 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Verify HMAC signature from Meta
+async function verifyMetaSignature(body: string, signature: string | null, appSecret: string): Promise<boolean> {
+  if (!signature || !appSecret) {
+    console.log('[Meta Webhook] Missing signature or app secret');
+    return false;
+  }
+
+  try {
+    const expectedSig = await crypto.subtle.sign(
+      { name: 'HMAC', hash: 'SHA-256' },
+      await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(appSecret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      ),
+      new TextEncoder().encode(body)
+    );
+
+    const expectedSigHex = 'sha256=' + Array.from(new Uint8Array(expectedSig))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    return signature === expectedSigHex;
+  } catch (error) {
+    console.error('[Meta Webhook] Signature verification error:', error);
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle webhook verification (GET request from Meta)
   if (req.method === 'GET') {
@@ -45,7 +76,28 @@ serve(async (req) => {
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      const body = await req.json();
+      // Read body as text first for signature verification
+      const bodyText = await req.text();
+      const signature = req.headers.get('X-Hub-Signature-256');
+
+      // Get Meta App Secret from environment
+      const metaAppSecret = Deno.env.get('META_APP_SECRET');
+
+      // Verify HMAC signature if META_APP_SECRET is configured
+      if (metaAppSecret) {
+        const isValid = await verifyMetaSignature(bodyText, signature, metaAppSecret);
+        if (!isValid) {
+          console.error('[Meta Webhook] Invalid signature - rejecting request');
+          return new Response('Forbidden', { status: 403 });
+        }
+        console.log('[Meta Webhook] Signature verified successfully');
+      } else {
+        // Log warning if no secret configured but don't block (for backwards compatibility)
+        console.warn('[Meta Webhook] META_APP_SECRET not configured - signature verification skipped');
+      }
+
+      // Parse the verified body
+      const body = JSON.parse(bodyText);
       console.log('[Meta Webhook] Received event:', JSON.stringify(body, null, 2));
 
       // Process each entry
