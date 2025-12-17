@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, ArrowLeft, MessageSquare, ChevronRight, FileText, Mail, BarChart3, Palette, LayoutDashboard, Edit3, Brain, Users, Link } from "lucide-react";
+import { Shield, ArrowLeft, MessageSquare, ChevronRight, FileText, Mail, BarChart3, Palette, LayoutDashboard, Edit3, Brain, Users, Link, Receipt } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppTheme } from "@/contexts/AppThemeContext";
@@ -247,6 +247,26 @@ const AdminSettings = () => {
                 </h3>
                 <p className="text-xs text-muted-foreground truncate">
                   Buat dan kelola custom short links
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
+            </div>
+          </Card>
+
+          <Card 
+            className="p-3 sm:p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary"
+            onClick={() => navigate("/vip/settings/invoice")}
+          >
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-teal-600 flex items-center justify-center shrink-0">
+                <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors truncate">
+                  Setting Invoice
+                </h3>
+                <p className="text-xs text-muted-foreground truncate">
+                  Kelola template invoice, format PDF, dan pengaturan lainnya
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
