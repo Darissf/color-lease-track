@@ -185,8 +185,19 @@ export default function RecurringIncome() {
       const isPaid = newSisa === 0;
       const { error: updateError } = await supabase.from("fixed_monthly_income").update({ tagihan_belum_bayar: newSisa, tanggal_bayar_terakhir: format(paymentDate, "yyyy-MM-dd"), paid_date: isPaid ? format(paymentDate, "yyyy-MM-dd") : income.paid_date, is_paid: isPaid, status: isPaid ? 'lunas' : 'aktif' }).eq("id", incomeId);
       if (updateError) throw updateError;
-      const { error: incomeError } = await supabase.from("income_sources").insert([{ user_id: user.id, source_name: `${income.invoice || ""} ${income.keterangan || ""} - ${income.client_groups?.nama || "Pemasukan Tetap"}`.trim(), amount: amount, date: format(paymentDate, "yyyy-MM-dd"), bank_name: income.bank_accounts?.bank_name || null, bank_account_id: income.bank_account_id }]);
+      
+      // Insert to income_sources and get the id
+      const { data: incomeData, error: incomeError } = await supabase.from("income_sources").insert([{ user_id: user.id, source_name: `${income.invoice || ""} ${income.keterangan || ""} - ${income.client_groups?.nama || "Pemasukan Tetap"}`.trim(), amount: amount, date: format(paymentDate, "yyyy-MM-dd"), bank_name: income.bank_accounts?.bank_name || null, bank_account_id: income.bank_account_id }]).select("id").single();
       if (incomeError) throw incomeError;
+      
+      // Get next payment number
+      const { data: paymentCount } = await supabase.from("recurring_income_payments").select("payment_number").eq("recurring_income_id", incomeId).order("payment_number", { ascending: false }).limit(1);
+      const nextPaymentNumber = (paymentCount?.[0]?.payment_number || 0) + 1;
+      
+      // Insert to recurring_income_payments
+      const { error: paymentError } = await supabase.from("recurring_income_payments").insert([{ user_id: user.id, recurring_income_id: incomeId, payment_date: format(paymentDate, "yyyy-MM-dd"), amount: amount, payment_number: nextPaymentNumber, income_source_id: incomeData?.id }]);
+      if (paymentError) throw paymentError;
+      
       toast.success(`Pembayaran Rp ${formatCurrencyLib(amount)} berhasil dicatat`);
       setPaymentContractId(null); setPaymentDate(undefined); setPaymentAmount(""); fetchData();
     } catch (error: any) { toast.error("Gagal menyimpan pembayaran: " + error.message); } finally { setIsSubmittingPayment(false); }
@@ -197,10 +208,22 @@ export default function RecurringIncome() {
     const remainingAmount = income.tagihan_belum_bayar || income.nominal;
     if (remainingAmount <= 0) { toast.info("Sudah lunas"); return; }
     try {
-      const { error: updateError } = await supabase.from("fixed_monthly_income").update({ is_paid: true, paid_date: income.paid_date || format(getNowInJakarta(), "yyyy-MM-dd"), tagihan_belum_bayar: 0, tanggal_bayar_terakhir: income.paid_date || format(getNowInJakarta(), "yyyy-MM-dd"), status: 'lunas' }).eq("id", income.id);
+      const paymentDate = income.paid_date || format(getNowInJakarta(), "yyyy-MM-dd");
+      const { error: updateError } = await supabase.from("fixed_monthly_income").update({ is_paid: true, paid_date: paymentDate, tagihan_belum_bayar: 0, tanggal_bayar_terakhir: paymentDate, status: 'lunas' }).eq("id", income.id);
       if (updateError) throw updateError;
-      const { error: incomeError } = await supabase.from("income_sources").insert([{ user_id: user.id, source_name: `${income.invoice || ""} ${income.keterangan || ""} - ${income.client_groups?.nama || "Pemasukan Tetap"}`.trim(), amount: remainingAmount, date: income.paid_date || format(getNowInJakarta(), "yyyy-MM-dd"), bank_name: income.bank_accounts?.bank_name || null, bank_account_id: income.bank_account_id }]);
+      
+      // Insert to income_sources and get the id
+      const { data: incomeData, error: incomeError } = await supabase.from("income_sources").insert([{ user_id: user.id, source_name: `${income.invoice || ""} ${income.keterangan || ""} - ${income.client_groups?.nama || "Pemasukan Tetap"}`.trim(), amount: remainingAmount, date: paymentDate, bank_name: income.bank_accounts?.bank_name || null, bank_account_id: income.bank_account_id }]).select("id").single();
       if (incomeError) throw incomeError;
+      
+      // Get next payment number
+      const { data: paymentCount } = await supabase.from("recurring_income_payments").select("payment_number").eq("recurring_income_id", income.id).order("payment_number", { ascending: false }).limit(1);
+      const nextPaymentNumber = (paymentCount?.[0]?.payment_number || 0) + 1;
+      
+      // Insert to recurring_income_payments
+      const { error: paymentError } = await supabase.from("recurring_income_payments").insert([{ user_id: user.id, recurring_income_id: income.id, payment_date: paymentDate, amount: remainingAmount, payment_number: nextPaymentNumber, income_source_id: incomeData?.id }]);
+      if (paymentError) throw paymentError;
+      
       const nextStartMonth = new Date(income.period_start_month); nextStartMonth.setMonth(nextStartMonth.getMonth() + 1);
       const nextEndMonth = new Date(income.period_end_month); nextEndMonth.setMonth(nextEndMonth.getMonth() + 1);
       const { error: insertError } = await supabase.from("fixed_monthly_income").insert([{ user_id: user.id, invoice: income.invoice, client_group_id: income.client_group_id, keterangan: income.keterangan, period_start_month: format(nextStartMonth, "yyyy-MM-dd"), period_end_month: format(nextEndMonth, "yyyy-MM-dd"), nominal: income.nominal, bank_account_id: income.bank_account_id, catatan: income.catatan, is_paid: false, tanggal: format(nextStartMonth, "yyyy-MM-dd"), tagihan_belum_bayar: income.nominal, status: 'aktif' }]);
