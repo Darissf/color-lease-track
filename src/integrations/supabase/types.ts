@@ -2101,6 +2101,9 @@ export type Database = {
       }
       fixed_monthly_income: {
         Row: {
+          admin_notes: string | null
+          admin_notes_edited_at: string | null
+          admin_notes_edited_by: string | null
           bank_account_id: string | null
           catatan: string | null
           client_group_id: string | null
@@ -2123,6 +2126,7 @@ export type Database = {
           status: string | null
           status_pengambilan: string | null
           status_pengiriman: string | null
+          tagihan: number | null
           tagihan_belum_bayar: number | null
           tanggal: string | null
           tanggal_bayar_terakhir: string | null
@@ -2132,6 +2136,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_notes?: string | null
+          admin_notes_edited_at?: string | null
+          admin_notes_edited_by?: string | null
           bank_account_id?: string | null
           catatan?: string | null
           client_group_id?: string | null
@@ -2154,6 +2161,7 @@ export type Database = {
           status?: string | null
           status_pengambilan?: string | null
           status_pengiriman?: string | null
+          tagihan?: number | null
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
           tanggal_bayar_terakhir?: string | null
@@ -2163,6 +2171,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_notes?: string | null
+          admin_notes_edited_at?: string | null
+          admin_notes_edited_by?: string | null
           bank_account_id?: string | null
           catatan?: string | null
           client_group_id?: string | null
@@ -2185,6 +2196,7 @@ export type Database = {
           status?: string | null
           status_pengambilan?: string | null
           status_pengiriman?: string | null
+          tagihan?: number | null
           tagihan_belum_bayar?: number | null
           tanggal?: string | null
           tanggal_bayar_terakhir?: string | null
@@ -3040,6 +3052,60 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_income_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          income_source_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_number: number
+          recurring_income_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          income_source_id?: string | null
+          notes?: string | null
+          payment_date: string
+          payment_number?: number
+          recurring_income_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          income_source_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_number?: number
+          recurring_income_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_income_payments_income_source_id_fkey"
+            columns: ["income_source_id"]
+            isOneToOne: false
+            referencedRelation: "income_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_income_payments_recurring_income_id_fkey"
+            columns: ["recurring_income_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_monthly_income"
             referencedColumns: ["id"]
           },
         ]
