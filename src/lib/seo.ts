@@ -1,7 +1,7 @@
 // SEO Utility Functions
 
-const SITE_NAME = "Sewa Scaffolding Bali";
-const SITE_URL = "https://sewascaffoldingbali.com";
+export const SITE_NAME = "Sewa Scaffolding Bali";
+export const SITE_URL = "https://sewascaffoldingbali.com";
 
 export interface SEOConfig {
   title: string;
