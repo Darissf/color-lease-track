@@ -218,6 +218,14 @@ export default function RecurringIncome() {
   const getPaymentStatusBadge = (income: RecurringIncome) => { if (income.is_paid || income.tagihan_belum_bayar === 0) return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Lunas</Badge>; return <Badge className="bg-rose-500/10 text-rose-500 border-rose-500/20">Belum Lunas</Badge>; };
   const clearFilters = () => { setInvoiceSearch(""); setStartDateFilter(undefined); setEndDateFilter(undefined); setSortBy('none'); setSortOrder('asc'); setCurrentPage(1); };
 
+  const renderClientIcon = (icon: string | null | undefined) => {
+    if (!icon) return null;
+    if (icon.startsWith('http')) {
+      return <img src={icon} alt="" className="w-5 h-5 rounded-full" />;
+    }
+    return <span className="text-lg">{icon}</span>;
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
 
   return (
@@ -230,14 +238,118 @@ export default function RecurringIncome() {
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-primary/10"><FileText className="h-5 w-5 text-primary" /></div><div><p className="text-sm text-muted-foreground">Total Entry</p><p className="text-xl font-bold text-foreground">{stats.totalEntries}</p></div></div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-blue-500/10"><Clock className="h-5 w-5 text-blue-500" /></div><div><p className="text-sm text-muted-foreground">Entry Aktif</p><p className="text-xl font-bold text-foreground">{stats.activeEntries}</p></div></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-primary/10"><FileText className="h-5 w-5 text-primary" /></div><div><p className="text-sm text-muted-foreground">Total Pemasukan</p><p className="text-xl font-bold text-foreground">{stats.totalEntries}</p></div></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-rose-500/10"><Clock className="h-5 w-5 text-rose-500" /></div><div><p className="text-sm text-muted-foreground">Belum Lunas</p><p className="text-xl font-bold text-foreground">{stats.activeEntries}</p></div></div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-orange-500/10"><Wallet className="h-5 w-5 text-orange-500" /></div><div><p className="text-sm text-muted-foreground">Total Tagihan</p><p className="text-xl font-bold text-foreground">Rp {formatCurrencyLib(stats.totalTagihan)}</p></div></div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-green-500/10"><CheckCircle className="h-5 w-5 text-green-500" /></div><div><p className="text-sm text-muted-foreground">Total Lunas</p><p className="text-xl font-bold text-foreground">Rp {formatCurrencyLib(stats.totalLunas)}</p></div></div></CardContent></Card>
       </div>
       <Card><CardContent className="p-4"><div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between"><div className="flex flex-wrap gap-2 items-center"><div className="relative"><Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Cari invoice, keterangan, kelompok..." value={invoiceSearch} onChange={(e) => setInvoiceSearch(e.target.value)} className="pl-9 w-64" /></div><Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2"><CalendarIcon className="h-4 w-4" />{startDateFilter ? format(startDateFilter, "dd/MM/yy") : "Dari"}</Button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={startDateFilter} onSelect={setStartDateFilter} locale={id} /></PopoverContent></Popover><Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2"><CalendarIcon className="h-4 w-4" />{endDateFilter ? format(endDateFilter, "dd/MM/yy") : "Sampai"}</Button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={endDateFilter} onSelect={setEndDateFilter} locale={id} /></PopoverContent></Popover><Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}><SelectTrigger className="w-32"><ArrowUpDown className="h-4 w-4 mr-1" /><SelectValue placeholder="Urutkan" /></SelectTrigger><SelectContent><SelectItem value="none">Default</SelectItem><SelectItem value="tanggal">Tanggal</SelectItem><SelectItem value="invoice">Invoice</SelectItem><SelectItem value="group">Kelompok</SelectItem><SelectItem value="periode">Periode</SelectItem><SelectItem value="status">Status</SelectItem><SelectItem value="tagihan">Tagihan</SelectItem><SelectItem value="sisa">Sisa</SelectItem></SelectContent></Select>{sortBy !== 'none' && <Button variant="ghost" size="sm" onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>{sortOrder === 'asc' ? '↑' : '↓'}</Button>}{(invoiceSearch || startDateFilter || endDateFilter || sortBy !== 'none') && <Button variant="ghost" size="sm" onClick={clearFilters}><X className="h-4 w-4 mr-1" />Reset</Button>}</div><div className="flex items-center gap-2"><Button variant={isCompactMode ? "secondary" : "ghost"} size="sm" onClick={() => setIsCompactMode(!isCompactMode)}>{isCompactMode ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}</Button></div></div></CardContent></Card>
-      <Card><CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead className="w-12">No</TableHead><TableHead>Tanggal</TableHead><TableHead>Invoice</TableHead><TableHead>Kelompok</TableHead><TableHead>Keterangan</TableHead><TableHead>Periode</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Tagihan</TableHead><TableHead className="text-right">Sisa Tagihan</TableHead><TableHead>Tanggal Bayar</TableHead><TableHead>Status Bayar</TableHead><TableHead>Aksi</TableHead></TableRow></TableHeader><TableBody>{paginatedIncomes.length === 0 ? <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Tidak ada data</TableCell></TableRow> : paginatedIncomes.map((income, index) => (<TableRow key={income.id} className={cn(isCompactMode && "h-10")}><TableCell className="font-medium">{startIndex + index + 1}</TableCell><TableCell><Popover open={editingTanggal === income.id} onOpenChange={(open) => { if (!isTableLocked && open) { setEditingTanggal(income.id); setTanggalValue(income.tanggal ? parseISO(income.tanggal) : undefined); } else if (!open) setEditingTanggal(null); }}><PopoverTrigger asChild><Button variant="ghost" size="sm" className={cn("w-full justify-start font-normal", isTableLocked && "cursor-not-allowed opacity-50")} disabled={isTableLocked}><CalendarIcon className="mr-2 h-4 w-4" />{income.tanggal ? format(parseISO(income.tanggal), "dd/MM/yyyy") : "Set tanggal"}</Button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={tanggalValue} onSelect={(date) => { if (date) handleUpdateTanggal(income.id, date); }} locale={id} /></PopoverContent></Popover></TableCell><TableCell><Button variant="link" className="p-0 h-auto font-medium text-primary" onClick={() => navigate(`/vip/recurring-income/${income.id}`)}>{income.invoice}</Button></TableCell><TableCell><div className="flex items-center gap-2">{income.client_groups?.icon && <img src={income.client_groups.icon} alt="" className="w-5 h-5 rounded-full" />}<span>{income.client_groups?.nama || "-"}</span></div></TableCell><TableCell className={cn(isCompactMode && "max-w-32 truncate")}>{income.keterangan || "-"}</TableCell><TableCell>{formatMonthRange(income.period_start_month, income.period_end_month)}</TableCell><TableCell>{getStatusBadge(income)}</TableCell><TableCell className="text-right"><span className="text-blue-600 font-semibold">Rp {formatCurrencyLib(income.nominal)}</span></TableCell><TableCell className="text-right"><span className={cn("font-semibold", income.tagihan_belum_bayar > 0 ? "text-rose-600" : "text-green-600")}>Rp {formatCurrencyLib(income.tagihan_belum_bayar || 0)}</span></TableCell><TableCell><Popover open={paymentContractId === income.id} onOpenChange={(open) => { if (!isTableLocked && open && !income.is_paid) { setPaymentContractId(income.id); setPaymentDate(undefined); setPaymentAmount(""); } else if (!open) setPaymentContractId(null); }}><PopoverTrigger asChild><Button variant="ghost" size="sm" className={cn("w-full justify-start", isTableLocked && "cursor-not-allowed opacity-50")} disabled={isTableLocked || income.is_paid}><CalendarIcon className="mr-2 h-4 w-4" />{income.tanggal_bayar_terakhir ? format(parseISO(income.tanggal_bayar_terakhir), "dd/MM/yyyy") : "Input Bayar"}</Button></PopoverTrigger><PopoverContent className="w-80" align="start"><div className="space-y-4"><div className="space-y-2"><Label>Tanggal Pembayaran</Label><Calendar mode="single" selected={paymentDate} onSelect={setPaymentDate} locale={id} className="rounded-md border" /></div><div className="space-y-2"><Label>Jumlah Dibayar</Label><div className="flex gap-2"><Input type="number" placeholder="0" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} /><Button variant="outline" size="sm" onClick={() => setPaymentAmount((income.tagihan_belum_bayar || income.nominal).toString())}>100%</Button></div><p className="text-xs text-muted-foreground">Sisa: Rp {formatCurrencyLib(income.tagihan_belum_bayar || income.nominal)}</p></div><Button className="w-full" onClick={() => handlePayment(income.id)} disabled={isSubmittingPayment || !paymentDate || !paymentAmount}>{isSubmittingPayment ? "Menyimpan..." : "Simpan Pembayaran"}</Button></div></PopoverContent></Popover></TableCell><TableCell>{getPaymentStatusBadge(income)}</TableCell><TableCell><div className="flex items-center gap-1"><Button size="sm" variant="ghost" onClick={() => handleEdit(income)} disabled={isTableLocked || income.is_paid}><Edit className="h-4 w-4" /></Button><Button size="sm" variant="ghost" onClick={() => handleDelete(income.id)} disabled={isTableLocked}><Trash2 className="h-4 w-4" /></Button>{!income.is_paid && income.tagihan_belum_bayar > 0 && <Button size="sm" variant="destructive" onClick={() => handleLunas(income)} disabled={isTableLocked}><Check className="h-4 w-4 mr-1" />Lunas</Button>}</div></TableCell></TableRow>))}</TableBody></Table></div>{filteredAndSortedIncomes.length > 0 && <div className="p-4 border-t"><PaginationControls currentPage={currentPage} totalPages={totalPages} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={handleItemsPerPageChange} /></div>}</CardContent></Card>
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>{editingId ? "Edit Entry" : "Tambah Entry Baru"}</DialogTitle></DialogHeader><form onSubmit={handleSubmit} className="space-y-4"><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Invoice Number</Label><Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="FMI-202501-XXXX" required /></div><div className="space-y-2"><Label>Kelompok Klien</Label><Select value={clientGroupId} onValueChange={setClientGroupId} required><SelectTrigger><SelectValue placeholder="Pilih kelompok" /></SelectTrigger><SelectContent>{clientGroups.map((group) => <SelectItem key={group.id} value={group.id}>{group.nama}</SelectItem>)}</SelectContent></Select></div></div><div className="space-y-2"><Label>Keterangan</Label><Input value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="Deskripsi pemasukan" required /></div><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Periode Mulai</Label><Input type="date" value={periodStartMonth} onChange={(e) => setPeriodStartMonth(e.target.value)} required /></div><div className="space-y-2"><Label>Periode Akhir</Label><Input type="date" value={periodEndMonth} onChange={(e) => setPeriodEndMonth(e.target.value)} required /></div></div><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Nominal</Label><Input type="number" value={nominal} onChange={(e) => setNominal(e.target.value)} placeholder="0" required /></div><div className="space-y-2"><Label>Rekening Bank</Label><Select value={bankAccountId} onValueChange={setBankAccountId}><SelectTrigger><SelectValue placeholder="Pilih rekening" /></SelectTrigger><SelectContent>{bankAccounts.map((bank) => <SelectItem key={bank.id} value={bank.id}>{bank.bank_name} - {bank.account_number}</SelectItem>)}</SelectContent></Select></div></div><div className="space-y-2"><Label>Catatan</Label><Textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan tambahan (opsional)" rows={3} /></div><div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button type="submit">{editingId ? "Update" : "Simpan"}</Button></div></form></DialogContent></Dialog>
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">No</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Invoice</TableHead>
+                  <TableHead>Kelompok</TableHead>
+                  <TableHead>Keterangan</TableHead>
+                  <TableHead>Periode</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Tagihan</TableHead>
+                  <TableHead className="text-right">Sisa Tagihan</TableHead>
+                  <TableHead>Tanggal Bayar</TableHead>
+                  <TableHead>Status Bayar</TableHead>
+                  <TableHead>Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedIncomes.length === 0 ? (
+                  <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Tidak ada data</TableCell></TableRow>
+                ) : paginatedIncomes.map((income, index) => (
+                  <TableRow key={income.id} className={cn(isCompactMode && "h-10")}>
+                    <TableCell className="font-medium">{startIndex + index + 1}</TableCell>
+                    <TableCell>
+                      <Popover open={editingTanggal === income.id} onOpenChange={(open) => { if (!isTableLocked && open) { setEditingTanggal(income.id); setTanggalValue(income.tanggal ? parseISO(income.tanggal) : undefined); } else if (!open) setEditingTanggal(null); }}>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="sm" className={cn("w-full justify-start font-normal", isTableLocked && "cursor-not-allowed opacity-50")} disabled={isTableLocked}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />{income.tanggal ? format(parseISO(income.tanggal), "dd/MM/yyyy") : "Set tanggal"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={tanggalValue} onSelect={(date) => { if (date) handleUpdateTanggal(income.id, date); }} locale={id} /></PopoverContent>
+                      </Popover>
+                    </TableCell>
+                    <TableCell><Button variant="link" className="p-0 h-auto font-medium text-primary" onClick={() => navigate(`/vip/recurring-income/${income.id}`)}>{income.invoice}</Button></TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {renderClientIcon(income.client_groups?.icon)}
+                        <span>{income.client_groups?.nama || "-"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className={cn(isCompactMode && "max-w-32 truncate")}>{income.keterangan || "-"}</TableCell>
+                    <TableCell>{formatMonthRange(income.period_start_month, income.period_end_month)}</TableCell>
+                    <TableCell>{getStatusBadge(income)}</TableCell>
+                    <TableCell className="text-right"><span className="text-blue-600 font-semibold">Rp {formatCurrencyLib(income.nominal)}</span></TableCell>
+                    <TableCell className="text-right"><span className={cn("font-semibold", income.tagihan_belum_bayar > 0 ? "text-rose-600" : "text-green-600")}>Rp {formatCurrencyLib(income.tagihan_belum_bayar || 0)}</span></TableCell>
+                    <TableCell>
+                      <Popover open={paymentContractId === income.id} onOpenChange={(open) => { if (!isTableLocked && open && !income.is_paid) { setPaymentContractId(income.id); setPaymentDate(undefined); setPaymentAmount(""); } else if (!open) setPaymentContractId(null); }}>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="sm" className={cn("w-full justify-start", isTableLocked && "cursor-not-allowed opacity-50")} disabled={isTableLocked || income.is_paid}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />{income.tanggal_bayar_terakhir ? format(parseISO(income.tanggal_bayar_terakhir), "dd/MM/yyyy") : "Input Bayar"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80" align="start">
+                          <div className="space-y-4">
+                            <div className="space-y-2"><Label>Tanggal Pembayaran</Label><Calendar mode="single" selected={paymentDate} onSelect={setPaymentDate} locale={id} className="rounded-md border" /></div>
+                            <div className="space-y-2"><Label>Jumlah Dibayar</Label><div className="flex gap-2"><Input type="number" placeholder="0" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} /><Button variant="outline" size="sm" onClick={() => setPaymentAmount((income.tagihan_belum_bayar || income.nominal).toString())}>100%</Button></div><p className="text-xs text-muted-foreground">Sisa: Rp {formatCurrencyLib(income.tagihan_belum_bayar || income.nominal)}</p></div>
+                            <Button className="w-full" onClick={() => handlePayment(income.id)} disabled={isSubmittingPayment || !paymentDate || !paymentAmount}>{isSubmittingPayment ? "Menyimpan..." : "Simpan Pembayaran"}</Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </TableCell>
+                    <TableCell>{getPaymentStatusBadge(income)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => handleEdit(income)} disabled={isTableLocked || income.is_paid}><Edit className="h-4 w-4" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(income.id)} disabled={isTableLocked}><Trash2 className="h-4 w-4" /></Button>
+                        {!income.is_paid && income.tagihan_belum_bayar > 0 && <Button size="sm" variant="destructive" onClick={() => handleLunas(income)} disabled={isTableLocked}><Check className="h-4 w-4 mr-1" />Lunas</Button>}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {filteredAndSortedIncomes.length > 0 && (
+            <div className="p-4 border-t">
+              <PaginationControls currentPage={currentPage} totalPages={totalPages} totalItems={filteredAndSortedIncomes.length} itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={handleItemsPerPageChange} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editingId ? "Edit Entry" : "Tambah Entry Baru"}</DialogTitle></DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Invoice Number</Label><Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="FMI-202501-XXXX" required /></div>
+              <div className="space-y-2"><Label>Kelompok Klien</Label><Select value={clientGroupId} onValueChange={setClientGroupId} required><SelectTrigger><SelectValue placeholder="Pilih kelompok" /></SelectTrigger><SelectContent>{clientGroups.map((group) => <SelectItem key={group.id} value={group.id}>{group.nama}</SelectItem>)}</SelectContent></Select></div>
+            </div>
+            <div className="space-y-2"><Label>Keterangan</Label><Input value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="Deskripsi pemasukan" required /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Periode Mulai</Label><Input type="date" value={periodStartMonth} onChange={(e) => setPeriodStartMonth(e.target.value)} required /></div>
+              <div className="space-y-2"><Label>Periode Akhir</Label><Input type="date" value={periodEndMonth} onChange={(e) => setPeriodEndMonth(e.target.value)} required /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Nominal</Label><Input type="number" value={nominal} onChange={(e) => setNominal(e.target.value)} placeholder="0" required /></div>
+              <div className="space-y-2"><Label>Rekening Bank</Label><Select value={bankAccountId} onValueChange={setBankAccountId}><SelectTrigger><SelectValue placeholder="Pilih rekening" /></SelectTrigger><SelectContent>{bankAccounts.map((bank) => <SelectItem key={bank.id} value={bank.id}>{bank.bank_name} - {bank.account_number}</SelectItem>)}</SelectContent></Select></div>
+            </div>
+            <div className="space-y-2"><Label>Catatan</Label><Textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan tambahan (opsional)" rows={3} /></div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button type="submit">{editingId ? "Update" : "Simpan"}</Button></div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
