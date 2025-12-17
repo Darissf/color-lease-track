@@ -185,7 +185,7 @@ export default function RecurringIncome() {
       const isPaid = newSisa === 0;
       const { error: updateError } = await supabase.from("fixed_monthly_income").update({ tagihan_belum_bayar: newSisa, tanggal_bayar_terakhir: format(paymentDate, "yyyy-MM-dd"), paid_date: isPaid ? format(paymentDate, "yyyy-MM-dd") : income.paid_date, is_paid: isPaid, status: isPaid ? 'lunas' : 'aktif' }).eq("id", incomeId);
       if (updateError) throw updateError;
-      const { error: incomeError } = await supabase.from("income_sources").insert([{ user_id: user.id, source_name: income.client_groups?.nama || "Pemasukan Tetap", amount: amount, date: format(paymentDate, "yyyy-MM-dd"), category: "Pemasukan Tetap", description: `${income.invoice} ${income.keterangan}`, bank_account_id: income.bank_account_id }]);
+      const { error: incomeError } = await supabase.from("income_sources").insert([{ user_id: user.id, source_name: `${income.invoice || ""} ${income.keterangan || ""} - ${income.client_groups?.nama || "Pemasukan Tetap"}`.trim(), amount: amount, date: format(paymentDate, "yyyy-MM-dd"), bank_name: income.bank_accounts?.bank_name || null, bank_account_id: income.bank_account_id }]);
       if (incomeError) throw incomeError;
       toast.success(`Pembayaran Rp ${formatCurrencyLib(amount)} berhasil dicatat`);
       setPaymentContractId(null); setPaymentDate(undefined); setPaymentAmount(""); fetchData();
@@ -199,7 +199,7 @@ export default function RecurringIncome() {
     try {
       const { error: updateError } = await supabase.from("fixed_monthly_income").update({ is_paid: true, paid_date: income.paid_date || format(getNowInJakarta(), "yyyy-MM-dd"), tagihan_belum_bayar: 0, tanggal_bayar_terakhir: income.paid_date || format(getNowInJakarta(), "yyyy-MM-dd"), status: 'lunas' }).eq("id", income.id);
       if (updateError) throw updateError;
-      const { error: incomeError } = await supabase.from("income_sources").insert([{ user_id: user.id, source_name: income.client_groups?.nama || "Pemasukan Tetap", amount: remainingAmount, date: income.paid_date || format(getNowInJakarta(), "yyyy-MM-dd"), category: "Pemasukan Tetap", description: `${income.invoice} ${income.keterangan}`, bank_account_id: income.bank_account_id }]);
+      const { error: incomeError } = await supabase.from("income_sources").insert([{ user_id: user.id, source_name: `${income.invoice || ""} ${income.keterangan || ""} - ${income.client_groups?.nama || "Pemasukan Tetap"}`.trim(), amount: remainingAmount, date: income.paid_date || format(getNowInJakarta(), "yyyy-MM-dd"), bank_name: income.bank_accounts?.bank_name || null, bank_account_id: income.bank_account_id }]);
       if (incomeError) throw incomeError;
       const nextStartMonth = new Date(income.period_start_month); nextStartMonth.setMonth(nextStartMonth.getMonth() + 1);
       const nextEndMonth = new Date(income.period_end_month); nextEndMonth.setMonth(nextEndMonth.getMonth() + 1);
