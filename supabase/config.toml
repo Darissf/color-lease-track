@@ -134,3 +134,6 @@ verify_jwt = false
 
 [functions.resolve-gmaps-shortlink]
 verify_jwt = false
+
+[functions.get-mapbox-token]
+verify_jwt = true
