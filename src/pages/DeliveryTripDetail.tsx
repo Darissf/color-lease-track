@@ -20,13 +20,15 @@ const DeliveryTripDetail = () => {
 
   useEffect(() => {
     const fetchMapboxToken = async () => {
-      const { data } = await supabase
-        .from('editable_content')
-        .select('content_value')
-        .eq('content_key', 'mapbox_token')
-        .single();
-      if (data?.content_value) {
-        setMapboxToken(data.content_value);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-mapbox-token');
+        if (data?.token) {
+          setMapboxToken(data.token);
+        } else if (error) {
+          console.error('Failed to fetch Mapbox token:', error);
+        }
+      } catch (error) {
+        console.error('Error fetching Mapbox token:', error);
       }
     };
     fetchMapboxToken();
