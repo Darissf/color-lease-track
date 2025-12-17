@@ -64,14 +64,34 @@ export function RichTextEditor({
   const handleOrderedList = () => execCommand('insertOrderedList');
   const handleRemoveFormat = () => execCommand('removeFormat');
 
+  // Sanitize URL to prevent XSS attacks
+  const sanitizeUrl = (url: string): string => {
+    const trimmed = url.trim();
+    // Block dangerous protocols
+    const dangerous = /^(javascript|data|vbscript|file):/i;
+    if (dangerous.test(trimmed)) return '#';
+    
+    // Escape HTML special characters
+    return trimmed.replace(/[\"'<>]/g, (char) => {
+      const escapes: Record<string, string> = {
+        '"': '&quot;',
+        "'": '&#39;',
+        '<': '&lt;',
+        '>': '&gt;'
+      };
+      return escapes[char] || char;
+    });
+  };
+
   const handleInsertLink = () => {
     if (linkUrl) {
+      const safeLinkUrl = sanitizeUrl(linkUrl);
       const selection = window.getSelection();
       if (selection && selection.toString()) {
-        execCommand('createLink', linkUrl);
+        execCommand('createLink', safeLinkUrl);
       } else {
-        // Insert link with URL as text
-        execCommand('insertHTML', `<a href="${linkUrl}" target="_blank">${linkUrl}</a>`);
+        // Insert link with sanitized URL as text
+        execCommand('insertHTML', `<a href="${safeLinkUrl}" target="_blank" rel="noopener noreferrer">${safeLinkUrl}</a>`);
       }
       setLinkUrl("");
       setLinkPopoverOpen(false);
