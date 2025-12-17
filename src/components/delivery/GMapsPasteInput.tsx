@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MapPin, Check, AlertCircle, Link2 } from 'lucide-react';
+import { MapPin, Check, AlertCircle, Link2, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   parseGoogleMapsUrl, 
   isGoogleMapsUrl, 
+  isGoogleMapsShortLink,
   isValidCoordinates,
   formatCoordinates,
   ParsedLocation 
@@ -29,7 +31,7 @@ export const GMapsPasteInput = ({
   className = '',
 }: GMapsPasteInputProps) => {
   const [link, setLink] = useState(value);
-  const [status, setStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
+  const [status, setStatus] = useState<'idle' | 'resolving' | 'valid' | 'invalid'>('idle');
   const [parsedLocation, setParsedLocation] = useState<ParsedLocation | null>(null);
 
   useEffect(() => {
@@ -38,19 +40,63 @@ export const GMapsPasteInput = ({
     }
   }, [value]);
 
-  const handleParse = (inputLink: string) => {
+  const resolveShortLink = async (shortUrl: string): Promise<ParsedLocation | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('resolve-gmaps-shortlink', {
+        body: { shortUrl }
+      });
+
+      if (error) {
+        console.error('Error resolving short link:', error);
+        return null;
+      }
+
+      if (data?.success && data?.lat && data?.lng) {
+        return {
+          lat: data.lat,
+          lng: data.lng,
+          address: data.address
+        };
+      }
+
+      return null;
+    } catch (err) {
+      console.error('Failed to resolve short link:', err);
+      return null;
+    }
+  };
+
+  const handleParse = async (inputLink: string) => {
     if (!inputLink.trim()) {
       setStatus('idle');
       setParsedLocation(null);
       return;
     }
 
+    // Check if it's a short link that needs resolution
+    if (isGoogleMapsShortLink(inputLink)) {
+      setStatus('resolving');
+      const resolved = await resolveShortLink(inputLink);
+      
+      if (resolved && isValidCoordinates(resolved.lat, resolved.lng)) {
+        setStatus('valid');
+        setParsedLocation(resolved);
+        onLocationParsed(resolved.lat, resolved.lng, resolved.address);
+      } else {
+        setStatus('invalid');
+        setParsedLocation(null);
+      }
+      return;
+    }
+
+    // Check if it's a valid Google Maps URL
     if (!isGoogleMapsUrl(inputLink)) {
       setStatus('invalid');
       setParsedLocation(null);
       return;
     }
 
+    // Try to parse coordinates directly from the URL
     const result = parseGoogleMapsUrl(inputLink);
     
     if (result && isValidCoordinates(result.lat, result.lng)) {
@@ -69,7 +115,7 @@ export const GMapsPasteInput = ({
     onLinkChange?.(newLink);
     
     // Auto-parse on paste (detected by rapid input)
-    if (newLink.length > 20 && isGoogleMapsUrl(newLink)) {
+    if (newLink.length > 20 && (isGoogleMapsUrl(newLink) || isGoogleMapsShortLink(newLink))) {
       handleParse(newLink);
     }
   };
@@ -102,6 +148,7 @@ export const GMapsPasteInput = ({
             }`}
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            {status === 'resolving' && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />}
             {status === 'valid' && <Check className="h-4 w-4 text-green-500" />}
             {status === 'invalid' && <AlertCircle className="h-4 w-4 text-destructive" />}
           </div>
@@ -111,11 +158,23 @@ export const GMapsPasteInput = ({
           variant="outline"
           size="icon"
           onClick={() => handleParse(link)}
+          disabled={status === 'resolving'}
           title="Parse Link"
         >
-          <MapPin className="h-4 w-4" />
+          {status === 'resolving' ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <MapPin className="h-4 w-4" />
+          )}
         </Button>
       </div>
+      
+      {status === 'resolving' && (
+        <p className="text-sm text-muted-foreground flex items-center gap-1">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Mengambil koordinat dari short link...
+        </p>
+      )}
       
       {status === 'valid' && parsedLocation && (
         <p className="text-sm text-green-600 flex items-center gap-1">

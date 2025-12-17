@@ -131,3 +131,6 @@ verify_jwt = true
 
 [functions.delivery-public-tracking]
 verify_jwt = false
+
+[functions.resolve-gmaps-shortlink]
+verify_jwt = false
