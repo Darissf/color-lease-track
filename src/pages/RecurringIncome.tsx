@@ -40,8 +40,9 @@ interface RecurringIncome {
   invoice: string;
   keterangan: string | null;
   catatan: string | null;
-  rental_date_start: string;
-  rental_date_end: string;
+  tanggal_pengiriman: string | null;
+  rental_date_start: string | null;
+  rental_date_end: string | null;
   period_start_month: string;
   period_end_month: string;
   nominal: number;
@@ -74,8 +75,7 @@ export default function RecurringIncome() {
     bank_account_id: "",
     keterangan: "",
     catatan: "",
-    rental_date_start: new Date(),
-    rental_date_end: new Date(),
+    tanggal_pengiriman: new Date(),
     period_start_month: new Date(),
     period_end_month: new Date(),
     nominal: 0,
@@ -136,8 +136,9 @@ export default function RecurringIncome() {
         bank_account_id: formData.bank_account_id || null,
         keterangan: formData.keterangan || null,
         catatan: formData.catatan || null,
-        rental_date_start: format(formData.rental_date_start, "yyyy-MM-dd"),
-        rental_date_end: format(formData.rental_date_end, "yyyy-MM-dd"),
+        tanggal_pengiriman: format(formData.tanggal_pengiriman, "yyyy-MM-dd"),
+        rental_date_start: null,
+        rental_date_end: null,
         period_start_month: format(formData.period_start_month, "yyyy-MM-dd"),
         period_end_month: format(formData.period_end_month, "yyyy-MM-dd"),
         nominal: formData.nominal,
@@ -201,11 +202,10 @@ export default function RecurringIncome() {
       if (updateError) throw updateError;
 
       // 3. Auto-create entry baru untuk bulan berikutnya
-      const nextMonthStart = new Date(income.rental_date_start);
-      nextMonthStart.setMonth(nextMonthStart.getMonth() + 1);
-      
-      const nextMonthEnd = new Date(income.rental_date_end);
-      nextMonthEnd.setMonth(nextMonthEnd.getMonth() + 1);
+      const nextTanggalPengiriman = income.tanggal_pengiriman 
+        ? new Date(income.tanggal_pengiriman) 
+        : new Date();
+      nextTanggalPengiriman.setMonth(nextTanggalPengiriman.getMonth() + 1);
 
       const nextPeriodStart = new Date(income.period_start_month);
       nextPeriodStart.setMonth(nextPeriodStart.getMonth() + 1);
@@ -222,8 +222,9 @@ export default function RecurringIncome() {
           invoice: income.invoice,
           keterangan: income.keterangan,
           catatan: null,
-          rental_date_start: format(nextMonthStart, "yyyy-MM-dd"),
-          rental_date_end: format(nextMonthEnd, "yyyy-MM-dd"),
+          tanggal_pengiriman: format(nextTanggalPengiriman, "yyyy-MM-dd"),
+          rental_date_start: null,
+          rental_date_end: null,
           period_start_month: format(nextPeriodStart, "yyyy-MM-dd"),
           period_end_month: format(nextPeriodEnd, "yyyy-MM-dd"),
           nominal: income.nominal,
@@ -264,8 +265,9 @@ export default function RecurringIncome() {
       bank_account_id: income.bank_account_id || "",
       keterangan: income.keterangan || "",
       catatan: income.catatan || "",
-      rental_date_start: new Date(income.rental_date_start),
-      rental_date_end: new Date(income.rental_date_end),
+      tanggal_pengiriman: income.tanggal_pengiriman 
+        ? new Date(income.tanggal_pengiriman) 
+        : new Date(),
       period_start_month: new Date(income.period_start_month),
       period_end_month: new Date(income.period_end_month),
       nominal: income.nominal,
@@ -281,8 +283,7 @@ export default function RecurringIncome() {
       bank_account_id: "",
       keterangan: "",
       catatan: "",
-      rental_date_start: new Date(),
-      rental_date_end: new Date(),
+      tanggal_pengiriman: new Date(),
       period_start_month: new Date(),
       period_end_month: new Date(),
       nominal: 0,
@@ -447,40 +448,20 @@ export default function RecurringIncome() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Tanggal Sewa Mulai *</Label>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Tanggal Pengiriman *</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start">
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {format(formData.rental_date_start, "dd MMM yyyy", { locale: idLocale })}
+                          {format(formData.tanggal_pengiriman, "dd MMM yyyy", { locale: idLocale })}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent>
                         <Calendar
                           mode="single"
-                          selected={formData.rental_date_start}
-                          onSelect={(date) => date && setFormData({ ...formData, rental_date_start: date })}
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Tanggal Sewa Akhir *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {format(formData.rental_date_end, "dd MMM yyyy", { locale: idLocale })}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <Calendar
-                          mode="single"
-                          selected={formData.rental_date_end}
-                          onSelect={(date) => date && setFormData({ ...formData, rental_date_end: date })}
+                          selected={formData.tanggal_pengiriman}
+                          onSelect={(date) => date && setFormData({ ...formData, tanggal_pengiriman: date })}
                           className="pointer-events-auto"
                         />
                       </PopoverContent>
