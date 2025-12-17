@@ -97,8 +97,8 @@ export const DriverTemplateSelector = ({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <div className="flex items-center gap-2">
-        <div className="flex-1">
+      <div className="space-y-3">
+        <div>
           <Label className="text-muted-foreground mb-2 block">Template Driver</Label>
           <Select onValueChange={handleSelectTemplate} disabled={loading}>
             <SelectTrigger>
@@ -125,17 +125,22 @@ export const DriverTemplateSelector = ({
           </Select>
         </div>
         
-        <div className="flex items-end gap-1">
+        <div className="space-y-1">
           <Button
             type="button"
             variant="outline"
-            size="icon"
             onClick={() => setShowSaveDialog(true)}
             disabled={!canSave}
-            title="Simpan sebagai Template"
+            className="w-full"
           >
-            <Save className="h-4 w-4" />
+            <Save className="h-4 w-4 mr-2" />
+            Simpan sebagai Template
           </Button>
+          {!canSave && (
+            <p className="text-xs text-muted-foreground text-center">
+              Isi nama driver terlebih dahulu untuk menyimpan template
+            </p>
+          )}
         </div>
       </div>
 

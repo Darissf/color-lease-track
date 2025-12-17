@@ -379,14 +379,21 @@ const CreateDeliveryTrip = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Daftar Stop Pengiriman ({stops.length})</CardTitle>
-          <Button variant="outline" size="sm" onClick={addManualStop}>
-            <Plus className="h-4 w-4 mr-1" />
-            Tambah Manual
-          </Button>
         </CardHeader>
         <CardContent>
           {stops.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Pilih kontrak atau tambah stop manual</p>
+            <div className="text-center py-8 space-y-4 border-2 border-dashed border-muted rounded-lg">
+              <div className="space-y-2">
+                <p className="text-muted-foreground font-medium">Belum ada lokasi tujuan pengiriman</p>
+                <p className="text-sm text-muted-foreground/70">
+                  Pilih kontrak di atas untuk menambahkan tujuan dari kontrak, atau tambah lokasi tujuan secara manual
+                </p>
+              </div>
+              <Button onClick={addManualStop} className="mt-2">
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Tujuan Manual
+              </Button>
+            </div>
           ) : (
             <div className="space-y-4">
               {stops.map((stop, index) => (
@@ -480,6 +487,12 @@ const CreateDeliveryTrip = () => {
                   </div>
                 </div>
               ))}
+              
+              {/* Add more button */}
+              <Button variant="outline" onClick={addManualStop} className="w-full mt-2">
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Tujuan Lainnya
+              </Button>
             </div>
           )}
         </CardContent>
