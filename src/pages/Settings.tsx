@@ -141,7 +141,7 @@ const Settings = () => {
             <SettingsIcon className="h-10 w-10 text-white" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-foreground mb-2">Selamat Datang di Financial Tracker!</h3>
+            <h3 className="text-xl font-bold text-foreground mb-2">Selamat Datang di Client Area!</h3>
             <p className="text-muted-foreground">
               Mulai dengan mengatur akun rekening dan sumber pemasukan Anda. 
               Kemudian lanjutkan dengan mencatat transaksi harian untuk mendapatkan gambaran keuangan yang jelas.
