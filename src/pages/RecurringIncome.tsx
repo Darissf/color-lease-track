@@ -16,9 +16,10 @@ import { PaginationControls } from "@/components/shared/PaginationControls";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { CalendarIcon, Plus, Edit, Trash2, Check, Repeat, Package } from "lucide-react";
+import { CalendarIcon, Plus, Edit, Trash2, Check, Repeat, Package, Lock, Unlock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { GradientButton } from "@/components/GradientButton";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 
 interface ClientGroup {
@@ -68,6 +69,7 @@ export default function RecurringIncome() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingCatatan, setEditingCatatan] = useState<string | null>(null);
   const [catatanValue, setCatatanValue] = useState("");
+  const [isTableLocked, setIsTableLocked] = useState(true);
 
   const [formData, setFormData] = useState({
     invoice: "",
@@ -365,13 +367,21 @@ export default function RecurringIncome() {
               Kelola pemasukan berulang setiap bulan
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm} className="shrink-0">
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Pemasukan Tetap
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <GradientButton
+              variant="primary"
+              icon={isTableLocked ? Lock : Unlock}
+              onClick={() => setIsTableLocked(!isTableLocked)}
+            >
+              {isTableLocked ? "Unlock Table" : "Lock Table"}
+            </GradientButton>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm} className="shrink-0">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tambah Pemasukan Tetap
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
@@ -528,7 +538,8 @@ export default function RecurringIncome() {
                 </div>
               </form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         <RecurringIncomeSummary incomes={incomes} />
@@ -590,7 +601,7 @@ export default function RecurringIncome() {
                               variant="ghost"
                               size="sm"
                               className="w-full justify-start"
-                              disabled={income.is_paid}
+                              disabled={income.is_paid || isTableLocked}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
                               {income.paid_date
@@ -627,13 +638,20 @@ export default function RecurringIncome() {
                           </div>
                         ) : (
                           <div
-                            className="cursor-pointer hover:bg-muted/50 p-2 rounded"
+                            className={cn(
+                              "p-2 rounded",
+                              isTableLocked
+                                ? "cursor-not-allowed opacity-50"
+                                : "cursor-pointer hover:bg-muted/50"
+                            )}
                             onClick={() => {
-                              setEditingCatatan(income.id);
-                              setCatatanValue(income.catatan || "");
+                              if (!isTableLocked) {
+                                setEditingCatatan(income.id);
+                                setCatatanValue(income.catatan || "");
+                              }
                             }}
                           >
-                            {income.catatan || "Klik untuk tambah catatan..."}
+                            {income.catatan || (isTableLocked ? "-" : "Klik untuk tambah catatan...")}
                           </div>
                         )}
                       </TableCell>
@@ -642,6 +660,7 @@ export default function RecurringIncome() {
                           variant="outline"
                           size="sm"
                           onClick={() => navigate(`/vip/recurring-income/${income.id}/scaffolding`)}
+                          disabled={isTableLocked}
                         >
                           <Package className="h-4 w-4 mr-1" />
                           Input Data
@@ -657,7 +676,7 @@ export default function RecurringIncome() {
                             size="sm"
                             variant="destructive"
                             onClick={() => handleLunas(income)}
-                            disabled={!income.paid_date}
+                            disabled={!income.paid_date || isTableLocked}
                           >
                             <Repeat className="mr-2 h-4 w-4" />
                             Lunas
@@ -670,7 +689,7 @@ export default function RecurringIncome() {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleEdit(income)}
-                            disabled={income.is_paid}
+                            disabled={income.is_paid || isTableLocked}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -678,6 +697,7 @@ export default function RecurringIncome() {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleDelete(income.id)}
+                            disabled={isTableLocked}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
