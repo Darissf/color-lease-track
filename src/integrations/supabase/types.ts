@@ -2118,8 +2118,8 @@ export type Database = {
           penanggung_jawab: string | null
           period_end_month: string
           period_start_month: string
-          rental_date_end: string
-          rental_date_start: string
+          rental_date_end: string | null
+          rental_date_start: string | null
           status_pengambilan: string | null
           status_pengiriman: string | null
           tanggal_pengambilan: string | null
@@ -2145,8 +2145,8 @@ export type Database = {
           penanggung_jawab?: string | null
           period_end_month: string
           period_start_month: string
-          rental_date_end: string
-          rental_date_start: string
+          rental_date_end?: string | null
+          rental_date_start?: string | null
           status_pengambilan?: string | null
           status_pengiriman?: string | null
           tanggal_pengambilan?: string | null
@@ -2172,8 +2172,8 @@ export type Database = {
           penanggung_jawab?: string | null
           period_end_month?: string
           period_start_month?: string
-          rental_date_end?: string
-          rental_date_start?: string
+          rental_date_end?: string | null
+          rental_date_start?: string | null
           status_pengambilan?: string | null
           status_pengiriman?: string | null
           tanggal_pengambilan?: string | null
