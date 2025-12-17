@@ -2120,8 +2120,12 @@ export type Database = {
           period_start_month: string
           rental_date_end: string | null
           rental_date_start: string | null
+          status: string | null
           status_pengambilan: string | null
           status_pengiriman: string | null
+          tagihan_belum_bayar: number | null
+          tanggal: string | null
+          tanggal_bayar_terakhir: string | null
           tanggal_pengambilan: string | null
           tanggal_pengiriman: string | null
           updated_at: string | null
@@ -2147,8 +2151,12 @@ export type Database = {
           period_start_month: string
           rental_date_end?: string | null
           rental_date_start?: string | null
+          status?: string | null
           status_pengambilan?: string | null
           status_pengiriman?: string | null
+          tagihan_belum_bayar?: number | null
+          tanggal?: string | null
+          tanggal_bayar_terakhir?: string | null
           tanggal_pengambilan?: string | null
           tanggal_pengiriman?: string | null
           updated_at?: string | null
@@ -2174,8 +2182,12 @@ export type Database = {
           period_start_month?: string
           rental_date_end?: string | null
           rental_date_start?: string | null
+          status?: string | null
           status_pengambilan?: string | null
           status_pengiriman?: string | null
+          tagihan_belum_bayar?: number | null
+          tanggal?: string | null
+          tanggal_bayar_terakhir?: string | null
           tanggal_pengambilan?: string | null
           tanggal_pengiriman?: string | null
           updated_at?: string | null
