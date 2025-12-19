@@ -22,20 +22,20 @@ const categories = [
   { id: "komersial", label: "Komersial" },
 ];
 
-// Fallback data jika database kosong
+// Fallback data with construction-related images
 const fallbackProjects: Project[] = [
   {
     id: "1",
     title: "Villa Mewah Seminyak",
     location: "Seminyak, Bali",
-    image_url: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80",
+    image_url: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80",
     category: "villa",
   },
   {
     id: "2",
     title: "Hotel Resort Nusa Dua",
     location: "Nusa Dua, Bali",
-    image_url: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
+    image_url: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=80",
     category: "hotel",
   },
   {
@@ -49,21 +49,21 @@ const fallbackProjects: Project[] = [
     id: "4",
     title: "Villa Pantai Canggu",
     location: "Canggu, Bali",
-    image_url: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
+    image_url: "https://images.unsplash.com/photo-1517089596392-fb9a9033e05b?w=800&q=80",
     category: "villa",
   },
   {
     id: "5",
     title: "Apartemen Mewah Sanur",
     location: "Sanur, Bali",
-    image_url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80",
+    image_url: "https://images.unsplash.com/photo-1590644365607-1c5f72a1fcc9?w=800&q=80",
     category: "komersial",
   },
   {
     id: "6",
     title: "Resort Ubud",
     location: "Ubud, Bali",
-    image_url: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80",
+    image_url: "https://images.unsplash.com/photo-1508450859948-4e04fabaa4ea?w=800&q=80",
     category: "hotel",
   },
 ];
@@ -115,10 +115,10 @@ export const PortfolioGallery = () => {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-            Portfolio <span className="text-sky-500">Proyek Kami</span>
+          <h2 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">
+            Portfolio <span className="text-amber-500">Proyek Kami</span>
           </h2>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          <p className="text-slate-600 text-lg max-w-2xl mx-auto">
             Lihat berbagai proyek scaffolding yang telah kami selesaikan dengan sukses
           </p>
         </motion.div>
@@ -132,8 +132,8 @@ export const PortfolioGallery = () => {
               variant={selectedCategory === cat.id ? "default" : "outline"}
               className={`rounded-full ${
                 selectedCategory === cat.id
-                  ? "bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg"
-                  : "border-sky-300 text-gray-700 hover:bg-sky-50"
+                  ? "bg-amber-500 hover:bg-amber-600 text-white shadow-lg"
+                  : "border-slate-300 text-slate-700 hover:bg-slate-100"
               }`}
             >
               {cat.label}
@@ -146,7 +146,7 @@ export const PortfolioGallery = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="animate-pulse">
-                <div className="h-64 bg-gray-200 rounded-2xl" />
+                <div className="h-64 bg-slate-200 rounded-2xl" />
               </div>
             ))}
           </div>
@@ -174,7 +174,7 @@ export const PortfolioGallery = () => {
                     loading="lazy"
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                       <h3 className="text-xl font-bold mb-2">{project.title}</h3>
                       <div className="flex items-center gap-2 text-sm">
@@ -196,7 +196,7 @@ export const PortfolioGallery = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+              className="fixed inset-0 z-50 bg-slate-900/95 flex items-center justify-center p-4"
               onClick={() => setLightboxImage(null)}
             >
               <motion.div
@@ -208,7 +208,7 @@ export const PortfolioGallery = () => {
               >
                 <button
                   onClick={() => setLightboxImage(null)}
-                  className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+                  className="absolute -top-12 right-0 text-white hover:text-slate-300 transition-colors"
                 >
                   <X className="w-8 h-8" />
                 </button>

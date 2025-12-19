@@ -66,6 +66,19 @@ export default {
         "accent-purple": "hsl(var(--accent-purple))",
         "accent-green": "hsl(var(--accent-green))",
         "accent-yellow": "hsl(var(--accent-yellow))",
+        // Industrial Construction Theme
+        "industrial": {
+          navy: "hsl(222 47% 11%)",
+          slate: "hsl(215 25% 27%)",
+          steel: "hsl(215 16% 47%)",
+        },
+        "safety": {
+          orange: "hsl(38 92% 50%)",
+          yellow: "hsl(45 93% 47%)",
+        },
+      },
+      fontFamily: {
+        "industrial": ['"Inter Tight"', 'Inter', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
