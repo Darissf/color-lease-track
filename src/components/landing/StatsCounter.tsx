@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { Award, Building2, Clock, Users } from "lucide-react";
 
 const stats = [
-  { icon: Building2, value: 500, suffix: "+", label: "Proyek Selesai" },
-  { icon: Clock, value: 10, suffix: "+", label: "Tahun Pengalaman" },
-  { icon: Users, value: 24, suffix: "/7", label: "Customer Support" },
-  { icon: Award, value: 100, suffix: "%", label: "Kepuasan Klien" },
+  { icon: Building2, value: 500, suffix: "+", label: "Proyek Selesai", color: "from-blue-500 to-cyan-500" },
+  { icon: Clock, value: 10, suffix: "+", label: "Tahun Pengalaman", color: "from-purple-500 to-pink-500" },
+  { icon: Users, value: 24, suffix: "/7", label: "Customer Support", color: "from-orange-500 to-yellow-500" },
+  { icon: Award, value: 100, suffix: "%", label: "Kepuasan Klien", color: "from-green-500 to-emerald-500" },
 ];
 
 export const StatsCounter = () => {
@@ -17,9 +17,9 @@ export const StatsCounter = () => {
   });
 
   return (
-    <section ref={ref} className="py-16 bg-slate-50">
+    <section ref={ref} className="py-16 bg-gradient-to-r from-sky-50 to-cyan-50">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {stats.map((stat, idx) => (
             <motion.div
               key={idx}
@@ -29,11 +29,16 @@ export const StatsCounter = () => {
               className="text-center"
             >
               <div className="relative inline-block mb-4">
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-800 flex items-center justify-center shadow-lg">
-                  <stat.icon className="w-8 h-8 md:w-10 md:h-10 text-amber-500" />
+                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-xl transform hover:scale-110 transition-transform duration-300`}>
+                  <stat.icon className="w-10 h-10 text-white" />
                 </div>
+                <motion.div
+                  className={`absolute inset-0 rounded-full bg-gradient-to-br ${stat.color} opacity-20`}
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0, 0.2] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
               </div>
-              <div className="text-3xl md:text-5xl font-bold text-slate-800 mb-2">
+              <div className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
                 {inView && (
                   <>
                     <CountUp end={stat.value} duration={2.5} />
@@ -41,7 +46,7 @@ export const StatsCounter = () => {
                   </>
                 )}
               </div>
-              <p className="text-slate-600 font-medium">{stat.label}</p>
+              <p className="text-gray-600 font-medium">{stat.label}</p>
             </motion.div>
           ))}
         </div>
