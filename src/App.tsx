@@ -88,6 +88,7 @@ const CreateDeliveryTrip = lazy(() => import("./pages/CreateDeliveryTrip"));
 const DeliveryTripDetail = lazy(() => import("./pages/DeliveryTripDetail"));
 const DriverDeliveryPage = lazy(() => import("./pages/DriverDeliveryPage"));
 const PublicTrackingPage = lazy(() => import("./pages/PublicTrackingPage"));
+const ScaffoldingConfigurator = lazy(() => import("./pages/ScaffoldingConfigurator"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -199,6 +200,8 @@ const App = () => (
                                   <Route path="/delivery" element={<DeliveryDashboard />} />
                                   <Route path="/delivery/create" element={<CreateDeliveryTrip />} />
                                   <Route path="/delivery/trip/:id" element={<DeliveryTripDetail />} />
+                                  {/* Scaffolding Configurator */}
+                                  <Route path="/scaffolding-configurator" element={<ScaffoldingConfigurator />} />
                                   <Route path="*" element={<NotFound />} />
                                 </Routes>
                               </Suspense>

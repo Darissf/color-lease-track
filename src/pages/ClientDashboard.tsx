@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatRupiah } from "@/lib/currency";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { FileText, AlertCircle, CheckCircle, Clock, Eye, Truck, Package, CreditCard, Bell, UserX } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle, Clock, Eye, Truck, Package, CreditCard, Bell, UserX, Box } from "lucide-react";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
 
@@ -402,6 +402,14 @@ export default function ClientDashboard() {
               >
                 <Bell className="h-6 w-6" />
                 <span>Profile</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex flex-col items-center gap-2 border-primary/50 hover:bg-primary/10"
+                onClick={() => navigate("/vip/scaffolding-configurator")}
+              >
+                <Box className="h-6 w-6 text-primary" />
+                <span>Kalkulator Scaffolding</span>
               </Button>
             </div>
           </CardContent>
