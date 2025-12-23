@@ -89,7 +89,20 @@ const DeliveryTripDetail = lazy(() => import("./pages/DeliveryTripDetail"));
 const DriverDeliveryPage = lazy(() => import("./pages/DriverDeliveryPage"));
 const PublicTrackingPage = lazy(() => import("./pages/PublicTrackingPage"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Data is considered fresh for 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Cache data for 30 minutes
+      gcTime: 30 * 60 * 1000,
+      // Retry failed requests 2 times
+      retry: 2,
+      // Don't refetch on window focus by default (reduces unnecessary requests)
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <ErrorBoundary>
