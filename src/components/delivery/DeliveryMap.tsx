@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { Loader2 } from 'lucide-react';
 
 interface Coordinate {
@@ -15,8 +13,25 @@ interface DeliveryMapProps {
   driverLocation?: Coordinate;
   showRoute?: boolean;
   className?: string;
-  onMapLoad?: (map: mapboxgl.Map) => void;
+  onMapLoad?: (map: any) => void;
 }
+
+// Dynamic import for mapbox-gl (heavy library ~500KB)
+let mapboxgl: any = null;
+const loadMapbox = async () => {
+  if (!mapboxgl) {
+    const module = await import('mapbox-gl');
+    mapboxgl = module.default;
+    // Also load CSS dynamically
+    if (!document.querySelector('link[href*="mapbox-gl"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css';
+      document.head.appendChild(link);
+    }
+  }
+  return mapboxgl;
+};
 
 export const DeliveryMap: React.FC<DeliveryMapProps> = ({
   mapboxToken,
@@ -28,15 +43,29 @@ export const DeliveryMap: React.FC<DeliveryMapProps> = ({
   onMapLoad,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const driverMarker = useRef<mapboxgl.Marker | null>(null);
+  const map = useRef<any>(null);
+  const driverMarker = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mapboxLoaded, setMapboxLoaded] = useState(false);
+
+  // Load mapbox dynamically
+  useEffect(() => {
+    loadMapbox()
+      .then(() => setMapboxLoaded(true))
+      .catch((err) => {
+        console.error('Failed to load mapbox:', err);
+        setError('Gagal memuat library peta');
+        setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
-    if (!mapContainer.current || !mapboxToken) {
-      setError('Mapbox token tidak tersedia');
-      setLoading(false);
+    if (!mapboxLoaded || !mapContainer.current || !mapboxToken) {
+      if (!mapboxToken && mapboxLoaded) {
+        setError('Mapbox token tidak tersedia');
+        setLoading(false);
+      }
       return;
     }
 
@@ -122,7 +151,7 @@ export const DeliveryMap: React.FC<DeliveryMapProps> = ({
         onMapLoad?.(map.current!);
       });
 
-      map.current.on('error', (e) => {
+      map.current.on('error', (e: any) => {
         console.error('Mapbox error:', e);
         setError('Error loading map');
         setLoading(false);
@@ -137,11 +166,11 @@ export const DeliveryMap: React.FC<DeliveryMapProps> = ({
     return () => {
       map.current?.remove();
     };
-  }, [mapboxToken, warehouse, stops, showRoute, onMapLoad]);
+  }, [mapboxLoaded, mapboxToken, warehouse, stops, showRoute, onMapLoad]);
 
   // Update driver marker position
   useEffect(() => {
-    if (!map.current || !driverLocation) return;
+    if (!map.current || !driverLocation || !mapboxLoaded) return;
 
     if (!driverMarker.current) {
       const driverEl = document.createElement('div');
@@ -166,7 +195,7 @@ export const DeliveryMap: React.FC<DeliveryMapProps> = ({
     } else {
       driverMarker.current.setLngLat([driverLocation.lng, driverLocation.lat]);
     }
-  }, [driverLocation]);
+  }, [driverLocation, mapboxLoaded]);
 
   if (error) {
     return (
@@ -204,7 +233,7 @@ function getStatusColor(status?: string): string {
 }
 
 async function drawRoute(
-  map: mapboxgl.Map,
+  map: any,
   token: string,
   warehouse: Coordinate,
   stops: Coordinate[]
@@ -223,7 +252,7 @@ async function drawRoute(
       const route = data.routes[0].geometry;
 
       if (map.getSource('route')) {
-        (map.getSource('route') as mapboxgl.GeoJSONSource).setData({
+        (map.getSource('route')).setData({
           type: 'Feature',
           properties: {},
           geometry: route,

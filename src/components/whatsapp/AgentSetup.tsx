@@ -27,12 +27,12 @@ export const AgentSetup = ({ vpsHost, vpsCredentialId, onAgentConnected }: Agent
     checkExistingAgent();
   }, [vpsHost]);
 
-  // Poll agent status every 3 seconds when installing
+  // Poll agent status every 30 seconds when installing (reduced from 3s for better performance)
   useEffect(() => {
     if (agentStatus === 'installing' && agentId) {
       const interval = setInterval(() => {
         checkAgentStatus();
-      }, 3000);
+      }, 30000); // Changed from 3000ms to 30000ms
 
       return () => clearInterval(interval);
     }
