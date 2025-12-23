@@ -1,4 +1,4 @@
-import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat, MessageSquare, Package, Receipt, CalendarClock, Mail, Search, Truck } from "lucide-react";
+import { Home, Building2, Users, DollarSign, ListTodo, Calendar, PiggyBank, FileText, Settings, Shield, LogOut, Bell, ChevronLeft, ChevronRight, User, ChevronDown, TrendingDown, Edit3, Brain, ClipboardList, Bot, User2, LayoutDashboard, Sparkles, Menu, X, Repeat, MessageSquare, Package, Receipt, CalendarClock, Mail, Search, Truck, Box } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -90,6 +90,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { title: "Tagihan Saya", url: "/vip/my-invoices", icon: Receipt, description: "Lihat tagihan dan status pembayaran" },
     { title: "Riwayat Pembayaran", url: "/vip/my-payments", icon: DollarSign, description: "Timeline pembayaran Anda" },
     { title: "Pengiriman Saya", url: "/vip/my-deliveries", icon: Truck, description: "Lacak status pengiriman Anda" },
+    { title: "Kalkulator Scaffolding", url: "/vip/scaffolding-configurator", icon: Box, badge: "3D", badgeVariant: "default" as const, description: "Hitung kebutuhan scaffolding dengan visualisasi 3D" },
   ] : [
     { title: "Home", url: "/vip/", icon: FileText, description: "Halaman utama aplikasi" },
     { title: "Dashboard", url: "/vip/dashboard", icon: Home, description: "Lihat ringkasan keuangan dan aktivitas terkini" },
@@ -102,6 +103,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { title: "Pemasukan Tetap", url: "/vip/recurring-income", icon: CalendarClock, description: "Kelola pemasukan berulang setiap bulan" },
     { title: "Pengeluaran Tetap", url: "/vip/fixed-expenses", icon: Receipt, description: "Atur pengeluaran tetap bulanan" },
     { title: "Stok Barang", url: "/vip/inventory", icon: Package, description: "Kelola persediaan scaffolding dan aksesoris" },
+    { title: "Kalkulator Scaffolding", url: "/vip/scaffolding-configurator", icon: Box, badge: "3D", badgeVariant: "default" as const, description: "Hitung kebutuhan scaffolding dengan visualisasi 3D" },
     { title: "Savings Plans", url: "/vip/savings", icon: PiggyBank, description: "Rencanakan dan pantau target tabungan" },
     { title: "Monthly Budget", url: "/vip/monthly-budget", icon: Calendar, description: "Kelola anggaran bulanan dan tracking" },
   ];
