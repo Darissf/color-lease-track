@@ -482,9 +482,8 @@ const LandingPage = () => {
           </div>
 
           <div className="border-t border-gray-700 pt-8 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} Sewa Scaffolding Bali. All rights reserved.</p>
-            <p className="text-sm mt-2 text-gray-500">
-              Sewa Scaffolding Bali adalah bagian dari/dioperasikan oleh PT ExEnt Digital Indonesia.
+            <p>
+              Copyright © {new Date().getFullYear()} Sewa Scaffolding Bali. Seluruh hak cipta dilindungi undang-undang. Sewa Scaffolding Bali dimiliki dan dioperasikan oleh PT ExEnt Digital Indonesia.
             </p>
           </div>
         </div>
