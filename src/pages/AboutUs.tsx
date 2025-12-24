@@ -171,7 +171,7 @@ export default function AboutUs() {
       {/* Legal Notice for Meta Verification */}
       <section className="py-6 bg-gray-900 text-center">
         <p className="text-sm text-gray-400">
-          Sewa Scaffolding Bali adalah bagian dari/dioperasikan oleh PT ExEnt Digital Indonesia.
+          Copyright © {new Date().getFullYear()} Sewa Scaffolding Bali. Seluruh hak cipta dilindungi undang-undang. Sewa Scaffolding Bali dimiliki dan dioperasikan oleh PT ExEnt Digital Indonesia.
         </p>
       </section>
     </div>
