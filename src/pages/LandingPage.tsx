@@ -402,12 +402,12 @@ const LandingPage = () => {
                       <div>
                         <h4 className="font-bold text-gray-800 mb-2">Alamat</h4>
                         <p className="text-gray-600">
-                          Denpasar, Bali
+                          Jl. Kebudayaan No. 2B, Sidakarya, Denpasar Selatan, Bali 80224
                         </p>
                         <Button
                           variant="link"
                           className="text-sky-600 hover:text-sky-700 p-0 h-auto mt-2"
-                          onClick={() => window.open("https://maps.google.com", "_blank")}
+                          onClick={() => window.open("https://maps.google.com/?q=-8.7136,115.2364", "_blank")}
                         >
                           Lihat di Google Maps →
                         </Button>
