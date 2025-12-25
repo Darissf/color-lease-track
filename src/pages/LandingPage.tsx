@@ -407,7 +407,7 @@ const LandingPage = () => {
                         <Button
                           variant="link"
                           className="text-sky-600 hover:text-sky-700 p-0 h-auto mt-2"
-                          onClick={() => window.open("https://maps.google.com/?q=-8.7136,115.2364", "_blank")}
+                          onClick={() => window.open("https://maps.app.goo.gl/4cAsg4iHinhrFpsz8", "_blank")}
                         >
                           Lihat di Google Maps →
                         </Button>
