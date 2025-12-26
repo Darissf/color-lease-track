@@ -28,6 +28,7 @@ export function PaymentVerificationStatus({
   const [status, setStatus] = useState<VerificationStatus>("pending");
   const [timeRemaining, setTimeRemaining] = useState("");
   const [copied, setCopied] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const triggerConfetti = useCallback(() => {
     confetti({
@@ -45,6 +46,26 @@ export function PaymentVerificationStatus({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Gagal menyalin");
+    }
+  };
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      const { error } = await supabase
+        .from("payment_confirmation_requests")
+        .update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("id", requestId);
+      
+      if (error) throw error;
+      
+      setStatus("cancelled");
+      toast.success("Request dibatalkan");
+    } catch (err) {
+      console.error("Failed to cancel request:", err);
+      toast.error("Gagal membatalkan request");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -173,9 +194,25 @@ export function PaymentVerificationStatus({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Menunggu transfer masuk...</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Menunggu transfer masuk...</span>
+                  </div>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={handleCancel}
+                    disabled={cancelling}
+                    className="gap-1.5"
+                  >
+                    {cancelling ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <X className="h-3 w-3" />
+                    )}
+                    Batalkan
+                  </Button>
                 </div>
               </div>
             )}

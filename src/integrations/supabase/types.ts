@@ -2944,6 +2944,7 @@ export type Database = {
           amount_expected: number
           contract_id: string
           created_at: string
+          created_by_role: string | null
           customer_name: string
           customer_phone: string | null
           expires_at: string | null
@@ -2963,6 +2964,7 @@ export type Database = {
           amount_expected: number
           contract_id: string
           created_at?: string
+          created_by_role?: string | null
           customer_name: string
           customer_phone?: string | null
           expires_at?: string | null
@@ -2982,6 +2984,7 @@ export type Database = {
           amount_expected?: number
           contract_id?: string
           created_at?: string
+          created_by_role?: string | null
           customer_name?: string
           customer_phone?: string | null
           expires_at?: string | null

@@ -127,6 +127,17 @@ serve(async (req) => {
       .eq('contract_id', linkData.contract_id)
       .order('payment_date', { ascending: false });
 
+    // Get pending payment request if any
+    const { data: pendingRequest } = await supabase
+      .from('payment_confirmation_requests')
+      .select('id, unique_amount, unique_code, amount_expected, expires_at, created_by_role, status')
+      .eq('contract_id', linkData.contract_id)
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     // Increment view count (fire and forget)
     supabase.rpc('increment_contract_link_views', { p_access_code: access_code })
       .then(() => console.log("View count incremented"));
@@ -142,7 +153,8 @@ serve(async (req) => {
         expires_at: linkData.expires_at,
         view_count: linkData.view_count + 1,
         created_at: linkData.created_at,
-      }
+      },
+      pending_request: pendingRequest || null,
     };
 
     console.log("Successfully fetched public contract data");

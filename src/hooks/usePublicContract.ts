@@ -11,6 +11,16 @@ interface PaymentRecord {
   confirmed_by?: string | null;
 }
 
+interface PendingPaymentRequest {
+  id: string;
+  unique_amount: number;
+  unique_code: string;
+  amount_expected: number;
+  expires_at: string;
+  created_by_role: string | null;
+  status: string;
+}
+
 interface PublicContractData {
   contract: {
     id: string;
@@ -49,6 +59,7 @@ interface PublicContractData {
     view_count: number;
     created_at: string;
   };
+  pending_request: PendingPaymentRequest | null;
 }
 
 interface UsePublicContractResult {

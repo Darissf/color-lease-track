@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/currency';
 import { SITE_NAME } from '@/lib/seo';
 import { renderIcon } from '@/lib/renderIcon';
+import { PublicPaymentRequest } from '@/components/payment/PublicPaymentRequest';
 
 export default function PublicContractPage() {
   const { accessCode } = useParams<{ accessCode: string }>();
@@ -104,7 +105,7 @@ export default function PublicContractPage() {
 
   if (!data) return null;
 
-  const { contract, link } = data;
+  const { contract, link, pending_request } = data;
   const paidAmount = contract.tagihan - contract.tagihan_belum_bayar;
   const paymentProgress = contract.tagihan > 0 ? (paidAmount / contract.tagihan) * 100 : 0;
   const isFullyPaid = contract.tagihan_belum_bayar <= 0;
