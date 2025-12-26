@@ -3033,6 +3033,51 @@ export type Database = {
           },
         ]
       }
+      payment_provider_settings: {
+        Row: {
+          api_key_encrypted: string | null
+          config: Json | null
+          created_at: string
+          error_count: number | null
+          id: string
+          is_active: boolean | null
+          last_error: string | null
+          last_webhook_at: string | null
+          provider: string
+          updated_at: string
+          user_id: string
+          webhook_secret_encrypted: string | null
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          config?: Json | null
+          created_at?: string
+          error_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_webhook_at?: string | null
+          provider?: string
+          updated_at?: string
+          user_id: string
+          webhook_secret_encrypted?: string | null
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          config?: Json | null
+          created_at?: string
+          error_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_webhook_at?: string | null
+          provider?: string
+          updated_at?: string
+          user_id?: string
+          webhook_secret_encrypted?: string | null
+        }
+        Relationships: []
+      }
       payments_tracking: {
         Row: {
           amount: number
