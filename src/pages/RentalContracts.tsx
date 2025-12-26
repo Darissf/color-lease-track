@@ -762,33 +762,36 @@ const RentalContracts = () => {
                   />
                 </div>
 
-                <div>
-                  <Label>Tanggal Pengambilan</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !contractForm.tanggal_ambil && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "PPP", { locale: localeId }) : "Pilih tanggal"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={contractForm.tanggal_ambil}
-                        onSelect={(date) => setContractForm({ ...contractForm, tanggal_ambil: date })}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <p className="text-xs text-muted-foreground mt-1">Otomatis terisi saat status = Selesai</p>
-                </div>
+                {/* Hanya tampilkan Tanggal Pengambilan saat mode EDIT */}
+                {editingContractId && (
+                  <div>
+                    <Label>Tanggal Pengambilan</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !contractForm.tanggal_ambil && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "PPP", { locale: localeId }) : "Pilih tanggal"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={contractForm.tanggal_ambil}
+                          onSelect={(date) => setContractForm({ ...contractForm, tanggal_ambil: date })}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <p className="text-xs text-muted-foreground mt-1">Otomatis terisi saat status = Selesai</p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
