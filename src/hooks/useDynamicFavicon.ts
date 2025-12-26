@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useBrandSettings } from "./useBrandSettings";
 
-const DEFAULT_FAVICON = "/favicon.svg";
+const DEFAULT_FAVICON = "/logo.png";
 
 export const useDynamicFavicon = () => {
   const { settings } = useBrandSettings();
@@ -19,7 +19,7 @@ export const useDynamicFavicon = () => {
     }
     
     // Determine type based on extension or favicon_type
-    let type = "image/svg+xml";
+    let type = "image/png";
     if (settings?.favicon_url) {
       const ext = settings.favicon_url.split('.').pop()?.toLowerCase();
       if (ext === "ico") type = "image/x-icon";
