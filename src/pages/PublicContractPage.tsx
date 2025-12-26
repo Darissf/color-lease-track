@@ -34,7 +34,7 @@ import { PublicPaymentRequest } from '@/components/payment/PublicPaymentRequest'
 
 export default function PublicContractPage() {
   const { accessCode } = useParams<{ accessCode: string }>();
-  const { data, loading, error, errorCode, expiredAt } = usePublicContract(accessCode || '');
+  const { data, loading, error, errorCode, expiredAt, refetch } = usePublicContract(accessCode || '');
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string, field: string) => {
@@ -281,6 +281,16 @@ export default function PublicContractPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Public Payment Request - Muncul hanya jika masih ada sisa tagihan */}
+        {!isFullyPaid && accessCode && (
+          <PublicPaymentRequest
+            accessCode={accessCode}
+            remainingAmount={contract.tagihan_belum_bayar}
+            pendingRequest={pending_request}
+            onPaymentVerified={() => refetch()}
+          />
+        )}
 
         {/* Contract Details */}
         <Card>
