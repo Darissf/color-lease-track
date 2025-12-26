@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.bca-request-payment-check]
 verify_jwt = true
+
+[functions.contract-public-view]
+verify_jwt = false
