@@ -113,3 +113,6 @@ verify_jwt = false
 
 [functions.mutasibank-webhook]
 verify_jwt = false
+
+[functions.bca-request-payment-check]
+verify_jwt = true
