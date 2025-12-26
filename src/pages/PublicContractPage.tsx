@@ -28,6 +28,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/currency';
 import { SITE_NAME } from '@/lib/seo';
+import { renderIcon } from '@/lib/renderIcon';
 
 export default function PublicContractPage() {
   const { accessCode } = useParams<{ accessCode: string }>();
@@ -118,35 +119,45 @@ export default function PublicContractPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      {/* Header with Brand */}
-      <div className="bg-primary text-primary-foreground py-6 px-4">
+      {/* Header with Professional Brand */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-8 px-4">
         <div className="max-w-2xl mx-auto">
-          {/* Brand Logo/Name */}
-          <div className="text-center mb-4">
-            <div className="text-lg font-bold tracking-wide uppercase">
-              {SITE_NAME}
+          {/* Brand */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="p-2.5 bg-amber-500 rounded-lg shadow-lg shadow-amber-500/20">
+              <Building2 className="w-6 h-6 text-slate-900" />
             </div>
-            <div className="text-xs text-primary-foreground/70 mt-1">
-              sewascaffoldingbali.com
+            <div className="text-center">
+              <div className="text-xl font-bold tracking-wider uppercase">
+                {SITE_NAME}
+              </div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                sewascaffoldingbali.com
+              </div>
             </div>
           </div>
           
-          <div className="border-t border-primary-foreground/20 pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary-foreground/10 rounded-lg">
-                <FileText className="w-6 h-6" />
+          {/* Invoice Card */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-lg">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-sm text-slate-300">Invoice</div>
+                  <div className="text-2xl font-bold">#{contract.invoice || '-'}</div>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold">Detail Kontrak</h1>
-                <p className="text-primary-foreground/80 text-sm">
-                  Invoice: {contract.invoice || '-'}
-                </p>
+              <div className="text-right">
+                <Badge variant="outline" className="bg-white/10 border-white/20 text-white text-xs">
+                  <Eye className="w-3 h-3 mr-1" />
+                  {link.view_count}x dilihat
+                </Badge>
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-3 text-xs text-primary-foreground/70">
-              <Eye className="w-3 h-3" />
-              <span>Dilihat {link.view_count}x</span>
-              <span>•</span>
+            <div className="flex items-center gap-2 mt-3 text-xs text-slate-400 border-t border-white/10 pt-3">
+              <Clock className="w-3 h-3" />
               <span>Berlaku hingga {format(new Date(link.expires_at), 'dd MMM yyyy HH:mm', { locale: id })}</span>
             </div>
           </div>
@@ -168,16 +179,7 @@ export default function PublicContractPage() {
             
             {contract.client && (
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                {/* Icon: cek apakah URL atau emoji */}
-                {contract.client.icon && contract.client.icon.startsWith('http') ? (
-                  <img 
-                    src={contract.client.icon} 
-                    alt={contract.client.nama}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="text-2xl">{contract.client.icon || '👤'}</div>
-                )}
+                {renderIcon({ icon: contract.client.icon, alt: contract.client.nama, size: 'lg' })}
                 <div className="flex-1">
                   <div className="font-medium flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />

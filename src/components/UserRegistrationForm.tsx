@@ -23,6 +23,7 @@ import {
 import { UserPlus, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { cn } from "@/lib/utils";
+import { renderIcon } from "@/lib/renderIcon";
 
 interface UserRegistrationData {
   full_name: string;
@@ -282,8 +283,12 @@ export const UserRegistrationForm = ({ onSuccess }: { onSuccess: () => void }) =
                 ) : matchedClient ? (
                   <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
                     <CheckCircle className="h-4 w-4" />
-                    <span>
-                      Akan terhubung dengan: <strong>{matchedClient.icon} {matchedClient.nama}</strong>
+                    <span className="flex items-center gap-1">
+                      Akan terhubung dengan: 
+                      <strong className="inline-flex items-center gap-1">
+                        {renderIcon({ icon: matchedClient.icon, alt: matchedClient.nama, size: 'sm' })}
+                        {matchedClient.nama}
+                      </strong>
                     </span>
                   </div>
                 ) : (
