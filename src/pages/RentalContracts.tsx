@@ -54,13 +54,10 @@ interface RentalContract {
   inventory_item_id: string | null;
   jenis_scaffolding: string | null;
   jumlah_unit: number | null;
-  lokasi_detail: string | null;
   tanggal_kirim: string | null;
   tanggal_ambil: string | null;
   status_pengiriman: string | null;
   status_pengambilan: string | null;
-  biaya_kirim: number | null;
-  penanggung_jawab: string | null;
 }
 
 interface BankAccount {
@@ -116,14 +113,10 @@ const RentalContracts = () => {
     notes: "",
     jenis_scaffolding: "",
     jumlah_unit: "",
-    lokasi_detail: "",
     tanggal_ambil: undefined as Date | undefined,
     status_pengiriman: "belum_kirim",
     status_pengambilan: "belum_diambil",
-    biaya_kirim: "",
-    penanggung_jawab: "",
   });
-  const [paymentProofFiles, setPaymentProofFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -219,22 +212,6 @@ const RentalContracts = () => {
         return;
       }
 
-      let paymentProofUrls: Array<{ name: string; url: string }> = [];
-      
-      if (editingContractId) {
-        const existingContract = rentalContracts.find(c => c.id === editingContractId);
-        paymentProofUrls = existingContract?.bukti_pembayaran_files || [];
-        
-        if (paymentProofFiles.length > 0) {
-          const newFiles = await uploadFiles(paymentProofFiles, "payment-proofs");
-          paymentProofUrls = [...paymentProofUrls, ...newFiles];
-        }
-      } else {
-        if (paymentProofFiles.length > 0) {
-          paymentProofUrls = await uploadFiles(paymentProofFiles, "payment-proofs");
-        }
-      }
-
       const contractData = {
         user_id: user?.id,
         client_group_id: contractForm.client_group_id,
@@ -246,19 +223,15 @@ const RentalContracts = () => {
         tagihan_belum_bayar: parseFloat(contractForm.tagihan) || 0,
         invoice: contractForm.invoice || null,
         keterangan: contractForm.keterangan || null,
-        bukti_pembayaran_files: paymentProofUrls,
         bank_account_id: contractForm.bank_account_id || null,
         google_maps_link: contractForm.google_maps_link || null,
         notes: contractForm.notes || null,
         jenis_scaffolding: contractForm.jenis_scaffolding || null,
         jumlah_unit: parseInt(contractForm.jumlah_unit) || 0,
-        lokasi_detail: contractForm.lokasi_detail || null,
         
         tanggal_ambil: contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "yyyy-MM-dd") : null,
         status_pengiriman: contractForm.status_pengiriman || "belum_kirim",
         status_pengambilan: contractForm.status_pengambilan || "belum_diambil",
-        biaya_kirim: parseFloat(contractForm.biaya_kirim) || 0,
-        penanggung_jawab: contractForm.penanggung_jawab || null,
       };
 
       if (editingContractId) {
@@ -318,13 +291,10 @@ const RentalContracts = () => {
       notes: contract.notes || "",
       jenis_scaffolding: contract.jenis_scaffolding || "",
       jumlah_unit: contract.jumlah_unit?.toString() || "",
-      lokasi_detail: contract.lokasi_detail || "",
       
       tanggal_ambil: contract.tanggal_ambil ? new Date(contract.tanggal_ambil) : undefined,
       status_pengiriman: contract.status_pengiriman || "belum_kirim",
       status_pengambilan: contract.status_pengambilan || "belum_diambil",
-      biaya_kirim: contract.biaya_kirim?.toString() || "",
-      penanggung_jawab: contract.penanggung_jawab || "",
     });
     setIsContractDialogOpen(true);
   };
@@ -368,15 +338,11 @@ const RentalContracts = () => {
       notes: "",
       jenis_scaffolding: "",
       jumlah_unit: "",
-      lokasi_detail: "",
       
       tanggal_ambil: undefined,
       status_pengiriman: "belum_kirim",
       status_pengambilan: "belum_diambil",
-      biaya_kirim: "",
-      penanggung_jawab: "",
     });
-    setPaymentProofFiles([]);
   };
 
   const getRemainingDays = (endDate: string) => {
@@ -752,16 +718,6 @@ const RentalContracts = () => {
                   </div>
                 </div>
 
-                <div>
-                  <Label>Lokasi Proyek</Label>
-                  <Textarea
-                    value={contractForm.lokasi_detail}
-                    onChange={(e) => setContractForm({ ...contractForm, lokasi_detail: e.target.value })}
-                    placeholder="Alamat detail lokasi proyek"
-                    rows={2}
-                  />
-                </div>
-
                 {/* Hanya tampilkan Tanggal Pengambilan saat mode EDIT */}
                 {editingContractId && (
                   <div>
@@ -829,26 +785,6 @@ const RentalContracts = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Biaya Pengiriman</Label>
-                    <Input
-                      type="number"
-                      value={contractForm.biaya_kirim}
-                      onChange={(e) => setContractForm({ ...contractForm, biaya_kirim: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Penanggung Jawab</Label>
-                    <Input
-                      value={contractForm.penanggung_jawab}
-                      onChange={(e) => setContractForm({ ...contractForm, penanggung_jawab: e.target.value })}
-                      placeholder="Nama driver/teknisi"
-                    />
-                  </div>
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -882,19 +818,6 @@ const RentalContracts = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div>
-                <Label>Upload Bukti Pembayaran (Multiple)</Label>
-                <Input
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf"
-                  onChange={(e) => setPaymentProofFiles(Array.from(e.target.files || []))}
-                />
-                {paymentProofFiles.length > 0 && (
-                  <p className="text-sm text-muted-foreground mt-1">{paymentProofFiles.length} file dipilih</p>
-                )}
               </div>
 
               <div>

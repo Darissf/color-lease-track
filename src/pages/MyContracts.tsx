@@ -31,9 +31,7 @@ interface RentalContract {
   status_pengambilan: string | null;
   jenis_scaffolding: string | null;
   jumlah_unit: number | null;
-  lokasi_detail: string | null;
   google_maps_link: string | null;
-  biaya_kirim: number | null;
 }
 
 export default function MyContracts() {
@@ -106,8 +104,7 @@ export default function MyContracts() {
   const filteredContracts = contracts.filter(contract => {
     const matchesSearch = 
       (contract.invoice?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-      (contract.keterangan?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-      (contract.lokasi_detail?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
+      (contract.keterangan?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
     const matchesStatus = statusFilter === "all" || contract.status === statusFilter;
     
@@ -198,12 +195,6 @@ export default function MyContracts() {
                             <Package className="h-4 w-4" />
                             <span>{contract.jumlah_unit || 0} unit {contract.jenis_scaffolding || "scaffolding"}</span>
                           </div>
-                          {contract.lokasi_detail && (
-                            <div className="flex items-center gap-2 text-muted-foreground md:col-span-2">
-                              <MapPin className="h-4 w-4" />
-                              <span>{contract.lokasi_detail}</span>
-                            </div>
-                          )}
                         </div>
 
                         {/* Delivery Status */}

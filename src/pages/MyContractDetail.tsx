@@ -33,7 +33,6 @@ interface ContractDetail {
   status_pengiriman: string | null;
   status_pengambilan: string | null;
   tanggal_ambil: string | null;
-  biaya_kirim: number | null;
   notes: string | null;
   user_id: string;
 }
@@ -227,21 +226,18 @@ export default function MyContractDetail() {
                   </div>
                 </div>
 
-                {contract.lokasi_detail && (
+                {contract.google_maps_link && (
                   <div>
                     <p className="text-sm text-muted-foreground">Lokasi</p>
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
-                      <p className="font-medium">{contract.lokasi_detail}</p>
-                      {contract.google_maps_link && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => window.open(contract.google_maps_link!, '_blank')}
-                        >
-                          Buka Maps
-                        </Button>
-                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(contract.google_maps_link!, '_blank')}
+                      >
+                        Buka Maps
+                      </Button>
                     </div>
                   </div>
                 )}
