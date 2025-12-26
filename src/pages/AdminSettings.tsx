@@ -286,10 +286,10 @@ const AdminSettings = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors truncate">
-                  Payment Otomatis
+                  Pembayaran Otomatis
                 </h3>
                 <p className="text-xs text-muted-foreground truncate">
-                  Verifikasi pembayaran BCA otomatis dengan Burst Mode
+                  Verifikasi pembayaran otomatis via Mutasibank.co.id
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />

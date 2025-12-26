@@ -260,7 +260,7 @@ export default function PaymentAutoSettings() {
           </Button>
           <div className="flex-1">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Payment Otomatis
+              Pembayaran Otomatis
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
               Verifikasi pembayaran otomatis via Mutasibank.co.id (interval 5 menit)
