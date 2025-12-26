@@ -71,8 +71,28 @@ export default function MyContractDetail() {
   useEffect(() => {
     if (user && id) {
       fetchContractDetail();
+      fetchPendingVerification();
     }
   }, [user, id]);
+
+  const fetchPendingVerification = async () => {
+    if (!id) return;
+    
+    const { data } = await supabase
+      .from("payment_confirmation_requests")
+      .select("id, unique_amount, expires_at")
+      .eq("contract_id", id)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .maybeSingle();
+    
+    if (data) {
+      setActiveVerificationId(data.id);
+      setVerificationUniqueAmount(data.unique_amount || 0);
+      setVerificationExpiresAt(data.expires_at || "");
+    }
+  };
 
   const fetchContractDetail = async () => {
     if (!user || !id) return;
