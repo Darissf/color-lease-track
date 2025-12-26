@@ -12,6 +12,7 @@ import { id as localeId } from "date-fns/locale";
 import { FileText, AlertCircle, CheckCircle, Clock, Eye, Truck, Package, CreditCard, Bell, UserX, Box } from "lucide-react";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
+import { renderIcon } from "@/lib/renderIcon";
 
 interface ClientGroup {
   id: string;
@@ -216,7 +217,7 @@ export default function ClientDashboard() {
             </h1>
             <p className="text-muted-foreground mt-1">Ringkasan kontrak dan pembayaran Anda</p>
           </div>
-          <div className="text-4xl">{clientGroup?.icon || "👤"}</div>
+          {renderIcon({ icon: clientGroup?.icon, alt: clientGroup?.nama, size: 'xl' })}
         </div>
 
         {/* Urgent Alert for Unpaid */}
