@@ -5,14 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { ArrowLeft, Phone, MessageSquare, Clock, BarChart3, Tag, FileText, BookOpen, History, TestTube, Settings, Cloud } from 'lucide-react';
+import { ArrowLeft, Phone, MessageSquare, Clock, BarChart3, Tag, FileText, History, TestTube, Settings, Cloud } from 'lucide-react';
 import { WhatsAppConfigForm } from '@/components/whatsapp/WhatsAppConfigForm';
 import { MessageTemplates } from '@/components/whatsapp/MessageTemplates';
 import { NotificationHistory } from '@/components/whatsapp/NotificationHistory';
 import { WhatsAppTester } from '@/components/whatsapp/WhatsAppTester';
-import { WAHASetupGuide } from '@/components/whatsapp/WAHASetupGuide';
-import { WAHASessionManager } from '@/components/whatsapp/WAHASessionManager';
-import { WAHAQRScanner } from '@/components/whatsapp/WAHAQRScanner';
 import { WhatsAppNumberManager } from '@/components/whatsapp/WhatsAppNumberManager';
 import { WhatsAppConversations } from '@/components/whatsapp/WhatsAppConversations';
 import { WhatsAppChatPanel } from '@/components/whatsapp/WhatsAppChatPanel';
@@ -59,7 +56,7 @@ const WhatsAppSettings = () => {
               activeTheme === 'japanese' && "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
             )}>WhatsApp Settings</h1>
             <p className="text-muted-foreground mt-1">
-              Advanced WhatsApp Package - Multi-Number, Analytics, Conversations
+              Meta Cloud API - Official WhatsApp Business Platform
             </p>
           </div>
         </div>
@@ -96,10 +93,6 @@ const WhatsAppSettings = () => {
                 <TabsTrigger value="meta" className="flex items-center gap-2">
                   <Cloud className="h-4 w-4" />
                   <span className="hidden md:inline">Meta Cloud</span>
-                </TabsTrigger>
-                <TabsTrigger value="setup" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  <span className="hidden md:inline">Setup WAHA</span>
                 </TabsTrigger>
                 <TabsTrigger value="config" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
@@ -160,14 +153,8 @@ const WhatsAppSettings = () => {
               <MetaTemplateMapping />
             </TabsContent>
 
-            <TabsContent value="setup">
-              <WAHASetupGuide />
-            </TabsContent>
-
-            <TabsContent value="config" className="space-y-6">
+            <TabsContent value="config">
               <WhatsAppConfigForm />
-              <WAHASessionManager />
-              <WAHAQRScanner />
             </TabsContent>
 
             <TabsContent value="history">

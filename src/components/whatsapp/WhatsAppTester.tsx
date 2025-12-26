@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Send, TestTube, RefreshCw } from 'lucide-react';
+import { Loader2, Send, RefreshCw } from 'lucide-react';
 import { useWhatsAppHealth } from '@/hooks/useWhatsAppHealth';
 import { useMessageTemplates } from '@/hooks/useMessageTemplates';
 import { supabase } from '@/integrations/supabase/client';
@@ -94,7 +94,7 @@ export const WhatsAppTester = () => {
           <div>
             <h3 className="text-lg font-semibold">Connection Health Check</h3>
             <p className="text-sm text-muted-foreground">
-              Cek status koneksi WAHA dan WhatsApp session
+              Cek status koneksi Meta Cloud API WhatsApp
             </p>
           </div>
           <Button onClick={handleHealthCheck} disabled={isChecking}>
@@ -133,12 +133,6 @@ export const WhatsAppTester = () => {
                 <p className="font-medium">{latestCheck.session_status}</p>
               </div>
             )}
-            {latestCheck.waha_version && (
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">WAHA Version</p>
-                <p className="font-medium">{latestCheck.waha_version}</p>
-              </div>
-            )}
           </div>
         )}
       </Card>
@@ -148,7 +142,7 @@ export const WhatsAppTester = () => {
         <div className="mb-4">
           <h3 className="text-lg font-semibold">Manual Test Message</h3>
           <p className="text-sm text-muted-foreground">
-            Kirim pesan test ke nomor WhatsApp tertentu
+            Kirim pesan test ke nomor WhatsApp tertentu via Meta Cloud API
           </p>
         </div>
 

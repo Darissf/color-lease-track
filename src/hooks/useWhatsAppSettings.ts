@@ -5,9 +5,6 @@ import { useToast } from '@/hooks/use-toast';
 export interface WhatsAppSettings {
   id: string;
   user_id: string;
-  waha_api_url: string;
-  waha_api_key: string;
-  waha_session_name: string;
   is_active: boolean;
   connection_status: 'connected' | 'disconnected' | 'error' | 'unknown';
   last_connection_test: string | null;
@@ -35,59 +32,6 @@ export const useWhatsAppSettings = () => {
       if (error) {
         console.error('[WhatsApp Settings] Error:', error);
         throw error;
-      }
-      
-      // If whatsapp_settings is empty or API key is missing, try to fetch from vps_credentials
-      if (!data || !data.waha_api_key) {
-        console.log('[WhatsApp Settings] No settings or API key found, checking VPS credentials...');
-        const { data: vpsData, error: vpsError } = await supabase
-          .from('vps_credentials')
-          .select('host, waha_port, waha_api_key, waha_session_name')
-          .eq('is_default', true)
-          .maybeSingle();
-
-        if (!vpsError && vpsData && vpsData.waha_api_key) {
-          console.log('[WhatsApp Settings] Found credentials in VPS, auto-syncing...');
-          
-          // Auto-sync to whatsapp_settings
-          const { data: user } = await supabase.auth.getUser();
-          if (user.user) {
-            const wahaUrl = `http://${vpsData.host}:${vpsData.waha_port || 3000}`;
-            const syncData = {
-              user_id: user.user.id,
-              waha_api_url: wahaUrl,
-              waha_api_key: vpsData.waha_api_key,
-              waha_session_name: vpsData.waha_session_name || 'default',
-              is_active: true,
-            };
-
-            if (data?.id) {
-              // Update existing
-              await supabase
-                .from('whatsapp_settings')
-                .update(syncData)
-                .eq('id', data.id);
-            } else {
-              // Insert new
-              await supabase
-                .from('whatsapp_settings')
-                .insert([syncData]);
-            }
-
-            // Refetch after sync
-            const { data: updatedData } = await supabase
-              .from('whatsapp_settings')
-              .select('*')
-              .maybeSingle();
-            
-            setSettings(updatedData as WhatsAppSettings | null);
-            toast({
-              title: 'Auto-Sync Berhasil',
-              description: 'Konfigurasi WAHA berhasil disinkronkan dari VPS Credentials',
-            });
-            return;
-          }
-        }
       }
       
       console.log('[WhatsApp Settings] Data fetched:', data ? 'Found' : 'Empty');
@@ -152,13 +96,13 @@ export const useWhatsAppSettings = () => {
       if (result?.healthy) {
         toast({
           title: 'Koneksi Berhasil',
-          description: `WAHA terhubung (${result.response_time_ms}ms)`,
+          description: `WhatsApp terhubung (${result.response_time_ms}ms)`,
         });
         return true;
       } else {
         toast({
           title: 'Koneksi Gagal',
-          description: result?.error || 'Tidak dapat terhubung ke WAHA',
+          description: result?.error || 'Tidak dapat terhubung ke WhatsApp',
           variant: 'destructive',
         });
         return false;
