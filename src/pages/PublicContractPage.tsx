@@ -21,7 +21,8 @@ import {
   XCircle,
   Building2,
   Eye,
-  MessageCircle
+  MessageCircle,
+  ExternalLink
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -434,7 +435,7 @@ export default function PublicContractPage() {
             </div>
           </div>
 
-          {/* Brand Footer - Sky/Cyan Theme (sama dengan header) */}
+          {/* Brand Footer - Sky/Cyan Theme (sama dengan header - 2 baris) */}
           <div className="bg-gradient-to-r from-sky-600 via-cyan-600 to-sky-600 text-white rounded-xl py-4 px-4">
             <div className="flex items-center justify-between">
               {/* Brand */}
@@ -443,22 +444,33 @@ export default function PublicContractPage() {
                   <Building2 className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="font-bold tracking-wide">{SITE_NAME}</div>
-                  <a 
-                    href="https://sewascaffoldingbali.com" 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-sky-100 hover:text-white transition-colors"
-                  >
-                    sewascaffoldingbali.com
-                  </a>
+                  <div className="text-lg font-bold tracking-wide">{SITE_NAME}</div>
+                  <div className="text-xs text-sky-100">sewascaffoldingbali.com</div>
                 </div>
               </div>
               
               {/* Copyright */}
-              <div className="text-xs text-sky-100">
-                © {new Date().getFullYear()}
+              <div className="text-right">
+                <div className="text-xs text-sky-100">Copyright</div>
+                <div className="text-lg font-bold">© {new Date().getFullYear()}</div>
               </div>
+            </div>
+            
+            {/* Second row - sama seperti header */}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/20 text-xs text-sky-100">
+              <div className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                <span>Denpasar, Bali</span>
+              </div>
+              <a 
+                href="https://sewascaffoldingbali.com" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-white transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span>sewascaffoldingbali.com</span>
+              </a>
             </div>
           </div>
         </div>
