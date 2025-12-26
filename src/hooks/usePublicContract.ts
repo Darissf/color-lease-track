@@ -7,6 +7,8 @@ interface PaymentRecord {
   amount: number;
   payment_number: number;
   notes: string | null;
+  payment_source?: 'manual' | 'auto';
+  confirmed_by?: string | null;
 }
 
 interface PublicContractData {

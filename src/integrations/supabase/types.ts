@@ -1366,6 +1366,7 @@ export type Database = {
       contract_payments: {
         Row: {
           amount: number
+          confirmed_by: string | null
           contract_id: string
           created_at: string
           id: string
@@ -1373,11 +1374,13 @@ export type Database = {
           notes: string | null
           payment_date: string
           payment_number: number
+          payment_source: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           amount: number
+          confirmed_by?: string | null
           contract_id: string
           created_at?: string
           id?: string
@@ -1385,11 +1388,13 @@ export type Database = {
           notes?: string | null
           payment_date: string
           payment_number?: number
+          payment_source?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           amount?: number
+          confirmed_by?: string | null
           contract_id?: string
           created_at?: string
           id?: string
@@ -1397,6 +1402,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string
           payment_number?: number
+          payment_source?: string | null
           updated_at?: string
           user_id?: string
         }
