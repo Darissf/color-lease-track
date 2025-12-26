@@ -110,3 +110,15 @@ verify_jwt = false
 
 [functions.get-mapbox-token]
 verify_jwt = false
+
+[functions.bca-mutation-webhook]
+verify_jwt = false
+
+[functions.bca-credentials-manager]
+verify_jwt = false
+
+[functions.bca-vps-setup]
+verify_jwt = true
+
+[functions.bca-request-payment-check]
+verify_jwt = true
