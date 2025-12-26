@@ -171,7 +171,15 @@ export default function PublicContractPage() {
                 {contract.status}
               </Badge>
               {contract.keterangan && (
-                <span className="text-xs sm:text-sm text-muted-foreground">{contract.keterangan}</span>
+                <div className="w-full p-3 bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg border border-gray-200/50">
+                  <div className="flex items-start gap-2">
+                    <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-0.5">Catatan</div>
+                      <p className="text-sm sm:text-base text-foreground">{contract.keterangan}</p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             
