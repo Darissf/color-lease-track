@@ -20,19 +20,21 @@ import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, differenceInHours } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/currency";
 import { cn } from "@/lib/utils";
+import { getNowInJakarta } from "@/lib/timezone";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 
 interface ClientGroup {
   id: string;
   nama: string;
   nomor_telepon: string;
+  created_at: string;
 }
 
 interface RentalContract {
@@ -136,7 +138,7 @@ const RentalContracts = () => {
       
       const { data: groups, error: groupsError } = await supabase
         .from("client_groups")
-        .select("id, nama, nomor_telepon")
+        .select("id, nama, nomor_telepon, created_at")
         .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
 
@@ -443,10 +445,35 @@ const RentalContracts = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedContracts = sortedContracts.slice(startIndex, startIndex + itemsPerPage);
 
-  const filteredClientGroups = clientGroups.filter(group =>
-    group.nama.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
-    group.nomor_telepon.includes(clientSearchQuery)
-  );
+  // Sort clients: yang baru dibuat (< 24 jam) di atas, sisanya abjad A-Z
+  const sortedClientGroups = useMemo(() => {
+    const filtered = clientGroups.filter(group =>
+      group.nama.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+      group.nomor_telepon.includes(clientSearchQuery)
+    );
+    
+    const now = getNowInJakarta();
+    
+    return filtered.sort((a, b) => {
+      const hoursA = differenceInHours(now, new Date(a.created_at));
+      const hoursB = differenceInHours(now, new Date(b.created_at));
+      
+      // Client yang dibuat dalam 24 jam terakhir (belum 1 hari)
+      const aIsNew = hoursA < 24;
+      const bIsNew = hoursB < 24;
+      
+      if (aIsNew && !bIsNew) return -1; // A di atas
+      if (!aIsNew && bIsNew) return 1;  // B di atas
+      
+      // Jika keduanya baru, yang paling baru di atas
+      if (aIsNew && bIsNew) {
+        return hoursA - hoursB;
+      }
+      
+      // Sisanya sort berdasarkan abjad A-Z
+      return a.nama.localeCompare(b.nama, 'id');
+    });
+  }, [clientGroups, clientSearchQuery]);
 
   // Calculate stats
   const totalTagihan = useMemo(() => 
@@ -513,7 +540,7 @@ const RentalContracts = () => {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Kelompok Client *</Label>
+                <Label>List Client *</Label>
                 <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -540,28 +567,39 @@ const RentalContracts = () => {
                       <CommandList>
                         <CommandEmpty>Client tidak ditemukan</CommandEmpty>
                         <CommandGroup>
-                          {filteredClientGroups.map((group) => (
-                            <CommandItem
-                              key={group.id}
-                              value={group.id}
-                              onSelect={() => {
-                                setContractForm({ ...contractForm, client_group_id: group.id });
-                                setClientSearchOpen(false);
-                                setClientSearchQuery("");
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  contractForm.client_group_id === group.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div>
-                                <div className="font-medium">{group.nama}</div>
-                                <div className="text-xs text-muted-foreground">{group.nomor_telepon}</div>
-                              </div>
-                            </CommandItem>
-                          ))}
+                          {sortedClientGroups.map((group) => {
+                            const hoursAgo = differenceInHours(getNowInJakarta(), new Date(group.created_at));
+                            const isNew = hoursAgo < 24;
+                            return (
+                              <CommandItem
+                                key={group.id}
+                                value={group.id}
+                                onSelect={() => {
+                                  setContractForm({ ...contractForm, client_group_id: group.id });
+                                  setClientSearchOpen(false);
+                                  setClientSearchQuery("");
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    contractForm.client_group_id === group.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium flex items-center gap-2">
+                                    {group.nama}
+                                    {isNew && (
+                                      <Badge variant="secondary" className="bg-green-500/20 text-green-600 text-[10px] px-1.5 py-0">
+                                        Baru
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">{group.nomor_telepon}</div>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
                         </CommandGroup>
                       </CommandList>
                     </Command>
