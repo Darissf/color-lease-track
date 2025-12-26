@@ -434,6 +434,203 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_mutations: {
+        Row: {
+          amount: number
+          balance_after: number | null
+          bank_account_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_processed: boolean
+          matched_contract_id: string | null
+          processed_at: string | null
+          raw_data: Json | null
+          reference_number: string | null
+          source: string
+          transaction_date: string
+          transaction_time: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number | null
+          bank_account_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_processed?: boolean
+          matched_contract_id?: string | null
+          processed_at?: string | null
+          raw_data?: Json | null
+          reference_number?: string | null
+          source?: string
+          transaction_date: string
+          transaction_time?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number | null
+          bank_account_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_processed?: boolean
+          matched_contract_id?: string | null
+          processed_at?: string | null
+          raw_data?: Json | null
+          reference_number?: string | null
+          source?: string
+          transaction_date?: string
+          transaction_time?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_mutations_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_mutations_matched_contract_id_fkey"
+            columns: ["matched_contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bca_credentials: {
+        Row: {
+          allowed_ip: string | null
+          burst_duration_seconds: number
+          burst_interval_seconds: number
+          created_at: string
+          default_interval_minutes: number
+          error_count: number
+          error_message: string | null
+          id: string
+          is_active: boolean
+          klikbca_pin_encrypted: string
+          klikbca_user_id_encrypted: string
+          last_sync_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          vps_host: string
+          vps_password_encrypted: string
+          vps_port: number
+          vps_username: string
+          webhook_secret: string
+        }
+        Insert: {
+          allowed_ip?: string | null
+          burst_duration_seconds?: number
+          burst_interval_seconds?: number
+          created_at?: string
+          default_interval_minutes?: number
+          error_count?: number
+          error_message?: string | null
+          id?: string
+          is_active?: boolean
+          klikbca_pin_encrypted: string
+          klikbca_user_id_encrypted: string
+          last_sync_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          vps_host: string
+          vps_password_encrypted: string
+          vps_port?: number
+          vps_username: string
+          webhook_secret?: string
+        }
+        Update: {
+          allowed_ip?: string | null
+          burst_duration_seconds?: number
+          burst_interval_seconds?: number
+          created_at?: string
+          default_interval_minutes?: number
+          error_count?: number
+          error_message?: string | null
+          id?: string
+          is_active?: boolean
+          klikbca_pin_encrypted?: string
+          klikbca_user_id_encrypted?: string
+          last_sync_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vps_host?: string
+          vps_password_encrypted?: string
+          vps_port?: number
+          vps_username?: string
+          webhook_secret?: string
+        }
+        Relationships: []
+      }
+      bca_sync_logs: {
+        Row: {
+          bca_credential_id: string
+          completed_at: string | null
+          duration_ms: number | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          mode: string
+          mutations_found: number
+          mutations_matched: number
+          mutations_new: number
+          started_at: string
+          status: string
+        }
+        Insert: {
+          bca_credential_id: string
+          completed_at?: string | null
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          mode?: string
+          mutations_found?: number
+          mutations_matched?: number
+          mutations_new?: number
+          started_at?: string
+          status: string
+        }
+        Update: {
+          bca_credential_id?: string
+          completed_at?: string | null
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          mode?: string
+          mutations_found?: number
+          mutations_matched?: number
+          mutations_new?: number
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bca_sync_logs_bca_credential_id_fkey"
+            columns: ["bca_credential_id"]
+            isOneToOne: false
+            referencedRelation: "bca_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_categories: {
         Row: {
           color: string
@@ -2692,6 +2889,75 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_confirmation_requests: {
+        Row: {
+          amount_expected: number
+          burst_expires_at: string
+          contract_id: string
+          created_at: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          matched_at: string | null
+          matched_mutation_id: string | null
+          requested_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          whatsapp_sent: boolean
+          whatsapp_sent_at: string | null
+        }
+        Insert: {
+          amount_expected: number
+          burst_expires_at?: string
+          contract_id: string
+          created_at?: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          matched_at?: string | null
+          matched_mutation_id?: string | null
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          whatsapp_sent?: boolean
+          whatsapp_sent_at?: string | null
+        }
+        Update: {
+          amount_expected?: number
+          burst_expires_at?: string
+          contract_id?: string
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          matched_at?: string | null
+          matched_mutation_id?: string | null
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp_sent?: boolean
+          whatsapp_sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_confirmation_requests_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_confirmation_requests_matched_mutation_id_fkey"
+            columns: ["matched_mutation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_mutations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_edit_requests: {
         Row: {
           contract_id: string
@@ -4524,6 +4790,7 @@ export type Database = {
       cleanup_old_agent_logs: { Args: never; Returns: number }
       cleanup_old_agent_outputs: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      expire_burst_requests: { Args: never; Returns: number }
       generate_tracking_code: { Args: never; Returns: string }
       generate_trip_code: { Args: never; Returns: string }
       get_available_years: {
@@ -4574,6 +4841,18 @@ export type Database = {
           expenses: number
           income: number
           month: string
+        }[]
+      }
+      get_pending_burst_requests: {
+        Args: { p_user_id?: string }
+        Returns: {
+          amount_expected: number
+          burst_expires_at: string
+          contract_id: string
+          customer_name: string
+          id: string
+          requested_at: string
+          seconds_remaining: number
         }[]
       }
       get_table_sizes: {
@@ -4638,6 +4917,10 @@ export type Database = {
       is_admin: { Args: { user_id: string }; Returns: boolean }
       is_super_admin: { Args: { user_id: string }; Returns: boolean }
       is_user: { Args: { user_id: string }; Returns: boolean }
+      match_mutation_with_request: {
+        Args: { p_amount: number; p_mutation_id: string }
+        Returns: string
+      }
       process_whatsapp_notification_queue: {
         Args: never
         Returns: {
