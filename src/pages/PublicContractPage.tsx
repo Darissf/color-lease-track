@@ -139,7 +139,7 @@ export default function PublicContractPage() {
             {/* Invoice Badge */}
             <div className="text-right flex-shrink-0">
               <div className="text-[10px] sm:text-xs text-sky-100">Invoice</div>
-              <div className="text-sm sm:text-lg font-bold">#{contract.invoice || '-'}</div>
+              <div className="text-sm sm:text-lg font-bold">{contract.invoice || '-'}</div>
             </div>
           </div>
           
@@ -399,7 +399,7 @@ export default function PublicContractPage() {
                 {contract.payments.map((payment, index) => (
                   <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 p-2.5 sm:p-3 bg-muted/50 rounded-lg">
                     <div>
-                      <div className="text-xs sm:text-sm font-medium">Pembayaran #{payment.payment_number}</div>
+                      <div className="text-xs sm:text-sm font-medium">Pembayaran {payment.payment_number}</div>
                       <div className="text-[10px] sm:text-xs text-muted-foreground">
                         {format(new Date(payment.payment_date), 'dd MMM yyyy', { locale: id })}
                       </div>
@@ -435,7 +435,7 @@ export default function PublicContractPage() {
                   Ingin akses permanen? Hubungi admin:
                 </p>
                 <a 
-                  href={`https://wa.me/6289666666632?text=${encodeURIComponent(`Halo, saya ingin akses permanen untuk invoice #${contract.invoice || '-'}`)}`}
+                  href={`https://wa.me/6289666666632?text=${encodeURIComponent(`Halo, saya ingin akses permanen untuk invoice ${contract.invoice || '-'}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 sm:px-4 py-2.5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm min-h-[44px]"

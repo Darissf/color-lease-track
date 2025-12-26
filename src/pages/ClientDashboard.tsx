@@ -343,7 +343,7 @@ export default function ClientDashboard() {
                 recentPayments.map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Pembayaran #{payment.payment_number}</p>
+                      <p className="text-sm font-medium">Pembayaran {payment.payment_number}</p>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(payment.payment_date), "dd MMM yyyy", { locale: localeId })}
                       </p>

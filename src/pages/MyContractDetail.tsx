@@ -296,7 +296,7 @@ export default function MyContractDetail() {
                             <CheckCircle className="h-4 w-4 text-green-600" />
                           </div>
                           <div>
-                            <p className="font-medium">Pembayaran #{payment.payment_number}</p>
+                            <p className="font-medium">Pembayaran {payment.payment_number}</p>
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(payment.payment_date), "dd MMMM yyyy", { locale: localeId })}
                             </p>

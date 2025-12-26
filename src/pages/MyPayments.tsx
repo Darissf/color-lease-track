@@ -206,7 +206,7 @@ export default function MyPayments() {
                               <div className="flex items-center gap-2 mb-1">
                                 <Receipt className="h-4 w-4 text-muted-foreground" />
                                 <span className="font-semibold">{payment.contract?.invoice || "Invoice"}</span>
-                                <Badge variant="outline" className="text-xs">#{payment.payment_number}</Badge>
+                                <Badge variant="outline" className="text-xs">{payment.payment_number}</Badge>
                               </div>
                               <p className="text-sm text-muted-foreground">{payment.contract?.keterangan || "-"}</p>
                               <p className="text-xs text-muted-foreground mt-1">

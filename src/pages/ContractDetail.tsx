@@ -830,7 +830,7 @@ export default function ContractDetail() {
                             animationFillMode: 'forwards'
                           }}
                         >
-                          <span className="text-xs font-bold text-green-600">#{payment.payment_number}</span>
+                          <span className="text-xs font-bold text-green-600">{payment.payment_number}</span>
                         </div>
                         
                         <div className="bg-muted/30 rounded-lg p-4 hover:bg-muted/50 hover:scale-[1.02] transition-all duration-200 border border-border hover:shadow-md">
@@ -839,7 +839,7 @@ export default function ContractDetail() {
                               <div className="flex items-center gap-2 mb-1">
                                 <CheckCircle className="h-4 w-4 text-green-500" />
                                 <span className="font-semibold text-foreground">
-                                  Pembayaran #{payment.payment_number}
+                                  Pembayaran {payment.payment_number}
                                 </span>
                               </div>
                               
@@ -862,7 +862,7 @@ export default function ContractDetail() {
                             <div className="text-right flex items-start gap-2">
                               <div>
                                 <Badge variant="secondary" className="bg-green-500/10 text-green-700 border-green-500/20">
-                                  #{payment.payment_number}
+                                  {payment.payment_number}
                                 </Badge>
                                 <p className="font-bold text-lg text-green-600 mt-1">
                                   {formatRupiah(payment.amount)}

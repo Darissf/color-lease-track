@@ -84,7 +84,7 @@ export function EditRequestDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileEdit className="h-5 w-5" />
-            Ajukan Perubahan Pembayaran #{payment?.payment_number}
+            Ajukan Perubahan Pembayaran {payment?.payment_number}
           </DialogTitle>
           <DialogDescription>
             Perubahan memerlukan approval dari Super Admin
