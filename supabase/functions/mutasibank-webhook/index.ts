@@ -56,29 +56,48 @@ serve(async (req: Request) => {
       );
     }
 
-    // Verify signature if webhook secret is set
-    if (settings.webhook_secret_encrypted) {
-      // Mutasibank uses simple token matching
-      if (signature !== settings.webhook_secret_encrypted) {
-        console.log("[Mutasibank Webhook] Invalid signature");
+    // Verify API key from payload matches stored key
+    // Mutasibank sends api_key in the payload body, not in headers
+    const payloadApiKey = body.api_key || "";
+    if (settings.api_key_encrypted) {
+      if (payloadApiKey !== settings.api_key_encrypted) {
+        console.log("[Mutasibank Webhook] Invalid API key in payload");
+        console.log("[Mutasibank Webhook] Expected:", settings.api_key_encrypted?.substring(0, 20) + "...");
+        console.log("[Mutasibank Webhook] Received:", payloadApiKey?.substring(0, 20) + "...");
         return new Response(
-          JSON.stringify({ success: false, error: "Invalid signature" }),
+          JSON.stringify({ success: false, error: "Invalid API key" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
         );
       }
     }
+    
+    console.log("[Mutasibank Webhook] API key verified successfully");
 
-    // Handle different payload formats from Mutasibank
-    // Could be single mutation or array
-    const mutations: MutasibankPayload[] = Array.isArray(body.data) ? body.data : [body.data || body];
+    // Handle Mutasibank payload format
+    // Mutasibank sends: { api_key, account_id, module, account_name, account_number, balance, data_mutasi: [...] }
+    const rawMutations = body.data_mutasi || body.data || [];
+    const mutations = Array.isArray(rawMutations) ? rawMutations : [rawMutations];
+    
+    console.log(`[Mutasibank Webhook] Processing ${mutations.length} mutation(s)`);
 
     let processedCount = 0;
     let matchedCount = 0;
 
     for (const mutation of mutations) {
+      // Parse Mutasibank format: { id, system_date, transaction_date, description, type, amount, balance }
+      const mutationType = mutation.type;
+      const mutationAmount = Number(mutation.amount);
+      const mutationDescription = mutation.description || "";
+      const mutationId = mutation.id || "";
+      const mutationBalance = Number(mutation.balance) || null;
+      
+      // Parse transaction_date: "2025-12-26 17:15:07" -> date and time
+      const transactionDateStr = mutation.transaction_date || mutation.date || "";
+      const [datePart, timePart] = transactionDateStr.split(" ");
+      
       // Skip if not a credit transaction (incoming payment)
-      if (mutation.type !== "CR") {
-        console.log(`[Mutasibank Webhook] Skipping non-credit transaction: ${mutation.type}`);
+      if (mutationType !== "CR") {
+        console.log(`[Mutasibank Webhook] Skipping non-credit transaction: ${mutationType}`);
         continue;
       }
 
@@ -86,14 +105,14 @@ serve(async (req: Request) => {
       const { data: existingMutation } = await supabase
         .from("bank_mutations")
         .select("id")
-        .eq("transaction_date", mutation.date)
-        .eq("amount", mutation.amount)
-        .eq("description", mutation.description)
+        .eq("transaction_date", datePart)
+        .eq("amount", mutationAmount)
+        .eq("description", mutationDescription)
         .limit(1)
         .maybeSingle();
 
       if (existingMutation) {
-        console.log(`[Mutasibank Webhook] Duplicate mutation, skipping: ${mutation.id}`);
+        console.log(`[Mutasibank Webhook] Duplicate mutation, skipping: ${mutationId}`);
         continue;
       }
 
@@ -102,13 +121,13 @@ serve(async (req: Request) => {
         .from("bank_mutations")
         .insert({
           user_id: settings.user_id,
-          transaction_date: mutation.date,
-          transaction_time: mutation.time || null,
-          description: mutation.description,
-          amount: mutation.amount,
-          transaction_type: mutation.type === "CR" ? "kredit" : "debit",
-          balance_after: mutation.balance || null,
-          reference_number: mutation.reference || mutation.id,
+          transaction_date: datePart,
+          transaction_time: timePart || null,
+          description: mutationDescription,
+          amount: mutationAmount,
+          transaction_type: mutationType === "CR" ? "kredit" : "debit",
+          balance_after: mutationBalance,
+          reference_number: mutationId,
           source: "mutasibank",
           is_processed: false,
         })
