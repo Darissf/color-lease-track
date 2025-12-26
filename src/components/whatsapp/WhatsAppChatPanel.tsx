@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Send, Image, File, Check, CheckCheck, Clock, XCircle, Loader2, 
-  Search, X, Upload 
+  Search, X 
 } from 'lucide-react';
 import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import { format } from 'date-fns';
@@ -13,7 +13,6 @@ import { id } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { QuickReplyTemplates } from './QuickReplyTemplates';
-import { WAHAConnectionBadge } from './WAHAConnectionBadge';
 import { compressImage } from '@/utils/imageCompressor';
 
 interface WhatsAppChatPanelProps {
@@ -177,7 +176,7 @@ export const WhatsAppChatPanel = ({ conversationId }: WhatsAppChatPanelProps) =>
     try {
       // Upload to storage
       const fileName = `whatsapp-media/${Date.now()}_${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file);
 
@@ -284,7 +283,6 @@ export const WhatsAppChatPanel = ({ conversationId }: WhatsAppChatPanelProps) =>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <WAHAConnectionBadge size="sm" showLabel={false} />
             <Button
               variant="ghost"
               size="icon"

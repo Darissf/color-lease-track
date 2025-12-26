@@ -14,95 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      agent_command_outputs: {
-        Row: {
-          agent_token: string
-          created_at: string | null
-          id: string
-          output: string
-        }
-        Insert: {
-          agent_token: string
-          created_at?: string | null
-          id?: string
-          output: string
-        }
-        Update: {
-          agent_token?: string
-          created_at?: string | null
-          id?: string
-          output?: string
-        }
-        Relationships: []
-      }
-      agent_commands: {
-        Row: {
-          agent_token: string
-          commands: string
-          completed_at: string | null
-          created_at: string | null
-          executed_at: string | null
-          id: string
-          status: string | null
-        }
-        Insert: {
-          agent_token: string
-          commands: string
-          completed_at?: string | null
-          created_at?: string | null
-          executed_at?: string | null
-          id?: string
-          status?: string | null
-        }
-        Update: {
-          agent_token?: string
-          commands?: string
-          completed_at?: string | null
-          created_at?: string | null
-          executed_at?: string | null
-          id?: string
-          status?: string | null
-        }
-        Relationships: []
-      }
-      agent_logs: {
-        Row: {
-          agent_id: string | null
-          created_at: string
-          id: string
-          log_type: string
-          message: string | null
-          metadata: Json | null
-          user_id: string
-        }
-        Insert: {
-          agent_id?: string | null
-          created_at?: string
-          id?: string
-          log_type: string
-          message?: string | null
-          metadata?: Json | null
-          user_id: string
-        }
-        Update: {
-          agent_id?: string | null
-          created_at?: string
-          id?: string
-          log_type?: string
-          message?: string | null
-          metadata?: Json | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_logs_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "vps_agents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ai_content_suggestions: {
         Row: {
           applied: boolean | null
@@ -3830,214 +3741,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vps_agents: {
-        Row: {
-          agent_token: string
-          created_at: string | null
-          id: string
-          last_heartbeat: string | null
-          status: string | null
-          updated_at: string | null
-          user_id: string
-          vps_credential_id: string | null
-          vps_host: string
-          vps_info: Json | null
-        }
-        Insert: {
-          agent_token: string
-          created_at?: string | null
-          id?: string
-          last_heartbeat?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id: string
-          vps_credential_id?: string | null
-          vps_host: string
-          vps_info?: Json | null
-        }
-        Update: {
-          agent_token?: string
-          created_at?: string | null
-          id?: string
-          last_heartbeat?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string
-          vps_credential_id?: string | null
-          vps_host?: string
-          vps_info?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vps_agents_vps_credential_id_fkey"
-            columns: ["vps_credential_id"]
-            isOneToOne: false
-            referencedRelation: "vps_credentials"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vps_credentials: {
-        Row: {
-          created_at: string | null
-          host: string
-          id: string
-          is_default: boolean | null
-          last_used_at: string | null
-          name: string
-          password_encrypted: string
-          port: number
-          updated_at: string | null
-          user_id: string
-          username: string
-          waha_api_key: string | null
-          waha_port: number
-          waha_session_name: string
-        }
-        Insert: {
-          created_at?: string | null
-          host: string
-          id?: string
-          is_default?: boolean | null
-          last_used_at?: string | null
-          name?: string
-          password_encrypted: string
-          port?: number
-          updated_at?: string | null
-          user_id: string
-          username?: string
-          waha_api_key?: string | null
-          waha_port?: number
-          waha_session_name?: string
-        }
-        Update: {
-          created_at?: string | null
-          host?: string
-          id?: string
-          is_default?: boolean | null
-          last_used_at?: string | null
-          name?: string
-          password_encrypted?: string
-          port?: number
-          updated_at?: string | null
-          user_id?: string
-          username?: string
-          waha_api_key?: string | null
-          waha_port?: number
-          waha_session_name?: string
-        }
-        Relationships: []
-      }
-      vps_installation_progress: {
-        Row: {
-          created_at: string | null
-          current_step: number | null
-          error_message: string | null
-          id: string
-          status: string | null
-          step_outputs: Json | null
-          total_steps: number | null
-          updated_at: string | null
-          user_id: string
-          vps_host: string
-        }
-        Insert: {
-          created_at?: string | null
-          current_step?: number | null
-          error_message?: string | null
-          id?: string
-          status?: string | null
-          step_outputs?: Json | null
-          total_steps?: number | null
-          updated_at?: string | null
-          user_id: string
-          vps_host: string
-        }
-        Update: {
-          created_at?: string | null
-          current_step?: number | null
-          error_message?: string | null
-          id?: string
-          status?: string | null
-          step_outputs?: Json | null
-          total_steps?: number | null
-          updated_at?: string | null
-          user_id?: string
-          vps_host?: string
-        }
-        Relationships: []
-      }
-      vps_installation_sessions: {
-        Row: {
-          command_log: Json | null
-          completed_at: string | null
-          created_at: string | null
-          current_step: string | null
-          error_message: string | null
-          id: string
-          install_token: string
-          last_output: string | null
-          ssh_method: string | null
-          started_at: string | null
-          status: string
-          steps_completed: Json | null
-          total_steps: number | null
-          updated_at: string | null
-          user_id: string
-          vps_credential_id: string | null
-          vps_host: string
-          waha_port: number | null
-        }
-        Insert: {
-          command_log?: Json | null
-          completed_at?: string | null
-          created_at?: string | null
-          current_step?: string | null
-          error_message?: string | null
-          id?: string
-          install_token: string
-          last_output?: string | null
-          ssh_method?: string | null
-          started_at?: string | null
-          status?: string
-          steps_completed?: Json | null
-          total_steps?: number | null
-          updated_at?: string | null
-          user_id: string
-          vps_credential_id?: string | null
-          vps_host: string
-          waha_port?: number | null
-        }
-        Update: {
-          command_log?: Json | null
-          completed_at?: string | null
-          created_at?: string | null
-          current_step?: string | null
-          error_message?: string | null
-          id?: string
-          install_token?: string
-          last_output?: string | null
-          ssh_method?: string | null
-          started_at?: string | null
-          status?: string
-          steps_completed?: Json | null
-          total_steps?: number | null
-          updated_at?: string | null
-          user_id?: string
-          vps_credential_id?: string | null
-          vps_host?: string
-          waha_port?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vps_installation_sessions_vps_credential_id_fkey"
-            columns: ["vps_credential_id"]
-            isOneToOne: false
-            referencedRelation: "vps_credentials"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       warehouse_settings: {
         Row: {
           address: string | null
@@ -4574,9 +4277,6 @@ export type Database = {
           provider: string
           updated_at: string | null
           user_id: string
-          waha_api_key: string | null
-          waha_api_url: string | null
-          waha_session_name: string | null
         }
         Insert: {
           business_days?: number[] | null
@@ -4605,9 +4305,6 @@ export type Database = {
           provider: string
           updated_at?: string | null
           user_id: string
-          waha_api_key?: string | null
-          waha_api_url?: string | null
-          waha_session_name?: string | null
         }
         Update: {
           business_days?: number[] | null
@@ -4636,9 +4333,6 @@ export type Database = {
           provider?: string
           updated_at?: string | null
           user_id?: string
-          waha_api_key?: string | null
-          waha_api_url?: string | null
-          waha_session_name?: string | null
         }
         Relationships: []
       }
@@ -4726,9 +4420,6 @@ export type Database = {
           retry_delay_minutes: number | null
           updated_at: string | null
           user_id: string
-          waha_api_key: string
-          waha_api_url: string
-          waha_session_name: string
         }
         Insert: {
           auto_retry_enabled?: boolean | null
@@ -4742,9 +4433,6 @@ export type Database = {
           retry_delay_minutes?: number | null
           updated_at?: string | null
           user_id: string
-          waha_api_key: string
-          waha_api_url: string
-          waha_session_name?: string
         }
         Update: {
           auto_retry_enabled?: boolean | null
@@ -4758,9 +4446,6 @@ export type Database = {
           retry_delay_minutes?: number | null
           updated_at?: string | null
           user_id?: string
-          waha_api_key?: string
-          waha_api_url?: string
-          waha_session_name?: string
         }
         Relationships: []
       }
