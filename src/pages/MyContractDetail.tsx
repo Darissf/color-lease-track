@@ -10,10 +10,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatRupiah } from "@/lib/currency";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { FileText, AlertCircle, CheckCircle, ArrowLeft, Truck, Package, MapPin, Calendar, CreditCard, Clock, Building2, Copy } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle, ArrowLeft, Truck, Package, MapPin, Calendar, CreditCard, Clock, Building2, Copy, Send } from "lucide-react";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { PaymentVerificationModal } from "@/components/payment/PaymentVerificationModal";
+import { PaymentVerificationStatus } from "@/components/payment/PaymentVerificationStatus";
 
 interface ContractDetail {
   id: string;
@@ -61,6 +63,9 @@ export default function MyContractDetail() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
+  const [verificationAmount, setVerificationAmount] = useState(0);
 
   useEffect(() => {
     if (user && id) {
@@ -113,6 +118,16 @@ export default function MyContractDetail() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Berhasil disalin!");
+  };
+
+  const handleVerificationSuccess = (requestId: string) => {
+    setActiveVerificationId(requestId);
+    setVerificationAmount(contract?.tagihan_belum_bayar || 0);
+  };
+
+  const handleVerificationComplete = () => {
+    fetchContractDetail();
+    setActiveVerificationId(null);
   };
 
   if (loading) {
@@ -363,8 +378,27 @@ export default function MyContractDetail() {
                       )}
                     </div>
                   ))}
+                  
+                  {/* Verification Status or Button */}
+                  {activeVerificationId ? (
+                    <PaymentVerificationStatus
+                      requestId={activeVerificationId}
+                      amountExpected={verificationAmount}
+                      onClose={() => setActiveVerificationId(null)}
+                      onVerified={handleVerificationComplete}
+                    />
+                  ) : (
+                    <Button 
+                      className="w-full" 
+                      onClick={() => setShowVerificationModal(true)}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Sudah Transfer
+                    </Button>
+                  )}
+                  
                   <p className="text-xs text-muted-foreground text-center">
-                    Pembayaran akan otomatis terverifikasi
+                    Klik tombol di atas setelah transfer untuk verifikasi otomatis
                   </p>
                 </CardContent>
               </Card>
@@ -372,6 +406,18 @@ export default function MyContractDetail() {
           </div>
         </div>
       </div>
+
+      {/* Payment Verification Modal */}
+      {contract && (
+        <PaymentVerificationModal
+          open={showVerificationModal}
+          onOpenChange={setShowVerificationModal}
+          contractId={contract.id}
+          customerName={contract.keterangan || "Customer"}
+          remainingAmount={contract.tagihan_belum_bayar}
+          onSuccess={handleVerificationSuccess}
+        />
+      )}
     </div>
   );
 }

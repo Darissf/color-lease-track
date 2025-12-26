@@ -74,6 +74,7 @@ const Mail = lazy(() => import("./pages/Mail"));
 const TransactionHistory = lazy(() => import("./pages/TransactionHistory"));
 const ShortLinkManager = lazy(() => import("./pages/ShortLinkManager"));
 const InvoiceSettings = lazy(() => import("./pages/InvoiceSettings"));
+const PaymentAutoSettings = lazy(() => import("./pages/PaymentAutoSettings"));
 
 // Client Portal Pages
 const MyContracts = lazy(() => import("./pages/MyContracts"));
@@ -189,6 +190,7 @@ const App = () => (
                                   <Route path="/transaction-history" element={<TransactionHistory />} />
                                   <Route path="/settings/short-links" element={<ShortLinkManager />} />
                                   <Route path="/settings/invoice" element={<InvoiceSettings />} />
+                                  <Route path="/settings/payment-auto" element={<PaymentAutoSettings />} />
                                   {/* Client Portal Routes */}
                                   <Route path="/client-dashboard" element={<ClientDashboard />} />
                                   <Route path="/my-contracts" element={<MyContracts />} />
