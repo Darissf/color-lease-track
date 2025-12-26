@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,8 @@ import {
   Package,
   Trash2,
   Pencil,
-  StickyNote
+  StickyNote,
+  CreditCard
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,6 +48,8 @@ import { PaymentEditDialog } from "@/components/contracts/PaymentEditDialog";
 import { EditRequestDialog } from "@/components/contracts/EditRequestDialog";
 import { PendingEditRequests } from "@/components/contracts/PendingEditRequests";
 import { ContractPublicLinkManager } from "@/components/contracts/ContractPublicLinkManager";
+import { PaymentVerificationModal } from "@/components/payment/PaymentVerificationModal";
+import { PaymentVerificationStatus } from "@/components/payment/PaymentVerificationStatus";
 
 interface Contract {
   id: string;
@@ -144,15 +147,35 @@ export default function ContractDetail() {
   const [adminNotes, setAdminNotes] = useState<string>("");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  
+  // Payment modal states
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [pendingPaymentRequest, setPendingPaymentRequest] = useState<any>(null);
+
+  const fetchPendingPaymentRequest = useCallback(async () => {
+    if (!id) return;
+    
+    const { data } = await supabase
+      .from("payment_confirmation_requests")
+      .select("*")
+      .eq("contract_id", id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    setPendingPaymentRequest(data);
+  }, [id]);
 
   useEffect(() => {
     if (user && id) {
       fetchContractDetail();
+      fetchPendingPaymentRequest();
       if (isSuperAdmin) {
         fetchEditRequests();
       }
     }
-  }, [user, id, isSuperAdmin]);
+  }, [user, id, isSuperAdmin, fetchPendingPaymentRequest]);
 
   const fetchContractDetail = async () => {
     if (!user || !id) return;
@@ -1165,6 +1188,35 @@ export default function ContractDetail() {
                   </div>
                 </>
               )}
+
+              {/* Tombol Bayar - Muncul hanya jika ada sisa tagihan */}
+              {contract.tagihan_belum_bayar > 0 && (
+                <>
+                  <Separator />
+                  <div className="pt-2">
+                    {pendingPaymentRequest ? (
+                      <PaymentVerificationStatus
+                        requestId={pendingPaymentRequest.id}
+                        uniqueAmount={pendingPaymentRequest.unique_amount}
+                        expiresAt={pendingPaymentRequest.expires_at}
+                        onClose={() => {
+                          setPendingPaymentRequest(null);
+                          fetchPendingPaymentRequest();
+                          fetchContractDetail();
+                        }}
+                      />
+                    ) : (
+                      <Button 
+                        className="w-full"
+                        onClick={() => setIsPaymentModalOpen(true)}
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Bayar Sekarang
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -1270,6 +1322,21 @@ export default function ContractDetail() {
         onSubmit={handleSubmitEditRequest}
         isLoading={isEditLoading}
       />
+
+      {/* Payment Verification Modal */}
+      {contract && contract.tagihan_belum_bayar > 0 && (
+        <PaymentVerificationModal
+          open={isPaymentModalOpen}
+          onOpenChange={setIsPaymentModalOpen}
+          contractId={contract.id}
+          remainingAmount={contract.tagihan_belum_bayar}
+          customerName={contract.client_groups?.nama || "Customer"}
+          onSuccess={() => {
+            fetchPendingPaymentRequest();
+            setIsPaymentModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
