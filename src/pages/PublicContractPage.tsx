@@ -120,9 +120,9 @@ export default function PublicContractPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      {/* Header Brand Bar - Sky/Cyan Theme - Mobile Optimized */}
-      <div className="bg-gradient-to-r from-sky-600 via-cyan-600 to-sky-600 text-white py-3 sm:py-4 px-3 sm:px-4">
-        <div className="max-w-2xl mx-auto">
+      {/* Header Brand Bar - Sky/Cyan Theme - Mobile Optimized - Consistent with Footer */}
+      <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-4">
+        <div className="bg-gradient-to-r from-sky-600 via-cyan-600 to-sky-600 text-white rounded-xl py-3 sm:py-4 px-3 sm:px-4">
           <div className="flex items-center justify-between gap-2">
             {/* Brand */}
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
