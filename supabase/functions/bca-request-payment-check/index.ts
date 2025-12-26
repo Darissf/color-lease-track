@@ -11,6 +11,33 @@ interface RequestBody {
   amount_expected: number;
 }
 
+// Generate unique 3-digit code (001-999) that's not currently in use
+async function generateUniqueCode(supabase: any): Promise<string> {
+  const maxAttempts = 50;
+  
+  for (let i = 0; i < maxAttempts; i++) {
+    // Generate random 3-digit code (100-999 to avoid leading zeros issues)
+    const code = Math.floor(Math.random() * 900 + 100).toString();
+    
+    // Check if code is already in use for pending requests
+    const { data: existing } = await supabase
+      .from("payment_confirmation_requests")
+      .select("id")
+      .eq("unique_code", code)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+    
+    if (!existing) {
+      return code;
+    }
+  }
+  
+  // Fallback: use timestamp-based code
+  return (Date.now() % 900 + 100).toString();
+}
+
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -121,20 +148,27 @@ Deno.serve(async (req: Request) => {
       console.log("[BCA Request Payment Check] Warning: Failed to cancel old requests:", cancelError);
     }
 
-    // Create new payment confirmation request with burst mode (3 minutes)
-    const burstExpiresAt = new Date(Date.now() + 3 * 60 * 1000); // 3 minutes from now
+    // Generate unique 3-digit code
+    const uniqueCode = await generateUniqueCode(supabase);
+    const uniqueAmount = amount_expected + parseInt(uniqueCode);
     
+    // Set expiry to 3 days from now
+    const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
+    
+    // Create new payment confirmation request with unique amount
     const { data: request, error: insertError } = await supabase
       .from("payment_confirmation_requests")
       .insert({
         contract_id,
         customer_name: customer_name || clientGroup.nama,
         amount_expected,
+        unique_code: uniqueCode,
+        unique_amount: uniqueAmount,
         status: "pending",
-        burst_expires_at: burstExpiresAt.toISOString(),
+        expires_at: expiresAt.toISOString(),
         user_id: user.id,
       })
-      .select("id")
+      .select("id, unique_code, unique_amount, expires_at")
       .single();
 
     if (insertError) {
@@ -145,15 +179,18 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log(`[BCA Request Payment Check] Created request ${request.id}, burst until ${burstExpiresAt.toISOString()}`);
+    console.log(`[BCA Request Payment Check] Created request ${request.id}, unique amount: ${uniqueAmount}, expires: ${expiresAt.toISOString()}`);
 
-    // Return success with request ID for frontend to track
+    // Return success with request details for frontend
     return new Response(
       JSON.stringify({ 
         success: true, 
         request_id: request.id,
-        burst_expires_at: burstExpiresAt.toISOString(),
-        message: "Payment verification request created. Waiting for bank mutation match."
+        unique_code: request.unique_code,
+        unique_amount: request.unique_amount,
+        amount_expected: amount_expected,
+        expires_at: request.expires_at,
+        message: `Transfer tepat Rp ${uniqueAmount.toLocaleString('id-ID')} untuk verifikasi otomatis.`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );

@@ -4,27 +4,30 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { formatRupiah } from "@/lib/currency";
 import { toast } from "sonner";
-import { CheckCircle, Clock, AlertTriangle, Loader2, X } from "lucide-react";
+import { CheckCircle, Clock, AlertTriangle, Loader2, X, Copy, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
 interface PaymentVerificationStatusProps {
   requestId: string;
-  amountExpected: number;
+  uniqueAmount: number;
+  expiresAt: string;
   onClose: () => void;
   onVerified?: () => void;
 }
 
-type VerificationStatus = "pending" | "matched" | "expired";
+type VerificationStatus = "pending" | "matched" | "expired" | "cancelled";
 
 export function PaymentVerificationStatus({
   requestId,
-  amountExpected,
+  uniqueAmount,
+  expiresAt,
   onClose,
   onVerified,
 }: PaymentVerificationStatusProps) {
   const [status, setStatus] = useState<VerificationStatus>("pending");
-  const [secondsRemaining, setSecondsRemaining] = useState(180); // 3 minutes
+  const [timeRemaining, setTimeRemaining] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const triggerConfetti = useCallback(() => {
     confetti({
@@ -33,6 +36,17 @@ export function PaymentVerificationStatus({
       origin: { y: 0.6 }
     });
   }, []);
+
+  const copyAmount = async () => {
+    try {
+      await navigator.clipboard.writeText(uniqueAmount.toString());
+      setCopied(true);
+      toast.success("Nominal disalin!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Gagal menyalin");
+    }
+  };
 
   useEffect(() => {
     // Subscribe to realtime updates
@@ -59,37 +73,46 @@ export function PaymentVerificationStatus({
       )
       .subscribe();
 
-    // Countdown timer
-    const timer = setInterval(() => {
-      setSecondsRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          if (status === "pending") {
-            setStatus("expired");
-          }
-          return 0;
+    // Calculate time remaining
+    const updateTimeRemaining = () => {
+      const now = new Date().getTime();
+      const expiry = new Date(expiresAt).getTime();
+      const diff = expiry - now;
+
+      if (diff <= 0) {
+        setTimeRemaining("Kedaluwarsa");
+        if (status === "pending") {
+          setStatus("expired");
         }
-        return prev - 1;
-      });
-    }, 1000);
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (days > 0) {
+        setTimeRemaining(`${days} hari ${hours} jam`);
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours} jam ${minutes} menit`);
+      } else {
+        setTimeRemaining(`${minutes} menit`);
+      }
+    };
+
+    updateTimeRemaining();
+    const timer = setInterval(updateTimeRemaining, 60000); // Update every minute
 
     // Fetch initial status
     const fetchStatus = async () => {
       const { data } = await supabase
         .from("payment_confirmation_requests")
-        .select("status, burst_expires_at")
+        .select("status, expires_at, unique_amount")
         .eq("id", requestId)
         .single();
       
       if (data) {
         setStatus(data.status as VerificationStatus);
-        
-        if (data.burst_expires_at) {
-          const expiresAt = new Date(data.burst_expires_at).getTime();
-          const now = Date.now();
-          const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
-          setSecondsRemaining(remaining);
-        }
       }
     };
     fetchStatus();
@@ -98,43 +121,67 @@ export function PaymentVerificationStatus({
       supabase.removeChannel(channel);
       clearInterval(timer);
     };
-  }, [requestId, status, onVerified, triggerConfetti]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
+  }, [requestId, expiresAt, status, onVerified, triggerConfetti]);
 
   return (
     <Card className={cn(
       "border-2 transition-all duration-300",
       status === "matched" && "border-green-500 bg-green-50 dark:bg-green-950/20",
       status === "expired" && "border-amber-500 bg-amber-50 dark:bg-amber-950/20",
+      status === "cancelled" && "border-muted bg-muted/20",
       status === "pending" && "border-primary bg-primary/5"
     )}>
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex-1">
             {status === "pending" && (
-              <>
-                <div className="relative">
-                  <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-primary" />
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-primary/10">
+                    <CreditCard className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-lg">Transfer Tepat Nominal Ini</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
+                      Berlaku: {timeRemaining}
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-lg">Menunggu Verifikasi...</p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatRupiah(amountExpected)} • Waktu tersisa: {formatTime(secondsRemaining)}
-                  </p>
+
+                <div className="p-4 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Nominal Transfer (wajib tepat)</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {formatRupiah(uniqueAmount)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copyAmount}
+                      className="gap-2"
+                    >
+                      {copied ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                      {copied ? "Disalin!" : "Salin"}
+                    </Button>
+                  </div>
                 </div>
-              </>
+
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Menunggu transfer masuk...</span>
+                </div>
+              </div>
             )}
             
             {status === "matched" && (
-              <>
+              <div className="flex items-center gap-4">
                 <div className="p-2 rounded-full bg-green-100 dark:bg-green-900">
                   <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
@@ -143,26 +190,42 @@ export function PaymentVerificationStatus({
                     Pembayaran Terverifikasi!
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-400">
-                    {formatRupiah(amountExpected)} berhasil dikonfirmasi
+                    {formatRupiah(uniqueAmount)} berhasil dikonfirmasi
                   </p>
                 </div>
-              </>
+              </div>
             )}
             
             {status === "expired" && (
-              <>
+              <div className="flex items-center gap-4">
                 <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900">
                   <AlertTriangle className="h-8 w-8 text-amber-600" />
                 </div>
                 <div>
                   <p className="font-semibold text-lg text-amber-700 dark:text-amber-300">
-                    Belum Terdeteksi
+                    Request Kedaluwarsa
                   </p>
                   <p className="text-sm text-amber-600 dark:text-amber-400">
-                    Pembayaran akan dicek berkala setiap 15 menit
+                    Silakan buat request baru jika belum transfer
                   </p>
                 </div>
-              </>
+              </div>
+            )}
+
+            {status === "cancelled" && (
+              <div className="flex items-center gap-4">
+                <div className="p-2 rounded-full bg-muted">
+                  <X className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-semibold text-lg text-muted-foreground">
+                    Request Dibatalkan
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Request ini sudah tidak berlaku
+                  </p>
+                </div>
+              </div>
             )}
           </div>
           
@@ -170,20 +233,6 @@ export function PaymentVerificationStatus({
             <X className="h-4 w-4" />
           </Button>
         </div>
-
-        {status === "pending" && (
-          <div className="mt-4">
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary transition-all duration-1000 ease-linear"
-                style={{ width: `${(secondsRemaining / 180) * 100}%` }}
-              />
-            </div>
-            <p className="text-xs text-center text-muted-foreground mt-2">
-              Sistem sedang memeriksa mutasi BCA...
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

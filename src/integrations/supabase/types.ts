@@ -2892,16 +2892,18 @@ export type Database = {
       payment_confirmation_requests: {
         Row: {
           amount_expected: number
-          burst_expires_at: string
           contract_id: string
           created_at: string
           customer_name: string
           customer_phone: string | null
+          expires_at: string | null
           id: string
           matched_at: string | null
           matched_mutation_id: string | null
           requested_at: string
           status: string
+          unique_amount: number | null
+          unique_code: string | null
           updated_at: string
           user_id: string
           whatsapp_sent: boolean
@@ -2909,16 +2911,18 @@ export type Database = {
         }
         Insert: {
           amount_expected: number
-          burst_expires_at?: string
           contract_id: string
           created_at?: string
           customer_name: string
           customer_phone?: string | null
+          expires_at?: string | null
           id?: string
           matched_at?: string | null
           matched_mutation_id?: string | null
           requested_at?: string
           status?: string
+          unique_amount?: number | null
+          unique_code?: string | null
           updated_at?: string
           user_id: string
           whatsapp_sent?: boolean
@@ -2926,16 +2930,18 @@ export type Database = {
         }
         Update: {
           amount_expected?: number
-          burst_expires_at?: string
           contract_id?: string
           created_at?: string
           customer_name?: string
           customer_phone?: string | null
+          expires_at?: string | null
           id?: string
           matched_at?: string | null
           matched_mutation_id?: string | null
           requested_at?: string
           status?: string
+          unique_amount?: number | null
+          unique_code?: string | null
           updated_at?: string
           user_id?: string
           whatsapp_sent?: boolean
