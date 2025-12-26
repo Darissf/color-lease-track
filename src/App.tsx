@@ -89,6 +89,7 @@ const CreateDeliveryTrip = lazy(() => import("./pages/CreateDeliveryTrip"));
 const DeliveryTripDetail = lazy(() => import("./pages/DeliveryTripDetail"));
 const DriverDeliveryPage = lazy(() => import("./pages/DriverDeliveryPage"));
 const PublicTrackingPage = lazy(() => import("./pages/PublicTrackingPage"));
+const PublicContractPage = lazy(() => import("./pages/PublicContractPage"));
 const ScaffoldingConfigurator = lazy(() => import("./pages/ScaffoldingConfigurator"));
 
 const queryClient = new QueryClient({
@@ -129,6 +130,9 @@ const App = () => (
                     {/* Public Delivery Tracking Routes */}
                     <Route path="/delivery/driver/:tripId" element={<DriverDeliveryPage />} />
                     <Route path="/track/:trackingCode" element={<PublicTrackingPage />} />
+                    
+                    {/* Public Contract View Route */}
+                    <Route path="/contract/:accessCode" element={<PublicContractPage />} />
                     
                     {/* VIP Auth Routes */}
                     <Route path="/vip/login" element={<Login />} />

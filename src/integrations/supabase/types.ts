@@ -1417,6 +1417,50 @@ export type Database = {
           },
         ]
       }
+      contract_public_links: {
+        Row: {
+          access_code: string
+          contract_id: string
+          created_at: string | null
+          created_by: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          access_code: string
+          contract_id: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          access_code?: string
+          contract_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_public_links_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_sharing: {
         Row: {
           conversation_id: string | null
@@ -4842,6 +4886,7 @@ export type Database = {
       cleanup_old_agent_outputs: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       expire_burst_requests: { Args: never; Returns: number }
+      generate_contract_access_code: { Args: never; Returns: string }
       generate_tracking_code: { Args: never; Returns: string }
       generate_trip_code: { Args: never; Returns: string }
       get_available_years: {
@@ -4948,6 +4993,10 @@ export type Database = {
           temp_email: boolean
           username: string
         }[]
+      }
+      increment_contract_link_views: {
+        Args: { p_access_code: string }
+        Returns: undefined
       }
       increment_provider_usage: {
         Args: { p_provider_id: string }

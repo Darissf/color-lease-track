@@ -46,6 +46,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PaymentEditDialog } from "@/components/contracts/PaymentEditDialog";
 import { EditRequestDialog } from "@/components/contracts/EditRequestDialog";
 import { PendingEditRequests } from "@/components/contracts/PendingEditRequests";
+import { ContractPublicLinkManager } from "@/components/contracts/ContractPublicLinkManager";
 
 interface Contract {
   id: string;
@@ -1184,6 +1185,11 @@ export default function ContractDetail() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Public Link Manager - Only for Admin/Super Admin */}
+          {(isSuperAdmin || isAdmin) && (
+            <ContractPublicLinkManager contractId={contract.id} />
           )}
         </div>
       </div>
