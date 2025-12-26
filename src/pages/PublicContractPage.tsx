@@ -19,7 +19,6 @@ import {
   Check,
   AlertTriangle,
   XCircle,
-  Building2,
   Eye,
   MessageCircle,
   ExternalLink
@@ -127,8 +126,12 @@ export default function PublicContractPage() {
           <div className="flex items-center justify-between gap-2">
             {/* Brand */}
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg flex-shrink-0">
-                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div className="flex-shrink-0">
+                <img 
+                  src="/logo.png" 
+                  alt="Logo" 
+                  className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+                />
               </div>
               <div className="min-w-0">
                 <div className="text-base sm:text-lg font-bold tracking-wide truncate">{SITE_NAME}</div>
@@ -232,7 +235,7 @@ export default function PublicContractPage() {
             {!isFullyPaid && contract.bank && (
               <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2.5 sm:space-y-3">
                 <div className="text-xs sm:text-sm font-medium flex items-center gap-2">
-                  <Building2 className="w-4 h-4 flex-shrink-0" />
+                  <CreditCard className="w-4 h-4 flex-shrink-0" />
                   Transfer ke Rekening:
                 </div>
                 <div className="space-y-2">
@@ -452,8 +455,12 @@ export default function PublicContractPage() {
             <div className="flex items-center justify-between gap-2">
               {/* Brand */}
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div className="p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg flex-shrink-0">
-                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="flex-shrink-0">
+                  <img 
+                    src="/logo.png" 
+                    alt="Logo" 
+                    className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+                  />
                 </div>
                 <div className="min-w-0">
                   <div className="text-base sm:text-lg font-bold tracking-wide truncate">{SITE_NAME}</div>
