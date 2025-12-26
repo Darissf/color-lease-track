@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ const EXPIRATION_OPTIONS = [
   { value: '24h', label: '24 Jam', hours: 24 },
   { value: '7d', label: '7 Hari', hours: 24 * 7 },
   { value: '30d', label: '30 Hari', hours: 24 * 30 },
+  { value: 'custom', label: 'Custom', hours: null },
 ];
 
 export function ContractPublicLinkManager({ contractId }: ContractPublicLinkManagerProps) {
@@ -64,6 +66,8 @@ export function ContractPublicLinkManager({ contractId }: ContractPublicLinkMana
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isQRDialogOpen, setIsQRDialogOpen] = useState(false);
   const [selectedExpiration, setSelectedExpiration] = useState('24h');
+  const [customValue, setCustomValue] = useState<number>(1);
+  const [customUnit, setCustomUnit] = useState<'hours' | 'days'>('hours');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedLink, setSelectedLink] = useState<PublicLink | null>(null);
 
@@ -103,12 +107,21 @@ export function ContractPublicLinkManager({ contractId }: ContractPublicLinkMana
       if (codeError) throw codeError;
 
       const accessCode = codeData as string;
-      const option = EXPIRATION_OPTIONS.find(o => o.value === selectedExpiration);
-      const expiresAt = option?.hours 
-        ? option.hours >= 24 
-          ? addDays(new Date(), option.hours / 24)
-          : addHours(new Date(), option.hours)
-        : addHours(new Date(), 24);
+      
+      let expiresAt: Date;
+      if (selectedExpiration === 'custom') {
+        const validValue = Math.max(1, Math.min(999, customValue || 1));
+        expiresAt = customUnit === 'days' 
+          ? addDays(new Date(), validValue) 
+          : addHours(new Date(), validValue);
+      } else {
+        const option = EXPIRATION_OPTIONS.find(o => o.value === selectedExpiration);
+        expiresAt = option?.hours 
+          ? option.hours >= 24 
+            ? addDays(new Date(), option.hours / 24)
+            : addHours(new Date(), option.hours)
+          : addHours(new Date(), 24);
+      }
 
       const { error: insertError } = await supabase
         .from('contract_public_links')
@@ -225,6 +238,29 @@ export function ContractPublicLinkManager({ contractId }: ContractPublicLinkMana
                     ))}
                   </SelectContent>
                 </Select>
+                
+                {selectedExpiration === 'custom' && (
+                  <div className="flex gap-2 mt-3">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={999}
+                      value={customValue}
+                      onChange={(e) => setCustomValue(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-24"
+                      placeholder="1"
+                    />
+                    <Select value={customUnit} onValueChange={(v) => setCustomUnit(v as 'hours' | 'days')}>
+                      <SelectTrigger className="w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hours">Jam</SelectItem>
+                        <SelectItem value="days">Hari</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
