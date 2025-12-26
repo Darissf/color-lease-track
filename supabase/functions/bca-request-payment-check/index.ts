@@ -112,10 +112,21 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check if user is linked to this contract's client group
+    // Check if user is linked to this contract's client group OR is admin/super_admin
     const clientGroup = contract.client_group as unknown as { id: string; nama: string; linked_user_id: string | null };
-    if (clientGroup.linked_user_id !== user.id) {
-      console.log(`[BCA Request Payment Check] Access denied. User: ${user.id}, Linked: ${clientGroup.linked_user_id}`);
+    
+    // Check user role
+    const { data: userRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    
+    const isAdmin = userRole?.role === 'admin' || userRole?.role === 'super_admin';
+    const createdByRole = userRole?.role || 'user';
+    
+    if (!isAdmin && clientGroup.linked_user_id !== user.id) {
+      console.log(`[BCA Request Payment Check] Access denied. User: ${user.id}, Linked: ${clientGroup.linked_user_id}, Role: ${userRole?.role}`);
       return new Response(
         JSON.stringify({ success: false, error: "Access denied to this contract" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
@@ -167,6 +178,7 @@ Deno.serve(async (req: Request) => {
         status: "pending",
         expires_at: expiresAt.toISOString(),
         user_id: user.id,
+        created_by_role: createdByRole,
       })
       .select("id, unique_code, unique_amount, expires_at")
       .single();

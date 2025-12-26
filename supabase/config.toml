@@ -119,3 +119,6 @@ verify_jwt = true
 
 [functions.contract-public-view]
 verify_jwt = false
+
+[functions.public-payment-request]
+verify_jwt = false

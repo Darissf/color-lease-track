@@ -35,11 +35,18 @@ export function PaymentVerificationModal({
   const [amount, setAmount] = useState(remainingAmount.toString());
   const [loading, setLoading] = useState(false);
 
+  const minimumAmount = Math.ceil(remainingAmount * 0.5);
+
   const handleSubmit = async () => {
     const parsedAmount = parseFloat(amount.replace(/[^\d]/g, ""));
     
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       toast.error("Masukkan nominal yang valid");
+      return;
+    }
+
+    if (parsedAmount < minimumAmount) {
+      toast.error(`Minimal pembayaran 50% dari tagihan (${formatRupiah(minimumAmount)})`);
       return;
     }
 
@@ -144,9 +151,10 @@ export function PaymentVerificationModal({
                 onChange={handleAmountChange}
               />
             </div>
-            <p className="text-xs text-muted-foreground text-right">
-              Sisa tagihan: {formatRupiah(remainingAmount)}
-            </p>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Min: {formatRupiah(minimumAmount)} (50%)</span>
+              <span>Sisa: {formatRupiah(remainingAmount)}</span>
+            </div>
           </div>
         </div>
 
