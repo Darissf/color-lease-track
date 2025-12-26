@@ -27,6 +27,7 @@ import { id } from 'date-fns/locale';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/currency';
+import { SITE_NAME } from '@/lib/seo';
 
 export default function PublicContractPage() {
   const { accessCode } = useParams<{ accessCode: string }>();
@@ -117,25 +118,37 @@ export default function PublicContractPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      {/* Header */}
+      {/* Header with Brand */}
       <div className="bg-primary text-primary-foreground py-6 px-4">
         <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary-foreground/10 rounded-lg">
-              <FileText className="w-6 h-6" />
+          {/* Brand Logo/Name */}
+          <div className="text-center mb-4">
+            <div className="text-lg font-bold tracking-wide uppercase">
+              {SITE_NAME}
             </div>
-            <div>
-              <h1 className="text-xl font-bold">Detail Kontrak</h1>
-              <p className="text-primary-foreground/80 text-sm">
-                Invoice: {contract.invoice || '-'}
-              </p>
+            <div className="text-xs text-primary-foreground/70 mt-1">
+              sewascaffoldingbali.com
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-3 text-xs text-primary-foreground/70">
-            <Eye className="w-3 h-3" />
-            <span>Dilihat {link.view_count}x</span>
-            <span>•</span>
-            <span>Berlaku hingga {format(new Date(link.expires_at), 'dd MMM yyyy HH:mm', { locale: id })}</span>
+          
+          <div className="border-t border-primary-foreground/20 pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary-foreground/10 rounded-lg">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Detail Kontrak</h1>
+                <p className="text-primary-foreground/80 text-sm">
+                  Invoice: {contract.invoice || '-'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-3 text-xs text-primary-foreground/70">
+              <Eye className="w-3 h-3" />
+              <span>Dilihat {link.view_count}x</span>
+              <span>•</span>
+              <span>Berlaku hingga {format(new Date(link.expires_at), 'dd MMM yyyy HH:mm', { locale: id })}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -155,7 +168,16 @@ export default function PublicContractPage() {
             
             {contract.client && (
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <div className="text-2xl">{contract.client.icon || '👤'}</div>
+                {/* Icon: cek apakah URL atau emoji */}
+                {contract.client.icon && contract.client.icon.startsWith('http') ? (
+                  <img 
+                    src={contract.client.icon} 
+                    alt={contract.client.nama}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="text-2xl">{contract.client.icon || '👤'}</div>
+                )}
                 <div className="flex-1">
                   <div className="font-medium flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
@@ -388,9 +410,20 @@ export default function PublicContractPage() {
           </Card>
         )}
 
-        {/* Footer */}
-        <div className="text-center text-xs text-muted-foreground pt-4">
-          <p>Link ini berlaku hingga {format(new Date(link.expires_at), 'dd MMMM yyyy HH:mm', { locale: id })}</p>
+        {/* Footer with Brand */}
+        <div className="text-center space-y-3 pt-6 pb-4 border-t mt-6">
+          <div className="text-xs text-muted-foreground">
+            Link ini berlaku hingga {format(new Date(link.expires_at), 'dd MMMM yyyy HH:mm', { locale: id })}
+          </div>
+          <div className="border-t pt-4">
+            <div className="font-semibold text-sm">{SITE_NAME}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              sewascaffoldingbali.com
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground/60">
+            © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
+          </div>
         </div>
       </div>
     </div>
