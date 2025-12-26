@@ -20,7 +20,7 @@ interface ContractInfo {
   jenis_scaffolding: string | null;
   jumlah_unit: number | null;
   lokasi_detail: string | null;
-  tanggal_kirim: string | null;
+  
   tanggal_ambil: string | null;
   status_pengiriman: string | null;
   status_pengambilan: string | null;
@@ -47,7 +47,7 @@ export default function ContractScaffoldingInput() {
     jenis_scaffolding: "",
     jumlah_unit: "",
     lokasi_detail: "",
-    tanggal_kirim: "",
+    
     tanggal_ambil: "",
     status_pengiriman: "",
     status_pengambilan: "",
@@ -75,7 +75,7 @@ export default function ContractScaffoldingInput() {
           jenis_scaffolding,
           jumlah_unit,
           lokasi_detail,
-          tanggal_kirim,
+          
           tanggal_ambil,
           status_pengiriman,
           status_pengambilan,
@@ -101,7 +101,7 @@ export default function ContractScaffoldingInput() {
         jenis_scaffolding: contract.jenis_scaffolding || "",
         jumlah_unit: contract.jumlah_unit?.toString() || "",
         lokasi_detail: contract.lokasi_detail || "",
-        tanggal_kirim: contract.tanggal_kirim || "",
+        
         tanggal_ambil: contract.tanggal_ambil || "",
         status_pengiriman: contract.status_pengiriman || "",
         status_pengambilan: contract.status_pengambilan || "",
@@ -137,7 +137,7 @@ export default function ContractScaffoldingInput() {
         jenis_scaffolding: formData.jenis_scaffolding || null,
         jumlah_unit: formData.jumlah_unit ? parseInt(formData.jumlah_unit) : null,
         lokasi_detail: formData.lokasi_detail || null,
-        tanggal_kirim: formData.tanggal_kirim || null,
+        
         tanggal_ambil: formData.tanggal_ambil || null,
         status_pengiriman: formData.status_pengiriman || null,
         status_pengambilan: formData.status_pengambilan || null,
@@ -298,31 +298,18 @@ export default function ContractScaffoldingInput() {
               />
             </div>
 
-            {/* Row 3: Tanggal */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tanggal_kirim">Tanggal Pengiriman</Label>
-                <Input
-                  id="tanggal_kirim"
-                  type="date"
-                  value={formData.tanggal_kirim}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tanggal_kirim: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tanggal_ambil">Tanggal Pengambilan</Label>
-                <Input
-                  id="tanggal_ambil"
-                  type="date"
-                  value={formData.tanggal_ambil}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tanggal_ambil: e.target.value })
-                  }
-                />
-              </div>
+            {/* Row 3: Tanggal Pengambilan */}
+            <div className="space-y-2">
+              <Label htmlFor="tanggal_ambil">Tanggal Pengambilan</Label>
+              <Input
+                id="tanggal_ambil"
+                type="date"
+                value={formData.tanggal_ambil}
+                onChange={(e) =>
+                  setFormData({ ...formData, tanggal_ambil: e.target.value })
+                }
+              />
+              <p className="text-xs text-muted-foreground">Otomatis terisi saat status kontrak = Selesai</p>
             </div>
 
             {/* Row 4: Status */}

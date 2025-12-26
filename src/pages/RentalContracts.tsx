@@ -106,7 +106,6 @@ const RentalContracts = () => {
     client_group_id: "",
     start_date: undefined as Date | undefined,
     end_date: undefined as Date | undefined,
-    tanggal: undefined as Date | undefined,
     status: "masa sewa",
     tagihan: "",
     tagihan_belum_bayar: "",
@@ -118,7 +117,6 @@ const RentalContracts = () => {
     jenis_scaffolding: "",
     jumlah_unit: "",
     lokasi_detail: "",
-    tanggal_kirim: undefined as Date | undefined,
     tanggal_ambil: undefined as Date | undefined,
     status_pengiriman: "belum_kirim",
     status_pengambilan: "belum_diambil",
@@ -242,7 +240,7 @@ const RentalContracts = () => {
         client_group_id: contractForm.client_group_id,
         start_date: format(contractForm.start_date, "yyyy-MM-dd"),
         end_date: format(contractForm.end_date, "yyyy-MM-dd"),
-        tanggal: contractForm.tanggal ? format(contractForm.tanggal, "yyyy-MM-dd") : null,
+        
         status: contractForm.status,
         tagihan: parseFloat(contractForm.tagihan) || 0,
         tagihan_belum_bayar: parseFloat(contractForm.tagihan) || 0,
@@ -255,7 +253,7 @@ const RentalContracts = () => {
         jenis_scaffolding: contractForm.jenis_scaffolding || null,
         jumlah_unit: parseInt(contractForm.jumlah_unit) || 0,
         lokasi_detail: contractForm.lokasi_detail || null,
-        tanggal_kirim: contractForm.tanggal_kirim ? format(contractForm.tanggal_kirim, "yyyy-MM-dd") : null,
+        
         tanggal_ambil: contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "yyyy-MM-dd") : null,
         status_pengiriman: contractForm.status_pengiriman || "belum_kirim",
         status_pengambilan: contractForm.status_pengambilan || "belum_diambil",
@@ -309,7 +307,7 @@ const RentalContracts = () => {
       client_group_id: contract.client_group_id,
       start_date: new Date(contract.start_date),
       end_date: new Date(contract.end_date),
-      tanggal: contract.tanggal ? new Date(contract.tanggal) : undefined,
+      
       status: contract.status,
       tagihan: contract.tagihan?.toString() || "",
       tagihan_belum_bayar: contract.tagihan_belum_bayar.toString(),
@@ -321,7 +319,7 @@ const RentalContracts = () => {
       jenis_scaffolding: contract.jenis_scaffolding || "",
       jumlah_unit: contract.jumlah_unit?.toString() || "",
       lokasi_detail: contract.lokasi_detail || "",
-      tanggal_kirim: contract.tanggal_kirim ? new Date(contract.tanggal_kirim) : undefined,
+      
       tanggal_ambil: contract.tanggal_ambil ? new Date(contract.tanggal_ambil) : undefined,
       status_pengiriman: contract.status_pengiriman || "belum_kirim",
       status_pengambilan: contract.status_pengambilan || "belum_diambil",
@@ -359,7 +357,7 @@ const RentalContracts = () => {
       client_group_id: "",
       start_date: undefined,
       end_date: undefined,
-      tanggal: undefined,
+      
       status: "masa sewa",
       tagihan: "",
       tagihan_belum_bayar: "",
@@ -371,7 +369,7 @@ const RentalContracts = () => {
       jenis_scaffolding: "",
       jumlah_unit: "",
       lokasi_detail: "",
-      tanggal_kirim: undefined,
+      
       tanggal_ambil: undefined,
       status_pengiriman: "belum_kirim",
       status_pengambilan: "belum_diambil",
@@ -636,32 +634,6 @@ const RentalContracts = () => {
                 />
               </div>
 
-              <div>
-                <Label>Tanggal</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !contractForm.tanggal && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {contractForm.tanggal ? format(contractForm.tanggal, "PPP", { locale: localeId }) : "Pilih tanggal"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={contractForm.tanggal}
-                      onSelect={(date) => setContractForm({ ...contractForm, tanggal: date })}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -723,7 +695,14 @@ const RentalContracts = () => {
                 <Label>Status</Label>
                 <Select
                   value={contractForm.status}
-                  onValueChange={(value) => setContractForm({ ...contractForm, status: value })}
+                  onValueChange={(value) => {
+                    const updates: Partial<typeof contractForm> = { status: value };
+                    // Auto-fill tanggal_ambil saat status = "selesai" dan belum ada tanggal
+                    if (value === "selesai" && !contractForm.tanggal_ambil) {
+                      updates.tanggal_ambil = new Date();
+                    }
+                    setContractForm({ ...contractForm, ...updates });
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -733,6 +712,7 @@ const RentalContracts = () => {
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="masa sewa">Masa Sewa</SelectItem>
                     <SelectItem value="berulang">Berulang</SelectItem>
+                    <SelectItem value="selesai">Selesai</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -782,60 +762,32 @@ const RentalContracts = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Tanggal Pengiriman</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !contractForm.tanggal_kirim && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {contractForm.tanggal_kirim ? format(contractForm.tanggal_kirim, "PPP", { locale: localeId }) : "Pilih tanggal"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={contractForm.tanggal_kirim}
-                          onSelect={(date) => setContractForm({ ...contractForm, tanggal_kirim: date })}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div>
-                    <Label>Tanggal Pengambilan</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !contractForm.tanggal_ambil && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "PPP", { locale: localeId }) : "Pilih tanggal"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={contractForm.tanggal_ambil}
-                          onSelect={(date) => setContractForm({ ...contractForm, tanggal_ambil: date })}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                <div>
+                  <Label>Tanggal Pengambilan</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !contractForm.tanggal_ambil && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "PPP", { locale: localeId }) : "Pilih tanggal"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={contractForm.tanggal_ambil}
+                        onSelect={(date) => setContractForm({ ...contractForm, tanggal_ambil: date })}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground mt-1">Otomatis terisi saat status = Selesai</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

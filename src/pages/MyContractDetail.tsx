@@ -32,7 +32,6 @@ interface ContractDetail {
   google_maps_link: string | null;
   status_pengiriman: string | null;
   status_pengambilan: string | null;
-  tanggal_kirim: string | null;
   tanggal_ambil: string | null;
   biaya_kirim: number | null;
   notes: string | null;
@@ -259,11 +258,6 @@ export default function MyContractDetail() {
                     <Badge variant={contract.status_pengiriman === "sudah_kirim" ? "default" : "outline"}>
                       {contract.status_pengiriman === "sudah_kirim" ? "Sudah Dikirim" : "Belum Dikirim"}
                     </Badge>
-                    {contract.tanggal_kirim && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Tanggal: {format(new Date(contract.tanggal_kirim), "dd MMM yyyy", { locale: localeId })}
-                      </p>
-                    )}
                   </div>
                   <div className="p-4 border rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
