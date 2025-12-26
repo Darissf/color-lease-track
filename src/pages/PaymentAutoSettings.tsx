@@ -17,25 +17,23 @@ import { formatRupiah } from "@/lib/currency";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { 
-  ArrowLeft, Server, Key, Activity, FileText, RefreshCw, 
-  CheckCircle, XCircle, Clock, Zap, Copy, Download, Eye, EyeOff,
-  Loader2, AlertCircle, TrendingUp
+  ArrowLeft, Key, Activity, FileText, RefreshCw, 
+  CheckCircle, XCircle, Clock, Zap, Copy, Eye, EyeOff,
+  Loader2, AlertCircle, TrendingUp, ExternalLink, Webhook
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface BCACredential {
+interface MutasibankSettings {
   id: string;
-  vps_host: string;
-  vps_port: number;
-  vps_username: string;
+  user_id: string;
+  provider: string;
+  api_key_encrypted: string | null;
+  webhook_secret_encrypted: string | null;
   is_active: boolean;
-  status: string;
-  last_sync_at: string | null;
-  error_message: string | null;
+  last_webhook_at: string | null;
+  last_error: string | null;
   error_count: number;
-  default_interval_minutes: number;
-  burst_interval_seconds: number;
-  burst_duration_seconds: number;
+  config: Record<string, unknown>;
 }
 
 interface BankMutation {
@@ -49,19 +47,7 @@ interface BankMutation {
   is_processed: boolean;
   matched_contract_id: string | null;
   created_at: string;
-}
-
-interface SyncLog {
-  id: string;
-  status: string;
-  mutations_found: number;
-  mutations_new: number;
-  mutations_matched: number;
-  mode: string;
-  error_message: string | null;
-  started_at: string;
-  completed_at: string | null;
-  duration_ms: number | null;
+  source: string;
 }
 
 interface PendingRequest {
@@ -74,31 +60,26 @@ interface PendingRequest {
 }
 
 export default function PaymentAutoSettings() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, user } = useAuth();
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [credentials, setCredentials] = useState<BCACredential | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [settings, setSettings] = useState<MutasibankSettings | null>(null);
   const [mutations, setMutations] = useState<BankMutation[]>([]);
-  const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPin, setShowPin] = useState(false);
-  const [generatedScript, setGeneratedScript] = useState<string | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   
   // Form state
   const [form, setForm] = useState({
-    vps_host: "",
-    vps_port: 22,
-    vps_username: "",
-    vps_password: "",
-    klikbca_user_id: "",
-    klikbca_pin: "",
-    default_interval_minutes: 15,
-    burst_interval_seconds: 60,
-    burst_duration_seconds: 180,
+    api_key: "",
+    webhook_secret: "",
   });
+
+  // Generate webhook URL
+  const webhookUrl = `https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/mutasibank-webhook`;
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -111,26 +92,16 @@ export default function PaymentAutoSettings() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch credentials
-      const { data: credData } = await supabase
-        .from("bca_credentials")
+      // Fetch Mutasibank settings
+      const { data: settingsData } = await supabase
+        .from("payment_provider_settings")
         .select("*")
+        .eq("provider", "mutasibank")
         .limit(1)
         .maybeSingle();
       
-      if (credData) {
-        setCredentials(credData as BCACredential);
-        setForm({
-          vps_host: credData.vps_host || "",
-          vps_port: credData.vps_port || 22,
-          vps_username: credData.vps_username || "",
-          vps_password: "",
-          klikbca_user_id: "",
-          klikbca_pin: "",
-          default_interval_minutes: credData.default_interval_minutes || 15,
-          burst_interval_seconds: credData.burst_interval_seconds || 60,
-          burst_duration_seconds: credData.burst_duration_seconds || 180,
-        });
+      if (settingsData) {
+        setSettings(settingsData as MutasibankSettings);
       }
 
       // Fetch mutations
@@ -142,16 +113,7 @@ export default function PaymentAutoSettings() {
       
       setMutations((mutData || []) as BankMutation[]);
 
-      // Fetch sync logs
-      const { data: logData } = await supabase
-        .from("bca_sync_logs")
-        .select("*")
-        .order("started_at", { ascending: false })
-        .limit(50);
-      
-      setSyncLogs((logData || []) as SyncLog[]);
-
-      // Fetch pending burst requests
+      // Fetch pending requests
       const { data: pendingData } = await supabase.rpc("get_pending_burst_requests");
       setPendingRequests((pendingData || []) as PendingRequest[]);
 
@@ -163,100 +125,119 @@ export default function PaymentAutoSettings() {
   };
 
   const handleSave = async () => {
-    // Validate required fields for create
-    if (!credentials) {
-      if (!form.vps_host || !form.vps_username || !form.vps_password) {
-        toast.error("VPS Host, Username, dan Password wajib diisi");
-        return;
-      }
-      if (!form.klikbca_user_id || !form.klikbca_pin) {
-        toast.error("KlikBCA User ID dan PIN wajib diisi");
-        return;
-      }
+    if (!form.api_key && !settings) {
+      toast.error("API Key wajib diisi");
+      return;
     }
 
     setSaving(true);
     try {
-      // For update, only send non-empty fields
       const payload: Record<string, unknown> = {
-        action: credentials ? "update" : "create",
+        provider: "mutasibank",
+        user_id: user?.id,
       };
 
-      if (credentials) {
-        // Update mode: only include fields that have values
-        if (form.vps_host) payload.vps_host = form.vps_host;
-        if (form.vps_port) payload.vps_port = form.vps_port;
-        if (form.vps_username) payload.vps_username = form.vps_username;
-        if (form.vps_password) payload.vps_password = form.vps_password;
-        if (form.klikbca_user_id) payload.klikbca_user_id = form.klikbca_user_id;
-        if (form.klikbca_pin) payload.klikbca_pin = form.klikbca_pin;
-        if (form.default_interval_minutes) payload.default_interval_minutes = form.default_interval_minutes;
-        if (form.burst_interval_seconds) payload.burst_interval_seconds = form.burst_interval_seconds;
-        if (form.burst_duration_seconds) payload.burst_duration_seconds = form.burst_duration_seconds;
-      } else {
-        // Create mode: include all fields
-        Object.assign(payload, form);
+      if (form.api_key) {
+        payload.api_key_encrypted = form.api_key;
+      }
+      if (form.webhook_secret) {
+        payload.webhook_secret_encrypted = form.webhook_secret;
       }
 
-      const { data, error } = await supabase.functions.invoke("bca-credentials-manager", {
-        body: payload
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (settings) {
+        // Update
+        const { error } = await supabase
+          .from("payment_provider_settings")
+          .update({
+            ...(form.api_key && { api_key_encrypted: form.api_key }),
+            ...(form.webhook_secret && { webhook_secret_encrypted: form.webhook_secret }),
+          })
+          .eq("id", settings.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from("payment_provider_settings")
+          .insert({
+            provider: "mutasibank",
+            user_id: user?.id,
+            api_key_encrypted: form.api_key || null,
+            webhook_secret_encrypted: form.webhook_secret || null,
+          });
+        
+        if (error) throw error;
+      }
       
-      toast.success("Credentials berhasil disimpan!");
+      toast.success("Pengaturan Mutasibank berhasil disimpan!");
+      setForm({ api_key: "", webhook_secret: "" });
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || "Gagal menyimpan credentials");
+      toast.error(error.message || "Gagal menyimpan pengaturan");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleGenerateScript = async () => {
-    if (!credentials) {
-      toast.error("Simpan credentials terlebih dahulu sebelum generate script");
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke("bca-vps-setup", {});
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      
-      setGeneratedScript(data.install_script);
-      toast.success("Script berhasil digenerate!");
-    } catch (error: any) {
-      toast.error(error.message || "Gagal generate script");
-    }
-  };
-
   const handleToggleActive = async () => {
-    if (!credentials) return;
+    if (!settings) return;
     
     try {
-      const { error } = await supabase.functions.invoke("bca-credentials-manager", {
-        body: {
-          action: "toggle",
-          is_active: !credentials.is_active,
-        }
-      });
+      const { error } = await supabase
+        .from("payment_provider_settings")
+        .update({ is_active: !settings.is_active })
+        .eq("id", settings.id);
 
       if (error) throw error;
-      toast.success(credentials.is_active ? "Payment otomatis dinonaktifkan" : "Payment otomatis diaktifkan");
+      toast.success(settings.is_active ? "Mutasibank dinonaktifkan" : "Mutasibank diaktifkan");
       fetchData();
     } catch (error: any) {
       toast.error(error.message || "Gagal mengubah status");
     }
   };
 
-  const copyScript = () => {
-    if (generatedScript) {
-      navigator.clipboard.writeText(generatedScript);
-      toast.success("Script berhasil disalin!");
+  const handleTestWebhook = async () => {
+    setTesting(true);
+    try {
+      // Send a test webhook
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Signature": form.webhook_secret || settings?.webhook_secret_encrypted || "",
+        },
+        body: JSON.stringify({
+          data: {
+            id: "test-" + Date.now(),
+            bank_id: "bca",
+            account_number: "1234567890",
+            date: new Date().toISOString().split("T")[0],
+            time: new Date().toTimeString().split(" ")[0],
+            type: "CR",
+            amount: 1,
+            description: "TEST WEBHOOK - IGNORE",
+            balance: 0,
+          }
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success("Webhook test berhasil! Koneksi OK.");
+      } else {
+        toast.error(`Webhook test gagal: ${result.error}`);
+      }
+    } catch (error: any) {
+      toast.error(`Test gagal: ${error.message}`);
+    } finally {
+      setTesting(false);
     }
+  };
+
+  const copyWebhookUrl = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    toast.success("Webhook URL berhasil disalin!");
   };
 
   if (!isSuperAdmin) return null;
@@ -282,17 +263,17 @@ export default function PaymentAutoSettings() {
               Payment Otomatis
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Verifikasi pembayaran BCA otomatis dengan Burst Mode
+              Verifikasi pembayaran otomatis via Mutasibank.co.id (interval 5 menit)
             </p>
           </div>
-          {credentials && (
+          {settings && (
             <div className="flex items-center gap-2">
               <Switch
-                checked={credentials.is_active}
+                checked={settings.is_active}
                 onCheckedChange={handleToggleActive}
               />
-              <Badge variant={credentials.is_active ? "default" : "secondary"}>
-                {credentials.is_active ? "Aktif" : "Nonaktif"}
+              <Badge variant={settings.is_active ? "default" : "secondary"}>
+                {settings.is_active ? "Aktif" : "Nonaktif"}
               </Badge>
             </div>
           )}
@@ -315,147 +296,137 @@ export default function PaymentAutoSettings() {
               <TrendingUp className="h-4 w-4" />
               <span className="hidden sm:inline">Mutasi</span>
             </TabsTrigger>
-            <TabsTrigger value="logs" className="gap-2">
+            <TabsTrigger value="guide" className="gap-2">
               <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Logs</span>
+              <span className="hidden sm:inline">Panduan</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Configuration Tab */}
           <TabsContent value="config" className="space-y-4">
+            {/* Info Banner */}
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-primary/20">
+                    <Zap className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Mutasibank.co.id Integration</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Interval cek mutasi: <strong>setiap 5 menit</strong> untuk BCA Advanced. 
+                      Tidak perlu VPS atau maintenance. Cukup daftar, tambah rekening, dan copy webhook URL.
+                    </p>
+                    <Button variant="link" className="h-auto p-0 mt-2" asChild>
+                      <a href="https://app.mutasibank.co.id/login" target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Daftar Mutasibank
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid gap-4 md:grid-cols-2">
-              {/* VPS Credentials */}
+              {/* API Credentials */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Server className="h-5 w-5" />
-                    VPS Credentials
+                    <Key className="h-5 w-5" />
+                    API Credentials
                   </CardTitle>
                   <CardDescription>
-                    Kredensial untuk mengakses VPS scraper
+                    Dapatkan dari dashboard Mutasibank → Settings → API
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Host</Label>
-                    <Input
-                      placeholder="192.168.1.1 atau domain.com"
-                      value={form.vps_host}
-                      onChange={(e) => setForm({ ...form, vps_host: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Port SSH</Label>
-                      <Input
-                        type="number"
-                        value={form.vps_port}
-                        onChange={(e) => setForm({ ...form, vps_port: parseInt(e.target.value) })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Username</Label>
-                      <Input
-                        placeholder="root"
-                        value={form.vps_username}
-                        onChange={(e) => setForm({ ...form, vps_username: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Password</Label>
+                    <Label>API Key</Label>
                     <div className="relative">
                       <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={form.vps_password}
-                        onChange={(e) => setForm({ ...form, vps_password: e.target.value })}
+                        type={showApiKey ? "text" : "password"}
+                        placeholder={settings?.api_key_encrypted ? "••••••••••••" : "Masukkan API Key"}
+                        value={form.api_key}
+                        onChange={(e) => setForm({ ...form, api_key: e.target.value })}
                       />
                       <Button
                         variant="ghost"
                         size="icon"
                         className="absolute right-0 top-0"
-                        onClick={() => setShowPassword(!showPassword)}
+                        onClick={() => setShowApiKey(!showApiKey)}
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    {settings?.api_key_encrypted && (
+                      <p className="text-xs text-green-600">✓ API Key sudah tersimpan</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Webhook Secret (Opsional)</Label>
+                    <div className="relative">
+                      <Input
+                        type={showWebhookSecret ? "text" : "password"}
+                        placeholder={settings?.webhook_secret_encrypted ? "••••••••••••" : "Masukkan Webhook Secret"}
+                        value={form.webhook_secret}
+                        onChange={(e) => setForm({ ...form, webhook_secret: e.target.value })}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0"
+                        onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                      >
+                        {showWebhookSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Password akan dienkripsi dengan AES-256
+                      Untuk keamanan tambahan, atur di Mutasibank → Webhook → Secret
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* KlikBCA Credentials */}
+              {/* Webhook URL */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    KlikBCA Credentials
+                    <Webhook className="h-5 w-5" />
+                    Webhook URL
                   </CardTitle>
                   <CardDescription>
-                    Kredensial untuk login ke KlikBCA Individual
+                    Copy URL ini ke dashboard Mutasibank → Webhook
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>User ID</Label>
-                    <Input
-                      placeholder="KlikBCA User ID"
-                      value={form.klikbca_user_id}
-                      onChange={(e) => setForm({ ...form, klikbca_user_id: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>PIN</Label>
-                    <div className="relative">
+                    <Label>URL</Label>
+                    <div className="flex gap-2">
                       <Input
-                        type={showPin ? "text" : "password"}
-                        placeholder="••••••"
-                        maxLength={6}
-                        value={form.klikbca_pin}
-                        onChange={(e) => setForm({ ...form, klikbca_pin: e.target.value })}
+                        value={webhookUrl}
+                        readOnly
+                        className="font-mono text-xs"
                       />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0"
-                        onClick={() => setShowPin(!showPin)}
-                      >
-                        {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <Button variant="outline" size="icon" onClick={copyWebhookUrl}>
+                        <Copy className="h-4 w-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      PIN akan dienkripsi dengan AES-256-GCM
-                    </p>
                   </div>
+                  
                   <Separator />
+                  
                   <div className="space-y-2">
-                    <Label>Interval Normal (menit)</Label>
-                    <Input
-                      type="number"
-                      value={form.default_interval_minutes}
-                      onChange={(e) => setForm({ ...form, default_interval_minutes: parseInt(e.target.value) })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Burst Interval (detik)</Label>
-                      <Input
-                        type="number"
-                        value={form.burst_interval_seconds}
-                        onChange={(e) => setForm({ ...form, burst_interval_seconds: parseInt(e.target.value) })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Burst Duration (detik)</Label>
-                      <Input
-                        type="number"
-                        value={form.burst_duration_seconds}
-                        onChange={(e) => setForm({ ...form, burst_duration_seconds: parseInt(e.target.value) })}
-                      />
-                    </div>
+                    <Label>Langkah Setup di Mutasibank:</Label>
+                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                      <li>Masuk ke dashboard Mutasibank</li>
+                      <li>Pilih menu Webhook</li>
+                      <li>Klik "Tambah Webhook"</li>
+                      <li>Paste URL di atas</li>
+                      <li>Centang event: "Mutasi Masuk"</li>
+                      <li>Simpan</li>
+                    </ol>
                   </div>
                 </CardContent>
               </Card>
@@ -464,36 +435,13 @@ export default function PaymentAutoSettings() {
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={saving}>
                 {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Simpan Credentials
+                Simpan Pengaturan
               </Button>
-              <Button variant="outline" onClick={handleGenerateScript}>
-                <Download className="h-4 w-4 mr-2" />
-                Generate VPS Script
+              <Button variant="outline" onClick={handleTestWebhook} disabled={testing || !settings}>
+                {testing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Test Webhook
               </Button>
             </div>
-
-            {/* Generated Script */}
-            {generatedScript && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>VPS Install Script</CardTitle>
-                    <Button variant="outline" size="sm" onClick={copyScript}>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy
-                    </Button>
-                  </div>
-                  <CardDescription>
-                    Jalankan script ini di VPS Anda untuk menginstall scraper
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[300px] w-full rounded-md border p-4 bg-muted/50">
-                    <pre className="text-xs font-mono whitespace-pre-wrap">{generatedScript}</pre>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            )}
           </TabsContent>
 
           {/* Status Tab */}
@@ -504,19 +452,18 @@ export default function PaymentAutoSettings() {
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "p-3 rounded-full",
-                      credentials?.status === "connected" ? "bg-green-500/20" : "bg-red-500/20"
+                      settings?.is_active ? "bg-green-500/20" : "bg-red-500/20"
                     )}>
-                      {credentials?.status === "connected" ? (
+                      {settings?.is_active ? (
                         <CheckCircle className="h-6 w-6 text-green-500" />
                       ) : (
                         <XCircle className="h-6 w-6 text-red-500" />
                       )}
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Status Koneksi</p>
+                      <p className="text-sm text-muted-foreground">Status</p>
                       <p className="font-semibold">
-                        {credentials?.status === "connected" ? "Terhubung" : 
-                         credentials?.status === "error" ? "Error" : "Belum Dikonfigurasi"}
+                        {settings?.is_active ? "Aktif" : settings ? "Nonaktif" : "Belum Dikonfigurasi"}
                       </p>
                     </div>
                   </div>
@@ -530,10 +477,10 @@ export default function PaymentAutoSettings() {
                       <Clock className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Last Sync</p>
+                      <p className="text-sm text-muted-foreground">Last Webhook</p>
                       <p className="font-semibold">
-                        {credentials?.last_sync_at 
-                          ? format(new Date(credentials.last_sync_at), "dd MMM HH:mm", { locale: localeId })
+                        {settings?.last_webhook_at 
+                          ? format(new Date(settings.last_webhook_at), "dd MMM HH:mm", { locale: localeId })
                           : "Belum pernah"
                         }
                       </p>
@@ -555,9 +502,9 @@ export default function PaymentAutoSettings() {
                       )} />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Mode</p>
+                      <p className="text-sm text-muted-foreground">Pending Verifikasi</p>
                       <p className="font-semibold">
-                        {pendingRequests.length > 0 ? "🔥 BURST MODE" : "Normal (15 menit)"}
+                        {pendingRequests.length} request
                       </p>
                     </div>
                   </div>
@@ -565,14 +512,17 @@ export default function PaymentAutoSettings() {
               </Card>
             </div>
 
-            {/* Pending Burst Requests */}
+            {/* Pending Requests */}
             {pendingRequests.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-amber-500" />
-                    Active Burst Requests
+                    Menunggu Verifikasi
                   </CardTitle>
+                  <CardDescription>
+                    Pembayaran akan auto-match saat webhook diterima dari Mutasibank
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -595,7 +545,7 @@ export default function PaymentAutoSettings() {
             )}
 
             {/* Error Display */}
-            {credentials?.error_message && (
+            {settings?.last_error && (
               <Card className="border-destructive">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
@@ -604,9 +554,9 @@ export default function PaymentAutoSettings() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm">{credentials.error_message}</p>
+                  <p className="text-sm">{settings.last_error}</p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Error count: {credentials.error_count}
+                    Error count: {settings.error_count}
                   </p>
                 </CardContent>
               </Card>
@@ -618,7 +568,7 @@ export default function PaymentAutoSettings() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Riwayat Mutasi BCA</CardTitle>
+                  <CardTitle>Riwayat Mutasi</CardTitle>
                   <Button variant="outline" size="sm" onClick={fetchData}>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
@@ -632,7 +582,7 @@ export default function PaymentAutoSettings() {
                       <TableRow>
                         <TableHead>Tanggal</TableHead>
                         <TableHead>Keterangan</TableHead>
-                        <TableHead>Tipe</TableHead>
+                        <TableHead>Source</TableHead>
                         <TableHead className="text-right">Nominal</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
@@ -655,15 +605,17 @@ export default function PaymentAutoSettings() {
                               {mut.description}
                             </TableCell>
                             <TableCell>
-                              <Badge variant={mut.transaction_type === "CR" ? "default" : "secondary"}>
-                                {mut.transaction_type}
+                              <Badge variant="outline" className={cn(
+                                mut.source === "mutasibank" ? "bg-blue-50 text-blue-700" : ""
+                              )}>
+                                {mut.source || "manual"}
                               </Badge>
                             </TableCell>
                             <TableCell className={cn(
                               "text-right font-medium",
-                              mut.transaction_type === "CR" ? "text-green-600" : "text-red-600"
+                              mut.transaction_type === "kredit" ? "text-green-600" : "text-red-600"
                             )}>
-                              {mut.transaction_type === "CR" ? "+" : "-"}{formatRupiah(mut.amount)}
+                              {mut.transaction_type === "kredit" ? "+" : "-"}{formatRupiah(mut.amount)}
                             </TableCell>
                             <TableCell>
                               {mut.matched_contract_id ? (
@@ -684,70 +636,113 @@ export default function PaymentAutoSettings() {
             </Card>
           </TabsContent>
 
-          {/* Logs Tab */}
-          <TabsContent value="logs">
+          {/* Guide Tab */}
+          <TabsContent value="guide">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Sync Logs</CardTitle>
-                  <Button variant="outline" size="sm" onClick={fetchData}>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
-                  </Button>
-                </div>
+                <CardTitle>Panduan Setup Mutasibank.co.id</CardTitle>
+                <CardDescription>
+                  Ikuti langkah-langkah berikut untuk mengaktifkan auto-verifikasi pembayaran
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[500px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Waktu</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Mode</TableHead>
-                        <TableHead className="text-center">Found</TableHead>
-                        <TableHead className="text-center">New</TableHead>
-                        <TableHead className="text-center">Matched</TableHead>
-                        <TableHead className="text-right">Duration</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {syncLogs.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                            Belum ada sync logs
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        syncLogs.map((log) => (
-                          <TableRow key={log.id}>
-                            <TableCell className="font-mono text-sm">
-                              {format(new Date(log.started_at), "dd/MM HH:mm:ss", { locale: localeId })}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={log.status === "success" ? "default" : "destructive"}>
-                                {log.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={log.mode === "burst" ? "outline" : "secondary"} 
-                                className={log.mode === "burst" ? "bg-amber-50 text-amber-700" : ""}>
-                                {log.mode === "burst" ? "🔥 Burst" : "Normal"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">{log.mutations_found}</TableCell>
-                            <TableCell className="text-center">{log.mutations_new}</TableCell>
-                            <TableCell className="text-center font-medium text-green-600">
-                              {log.mutations_matched}
-                            </TableCell>
-                            <TableCell className="text-right font-mono text-sm">
-                              {log.duration_ms ? `${log.duration_ms}ms` : "-"}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                      1
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Daftar Akun Mutasibank</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Kunjungi <a href="https://app.mutasibank.co.id/login" target="_blank" rel="noopener noreferrer" className="text-primary underline">app.mutasibank.co.id</a> dan buat akun baru. 
+                        Ada trial gratis 7 hari.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                      2
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Tambahkan Rekening BCA</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Di dashboard Mutasibank, tambahkan rekening BCA Anda dengan paket <strong>"BCA Advanced"</strong> (interval 5 menit). 
+                        Ikuti instruksi untuk verifikasi rekening.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                      3
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Copy API Key</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Buka menu <strong>Settings → API</strong> di Mutasibank, copy API Key dan paste di form Konfigurasi di atas.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                      4
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Setup Webhook</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Di Mutasibank, buka menu <strong>Webhook</strong>, klik "Tambah Webhook", paste URL berikut:
+                      </p>
+                      <div className="flex gap-2 mt-2">
+                        <code className="flex-1 p-2 bg-muted rounded text-xs break-all">{webhookUrl}</code>
+                        <Button variant="outline" size="sm" onClick={copyWebhookUrl}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Pilih event: <strong>"Mutasi Masuk"</strong> lalu simpan.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                      5
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Aktifkan</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Kembali ke halaman ini, aktifkan toggle di header. Selesai! 
+                        Setiap ada transfer masuk ke BCA, sistem akan otomatis menerima notifikasi dan mencocokkan dengan pembayaran customer.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">💡 Cara Kerja</h4>
+                  <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                    <li>Customer klik "Sudah Transfer" di halaman kontrak mereka</li>
+                    <li>Sistem menyimpan request dengan nominal yang diharapkan</li>
+                    <li>Mutasibank cek mutasi BCA setiap 5 menit</li>
+                    <li>Saat ada mutasi masuk, Mutasibank kirim ke webhook kita</li>
+                    <li>Sistem otomatis cocokkan nominal dan konfirmasi pembayaran</li>
+                    <li>Customer terima notifikasi WhatsApp bahwa pembayaran sudah dikonfirmasi</li>
+                  </ol>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <h4 className="font-semibold mb-2 text-amber-800 dark:text-amber-200">💰 Biaya</h4>
+                  <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                    <li>• Trial gratis 7 hari</li>
+                    <li>• BCA Advanced (5 menit): Rp 3.500/hari</li>
+                    <li>• BCA Standard (15 menit): Rp 2.000/hari</li>
+                    <li>• Tanpa VPS, tanpa maintenance</li>
+                  </ul>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
