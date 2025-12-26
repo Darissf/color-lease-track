@@ -410,7 +410,15 @@ export default function PublicContractPage() {
                 {contract.payments.map((payment, index) => (
                   <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 p-2.5 sm:p-3 bg-muted/50 rounded-lg">
                     <div>
-                      <div className="text-xs sm:text-sm font-medium">Pembayaran {payment.payment_number}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm font-medium">Pembayaran {payment.payment_number}</span>
+                        <Badge 
+                          variant={payment.payment_source === 'auto' ? 'default' : 'secondary'} 
+                          className="text-[9px] px-1.5 py-0"
+                        >
+                          {payment.payment_source === 'auto' ? 'Otomatis' : 'Manual'}
+                        </Badge>
+                      </div>
                       <div className="text-[10px] sm:text-xs text-muted-foreground">
                         {format(new Date(payment.payment_date), 'dd MMM yyyy', { locale: id })}
                       </div>

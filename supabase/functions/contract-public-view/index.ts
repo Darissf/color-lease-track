@@ -123,7 +123,7 @@ serve(async (req) => {
     // Get payment history
     const { data: payments } = await supabase
       .from('contract_payments')
-      .select('id, payment_date, amount, payment_number, notes')
+      .select('id, payment_date, amount, payment_number, notes, payment_source, confirmed_by')
       .eq('contract_id', linkData.contract_id)
       .order('payment_date', { ascending: false });
 

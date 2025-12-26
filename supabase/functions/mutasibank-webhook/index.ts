@@ -169,6 +169,8 @@ serve(async (req: Request) => {
             contract_id: contract.id,
             payment_date: mutation.date,
             amount: mutation.amount,
+            payment_source: 'auto',
+            confirmed_by: null,
             notes: `Auto-verified via Mutasibank: ${mutation.description}`,
           });
 
