@@ -64,11 +64,12 @@ Deno.serve(async (req) => {
     const webhookUrl = `${supabaseUrl}/functions/v1/bca-mutation-webhook`;
     const credentialsUrl = `${supabaseUrl}/functions/v1/bca-credentials-manager`;
 
-    // Generate install script
+    // Generate install script with improved scraper
     const installScript = `#!/bin/bash
 # ============================================
 # BCA Auto-Mutation Scraper - Install Script
 # Generated for: ${cred.vps_host}
+# Version: 2.0 (Improved iframe handling)
 # ============================================
 
 set -e
@@ -102,9 +103,11 @@ echo -e "\${YELLOW}[4/7] Installing Node.js...\\033[0m"
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt-get install -y nodejs
 
-# 5. Install Chromium
+# 5. Install Chromium with all dependencies
 echo -e "\${YELLOW}[5/7] Installing Chromium...\\033[0m"
 apt-get install -y chromium-browser || apt-get install -y chromium
+# Install additional fonts for proper rendering
+apt-get install -y fonts-liberation fonts-noto-cjk xfonts-base xfonts-75dpi || true
 
 # 6. Create scraper directory
 echo -e "\${YELLOW}[6/7] Setting up scraper...\\033[0m"
@@ -115,7 +118,7 @@ cd /opt/bca-scraper
 cat > package.json << 'PKGEOF'
 {
   "name": "bca-scraper",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "dependencies": {
     "puppeteer": "^21.0.0",
@@ -127,7 +130,7 @@ PKGEOF
 # Install npm packages
 npm install
 
-# Create scraper script
+# Create scraper script with improved iframe handling
 cat > index.js << 'SCRAPEREOF'
 import puppeteer from 'puppeteer';
 import fetch from 'node-fetch';
@@ -139,6 +142,16 @@ const CREDENTIALS_URL = '${credentialsUrl}';
 const WEBHOOK_SECRET = '${cred.webhook_secret}';
 
 const LOG_FILE = '/var/log/bca-scraper.log';
+const ERROR_SCREENSHOT = '/var/log/bca-error-screenshot.png';
+
+// Detect Chromium path
+function getChromiumPath() {
+  const paths = ['/usr/bin/chromium-browser', '/usr/bin/chromium', '/usr/bin/google-chrome'];
+  for (const p of paths) {
+    if (fs.existsSync(p)) return p;
+  }
+  return '/usr/bin/chromium-browser';
+}
 
 function log(message) {
   const timestamp = new Date().toISOString();
@@ -164,8 +177,59 @@ async function getCredentials() {
   }
 }
 
+// Retry helper for finding elements
+async function waitForSelectorWithRetry(frameOrPage, selector, options = {}) {
+  const maxRetries = options.maxRetries || 3;
+  const retryDelay = options.retryDelay || 3000;
+  const timeout = options.timeout || 15000;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await frameOrPage.waitForSelector(selector, { visible: true, timeout });
+      return true;
+    } catch (e) {
+      log(\`Retry \${i + 1}/\${maxRetries}: Waiting for \${selector}...\`);
+      if (i < maxRetries - 1) {
+        await new Promise(r => setTimeout(r, retryDelay));
+      }
+    }
+  }
+  return false;
+}
+
+// Find login frame (KlikBCA uses iframes)
+async function findLoginFrame(page) {
+  // First try main page
+  const mainHasLogin = await page.$('#user_id');
+  if (mainHasLogin) {
+    log('Login form found on main page');
+    return { frame: page, isMainPage: true };
+  }
+  
+  // Search in all frames
+  const frames = page.frames();
+  log(\`Searching \${frames.length} frames for login form...\`);
+  
+  for (const frame of frames) {
+    try {
+      const hasLoginForm = await frame.$('#user_id');
+      if (hasLoginForm) {
+        log(\`Login form found in frame: \${frame.name() || frame.url()}\`);
+        return { frame, isMainPage: false };
+      }
+    } catch (e) {
+      // Frame might be detached, skip it
+    }
+  }
+  
+  return null;
+}
+
 async function scrapeMutations(userId, pin) {
   log('Starting mutation scrape...');
+  
+  const chromiumPath = getChromiumPath();
+  log(\`Using Chromium at: \${chromiumPath}\`);
   
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -173,69 +237,263 @@ async function scrapeMutations(userId, pin) {
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
-      '--disable-gpu'
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=IsolateOrigins,site-per-process',
+      '--window-size=1366,768'
     ],
-    executablePath: '/usr/bin/chromium-browser'
+    executablePath: chromiumPath
   });
 
+  let page;
   try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 800 });
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+    page = await browser.newPage();
+    await page.setViewport({ width: 1366, height: 768 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    
+    // Set extra headers
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9,id;q=0.8'
+    });
 
-    // Navigate to KlikBCA
+    // Navigate to KlikBCA with more robust loading
     log('Navigating to KlikBCA...');
-    await page.goto('https://ibank.klikbca.com', { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.goto('https://ibank.klikbca.com', { 
+      waitUntil: 'networkidle0', 
+      timeout: 90000 
+    });
+    
+    // Wait for page to fully settle
+    await new Promise(r => setTimeout(r, 3000));
+    
+    // Take screenshot for debugging
+    await page.screenshot({ path: '/var/log/bca-initial-page.png', fullPage: true });
+    log('Initial page screenshot saved');
 
-    // Login
-    log('Logging in...');
-    await page.type('#user_id', userId);
-    await page.type('#pswd', pin);
-    await page.click('input[type="submit"]');
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    // Find login form (might be in iframe)
+    log('Looking for login form...');
+    let loginResult = await findLoginFrame(page);
+    
+    if (!loginResult) {
+      // Try waiting longer and retry
+      log('Login form not found, waiting and retrying...');
+      await new Promise(r => setTimeout(r, 5000));
+      loginResult = await findLoginFrame(page);
+    }
+    
+    if (!loginResult) {
+      await page.screenshot({ path: ERROR_SCREENSHOT, fullPage: true });
+      throw new Error('Login form not found in any frame. Screenshot saved for debugging.');
+    }
+    
+    const loginFrame = loginResult.frame;
+    
+    // Wait for login fields to be interactable
+    const foundUserId = await waitForSelectorWithRetry(loginFrame, '#user_id', { maxRetries: 5, timeout: 10000 });
+    if (!foundUserId) {
+      await page.screenshot({ path: ERROR_SCREENSHOT, fullPage: true });
+      throw new Error('User ID field not interactable after retries');
+    }
+
+    // Login with delay between keystrokes
+    log('Entering credentials...');
+    await loginFrame.click('#user_id');
+    await new Promise(r => setTimeout(r, 500));
+    await loginFrame.type('#user_id', userId, { delay: 100 });
+    
+    await loginFrame.click('#pswd');
+    await new Promise(r => setTimeout(r, 500));
+    await loginFrame.type('#pswd', pin, { delay: 100 });
+    
+    // Find and click submit button
+    log('Submitting login...');
+    const submitSelectors = ['input[type="submit"]', 'input[name="value(Submit)"]', 'button[type="submit"]', '.login-btn'];
+    let submitted = false;
+    
+    for (const sel of submitSelectors) {
+      try {
+        const btn = await loginFrame.$(sel);
+        if (btn) {
+          await btn.click();
+          submitted = true;
+          log(\`Clicked submit using: \${sel}\`);
+          break;
+        }
+      } catch (e) {}
+    }
+    
+    if (!submitted) {
+      // Try pressing Enter
+      await loginFrame.keyboard.press('Enter');
+      log('Pressed Enter to submit');
+    }
+    
+    // Wait for navigation
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {
+      log('Navigation wait timed out, continuing...');
+    });
+    
+    await new Promise(r => setTimeout(r, 3000));
+    
+    // Take screenshot after login
+    await page.screenshot({ path: '/var/log/bca-after-login.png', fullPage: true });
+    log('Post-login screenshot saved');
 
     // Check for login error
-    const loginError = await page.$('.errorMessage');
+    let loginError = null;
+    const errorSelectors = ['.errorMessage', '.error', '.alert-danger', '.err-msg', '.login-error'];
+    
+    for (const sel of errorSelectors) {
+      loginError = await page.$(sel);
+      if (loginError) break;
+      
+      // Also check in frames
+      for (const frame of page.frames()) {
+        try {
+          loginError = await frame.$(sel);
+          if (loginError) break;
+        } catch (e) {}
+      }
+      if (loginError) break;
+    }
+    
     if (loginError) {
-      const errorText = await page.evaluate(el => el.textContent, loginError);
-      throw new Error(\`Login failed: \${errorText}\`);
+      const errorText = await page.evaluate(el => el?.textContent || 'Unknown error', loginError);
+      throw new Error(\`Login failed: \${errorText.trim()}\`);
     }
 
     // Navigate to Account Info > Mutation
     log('Navigating to mutation page...');
     
-    // Click menu
-    const menuFrame = await page.frames().find(f => f.name() === 'menu');
+    // Find menu frame
+    let menuFrame = null;
+    for (const frame of page.frames()) {
+      const frameName = frame.name().toLowerCase();
+      if (frameName.includes('menu') || frameName === 'menu') {
+        menuFrame = frame;
+        log(\`Found menu frame: \${frame.name()}\`);
+        break;
+      }
+    }
+    
     if (menuFrame) {
-      await menuFrame.click('a:has-text("Informasi Rekening")');
-      await page.waitForTimeout(1000);
-      await menuFrame.click('a:has-text("Mutasi Rekening")');
+      try {
+        // Click on Informasi Rekening
+        await menuFrame.evaluate(() => {
+          const links = document.querySelectorAll('a');
+          for (const link of links) {
+            const text = link.textContent.toLowerCase();
+            if (text.includes('informasi') || text.includes('account')) {
+              link.click();
+              return true;
+            }
+          }
+          return false;
+        });
+        
+        await new Promise(r => setTimeout(r, 2000));
+        
+        // Click on Mutasi Rekening
+        await menuFrame.evaluate(() => {
+          const links = document.querySelectorAll('a');
+          for (const link of links) {
+            const text = link.textContent.toLowerCase();
+            if (text.includes('mutasi') || text.includes('statement')) {
+              link.click();
+              return true;
+            }
+          }
+          return false;
+        });
+        
+        log('Menu navigation completed');
+      } catch (e) {
+        log(\`Menu navigation error: \${e.message}\`);
+      }
+    } else {
+      log('Menu frame not found, trying direct navigation...');
     }
 
-    await page.waitForTimeout(2000);
+    await new Promise(r => setTimeout(r, 3000));
+    await page.screenshot({ path: '/var/log/bca-mutation-page.png', fullPage: true });
 
     // Get content frame
-    const contentFrame = await page.frames().find(f => f.name() === 'at498');
+    let contentFrame = null;
+    const contentFrameNames = ['atm', 'content', 'at498', 'main'];
+    
+    for (const frame of page.frames()) {
+      const frameName = frame.name().toLowerCase();
+      for (const name of contentFrameNames) {
+        if (frameName.includes(name)) {
+          contentFrame = frame;
+          log(\`Found content frame: \${frame.name()}\`);
+          break;
+        }
+      }
+      if (contentFrame) break;
+    }
+    
     if (!contentFrame) {
-      throw new Error('Content frame not found');
+      log('Content frame not found by name, searching for form...');
+      for (const frame of page.frames()) {
+        try {
+          const hasForm = await frame.$('select[name="startDt"], form[name="AccountStatementForm"]');
+          if (hasForm) {
+            contentFrame = frame;
+            log(\`Found form in frame: \${frame.name() || 'unnamed'}\`);
+            break;
+          }
+        } catch (e) {}
+      }
+    }
+    
+    if (!contentFrame) {
+      contentFrame = page.mainFrame();
+      log('Using main frame for content');
     }
 
     // Select date range (today)
     const today = new Date();
-    const startDate = today.toLocaleDateString('en-GB').split('/').reverse().join('-');
+    log(\`Setting date range for: \${today.toISOString().split('T')[0]}\`);
     
-    // Submit form to get mutations
-    await contentFrame.select('select[name="startDt"]', today.getDate().toString());
-    await contentFrame.select('select[name="startMt"]', (today.getMonth() + 1).toString());
-    await contentFrame.select('select[name="startYr"]', today.getFullYear().toString());
-    await contentFrame.select('select[name="endDt"]', today.getDate().toString());
-    await contentFrame.select('select[name="endMt"]', (today.getMonth() + 1).toString());
-    await contentFrame.select('select[name="endYr"]', today.getFullYear().toString());
+    try {
+      // Wait for date selectors
+      const hasDateSelector = await waitForSelectorWithRetry(contentFrame, 'select[name="startDt"]', { maxRetries: 3, timeout: 10000 });
+      
+      if (hasDateSelector) {
+        await contentFrame.select('select[name="startDt"]', today.getDate().toString());
+        await contentFrame.select('select[name="startMt"]', (today.getMonth() + 1).toString());
+        await contentFrame.select('select[name="startYr"]', today.getFullYear().toString());
+        await contentFrame.select('select[name="endDt"]', today.getDate().toString());
+        await contentFrame.select('select[name="endMt"]', (today.getMonth() + 1).toString());
+        await contentFrame.select('select[name="endYr"]', today.getFullYear().toString());
+        
+        log('Date range set');
+        
+        // Submit form
+        const submitSelectors = ['input[name="value(submit1)"]', 'input[type="submit"]', 'button[type="submit"]'];
+        for (const sel of submitSelectors) {
+          try {
+            const btn = await contentFrame.$(sel);
+            if (btn) {
+              await btn.click();
+              log(\`Clicked form submit: \${sel}\`);
+              break;
+            }
+          } catch (e) {}
+        }
+      } else {
+        log('Date selectors not found');
+      }
+    } catch (e) {
+      log(\`Date selection error: \${e.message}\`);
+    }
     
-    await contentFrame.click('input[name="value(submit1)"]');
-    await page.waitForTimeout(3000);
+    await new Promise(r => setTimeout(r, 4000));
+    await page.screenshot({ path: '/var/log/bca-mutations-result.png', fullPage: true });
 
     // Parse mutation table
+    log('Parsing mutations...');
     const mutations = await contentFrame.evaluate(() => {
       const rows = document.querySelectorAll('table tr');
       const result = [];
@@ -251,20 +509,22 @@ async function scrapeMutations(userId, pin) {
           const amountText = cells[3]?.textContent?.trim() || '';
           const balanceText = cells[4]?.textContent?.trim() || '';
           
-          if (dateText && amountText) {
+          if (dateText && amountText && amountText !== '0,00') {
             const isCredit = amountText.includes('CR');
             const amount = parseFloat(amountText.replace(/[^0-9.-]/g, '')) || 0;
             const balance = parseFloat(balanceText.replace(/[^0-9.-]/g, '')) || 0;
             
-            result.push({
-              transaction_date: dateText,
-              description: description,
-              amount: amount,
-              transaction_type: isCredit ? 'CR' : 'DB',
-              balance_after: balance,
-              reference_number: branch,
-              raw_data: { original: row.textContent }
-            });
+            if (amount > 0) {
+              result.push({
+                transaction_date: dateText,
+                description: description,
+                amount: amount,
+                transaction_type: isCredit ? 'CR' : 'DB',
+                balance_after: balance,
+                reference_number: branch,
+                raw_data: { original: row.textContent?.trim() }
+              });
+            }
           }
         }
       });
@@ -276,16 +536,41 @@ async function scrapeMutations(userId, pin) {
 
     // Logout
     log('Logging out...');
-    const logoutFrame = await page.frames().find(f => f.name() === 'menu');
-    if (logoutFrame) {
-      await logoutFrame.click('a:has-text("LOGOUT")');
+    try {
+      if (menuFrame) {
+        await menuFrame.evaluate(() => {
+          const links = document.querySelectorAll('a');
+          for (const link of links) {
+            const text = link.textContent.toUpperCase();
+            if (text.includes('LOGOUT') || text.includes('KELUAR')) {
+              link.click();
+              return true;
+            }
+          }
+          return false;
+        });
+      }
+    } catch (e) {
+      log(\`Logout error (non-critical): \${e.message}\`);
     }
 
     await browser.close();
+    log('Scrape completed successfully');
     return mutations;
 
   } catch (error) {
     log(\`Scrape error: \${error.message}\`);
+    
+    // Save error screenshot
+    if (page) {
+      try {
+        await page.screenshot({ path: ERROR_SCREENSHOT, fullPage: true });
+        log(\`Error screenshot saved to \${ERROR_SCREENSHOT}\`);
+      } catch (e) {
+        log('Could not save error screenshot');
+      }
+    }
+    
     await browser.close();
     throw error;
   }
@@ -326,7 +611,10 @@ async function sendToWebhook(mutations, syncMode) {
 }
 
 async function main() {
-  log('=== BCA Scraper Started ===');
+  log('=== BCA Scraper v2.0 Started ===');
+  
+  let consecutiveErrors = 0;
+  const maxConsecutiveErrors = 5;
   
   while (true) {
     try {
@@ -336,10 +624,17 @@ async function main() {
       if (!config || !config.is_active) {
         log('Scraper is inactive or credentials not found. Waiting 60s...');
         await new Promise(r => setTimeout(r, 60000));
+        consecutiveErrors = 0;
         continue;
       }
 
       const { klikbca_user_id, klikbca_pin, default_interval_minutes, burst_mode, burst_interval_seconds, burst_duration_seconds } = config;
+
+      if (!klikbca_user_id || !klikbca_pin) {
+        log('Missing KlikBCA credentials. Waiting 60s...');
+        await new Promise(r => setTimeout(r, 60000));
+        continue;
+      }
 
       if (burst_mode) {
         // BURST MODE
@@ -348,8 +643,13 @@ async function main() {
         const maxDuration = (burst_duration_seconds || 180) * 1000;
         
         while (Date.now() - burstStart < maxDuration) {
-          const mutations = await scrapeMutations(klikbca_user_id, klikbca_pin);
-          await sendToWebhook(mutations, 'burst');
+          try {
+            const mutations = await scrapeMutations(klikbca_user_id, klikbca_pin);
+            await sendToWebhook(mutations, 'burst');
+            consecutiveErrors = 0;
+          } catch (e) {
+            log(\`Burst scrape error: \${e.message}\`);
+          }
           
           // Check if still in burst mode
           const checkConfig = await getCredentials();
@@ -358,7 +658,7 @@ async function main() {
             break;
           }
           
-          log(\`Burst mode: waiting \${burst_interval_seconds}s...\`);
+          log(\`Burst mode: waiting \${burst_interval_seconds || 60}s...\`);
           await new Promise(r => setTimeout(r, (burst_interval_seconds || 60) * 1000));
         }
         
@@ -369,14 +669,26 @@ async function main() {
         log('📊 Normal mode - scraping...');
         const mutations = await scrapeMutations(klikbca_user_id, klikbca_pin);
         await sendToWebhook(mutations, 'normal');
+        consecutiveErrors = 0;
         
-        log(\`Normal mode: waiting \${default_interval_minutes} minutes...\`);
+        log(\`Normal mode: waiting \${default_interval_minutes || 15} minutes...\`);
         await new Promise(r => setTimeout(r, (default_interval_minutes || 15) * 60 * 1000));
       }
       
     } catch (error) {
-      log(\`Main loop error: \${error.message}\`);
-      await new Promise(r => setTimeout(r, 60000)); // Wait 1 min on error
+      consecutiveErrors++;
+      log(\`Main loop error (\${consecutiveErrors}/\${maxConsecutiveErrors}): \${error.message}\`);
+      
+      // Exponential backoff on errors
+      const waitTime = Math.min(60000 * Math.pow(2, consecutiveErrors - 1), 600000);
+      log(\`Waiting \${waitTime / 1000}s before retry...\`);
+      await new Promise(r => setTimeout(r, waitTime));
+      
+      if (consecutiveErrors >= maxConsecutiveErrors) {
+        log('⚠️ Too many consecutive errors, waiting 10 minutes before reset...');
+        await new Promise(r => setTimeout(r, 600000));
+        consecutiveErrors = 0;
+      }
     }
   }
 }
@@ -388,7 +700,7 @@ SCRAPEREOF
 echo -e "\${YELLOW}[7/7] Creating systemd service...\\033[0m"
 cat > /etc/systemd/system/bca-scraper.service << 'SVCEOF'
 [Unit]
-Description=BCA Auto-Mutation Scraper
+Description=BCA Auto-Mutation Scraper v2.0
 After=network.target
 
 [Service]
@@ -416,11 +728,18 @@ chmod 644 /var/log/bca-scraper.log
 
 echo ""
 echo -e "\${GREEN}============================================\\033[0m"
-echo -e "\${GREEN}✅ BCA Scraper Installation Complete!\\033[0m"
+echo -e "\${GREEN}✅ BCA Scraper v2.0 Installation Complete!\\033[0m"
 echo -e "\${GREEN}============================================\\033[0m"
 echo ""
 echo "Service Status:"
 systemctl status bca-scraper --no-pager
+echo ""
+echo "Debug screenshots will be saved to:"
+echo "  - /var/log/bca-initial-page.png"
+echo "  - /var/log/bca-after-login.png"
+echo "  - /var/log/bca-mutation-page.png"
+echo "  - /var/log/bca-mutations-result.png"
+echo "  - /var/log/bca-error-screenshot.png (on error)"
 echo ""
 echo "Useful commands:"
 echo "  - Check status: systemctl status bca-scraper"
