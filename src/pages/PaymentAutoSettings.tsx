@@ -163,16 +163,48 @@ export default function PaymentAutoSettings() {
   };
 
   const handleSave = async () => {
+    // Validate required fields for create
+    if (!credentials) {
+      if (!form.vps_host || !form.vps_username || !form.vps_password) {
+        toast.error("VPS Host, Username, dan Password wajib diisi");
+        return;
+      }
+      if (!form.klikbca_user_id || !form.klikbca_pin) {
+        toast.error("KlikBCA User ID dan PIN wajib diisi");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
+      // For update, only send non-empty fields
+      const payload: Record<string, unknown> = {
+        action: credentials ? "update" : "create",
+      };
+
+      if (credentials) {
+        // Update mode: only include fields that have values
+        if (form.vps_host) payload.vps_host = form.vps_host;
+        if (form.vps_port) payload.vps_port = form.vps_port;
+        if (form.vps_username) payload.vps_username = form.vps_username;
+        if (form.vps_password) payload.vps_password = form.vps_password;
+        if (form.klikbca_user_id) payload.klikbca_user_id = form.klikbca_user_id;
+        if (form.klikbca_pin) payload.klikbca_pin = form.klikbca_pin;
+        if (form.default_interval_minutes) payload.default_interval_minutes = form.default_interval_minutes;
+        if (form.burst_interval_seconds) payload.burst_interval_seconds = form.burst_interval_seconds;
+        if (form.burst_duration_seconds) payload.burst_duration_seconds = form.burst_duration_seconds;
+      } else {
+        // Create mode: include all fields
+        Object.assign(payload, form);
+      }
+
       const { data, error } = await supabase.functions.invoke("bca-credentials-manager", {
-        body: {
-          action: credentials ? "update" : "create",
-          ...form,
-        }
+        body: payload
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
       toast.success("Credentials berhasil disimpan!");
       fetchData();
     } catch (error: any) {

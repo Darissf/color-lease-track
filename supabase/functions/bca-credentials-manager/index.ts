@@ -132,10 +132,11 @@ Deno.serve(async (req) => {
 
     switch (payload.action) {
       case 'create': {
+        // For create, all fields are required
         if (!payload.vps_host || !payload.vps_username || !payload.vps_password || 
             !payload.klikbca_user_id || !payload.klikbca_pin) {
           return new Response(
-            JSON.stringify({ error: 'Missing required fields' }),
+            JSON.stringify({ error: 'Missing required fields: vps_host, vps_username, vps_password, klikbca_user_id, dan klikbca_pin wajib diisi' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
