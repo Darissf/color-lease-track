@@ -132,7 +132,7 @@ Deno.serve(async (req: Request) => {
         amount_expected,
         status: "pending",
         burst_expires_at: burstExpiresAt.toISOString(),
-        requested_by: user.id,
+        user_id: user.id,
       })
       .select("id")
       .single();
