@@ -215,13 +215,18 @@ export default function PaymentAutoSettings() {
   };
 
   const handleGenerateScript = async () => {
+    if (!credentials) {
+      toast.error("Simpan credentials terlebih dahulu sebelum generate script");
+      return;
+    }
+
     try {
-      const { data, error } = await supabase.functions.invoke("bca-vps-setup", {
-        body: { action: "generate-script" }
-      });
+      const { data, error } = await supabase.functions.invoke("bca-vps-setup", {});
 
       if (error) throw error;
-      setGeneratedScript(data.script);
+      if (data?.error) throw new Error(data.error);
+      
+      setGeneratedScript(data.install_script);
       toast.success("Script berhasil digenerate!");
     } catch (error: any) {
       toast.error(error.message || "Gagal generate script");
