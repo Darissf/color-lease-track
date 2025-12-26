@@ -126,11 +126,11 @@ export default function PublicContractPage() {
           <div className="flex items-center justify-between gap-2">
             {/* Brand */}
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 p-1.5 sm:p-2 bg-white/50 backdrop-blur-sm rounded-lg">
                 <img 
                   src="/logo.png" 
                   alt="Logo" 
-                  className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+                  className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
                 />
               </div>
               <div className="min-w-0">
@@ -455,11 +455,11 @@ export default function PublicContractPage() {
             <div className="flex items-center justify-between gap-2">
               {/* Brand */}
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 p-1.5 sm:p-2 bg-white/50 backdrop-blur-sm rounded-lg">
                   <img 
                     src="/logo.png" 
                     alt="Logo" 
-                    className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+                    className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
                   />
                 </div>
                 <div className="min-w-0">
