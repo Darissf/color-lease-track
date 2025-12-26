@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { formatRupiah } from "@/lib/currency";
 import { toast } from "sonner";
-import { Loader2, CreditCard, AlertCircle } from "lucide-react";
+import { Loader2, CreditCard, AlertCircle, Copy, CheckCircle } from "lucide-react";
 
 interface PaymentVerificationModalProps {
   open: boolean;
@@ -21,7 +21,7 @@ interface PaymentVerificationModalProps {
   contractId: string;
   customerName: string;
   remainingAmount: number;
-  onSuccess: (requestId: string) => void;
+  onSuccess: (requestId: string, uniqueAmount: number, expiresAt: string) => void;
 }
 
 export function PaymentVerificationModal({
@@ -60,8 +60,8 @@ export function PaymentVerificationModal({
 
       if (error) throw error;
 
-      toast.success("Permintaan verifikasi dikirim!");
-      onSuccess(data.request_id);
+      toast.success("Permintaan verifikasi dibuat!");
+      onSuccess(data.request_id, data.unique_amount, data.expires_at);
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error requesting payment check:", error);
@@ -92,23 +92,29 @@ export function PaymentVerificationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Konfirmasi Transfer
+            Request Pembayaran
           </DialogTitle>
           <DialogDescription>
-            Masukkan nominal yang sudah Anda transfer
+            Masukkan nominal yang akan Anda transfer
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-amber-800 dark:text-amber-200">
-                  Pastikan Anda sudah transfer!
+                <p className="font-medium text-blue-800 dark:text-blue-200">
+                  Cara Kerja Verifikasi Otomatis
                 </p>
-                <p className="text-amber-700 dark:text-amber-300 mt-1">
-                  Sistem akan memverifikasi pembayaran Anda dalam waktu maksimal 3 menit.
+                <ol className="text-blue-700 dark:text-blue-300 mt-1 list-decimal list-inside space-y-1">
+                  <li>Masukkan nominal yang ingin ditransfer</li>
+                  <li>Sistem akan memberikan nominal unik (+3 digit)</li>
+                  <li>Transfer dengan nominal unik tersebut</li>
+                  <li>Pembayaran terverifikasi otomatis</li>
+                </ol>
+                <p className="text-blue-600 dark:text-blue-400 mt-2 text-xs">
+                  ⏰ Berlaku 3 hari setelah request
                 </p>
               </div>
             </div>
@@ -150,7 +156,7 @@ export function PaymentVerificationModal({
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Konfirmasi Transfer
+            Dapatkan Nominal Unik
           </Button>
         </DialogFooter>
       </DialogContent>

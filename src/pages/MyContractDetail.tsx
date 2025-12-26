@@ -65,7 +65,8 @@ export default function MyContractDetail() {
   const [loading, setLoading] = useState(true);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
-  const [verificationAmount, setVerificationAmount] = useState(0);
+  const [verificationUniqueAmount, setVerificationUniqueAmount] = useState(0);
+  const [verificationExpiresAt, setVerificationExpiresAt] = useState("");
 
   useEffect(() => {
     if (user && id) {
@@ -120,9 +121,10 @@ export default function MyContractDetail() {
     toast.success("Berhasil disalin!");
   };
 
-  const handleVerificationSuccess = (requestId: string) => {
+  const handleVerificationSuccess = (requestId: string, uniqueAmount: number, expiresAt: string) => {
     setActiveVerificationId(requestId);
-    setVerificationAmount(contract?.tagihan_belum_bayar || 0);
+    setVerificationUniqueAmount(uniqueAmount);
+    setVerificationExpiresAt(expiresAt);
   };
 
   const handleVerificationComplete = () => {
@@ -383,7 +385,8 @@ export default function MyContractDetail() {
                   {activeVerificationId ? (
                     <PaymentVerificationStatus
                       requestId={activeVerificationId}
-                      amountExpected={verificationAmount}
+                      uniqueAmount={verificationUniqueAmount}
+                      expiresAt={verificationExpiresAt}
                       onClose={() => setActiveVerificationId(null)}
                       onVerified={handleVerificationComplete}
                     />
