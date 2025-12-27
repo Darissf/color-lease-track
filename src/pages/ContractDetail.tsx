@@ -737,10 +737,18 @@ export default function ContractDetail() {
     // Generate verification code
     const verificationCode = `VRF-${Date.now().toString(36).toUpperCase()}`;
     
+    // Validate payment date - fallback to current date if invalid
+    const paymentDateValue = payment.payment_date 
+      ? new Date(payment.payment_date) 
+      : new Date();
+    const validPaymentDate = isNaN(paymentDateValue.getTime()) 
+      ? new Date() 
+      : paymentDateValue;
+    
     setDocumentData({
       documentType: 'kwitansi',
       documentNumber: String(payment.payment_number).padStart(6, '0'),
-      issuedAt: new Date(payment.payment_date),
+      issuedAt: validPaymentDate,
       clientName: contract.client_groups?.nama || 'Client',
       clientAddress: '',
       clientPhone: contract.client_groups?.nomor_telepon || '',
@@ -749,7 +757,7 @@ export default function ContractDetail() {
       status: 'lunas',
       verificationCode,
       invoiceNumber: contract.invoice,
-      paymentDate: new Date(payment.payment_date),
+      paymentDate: validPaymentDate,
       contractId: contract.id,
       paymentId: payment.id,
     });
