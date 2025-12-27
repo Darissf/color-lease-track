@@ -70,6 +70,10 @@ interface Contract {
   jumlah_unit: number | null;
   jenis_scaffolding: string | null;
   tanggal_bayar_terakhir?: string | null;
+  tanggal_kirim?: string | null;
+  tanggal_ambil?: string | null;
+  status_pengiriman?: string | null;
+  status_pengambilan?: string | null;
   admin_notes: string | null;
   admin_notes_edited_by: string | null;
   admin_notes_edited_at: string | null;
@@ -802,6 +806,47 @@ export default function ContractDetail() {
                       Lihat di Google Maps
                       <ExternalLink className="h-3 w-3 ml-2" />
                     </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Tanggal Pengiriman & Pengambilan */}
+              {(contract.tanggal_kirim || contract.tanggal_ambil) && (
+                <>
+                  <Separator />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {contract.tanggal_kirim && (
+                      <div>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Package className="h-3 w-3" />
+                          Tanggal Pengiriman
+                        </p>
+                        <p className="font-semibold text-blue-600">
+                          {format(new Date(contract.tanggal_kirim), "dd MMMM yyyy", { locale: localeId })}
+                        </p>
+                        {contract.status_pengiriman && (
+                          <Badge variant="secondary" className="mt-1 text-xs">
+                            {contract.status_pengiriman === 'sudah_dikirim' ? 'Sudah Dikirim' : contract.status_pengiriman}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    {contract.tanggal_ambil && (
+                      <div>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          Tanggal Pengambilan
+                        </p>
+                        <p className="font-semibold text-emerald-600">
+                          {format(new Date(contract.tanggal_ambil), "dd MMMM yyyy", { locale: localeId })}
+                        </p>
+                        {contract.status_pengambilan && (
+                          <Badge variant="secondary" className="mt-1 text-xs bg-emerald-100 text-emerald-700">
+                            {contract.status_pengambilan === 'sudah_diambil' ? 'Sudah Diambil' : contract.status_pengambilan}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </>
               )}

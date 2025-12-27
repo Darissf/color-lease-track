@@ -102,6 +102,11 @@ const RentalContracts = () => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
+  // Status change with tanggal_ambil states
+  const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
+  const [statusChangeContract, setStatusChangeContract] = useState<{id: string, invoice: string | null} | null>(null);
+  const [tanggalAmbilDate, setTanggalAmbilDate] = useState<Date | undefined>(undefined);
+
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
     start_date: undefined as Date | undefined,
@@ -338,6 +343,39 @@ const RentalContracts = () => {
 
   const getRemainingDays = (endDate: string) => {
     return differenceInDays(new Date(endDate), new Date());
+  };
+
+  // Function to update contract status with optional tanggal_ambil
+  const updateContractStatus = async (contractId: string, newStatus: string, tanggalAmbil: Date | null) => {
+    try {
+      const updateData: Record<string, any> = { 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Jika selesai dan ada tanggal_ambil, update juga
+      if (newStatus === 'selesai' && tanggalAmbil) {
+        updateData.tanggal_ambil = format(tanggalAmbil, "yyyy-MM-dd");
+        updateData.status_pengambilan = 'sudah_diambil';
+      }
+      
+      const { error } = await supabase
+        .from("rental_contracts")
+        .update(updateData)
+        .eq("id", contractId);
+      
+      if (error) throw error;
+      
+      toast.success(`Status berhasil diubah ke "${capitalizeWords(newStatus)}"`);
+      fetchData();
+      
+      // Reset dialog state
+      setStatusChangeDialogOpen(false);
+      setStatusChangeContract(null);
+      setTanggalAmbilDate(undefined);
+    } catch (error: any) {
+      toast.error("Gagal update status: " + error.message);
+    }
   };
 
   const capitalizeWords = (text: string) => {
@@ -1087,9 +1125,34 @@ const RentalContracts = () => {
                         </span>
                       </TableCell>
                       <TableCell className={cn(isCompactMode && "py-1 px-2")}>
-                      <Badge className={cn(getStatusBadge(contract.status), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
-                        {capitalizeWords(contract.status)}
-                      </Badge>
+                        {isTableLocked ? (
+                          <Badge className={cn(getStatusBadge(contract.status), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
+                            {capitalizeWords(contract.status)}
+                          </Badge>
+                        ) : (
+                          <Select
+                            value={contract.status}
+                            onValueChange={(newStatus) => {
+                              if (newStatus === 'selesai') {
+                                setStatusChangeContract({ id: contract.id, invoice: contract.invoice });
+                                setTanggalAmbilDate(undefined);
+                                setStatusChangeDialogOpen(true);
+                              } else {
+                                updateContractStatus(contract.id, newStatus, null);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className={cn("w-[130px]", isCompactMode ? "h-7 text-xs" : "h-9")}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="masa sewa">Masa Sewa</SelectItem>
+                              <SelectItem value="selesai">Selesai</SelectItem>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="perpanjangan">Perpanjangan</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
                       </TableCell>
                       <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="text-blue-600 font-bold bg-blue-500/10 px-2 py-1 rounded-md">
@@ -1436,6 +1499,64 @@ const RentalContracts = () => {
         )}
       </Card>
       </div>
+
+      {/* Dialog untuk memilih tanggal pengambilan saat status = selesai */}
+      <Dialog 
+        open={statusChangeDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setStatusChangeDialogOpen(false);
+            setStatusChangeContract(null);
+            setTanggalAmbilDate(undefined);
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5" />
+              Tanggal Pengambilan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Pilih tanggal pengambilan scaffolding untuk kontrak{" "}
+              <span className="font-semibold text-foreground">{statusChangeContract?.invoice || "ini"}</span>:
+            </p>
+            <Calendar
+              mode="single"
+              selected={tanggalAmbilDate}
+              onSelect={setTanggalAmbilDate}
+              initialFocus
+              className="pointer-events-auto rounded-md border mx-auto"
+            />
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setStatusChangeDialogOpen(false);
+                  setStatusChangeContract(null);
+                  setTanggalAmbilDate(undefined);
+                }}
+              >
+                Batal
+              </Button>
+              <Button 
+                disabled={!tanggalAmbilDate}
+                onClick={() => {
+                  if (statusChangeContract && tanggalAmbilDate) {
+                    updateContractStatus(statusChangeContract.id, 'selesai', tanggalAmbilDate);
+                  }
+                }}
+                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Konfirmasi
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
