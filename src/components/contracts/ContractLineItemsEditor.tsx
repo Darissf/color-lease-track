@@ -17,7 +17,7 @@ import {
   type LineItem,
   type TemplateData
 } from '@/lib/contractTemplateGenerator';
-import { Plus, Trash2, Package, Truck, Eye, Save, FileText } from 'lucide-react';
+import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InventoryItem {
@@ -50,6 +50,10 @@ export function ContractLineItemsEditor({
   const [showPreview, setShowPreview] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Pengaturan Cepat
+  const [defaultPricePerDay, setDefaultPricePerDay] = useState<number | ''>('');
+  const [defaultDurationDays, setDefaultDurationDays] = useState<number | ''>('');
 
   useEffect(() => {
     fetchInventoryItems();
@@ -108,10 +112,22 @@ export function ContractLineItemsEditor({
       {
         item_name: '',
         quantity: 1,
-        unit_price_per_day: 0,
-        duration_days: 30,
+        unit_price_per_day: defaultPricePerDay !== '' ? defaultPricePerDay : 0,
+        duration_days: defaultDurationDays !== '' ? defaultDurationDays : 30,
       }
     ]);
+  };
+
+  const applyDefaultsToAll = () => {
+    if (lineItems.length === 0) return;
+    
+    const updated = lineItems.map(item => ({
+      ...item,
+      unit_price_per_day: defaultPricePerDay !== '' ? defaultPricePerDay : item.unit_price_per_day,
+      duration_days: defaultDurationDays !== '' ? defaultDurationDays : item.duration_days,
+    }));
+    setLineItems(updated);
+    toast.success(`Berhasil diterapkan ke ${lineItems.length} item`);
   };
 
   const updateLineItem = (index: number, field: keyof LineItem, value: string | number) => {
@@ -331,8 +347,63 @@ export function ContractLineItemsEditor({
             <Plus className="h-4 w-4 mr-2" />
             Tambah Item
           </Button>
+        </CardContent>
+      </Card>
 
-          <div className="text-right p-3 bg-muted/50 rounded-lg">
+      {/* Pengaturan Cepat */}
+      <Card className="border-dashed border-2 border-amber-400/50 bg-amber-50/30 dark:bg-amber-950/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Zap className="h-4 w-4 text-amber-500" />
+            Pengaturan Cepat (Opsional)
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Isi di bawah ini untuk menerapkan harga & durasi yang sama ke semua item sekaligus
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-1">
+                💰 Harga per Hari (Rp)
+              </Label>
+              <Input
+                type="number"
+                value={defaultPricePerDay}
+                onChange={(e) => setDefaultPricePerDay(e.target.value ? Number(e.target.value) : '')}
+                placeholder="Kosongkan jika manual per item"
+                min={0}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-1">
+                📅 Durasi (hari)
+              </Label>
+              <Input
+                type="number"
+                value={defaultDurationDays}
+                onChange={(e) => setDefaultDurationDays(e.target.value ? Number(e.target.value) : '')}
+                placeholder="Kosongkan jika manual per item"
+                min={1}
+              />
+            </div>
+          </div>
+          
+          <Button 
+            variant="secondary" 
+            onClick={applyDefaultsToAll}
+            disabled={lineItems.length === 0 || (defaultPricePerDay === '' && defaultDurationDays === '')}
+            className="w-full"
+          >
+            🔄 Terapkan ke Semua Item ({lineItems.length})
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Subtotal Items */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="text-right">
             <span className="text-muted-foreground">Subtotal Item: </span>
             <span className="font-bold text-lg">{formatRupiah(totalItems)}</span>
           </div>
