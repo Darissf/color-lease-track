@@ -1527,6 +1527,57 @@ export type Database = {
           },
         ]
       }
+      contract_stock_items: {
+        Row: {
+          added_at: string | null
+          contract_id: string
+          created_at: string | null
+          id: string
+          inventory_item_id: string
+          notes: string | null
+          quantity: number
+          returned_at: string | null
+          user_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          contract_id: string
+          created_at?: string | null
+          id?: string
+          inventory_item_id: string
+          notes?: string | null
+          quantity?: number
+          returned_at?: string | null
+          user_id: string
+        }
+        Update: {
+          added_at?: string | null
+          contract_id?: string
+          created_at?: string | null
+          id?: string
+          inventory_item_id?: string
+          notes?: string | null
+          quantity?: number
+          returned_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_stock_items_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_stock_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_sharing: {
         Row: {
           conversation_id: string | null
