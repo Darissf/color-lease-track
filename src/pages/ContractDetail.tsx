@@ -699,11 +699,11 @@ export default function ContractDetail() {
     const remaining = contract.tagihan_belum_bayar;
     
     // Generate verification code
-    const verificationCode = `INV-${Date.now().toString(36).toUpperCase()}`;
+    const verificationCode = `VRF-${Date.now().toString(36).toUpperCase()}`;
     
     setDocumentData({
       documentType: 'invoice',
-      documentNumber: contract.invoice || `INV-${contract.id.slice(0, 8).toUpperCase()}`,
+      documentNumber: contract.invoice || contract.id.slice(0, 6).toUpperCase(),
       issueDate: new Date().toISOString(),
       dueDate: contract.end_date,
       clientName: contract.client_groups?.nama || 'Client',
@@ -733,11 +733,11 @@ export default function ContractDetail() {
     }
     
     // Generate verification code
-    const verificationCode = `RCP-${Date.now().toString(36).toUpperCase()}`;
+    const verificationCode = `VRF-${Date.now().toString(36).toUpperCase()}`;
     
     setDocumentData({
       documentType: 'receipt',
-      documentNumber: `KWT-${contract.invoice?.replace('INV-', '') || contract.id.slice(0, 8).toUpperCase()}-${payment.payment_number}`,
+      documentNumber: String(payment.payment_number).padStart(6, '0'),
       issueDate: payment.payment_date,
       clientName: contract.client_groups?.nama || 'Client',
       clientPhone: contract.client_groups?.nomor_telepon || '',

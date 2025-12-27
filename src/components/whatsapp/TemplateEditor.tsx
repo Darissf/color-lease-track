@@ -28,7 +28,7 @@ export const TemplateEditor = ({ template, onClose, mode }: TemplateEditorProps)
 
   const sampleData: Record<string, string> = {
     nama: 'Budi Santoso',
-    invoice: 'INV-2024-001',
+    invoice: '000001',
     lokasi: 'Jl. Sunset Road No. 123, Kuta, Bali',
     tanggal_kirim: '15 November 2024',
     tanggal_ambil: '30 November 2024',
