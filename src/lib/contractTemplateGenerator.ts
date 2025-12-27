@@ -47,7 +47,68 @@ export function calculateGrandTotal(data: TemplateData): number {
   return subtotal - (data.discount || 0);
 }
 
-export function generateRincianTemplate(data: TemplateData): string {
+// Normal template (default) - clean format for display
+export function generateRincianTemplateNormal(data: TemplateData): string {
+  const { lineItems, transportDelivery, transportPickup, contractTitle, discount } = data;
+  
+  if (lineItems.length === 0) {
+    return '';
+  }
+
+  const lines: string[] = [];
+  
+  // Header with optional title
+  const headerTitle = contractTitle 
+    ? `📦 Rincian Sewa Scaffolding ${toTitleCase(contractTitle)}`
+    : '📦 Rincian Sewa Scaffolding';
+  lines.push(headerTitle);
+  lines.push('');
+  
+  // Items
+  lines.push('🔧 Item Sewa:');
+  lineItems.forEach((item, index) => {
+    const subtotal = calculateLineItemSubtotal(item);
+    lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
+    lines.push(`   ${formatRupiah(item.unit_price_per_day)}/hari × ${item.duration_days} hari = ${formatRupiah(subtotal)}`);
+  });
+  lines.push('');
+  
+  // Subtotal Items
+  const totalItems = calculateTotalItems(lineItems);
+  lines.push(`Subtotal Sewa: ${formatRupiah(totalItems)}`);
+  lines.push('');
+  
+  // Transport
+  if (transportDelivery > 0 || transportPickup > 0) {
+    lines.push('🚚 Ongkos Transport:');
+    if (transportDelivery > 0) {
+      lines.push(`   Pengiriman: ${formatRupiah(transportDelivery)}`);
+    }
+    if (transportPickup > 0) {
+      lines.push(`   Pengambilan: ${formatRupiah(transportPickup)}`);
+    }
+    const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
+    lines.push(`   Total Transport: ${formatRupiah(totalTransport)}`);
+    lines.push('');
+  }
+  
+  // Discount (only if filled)
+  if (discount && discount > 0) {
+    lines.push(`🏷️ Diskon: -${formatRupiah(discount)}`);
+    lines.push('');
+  }
+  
+  // Grand Total
+  const grandTotal = calculateGrandTotal(data);
+  lines.push(`💵 TOTAL TAGIHAN: ${formatRupiah(grandTotal)}`);
+  lines.push('');
+  lines.push('🙏 Terima kasih!');
+  
+  return lines.join('\n');
+}
+
+// WhatsApp template - with box/separator for WhatsApp
+export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   const { lineItems, transportDelivery, transportPickup, contractTitle, discount } = data;
   
   if (lineItems.length === 0) {
@@ -112,6 +173,13 @@ export function generateRincianTemplate(data: TemplateData): string {
   lines.push('🙏 Terima kasih atas kepercayaan Anda!');
   
   return lines.join('\n');
+}
+
+// Default export - uses Normal template
+export function generateRincianTemplate(data: TemplateData, whatsappMode: boolean = false): string {
+  return whatsappMode 
+    ? generateRincianTemplateWhatsApp(data) 
+    : generateRincianTemplateNormal(data);
 }
 
 // Parse template back to structured data (for editing)

@@ -3592,6 +3592,7 @@ export type Database = {
           transport_cost_pickup: number | null
           updated_at: string
           user_id: string
+          whatsapp_template_mode: boolean | null
         }
         Insert: {
           admin_notes?: string | null
@@ -3629,6 +3630,7 @@ export type Database = {
           transport_cost_pickup?: number | null
           updated_at?: string
           user_id: string
+          whatsapp_template_mode?: boolean | null
         }
         Update: {
           admin_notes?: string | null
@@ -3666,6 +3668,7 @@ export type Database = {
           transport_cost_pickup?: number | null
           updated_at?: string
           user_id?: string
+          whatsapp_template_mode?: boolean | null
         }
         Relationships: [
           {

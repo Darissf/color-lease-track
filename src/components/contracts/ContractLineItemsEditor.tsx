@@ -50,6 +50,7 @@ export function ContractLineItemsEditor({
   const [transportPickup, setTransportPickup] = useState(0);
   const [contractTitle, setContractTitle] = useState('');
   const [discount, setDiscount] = useState(0);
+  const [whatsappMode, setWhatsappMode] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -95,10 +96,10 @@ export function ContractLineItemsEditor({
       })));
     }
     
-    // Fetch transport costs and discount from contract
+    // Fetch transport costs, discount and whatsapp mode from contract
     const { data: contractData } = await supabase
       .from('rental_contracts')
-      .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan')
+      .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan, whatsapp_template_mode')
       .eq('id', contractId)
       .single();
     
@@ -107,6 +108,7 @@ export function ContractLineItemsEditor({
       setTransportPickup(Number(contractData.transport_cost_pickup) || 0);
       setDiscount(Number(contractData.discount) || 0);
       setContractTitle(contractData.keterangan || '');
+      setWhatsappMode(contractData.whatsapp_template_mode || false);
     }
     
     setLoading(false);
@@ -256,8 +258,8 @@ export function ContractLineItemsEditor({
 
       if (insertError) throw insertError;
 
-      // Generate template
-      const template = generateRincianTemplate(getTemplateData());
+      // Generate template with current whatsapp mode
+      const template = generateRincianTemplate(getTemplateData(), whatsappMode);
       const grandTotal = calculateGrandTotal(getTemplateData());
 
       // Update contract with transport costs, discount and template
@@ -587,7 +589,7 @@ export function ContractLineItemsEditor({
           </CardHeader>
           <CardContent>
             <pre className="whitespace-pre-wrap font-mono text-sm p-4 bg-muted rounded-lg overflow-x-auto">
-              {generateRincianTemplate(getTemplateData())}
+              {generateRincianTemplate(getTemplateData(), whatsappMode)}
             </pre>
           </CardContent>
         </Card>

@@ -54,6 +54,10 @@ import { PaymentVerificationStatus } from "@/components/payment/PaymentVerificat
 import { ContractLineItemsEditor } from "@/components/contracts/ContractLineItemsEditor";
 import { RincianTemplateDisplay } from "@/components/contracts/RincianTemplateDisplay";
 import { ContractStockItemsEditor } from "@/components/contracts/ContractStockItemsEditor";
+import { 
+  generateRincianTemplate,
+  type TemplateData 
+} from "@/lib/contractTemplateGenerator";
 
 interface Contract {
   id: string;
@@ -84,6 +88,7 @@ interface Contract {
   rincian_template?: string | null;
   transport_cost_delivery?: number | null;
   transport_cost_pickup?: number | null;
+  whatsapp_template_mode?: boolean | null;
   client_groups?: {
     nama: string;
     nomor_telepon: string;
@@ -167,6 +172,7 @@ export default function ContractDetail() {
   const [showRincianEditor, setShowRincianEditor] = useState(false);
   const [showStockEditor, setShowStockEditor] = useState(false);
   const [stockItems, setStockItems] = useState<any[]>([]);
+  const [isTogglingWhatsAppMode, setIsTogglingWhatsAppMode] = useState(false);
 
   const fetchPendingPaymentRequest = useCallback(async () => {
     if (!id) return;
@@ -330,6 +336,72 @@ export default function ContractDetail() {
       toast.error("Gagal menyimpan catatan");
     } finally {
       setIsSavingNotes(false);
+    }
+  };
+
+  // Handle toggle WhatsApp mode
+  const handleToggleWhatsAppMode = async (newMode: boolean) => {
+    if (!contract || !user) return;
+    
+    setIsTogglingWhatsAppMode(true);
+    try {
+      // Fetch line items to regenerate template
+      const { data: lineItemsData } = await supabase
+        .from('contract_line_items')
+        .select('*')
+        .eq('contract_id', contract.id)
+        .order('sort_order');
+      
+      const { data: contractData } = await supabase
+        .from('rental_contracts')
+        .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan')
+        .eq('id', contract.id)
+        .single();
+      
+      if (lineItemsData && lineItemsData.length > 0 && contractData) {
+        const templateData: TemplateData = {
+          lineItems: lineItemsData.map(item => ({
+            item_name: item.item_name,
+            quantity: item.quantity,
+            unit_price_per_day: Number(item.unit_price_per_day),
+            duration_days: item.duration_days,
+          })),
+          transportDelivery: Number(contractData.transport_cost_delivery) || 0,
+          transportPickup: Number(contractData.transport_cost_pickup) || 0,
+          contractTitle: contractData.keterangan || '',
+          discount: Number(contractData.discount) || 0,
+        };
+        
+        const newTemplate = generateRincianTemplate(templateData, newMode);
+        
+        const { error } = await supabase
+          .from('rental_contracts')
+          .update({
+            whatsapp_template_mode: newMode,
+            rincian_template: newTemplate,
+          })
+          .eq('id', contract.id);
+        
+        if (error) throw error;
+        
+        toast.success(newMode ? 'Mode WhatsApp diaktifkan' : 'Mode Normal diaktifkan');
+        fetchContractDetail();
+      } else {
+        // No line items, just update the mode flag
+        const { error } = await supabase
+          .from('rental_contracts')
+          .update({ whatsapp_template_mode: newMode })
+          .eq('id', contract.id);
+        
+        if (error) throw error;
+        toast.success(newMode ? 'Mode WhatsApp diaktifkan' : 'Mode Normal diaktifkan');
+        fetchContractDetail();
+      }
+    } catch (error) {
+      console.error("Error toggling mode:", error);
+      toast.error("Gagal mengubah mode template");
+    } finally {
+      setIsTogglingWhatsAppMode(false);
     }
   };
 
@@ -899,25 +971,24 @@ export default function ContractDetail() {
               onCancel={() => setShowRincianEditor(false)}
             />
           ) : contract.rincian_template ? (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Rincian Tagihan
-                </CardTitle>
-                {(isSuperAdmin || isAdmin) && (
+            <div className="space-y-2">
+              <RincianTemplateDisplay
+                template={contract.rincian_template}
+                showCopyButton={true}
+                showModeToggle={isSuperAdmin || isAdmin}
+                isWhatsAppMode={contract.whatsapp_template_mode || false}
+                onToggleMode={handleToggleWhatsAppMode}
+                isTogglingMode={isTogglingWhatsAppMode}
+              />
+              {(isSuperAdmin || isAdmin) && (
+                <div className="flex justify-end">
                   <Button variant="outline" size="sm" onClick={() => setShowRincianEditor(true)}>
                     <Pencil className="h-4 w-4 mr-2" />
                     Edit Rincian
                   </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                <pre className="whitespace-pre-wrap font-mono text-sm p-4 bg-muted/50 rounded-lg overflow-x-auto leading-relaxed">
-                  {contract.rincian_template}
-                </pre>
-              </CardContent>
-            </Card>
+                </div>
+              )}
+            </div>
           ) : (
             (isSuperAdmin || isAdmin) && (
               <Card>
