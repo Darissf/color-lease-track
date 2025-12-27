@@ -698,8 +698,18 @@ export default function ContractDetail() {
     const totalPaid = paymentHistory.reduce((sum, p) => sum + Number(p.amount), 0);
     const remaining = contract.tagihan_belum_bayar;
     
-    // Generate verification code
-    const verificationCode = `VRF-${Date.now().toString(36).toUpperCase()}`;
+    // Check if invoice document already exists - use existing verification code
+    const { data: existingDoc } = await supabase
+      .from('invoice_receipts')
+      .select('verification_code')
+      .eq('contract_id', contract.id)
+      .eq('document_type', 'invoice')
+      .is('payment_id', null)
+      .maybeSingle();
+    
+    // Use existing code or generate new one
+    const verificationCode = existingDoc?.verification_code 
+      || `VRF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     
     setDocumentData({
       documentType: 'invoice',
@@ -734,8 +744,17 @@ export default function ContractDetail() {
       return;
     }
     
-    // Generate verification code
-    const verificationCode = `VRF-${Date.now().toString(36).toUpperCase()}`;
+    // Check if receipt document already exists for this payment - use existing verification code
+    const { data: existingDoc } = await supabase
+      .from('invoice_receipts')
+      .select('verification_code')
+      .eq('payment_id', payment.id)
+      .eq('document_type', 'kwitansi')
+      .maybeSingle();
+    
+    // Use existing code or generate new one
+    const verificationCode = existingDoc?.verification_code 
+      || `VRF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     
     // Validate payment date - fallback to current date if invalid
     const paymentDateValue = payment.payment_date 
