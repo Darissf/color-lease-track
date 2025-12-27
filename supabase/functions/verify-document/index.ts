@@ -62,22 +62,22 @@ serve(async (req) => {
 
     console.log("Document verified successfully:", document.document_number);
 
-    // Return document details
+    // Return document details with snake_case format matching frontend interface
     return new Response(
       JSON.stringify({
         isValid: true,
         document: {
           id: document.id,
-          documentType: document.document_type,
-          documentNumber: document.document_number,
+          document_type: document.document_type,
+          document_number: document.document_number,
+          verification_code: document.verification_code,
           amount: document.amount,
-          clientName: document.client_name,
-          issueDate: document.issue_date,
+          amount_text: document.amount_text || null,
+          client_name: document.client_name,
           description: document.description,
+          issued_at: document.issued_at,
           status: document.status,
-          verifiedCount: (document.verified_count || 0) + 1,
-          lastVerifiedAt: new Date().toISOString(),
-          createdAt: document.created_at,
+          verified_count: (document.verified_count || 0) + 1,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
