@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.public-payment-request]
 verify_jwt = false
+
+[functions.serve-asset]
+verify_jwt = false
