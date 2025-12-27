@@ -1837,6 +1837,48 @@ export type Database = {
         }
         Relationships: []
       }
+      document_settings: {
+        Row: {
+          company_address: string | null
+          company_name: string | null
+          company_phone: string | null
+          counter_invoice: number | null
+          counter_receipt: number | null
+          created_at: string
+          id: string
+          owner_name: string | null
+          signature_image_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_address?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          counter_invoice?: number | null
+          counter_receipt?: number | null
+          created_at?: string
+          id?: string
+          owner_name?: string | null
+          signature_image_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_address?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          counter_invoice?: number | null
+          counter_receipt?: number | null
+          created_at?: string
+          id?: string
+          owner_name?: string | null
+          signature_image_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       driver_templates: {
         Row: {
           created_at: string | null
@@ -2640,6 +2682,81 @@ export type Database = {
             columns: ["inventory_item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_receipts: {
+        Row: {
+          amount: number
+          amount_text: string | null
+          client_address: string | null
+          client_name: string | null
+          contract_id: string
+          created_at: string
+          description: string | null
+          document_number: string
+          document_type: string
+          id: string
+          issued_at: string
+          last_verified_at: string | null
+          payment_id: string | null
+          status: string
+          user_id: string
+          verification_code: string
+          verified_count: number | null
+        }
+        Insert: {
+          amount: number
+          amount_text?: string | null
+          client_address?: string | null
+          client_name?: string | null
+          contract_id: string
+          created_at?: string
+          description?: string | null
+          document_number: string
+          document_type: string
+          id?: string
+          issued_at?: string
+          last_verified_at?: string | null
+          payment_id?: string | null
+          status: string
+          user_id: string
+          verification_code: string
+          verified_count?: number | null
+        }
+        Update: {
+          amount?: number
+          amount_text?: string | null
+          client_address?: string | null
+          client_name?: string | null
+          contract_id?: string
+          created_at?: string
+          description?: string | null
+          document_number?: string
+          document_type?: string
+          id?: string
+          issued_at?: string
+          last_verified_at?: string | null
+          payment_id?: string | null
+          status?: string
+          user_id?: string
+          verification_code?: string
+          verified_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_receipts_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_receipts_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_payments"
             referencedColumns: ["id"]
           },
         ]
@@ -5024,6 +5141,7 @@ export type Database = {
       generate_contract_access_code: { Args: never; Returns: string }
       generate_tracking_code: { Args: never; Returns: string }
       generate_trip_code: { Args: never; Returns: string }
+      generate_verification_code: { Args: never; Returns: string }
       get_available_years: {
         Args: { p_user_id: string }
         Returns: {

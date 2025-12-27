@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, FileImage, Hash, Palette, ScrollText } from "lucide-react";
+import { ArrowLeft, FileText, FileImage, Hash, Palette, ScrollText, FileSignature, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -22,6 +22,14 @@ const InvoiceSettings = () => {
 
   const settingsCards = [
     {
+      icon: FileSignature,
+      title: "TTD Digital & Stempel",
+      description: "Upload tanda tangan, info perusahaan, penomoran",
+      color: "bg-emerald-600",
+      comingSoon: false,
+      href: "/vip/settings/invoice/signature",
+    },
+    {
       icon: FileText,
       title: "Template Invoice",
       description: "Custom template design untuk invoice",
@@ -39,7 +47,7 @@ const InvoiceSettings = () => {
       icon: Hash,
       title: "Nomor Invoice",
       description: "Format auto-generate nomor invoice",
-      color: "bg-emerald-600",
+      color: "bg-amber-600",
       comingSoon: true,
     },
     {
@@ -83,7 +91,16 @@ const InvoiceSettings = () => {
           {settingsCards.map((card, index) => (
             <Card
               key={index}
-              className="p-3 sm:p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary relative"
+              className={`p-3 sm:p-4 transition-all border-2 relative ${
+                card.comingSoon 
+                  ? "cursor-not-allowed opacity-70" 
+                  : "cursor-pointer hover:shadow-lg group hover:border-primary"
+              }`}
+              onClick={() => {
+                if (!card.comingSoon && card.href) {
+                  navigate(card.href);
+                }
+              }}
             >
               {card.comingSoon && (
                 <div className="absolute top-2 right-2 bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full">
@@ -95,13 +112,16 @@ const InvoiceSettings = () => {
                   <card.icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors truncate">
+                  <h3 className={`font-semibold text-sm sm:text-base text-foreground truncate ${!card.comingSoon ? "group-hover:text-primary" : ""} transition-colors`}>
                     {card.title}
                   </h3>
                   <p className="text-xs text-muted-foreground truncate">
                     {card.description}
                   </p>
                 </div>
+                {!card.comingSoon && (
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                )}
               </div>
             </Card>
           ))}
