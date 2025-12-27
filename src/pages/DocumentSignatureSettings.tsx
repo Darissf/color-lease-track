@@ -118,8 +118,8 @@ const DocumentSignatureSettings = () => {
   if (!isSuperAdmin) return null;
 
   const today = format(new Date(), "dd/MM/yyyy");
-  const nextInvoiceNumber = `INV${String(settings.counter_invoice + 1).padStart(6, "0")}`;
-  const nextReceiptNumber = `KWT${String(settings.counter_receipt + 1).padStart(6, "0")}`;
+  const nextInvoiceNumber = String(settings.counter_invoice + 1).padStart(6, "0");
+  const nextReceiptNumber = String(settings.counter_receipt + 1).padStart(6, "0");
 
   return (
     <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
@@ -230,7 +230,7 @@ const DocumentSignatureSettings = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="counter_invoice">Counter Invoice (INV)</Label>
+                      <Label htmlFor="counter_invoice">Counter Invoice</Label>
                       <Input
                         id="counter_invoice"
                         type="number"
@@ -243,7 +243,7 @@ const DocumentSignatureSettings = () => {
                       </p>
                     </div>
                     <div>
-                      <Label htmlFor="counter_receipt">Counter Kwitansi (KWT)</Label>
+                      <Label htmlFor="counter_receipt">Counter Kwitansi</Label>
                       <Input
                         id="counter_receipt"
                         type="number"
