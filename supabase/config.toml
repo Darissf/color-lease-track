@@ -125,3 +125,6 @@ verify_jwt = false
 
 [functions.serve-asset]
 verify_jwt = false
+
+[functions.verify-document]
+verify_jwt = false

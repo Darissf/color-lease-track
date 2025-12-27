@@ -41,7 +41,9 @@ import {
   Pencil,
   StickyNote,
   CreditCard,
-  Plus
+  Plus,
+  FileCheck,
+  FileOutput
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +56,7 @@ import { PaymentVerificationStatus } from "@/components/payment/PaymentVerificat
 import { ContractLineItemsEditor } from "@/components/contracts/ContractLineItemsEditor";
 import { RincianTemplateDisplay } from "@/components/contracts/RincianTemplateDisplay";
 import { ContractStockItemsEditor } from "@/components/contracts/ContractStockItemsEditor";
+import { DocumentPreviewModal } from "@/components/documents/DocumentPreviewModal";
 import { 
   generateRincianTemplate,
   type TemplateData 
@@ -173,6 +176,10 @@ export default function ContractDetail() {
   const [showStockEditor, setShowStockEditor] = useState(false);
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [isTogglingWhatsAppMode, setIsTogglingWhatsAppMode] = useState(false);
+  
+  // Document generation states
+  const [documentPreviewOpen, setDocumentPreviewOpen] = useState(false);
+  const [documentData, setDocumentData] = useState<any>(null);
 
   const fetchPendingPaymentRequest = useCallback(async () => {
     if (!id) return;
@@ -683,6 +690,67 @@ export default function ContractDetail() {
     ).join(' ');
   };
 
+  // Generate Invoice handler
+  const handleGenerateInvoice = async () => {
+    if (!contract) return;
+    
+    // Calculate total payment
+    const totalPaid = paymentHistory.reduce((sum, p) => sum + Number(p.amount), 0);
+    const remaining = contract.tagihan_belum_bayar;
+    
+    // Generate verification code
+    const verificationCode = `INV-${Date.now().toString(36).toUpperCase()}`;
+    
+    setDocumentData({
+      documentType: 'invoice',
+      documentNumber: contract.invoice || `INV-${contract.id.slice(0, 8).toUpperCase()}`,
+      issueDate: new Date().toISOString(),
+      dueDate: contract.end_date,
+      clientName: contract.client_groups?.nama || 'Client',
+      clientPhone: contract.client_groups?.nomor_telepon || '',
+      description: contract.keterangan || 'Sewa Scaffolding',
+      amount: remaining > 0 ? remaining : contract.tagihan,
+      status: contract.tagihan_belum_bayar <= 0 ? 'lunas' : 'belum_lunas',
+      verificationCode,
+      contractInvoice: contract.invoice,
+      period: `${format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - ${format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}`,
+    });
+    setDocumentPreviewOpen(true);
+  };
+
+  // Generate Receipt handler
+  const handleGenerateReceipt = async (paymentId?: string) => {
+    if (!contract) return;
+    
+    // Find specific payment or use the latest
+    const payment = paymentId 
+      ? paymentHistory.find(p => p.id === paymentId) 
+      : paymentHistory[paymentHistory.length - 1];
+    
+    if (!payment) {
+      toast.error("Tidak ada pembayaran untuk dibuat kwitansi");
+      return;
+    }
+    
+    // Generate verification code
+    const verificationCode = `RCP-${Date.now().toString(36).toUpperCase()}`;
+    
+    setDocumentData({
+      documentType: 'receipt',
+      documentNumber: `KWT-${contract.invoice?.replace('INV-', '') || contract.id.slice(0, 8).toUpperCase()}-${payment.payment_number}`,
+      issueDate: payment.payment_date,
+      clientName: contract.client_groups?.nama || 'Client',
+      clientPhone: contract.client_groups?.nomor_telepon || '',
+      description: `Pembayaran #${payment.payment_number} - ${contract.keterangan || 'Sewa Scaffolding'}`,
+      amount: payment.amount,
+      status: 'lunas',
+      verificationCode,
+      invoiceNumber: contract.invoice,
+      paymentDate: payment.payment_date,
+    });
+    setDocumentPreviewOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     const normalizedStatus = status.toLowerCase();
     switch (normalizedStatus) {
@@ -958,6 +1026,44 @@ export default function ContractDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* Document Generation Buttons */}
+          {(isSuperAdmin || isAdmin) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileOutput className="h-5 w-5" />
+                  Generate Dokumen
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    className="justify-start"
+                    onClick={handleGenerateInvoice}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Generate Invoice
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => handleGenerateReceipt()}
+                    disabled={paymentHistory.length === 0}
+                  >
+                    <FileCheck className="h-4 w-4 mr-2" />
+                    Generate Kwitansi
+                  </Button>
+                </div>
+                {paymentHistory.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Kwitansi akan tersedia setelah ada pembayaran
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Rincian Kontrak Section */}
           {showRincianEditor ? (
@@ -1527,6 +1633,13 @@ export default function ContractDetail() {
           }}
         />
       )}
+
+      {/* Document Preview Modal */}
+      <DocumentPreviewModal
+        open={documentPreviewOpen}
+        onOpenChange={setDocumentPreviewOpen}
+        documentData={documentData}
+      />
     </div>
   );
 }
