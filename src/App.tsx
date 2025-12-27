@@ -91,6 +91,8 @@ const DriverDeliveryPage = lazy(() => import("./pages/DriverDeliveryPage"));
 const PublicTrackingPage = lazy(() => import("./pages/PublicTrackingPage"));
 const PublicContractPage = lazy(() => import("./pages/PublicContractPage"));
 const ScaffoldingConfigurator = lazy(() => import("./pages/ScaffoldingConfigurator"));
+const DocumentSignatureSettings = lazy(() => import("./pages/DocumentSignatureSettings"));
+const VerifyDocument = lazy(() => import("./pages/VerifyDocument"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -133,6 +135,9 @@ const App = () => (
                     
                     {/* Public Contract View Route */}
                     <Route path="/contract/:accessCode" element={<PublicContractPage />} />
+                    
+                    {/* Public Document Verification Route */}
+                    <Route path="/verify/:verificationCode" element={<VerifyDocument />} />
                     
                     {/* VIP Auth Routes */}
                     <Route path="/vip/login" element={<Login />} />
@@ -194,6 +199,7 @@ const App = () => (
                                   <Route path="/transaction-history" element={<TransactionHistory />} />
                                   <Route path="/settings/short-links" element={<ShortLinkManager />} />
                                   <Route path="/settings/invoice" element={<InvoiceSettings />} />
+                                  <Route path="/settings/invoice/signature" element={<DocumentSignatureSettings />} />
                                   <Route path="/settings/payment-auto" element={<PaymentAutoSettings />} />
                                   {/* Client Portal Routes */}
                                   <Route path="/client-dashboard" element={<ClientDashboard />} />
