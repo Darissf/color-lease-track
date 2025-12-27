@@ -68,7 +68,7 @@ export const DocumentPreviewModal = ({
       if (!open || !user || !documentData?.contractId || !documentData?.verificationCode) return;
       
       try {
-        const { error } = await supabase
+          const { error } = await supabase
           .from('invoice_receipts')
           .upsert({
             user_id: user.id,
@@ -82,7 +82,7 @@ export const DocumentPreviewModal = ({
             client_address: documentData.clientAddress || null,
             description: documentData.description,
             amount: documentData.amount,
-            status: 'active',
+            status: documentData.documentType === 'kwitansi' ? 'LUNAS' : 'BELUM_LUNAS',
           }, {
             onConflict: 'verification_code'
           });
