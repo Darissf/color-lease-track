@@ -50,6 +50,8 @@ import { PendingEditRequests } from "@/components/contracts/PendingEditRequests"
 import { ContractPublicLinkManager } from "@/components/contracts/ContractPublicLinkManager";
 import { PaymentVerificationModal } from "@/components/payment/PaymentVerificationModal";
 import { PaymentVerificationStatus } from "@/components/payment/PaymentVerificationStatus";
+import { ContractLineItemsEditor } from "@/components/contracts/ContractLineItemsEditor";
+import { RincianTemplateDisplay } from "@/components/contracts/RincianTemplateDisplay";
 
 interface Contract {
   id: string;
@@ -77,6 +79,9 @@ interface Contract {
   admin_notes: string | null;
   admin_notes_edited_by: string | null;
   admin_notes_edited_at: string | null;
+  rincian_template?: string | null;
+  transport_cost_delivery?: number | null;
+  transport_cost_pickup?: number | null;
   client_groups?: {
     nama: string;
     nomor_telepon: string;
@@ -155,6 +160,9 @@ export default function ContractDetail() {
   // Payment modal states
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [pendingPaymentRequest, setPendingPaymentRequest] = useState<any>(null);
+  
+  // Rincian editor states
+  const [showRincianEditor, setShowRincianEditor] = useState(false);
 
   const fetchPendingPaymentRequest = useCallback(async () => {
     if (!id) return;
@@ -852,6 +860,58 @@ export default function ContractDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* Rincian Kontrak Section */}
+          {showRincianEditor ? (
+            <ContractLineItemsEditor
+              contractId={contract.id}
+              existingTemplate={contract.rincian_template}
+              onSave={() => {
+                setShowRincianEditor(false);
+                fetchContractDetail();
+              }}
+              onCancel={() => setShowRincianEditor(false)}
+            />
+          ) : contract.rincian_template ? (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Rincian Tagihan
+                </CardTitle>
+                {(isSuperAdmin || isAdmin) && (
+                  <Button variant="outline" size="sm" onClick={() => setShowRincianEditor(true)}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit Rincian
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                <pre className="whitespace-pre-wrap font-mono text-sm p-4 bg-muted/50 rounded-lg overflow-x-auto leading-relaxed">
+                  {contract.rincian_template}
+                </pre>
+              </CardContent>
+            </Card>
+          ) : (
+            (isSuperAdmin || isAdmin) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Rincian Tagihan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center py-6">
+                  <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                  <p className="text-muted-foreground mb-4">Belum ada rincian tagihan</p>
+                  <Button onClick={() => setShowRincianEditor(true)}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Buat Rincian
+                  </Button>
+                </CardContent>
+              </Card>
+            )
+          )}
 
           {/* Pending Edit Requests - Super Admin Only */}
           {isSuperAdmin && editRequests.filter(r => r.status === 'pending').length > 0 && (

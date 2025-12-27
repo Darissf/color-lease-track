@@ -93,7 +93,10 @@ serve(async (req) => {
         status_pengambilan,
         penanggung_jawab,
         biaya_kirim,
-        client_group_id
+        client_group_id,
+        rincian_template,
+        transport_cost_delivery,
+        transport_cost_pickup
       `)
       .eq('id', linkData.contract_id)
       .single();
