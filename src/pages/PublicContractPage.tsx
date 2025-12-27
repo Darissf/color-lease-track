@@ -143,7 +143,6 @@ const getStatusColor = (status: string) => {
               </div>
               <div className="min-w-0">
                 <div className="text-base sm:text-lg font-bold tracking-wide truncate">{SITE_NAME}</div>
-                <div className="text-[10px] sm:text-xs text-sky-100">sewascaffoldingbali.com</div>
               </div>
             </div>
             
@@ -183,7 +182,7 @@ const getStatusColor = (status: string) => {
                   <div className="flex items-start gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-muted-foreground mb-0.5">Nama Proyek</div>
+                      <div className="text-sm font-medium text-muted-foreground mb-0.5">Proyek</div>
                       <p className="text-base text-foreground truncate">{contract.keterangan}</p>
                     </div>
                   </div>
@@ -484,46 +483,18 @@ const getStatusColor = (status: string) => {
             </div>
           </div>
 
-          {/* Brand Footer - Sky/Cyan Theme - Mobile Optimized */}
+          {/* Simplified Footer */}
           <div className="bg-gradient-to-r from-sky-600 via-cyan-600 to-sky-600 text-white rounded-xl py-3 sm:py-4 px-3 sm:px-4">
-            <div className="flex items-center justify-between gap-2">
-              {/* Brand */}
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div className="flex-shrink-0 p-1.5 sm:p-2 bg-white/50 backdrop-blur-sm rounded-lg">
-                  <img 
-                    src="/logo.png" 
-                    alt="Logo" 
-                    className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-base sm:text-lg font-bold tracking-wide truncate">{SITE_NAME}</div>
-                  <div className="text-[10px] sm:text-xs text-sky-100">sewascaffoldingbali.com</div>
-                </div>
+            <div className="flex flex-col items-center text-center space-y-2">
+              <p className="text-sm sm:text-base font-medium">
+                Terima kasih atas kepercayaan Anda 🙏
+              </p>
+              <p className="text-[10px] sm:text-xs text-sky-100">
+                Dokumen ini digenerate secara otomatis pada {format(new Date(), 'dd MMMM yyyy', { locale: id })}
+              </p>
+              <div className="text-[10px] sm:text-xs text-sky-100 pt-1 border-t border-white/20 w-full">
+                © {new Date().getFullYear()} All Rights Reserved
               </div>
-              
-              {/* Copyright */}
-              <div className="text-right flex-shrink-0">
-                <div className="text-[10px] sm:text-xs text-sky-100">Copyright</div>
-                <div className="text-base sm:text-lg font-bold">© {new Date().getFullYear()}</div>
-              </div>
-            </div>
-            
-            {/* Second row - sama seperti header */}
-            <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-white/20 text-[10px] sm:text-xs text-sky-100">
-              <div className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                <span>Denpasar, Bali</span>
-              </div>
-              <a 
-                href="https://sewascaffoldingbali.com" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-white transition-colors"
-              >
-                <ExternalLink className="w-3 h-3" />
-                <span>sewascaffoldingbali.com</span>
-              </a>
             </div>
           </div>
         </div>
