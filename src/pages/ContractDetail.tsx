@@ -707,6 +707,7 @@ export default function ContractDetail() {
       issuedAt: new Date(),
       dueDate: new Date(contract.end_date),
       clientName: contract.client_groups?.nama || 'Client',
+      clientAddress: '',
       clientPhone: contract.client_groups?.nomor_telepon || '',
       description: contract.keterangan || 'Sewa Scaffolding',
       amount: remaining > 0 ? remaining : contract.tagihan,
@@ -714,6 +715,7 @@ export default function ContractDetail() {
       verificationCode,
       contractInvoice: contract.invoice,
       period: `${format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - ${format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}`,
+      contractId: contract.id,
     });
     setDocumentPreviewOpen(true);
   };
@@ -740,6 +742,7 @@ export default function ContractDetail() {
       documentNumber: String(payment.payment_number).padStart(6, '0'),
       issuedAt: new Date(payment.payment_date),
       clientName: contract.client_groups?.nama || 'Client',
+      clientAddress: '',
       clientPhone: contract.client_groups?.nomor_telepon || '',
       description: `Pembayaran #${payment.payment_number} - ${contract.keterangan || 'Sewa Scaffolding'}`,
       amount: payment.amount,
@@ -747,6 +750,8 @@ export default function ContractDetail() {
       verificationCode,
       invoiceNumber: contract.invoice,
       paymentDate: new Date(payment.payment_date),
+      contractId: contract.id,
+      paymentId: payment.id,
     });
     setDocumentPreviewOpen(true);
   };

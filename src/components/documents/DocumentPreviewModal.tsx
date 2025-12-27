@@ -26,6 +26,8 @@ interface DocumentData {
   paymentDate?: Date;
   contractInvoice?: string;
   period?: string;
+  contractId?: string;
+  paymentId?: string;
 }
 
 interface DocumentPreviewModalProps {
@@ -59,6 +61,42 @@ export const DocumentPreviewModal = ({
       fetchSettings();
     }
   }, [open, user]);
+
+  // Save document to database when modal opens
+  useEffect(() => {
+    const saveDocumentToDb = async () => {
+      if (!open || !user || !documentData?.contractId || !documentData?.verificationCode) return;
+      
+      try {
+        const { error } = await supabase
+          .from('invoice_receipts')
+          .upsert({
+            user_id: user.id,
+            contract_id: documentData.contractId,
+            payment_id: documentData.paymentId || null,
+            document_type: documentData.documentType,
+            document_number: documentData.documentNumber,
+            verification_code: documentData.verificationCode,
+            issued_at: documentData.issuedAt.toISOString(),
+            client_name: documentData.clientName,
+            client_address: documentData.clientAddress || null,
+            description: documentData.description,
+            amount: documentData.amount,
+            status: 'active',
+          }, {
+            onConflict: 'verification_code'
+          });
+          
+        if (error) {
+          console.error('Error saving document:', error);
+        }
+      } catch (err) {
+        console.error('Error saving document to database:', err);
+      }
+    };
+
+    saveDocumentToDb();
+  }, [open, user, documentData]);
 
   const fetchSettings = async () => {
     if (!user) return;
