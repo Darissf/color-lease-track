@@ -40,7 +40,8 @@ import {
   Trash2,
   Pencil,
   StickyNote,
-  CreditCard
+  CreditCard,
+  Plus
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,6 +53,7 @@ import { PaymentVerificationModal } from "@/components/payment/PaymentVerificati
 import { PaymentVerificationStatus } from "@/components/payment/PaymentVerificationStatus";
 import { ContractLineItemsEditor } from "@/components/contracts/ContractLineItemsEditor";
 import { RincianTemplateDisplay } from "@/components/contracts/RincianTemplateDisplay";
+import { ContractStockItemsEditor } from "@/components/contracts/ContractStockItemsEditor";
 
 interface Contract {
   id: string;
@@ -163,6 +165,8 @@ export default function ContractDetail() {
   
   // Rincian editor states
   const [showRincianEditor, setShowRincianEditor] = useState(false);
+  const [showStockEditor, setShowStockEditor] = useState(false);
+  const [stockItems, setStockItems] = useState<any[]>([]);
 
   const fetchPendingPaymentRequest = useCallback(async () => {
     if (!id) return;
@@ -183,11 +187,33 @@ export default function ContractDetail() {
     if (user && id) {
       fetchContractDetail();
       fetchPendingPaymentRequest();
+      fetchStockItems();
       if (isSuperAdmin) {
         fetchEditRequests();
       }
     }
   }, [user, id, isSuperAdmin, fetchPendingPaymentRequest]);
+
+  const fetchStockItems = async () => {
+    if (!id) return;
+    
+    const { data } = await supabase
+      .from('contract_stock_items')
+      .select(`
+        id,
+        quantity,
+        returned_at,
+        inventory_items (
+          item_name,
+          item_code,
+          unit_type
+        )
+      `)
+      .eq('contract_id', id)
+      .is('returned_at', null);
+    
+    setStockItems(data || []);
+  };
 
   const fetchContractDetail = async () => {
     if (!user || !id) return;
@@ -1138,85 +1164,73 @@ export default function ContractDetail() {
           )}
 
           {/* Rincian Stok Barang */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Rincian Stok Barang
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {contract.inventory_items ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Kode Barang</p>
-                      <p className="font-semibold">{contract.inventory_items.item_code}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Nama Barang</p>
-                      <p className="font-semibold">{contract.inventory_items.item_name}</p>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Kategori</p>
-                      <p className="font-semibold">{contract.inventory_items.category}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Satuan</p>
-                      <p className="font-semibold">{contract.inventory_items.unit_type}</p>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <p className="text-sm text-muted-foreground">Jumlah Unit Disewa</p>
-                    <p className="font-bold text-xl text-primary">
-                      {contract.jumlah_unit} {contract.inventory_items.unit_type}
-                    </p>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <p className="text-sm text-muted-foreground">Harga Satuan</p>
-                    <p className="font-semibold">
-                      {formatRupiah(contract.inventory_items.unit_price)} / {contract.inventory_items.unit_type}
-                    </p>
-                  </div>
-
-                  {contract.inventory_items.description && (
-                    <>
-                      <Separator />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Deskripsi</p>
-                        <p className="mt-1">{contract.inventory_items.description}</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-3 text-yellow-500 opacity-50" />
-                  <p className="text-muted-foreground mb-4">
-                    Kontrak ini belum terhubung dengan item inventory
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/vip/contracts/${id}/scaffolding`)}
+          {showStockEditor ? (
+            <ContractStockItemsEditor
+              contractId={id}
+              onSave={() => {
+                setShowStockEditor(false);
+                fetchStockItems();
+              }}
+              onCancel={() => setShowStockEditor(false)}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Rincian Stok Barang
+                  </CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowStockEditor(true)}
                   >
-                    <Package className="h-4 w-4 mr-2" />
-                    Hubungkan ke Inventory
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
                   </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <p className="text-xs text-muted-foreground">
+                  Item yang ditambahkan otomatis mengurangi stok gudang
+                </p>
+              </CardHeader>
+              <CardContent>
+                {stockItems.length > 0 ? (
+                  <div className="space-y-3">
+                    {stockItems.map((item: any) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                        <div>
+                          <p className="font-medium">{item.inventory_items?.item_name}</p>
+                          <p className="text-sm text-muted-foreground">{item.inventory_items?.item_code}</p>
+                        </div>
+                        <Badge variant="secondary" className="text-base">
+                          {item.quantity} {item.inventory_items?.unit_type}
+                        </Badge>
+                      </div>
+                    ))}
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Total Unit</span>
+                      <Badge className="text-base">
+                        {stockItems.reduce((sum: number, item: any) => sum + item.quantity, 0)} pcs
+                      </Badge>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                    <p className="text-muted-foreground mb-4">
+                      Belum ada item stok barang
+                    </p>
+                    <Button onClick={() => setShowStockEditor(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tambah Item Stok
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Right Column - Summary */}

@@ -17,7 +17,7 @@ import {
   type LineItem,
   type TemplateData
 } from '@/lib/contractTemplateGenerator';
-import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap } from 'lucide-react';
+import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InventoryItem {
@@ -50,6 +50,7 @@ export function ContractLineItemsEditor({
   const [showPreview, setShowPreview] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generatingFromStock, setGeneratingFromStock] = useState(false);
   
   // Pengaturan Cepat
   const [defaultPricePerDay, setDefaultPricePerDay] = useState<number | ''>('');
@@ -116,6 +117,48 @@ export function ContractLineItemsEditor({
         duration_days: defaultDurationDays !== '' ? defaultDurationDays : 30,
       }
     ]);
+  };
+
+  const generateFromStock = async () => {
+    setGeneratingFromStock(true);
+    
+    try {
+      // Fetch stock items for this contract
+      const { data: stockItems, error } = await supabase
+        .from('contract_stock_items')
+        .select(`
+          quantity,
+          inventory_items (
+            item_name,
+            unit_price
+          )
+        `)
+        .eq('contract_id', contractId)
+        .is('returned_at', null);
+      
+      if (error) throw error;
+      
+      if (!stockItems || stockItems.length === 0) {
+        toast.error('Tidak ada item stok barang. Tambahkan item di Rincian Stok Barang terlebih dahulu.');
+        return;
+      }
+      
+      // Map stock items to line items
+      const generatedItems: LineItem[] = stockItems.map((item: any) => ({
+        item_name: item.inventory_items?.item_name || '',
+        quantity: item.quantity,
+        unit_price_per_day: defaultPricePerDay !== '' ? defaultPricePerDay : (item.inventory_items?.unit_price || 0),
+        duration_days: defaultDurationDays !== '' ? defaultDurationDays : 30,
+      }));
+      
+      setLineItems(generatedItems);
+      toast.success(`${generatedItems.length} item berhasil di-generate dari stok barang`);
+    } catch (error) {
+      console.error('Error generating from stock:', error);
+      toast.error('Gagal generate dari stok barang');
+    } finally {
+      setGeneratingFromStock(false);
+    }
   };
 
   const applyDefaultsToAll = () => {
@@ -253,10 +296,25 @@ export function ContractLineItemsEditor({
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Rincian Item Sewa
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Rincian Item Sewa
+            </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={generateFromStock}
+              disabled={generatingFromStock}
+              className="border-primary/50 text-primary hover:bg-primary/10"
+            >
+              <PackageOpen className="h-4 w-4 mr-2" />
+              {generatingFromStock ? 'Generating...' : 'Generate dari Stok'}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Klik "Generate dari Stok" untuk otomatis mengisi dari Rincian Stok Barang
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {lineItems.map((item, index) => (
