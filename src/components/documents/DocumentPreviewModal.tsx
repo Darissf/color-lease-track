@@ -68,34 +68,63 @@ export const DocumentPreviewModal = ({
       if (!open || !user || !documentData?.contractId || !documentData?.verificationCode) return;
       
       try {
-        // Determine onConflict based on document type
-        // For kwitansi (receipt): use payment_id + document_type
-        // For invoice: use contract_id + document_type
-        const onConflictColumns = documentData.paymentId 
-          ? 'payment_id,document_type'  // For kwitansi
-          : 'contract_id,document_type'; // For invoice
-          
-        const { error } = await supabase
-          .from('invoice_receipts')
-          .upsert({
-            user_id: user.id,
-            contract_id: documentData.contractId,
-            payment_id: documentData.paymentId || null,
-            document_type: documentData.documentType,
-            document_number: documentData.documentNumber,
-            verification_code: documentData.verificationCode,
-            issued_at: documentData.issuedAt.toISOString(),
-            client_name: documentData.clientName,
-            client_address: documentData.clientAddress || null,
-            description: documentData.description,
-            amount: documentData.amount,
-            status: documentData.documentType === 'kwitansi' ? 'LUNAS' : 'BELUM_LUNAS',
-          }, {
-            onConflict: onConflictColumns
-          });
-          
-        if (error) {
-          console.error('Error saving document:', error);
+        // Check if document already exists (using select-then-insert/update pattern)
+        // This avoids PostgREST issue with partial unique indexes
+        const query = documentData.paymentId 
+          ? supabase
+              .from('invoice_receipts')
+              .select('id, verification_code')
+              .eq('payment_id', documentData.paymentId)
+              .eq('document_type', documentData.documentType)
+          : supabase
+              .from('invoice_receipts')
+              .select('id, verification_code')
+              .eq('contract_id', documentData.contractId)
+              .eq('document_type', documentData.documentType)
+              .is('payment_id', null);
+
+        const { data: existingDoc } = await query.maybeSingle();
+
+        if (existingDoc) {
+          // UPDATE existing document - DO NOT change verification_code
+          const { error } = await supabase
+            .from('invoice_receipts')
+            .update({
+              document_number: documentData.documentNumber,
+              issued_at: documentData.issuedAt.toISOString(),
+              client_name: documentData.clientName,
+              client_address: documentData.clientAddress || null,
+              description: documentData.description,
+              amount: documentData.amount,
+              status: documentData.documentType === 'kwitansi' ? 'LUNAS' : 'BELUM_LUNAS',
+            })
+            .eq('id', existingDoc.id);
+            
+          if (error) {
+            console.error('Error updating document:', error);
+          }
+        } else {
+          // INSERT new document
+          const { error } = await supabase
+            .from('invoice_receipts')
+            .insert({
+              user_id: user.id,
+              contract_id: documentData.contractId,
+              payment_id: documentData.paymentId || null,
+              document_type: documentData.documentType,
+              document_number: documentData.documentNumber,
+              verification_code: documentData.verificationCode,
+              issued_at: documentData.issuedAt.toISOString(),
+              client_name: documentData.clientName,
+              client_address: documentData.clientAddress || null,
+              description: documentData.description,
+              amount: documentData.amount,
+              status: documentData.documentType === 'kwitansi' ? 'LUNAS' : 'BELUM_LUNAS',
+            });
+            
+          if (error) {
+            console.error('Error inserting document:', error);
+          }
         }
       } catch (err) {
         console.error('Error saving document to database:', err);
