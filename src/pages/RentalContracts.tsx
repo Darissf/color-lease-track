@@ -730,7 +730,33 @@ const RentalContracts = () => {
                 </div>
               </div>
 
-              {/* Status dihapus - sekarang dikelola via unlock table di list kontrak */}
+              {/* Status - hanya tampil saat TAMBAH kontrak baru, tidak untuk EDIT */}
+              {!editingContractId && (
+                <div>
+                  <Label>Status</Label>
+                  <Select
+                    value={contractForm.status}
+                    onValueChange={(value) => {
+                      const updates: Partial<typeof contractForm> = { status: value };
+                      if (value === "selesai" && !contractForm.tanggal_ambil) {
+                        updates.tanggal_ambil = new Date();
+                      }
+                      setContractForm({ ...contractForm, ...updates });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="perpanjangan">Perpanjangan</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="masa sewa">Masa Sewa</SelectItem>
+                      <SelectItem value="berulang">Berulang</SelectItem>
+                      <SelectItem value="selesai">Selesai</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Tagihan Section */}
               <div className="grid grid-cols-2 gap-4">
