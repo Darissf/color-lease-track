@@ -407,16 +407,9 @@ const getStatusColor = (status: string) => {
                 <Truck className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span className="text-xs sm:text-sm">Pengiriman</span>
               </div>
-              <div className="flex items-center gap-2 ml-6 sm:ml-0">
-                <Badge variant={contract.status_pengiriman === 'sudah_kirim' ? 'default' : 'secondary'} className="text-[10px] sm:text-xs">
-                  {contract.status_pengiriman === 'sudah_kirim' ? 'Sudah Dikirim' : 'Belum Dikirim'}
-                </Badge>
-                {contract.tanggal_kirim && (
-                  <span className="text-[10px] sm:text-xs text-muted-foreground">
-                    {format(new Date(contract.tanggal_kirim), 'dd/MM/yy', { locale: id })}
-                  </span>
-                )}
-              </div>
+              <span className="font-medium text-xs sm:text-sm ml-6 sm:ml-0">
+                {format(new Date(contract.tanggal_kirim || contract.start_date), 'EEEE, dd MMMM yyyy', { locale: id })}
+              </span>
             </div>
             {/* Pickup - Stack on mobile */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2.5 sm:p-3 bg-muted/50 rounded-lg">
@@ -424,16 +417,15 @@ const getStatusColor = (status: string) => {
                 <Package className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span className="text-xs sm:text-sm">Pengambilan</span>
               </div>
-              <div className="flex items-center gap-2 ml-6 sm:ml-0">
-                <Badge variant={contract.status_pengambilan === 'sudah_diambil' ? 'default' : 'secondary'} className="text-[10px] sm:text-xs">
-                  {contract.status_pengambilan === 'sudah_diambil' ? 'Sudah Diambil' : 'Belum Diambil'}
+              {contract.tanggal_ambil ? (
+                <span className="font-medium text-xs sm:text-sm ml-6 sm:ml-0">
+                  {format(new Date(contract.tanggal_ambil), 'EEEE, dd MMMM yyyy', { locale: id })}
+                </span>
+              ) : (
+                <Badge variant="secondary" className="text-[10px] sm:text-xs ml-6 sm:ml-0">
+                  Belum Dijadwalkan
                 </Badge>
-                {contract.tanggal_ambil && (
-                  <span className="text-[10px] sm:text-xs text-muted-foreground">
-                    {format(new Date(contract.tanggal_ambil), 'dd/MM/yy', { locale: id })}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
