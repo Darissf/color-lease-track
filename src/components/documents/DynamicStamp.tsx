@@ -154,120 +154,117 @@ export const DynamicStamp = ({
             <line x1="6" y1="16" x2="6" y2="40" stroke={primaryColor} strokeWidth="2" opacity="0.7"/>
           </g>
 
-          {/* Ribbon banner background */}
+          {/* Ribbon banner background - THINNER */}
           <g filter={`url(#${uniqueId}-ink)`}>
             {/* Ribbon left fold */}
             <polygon 
-              points="30,55 40,50 40,80 30,75" 
+              points="30,52 40,48 40,72 30,68" 
               fill={secondaryColor}
-              opacity="0.8"
+              opacity="0.6"
             />
             {/* Ribbon right fold */}
             <polygon 
-              points="250,55 240,50 240,80 250,75" 
+              points="250,52 240,48 240,72 250,68" 
               fill={secondaryColor}
-              opacity="0.8"
+              opacity="0.6"
             />
-            {/* Main ribbon */}
+            {/* Main ribbon - thinner */}
             <rect
               x="40"
-              y="48"
+              y="46"
               width="200"
-              height="34"
+              height="26"
               fill={`url(#${uniqueId}-ribbon-grad)`}
-              opacity="0.85"
+              opacity="0.75"
             />
             {/* Ribbon highlight */}
             <rect
               x="40"
-              y="48"
+              y="46"
               width="200"
-              height="4"
+              height="3"
               fill={accentColor}
-              opacity="0.4"
+              opacity="0.3"
             />
           </g>
 
-          {/* Status text in ribbon */}
+          {/* Status text in ribbon - NO SYMBOLS */}
           <text
             x="140"
-            y="72"
-            fontSize={isLunas ? "22" : "16"}
+            y="62"
+            fontSize={isLunas ? "16" : "14"}
             fill="white"
             fontWeight="bold"
             textAnchor="middle"
             dominantBaseline="middle"
-            letterSpacing="4"
+            letterSpacing="3"
             filter={`url(#${uniqueId}-worn)`}
           >
-            {isLunas ? '✓ LUNAS' : '✗ BELUM LUNAS'}
+            {isLunas ? 'LUNAS' : 'BELUM LUNAS'}
           </text>
 
           {/* Decorative separator line */}
           <line
             x1="50"
-            y1="95"
+            y1="82"
             x2="230"
-            y2="95"
+            y2="82"
             stroke={primaryColor}
             strokeWidth="1"
             strokeDasharray="4 2 1 2"
-            opacity="0.6"
+            opacity="0.5"
           />
 
-          {/* Document number */}
+          {/* Document number - LARGER */}
           <text
             x="140"
-            y="112"
-            fontSize="11"
+            y="100"
+            fontSize="14"
             fill={primaryColor}
             fontWeight="bold"
             textAnchor="middle"
             dominantBaseline="middle"
-            letterSpacing="1"
-            opacity="0.95"
+            letterSpacing="0.5"
           >
             {documentNumber}
           </text>
 
-          {/* Date */}
+          {/* Date - LARGER */}
           <text
             x="140"
-            y="128"
-            fontSize="9"
-            fill={secondaryColor}
+            y="118"
+            fontSize="12"
+            fill={primaryColor}
             fontWeight="600"
             textAnchor="middle"
             dominantBaseline="middle"
-            opacity="0.85"
           >
             {date}
           </text>
 
           {/* Decorative dots separator */}
-          <g opacity="0.5">
-            <circle cx="80" cy="142" r="1.5" fill={primaryColor}/>
-            <circle cx="100" cy="142" r="1.5" fill={primaryColor}/>
-            <circle cx="120" cy="142" r="1.5" fill={primaryColor}/>
-            <circle cx="140" cy="142" r="1.5" fill={primaryColor}/>
-            <circle cx="160" cy="142" r="1.5" fill={primaryColor}/>
-            <circle cx="180" cy="142" r="1.5" fill={primaryColor}/>
-            <circle cx="200" cy="142" r="1.5" fill={primaryColor}/>
+          <g opacity="0.4">
+            <circle cx="80" cy="132" r="1.5" fill={primaryColor}/>
+            <circle cx="100" cy="132" r="1.5" fill={primaryColor}/>
+            <circle cx="120" cy="132" r="1.5" fill={primaryColor}/>
+            <circle cx="140" cy="132" r="1.5" fill={primaryColor}/>
+            <circle cx="160" cy="132" r="1.5" fill={primaryColor}/>
+            <circle cx="180" cy="132" r="1.5" fill={primaryColor}/>
+            <circle cx="200" cy="132" r="1.5" fill={primaryColor}/>
           </g>
 
-          {/* Company name */}
+          {/* Company name - LARGER, FULL TEXT */}
           <text
             x="140"
-            y="158"
-            fontSize="10"
+            y="150"
+            fontSize="13"
             fill={primaryColor}
             fontWeight="bold"
             textAnchor="middle"
             dominantBaseline="middle"
-            letterSpacing="1.5"
-            opacity="0.9"
+            letterSpacing="1"
           >
-            {companyName.toUpperCase().slice(0, 30)}
+            {companyName.toUpperCase()}
           </text>
 
           {/* Random ink spots for authenticity */}
