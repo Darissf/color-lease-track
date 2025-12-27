@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Package, AlertCircle, Edit, Trash2, History, RefreshCw } from "lucide-react";
+import { Plus, Search, Package, AlertCircle, Edit, Trash2, History, RefreshCw, ScrollText } from "lucide-react";
 import { InventorySummaryCards } from "@/components/inventory/InventorySummaryCards";
 import { InventoryForm } from "@/components/inventory/InventoryForm";
 import { InventoryMovementHistory } from "@/components/inventory/InventoryMovementHistory";
+import { InventoryItemHistory } from "@/components/inventory/InventoryItemHistory";
 import { RelatedContracts } from "@/components/inventory/RelatedContracts";
 import { RelatedIncome } from "@/components/inventory/RelatedIncome";
 import { PaginationControls } from "@/components/shared/PaginationControls";
@@ -66,6 +67,7 @@ export default function InventoryStock() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -357,7 +359,15 @@ export default function InventoryStock() {
                           {item.total_quantity} {item.unit_type}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setHistoryItem(item)}
+                              title="Lihat History"
+                            >
+                              <ScrollText className="h-4 w-4 text-primary" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -365,6 +375,7 @@ export default function InventoryStock() {
                                 setEditData(item);
                                 setShowForm(true);
                               }}
+                              title="Edit"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -372,6 +383,7 @@ export default function InventoryStock() {
                               variant="ghost"
                               size="sm"
                               onClick={() => setDeleteConfirm(item.id)}
+                              title="Hapus"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -420,6 +432,12 @@ export default function InventoryStock() {
         onOpenChange={setShowForm}
         onSuccess={fetchItems}
         editData={editData}
+      />
+
+      <InventoryItemHistory
+        open={!!historyItem}
+        onOpenChange={(open) => !open && setHistoryItem(null)}
+        item={historyItem}
       />
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
