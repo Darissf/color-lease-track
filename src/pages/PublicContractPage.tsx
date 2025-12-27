@@ -34,7 +34,7 @@ import { PublicPaymentRequest } from '@/components/payment/PublicPaymentRequest'
 
 export default function PublicContractPage() {
   const { accessCode } = useParams<{ accessCode: string }>();
-  const { data, loading, error, errorCode, expiredAt, refetch } = usePublicContract(accessCode || '');
+  const { data, loading, error, errorCode, expiredAt, expiredInvoice, refetch } = usePublicContract(accessCode || '');
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string, field: string) => {
@@ -77,6 +77,19 @@ export default function PublicContractPage() {
                 <p className="text-xs text-muted-foreground">
                   Silakan hubungi admin untuk mendapatkan link baru.
                 </p>
+                <a
+                  href={`https://wa.me/6289666666632?text=${encodeURIComponent(
+                    expiredInvoice 
+                      ? `Halo Admin, saya ingin meminta link kontrak ${expiredInvoice} yang baru, karena link sebelumnya sudah expired.`
+                      : `Halo Admin, saya ingin meminta link kontrak baru karena link sebelumnya sudah expired.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors mt-2"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Hubungi Admin via WhatsApp
+                </a>
               </>
             ) : errorCode === 'NOT_FOUND' ? (
               <>
@@ -87,6 +100,18 @@ export default function PublicContractPage() {
                 <p className="text-muted-foreground text-sm">
                   Link yang Anda akses tidak valid atau sudah dihapus.
                 </p>
+                <p className="text-xs text-muted-foreground">
+                  Jika Anda merasa ini adalah kesalahan, silakan hubungi admin.
+                </p>
+                <a
+                  href="https://wa.me/6289666666632?text=Halo%20Admin,%20saya%20mengakses%20link%20kontrak%20tapi%20muncul%20pesan%20'Link%20Tidak%20Ditemukan'.%20Mohon%20bantuannya."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors mt-2"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Hubungi Admin via WhatsApp
+                </a>
               </>
             ) : (
               <>

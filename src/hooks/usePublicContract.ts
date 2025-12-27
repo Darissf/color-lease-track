@@ -68,6 +68,7 @@ interface UsePublicContractResult {
   error: string | null;
   errorCode: string | null;
   expiredAt: string | null;
+  expiredInvoice: string | null;
   refetch: () => void;
 }
 
@@ -77,6 +78,7 @@ export function usePublicContract(accessCode: string): UsePublicContractResult {
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [expiredAt, setExpiredAt] = useState<string | null>(null);
+  const [expiredInvoice, setExpiredInvoice] = useState<string | null>(null);
 
   const fetchContract = useCallback(async () => {
     if (!accessCode) {
@@ -110,6 +112,9 @@ export function usePublicContract(accessCode: string): UsePublicContractResult {
         if (responseData.expired_at) {
           setExpiredAt(responseData.expired_at);
         }
+        if (responseData.invoice) {
+          setExpiredInvoice(responseData.invoice);
+        }
         return;
       }
 
@@ -127,5 +132,5 @@ export function usePublicContract(accessCode: string): UsePublicContractResult {
     fetchContract();
   }, [fetchContract]);
 
-  return { data, loading, error, errorCode, expiredAt, refetch: fetchContract };
+  return { data, loading, error, errorCode, expiredAt, expiredInvoice, refetch: fetchContract };
 }

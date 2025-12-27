@@ -51,11 +51,20 @@ serve(async (req) => {
     const expiresAt = new Date(linkData.expires_at);
     if (now > expiresAt) {
       console.log("Link has expired:", access_code);
+      
+      // Fetch invoice number for WhatsApp message
+      const { data: contractBasic } = await supabase
+        .from('rental_contracts')
+        .select('invoice')
+        .eq('id', linkData.contract_id)
+        .single();
+      
       return new Response(
         JSON.stringify({ 
           error: "Link sudah expired", 
           code: "EXPIRED",
-          expired_at: linkData.expires_at 
+          expired_at: linkData.expires_at,
+          invoice: contractBasic?.invoice || null
         }),
         { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
