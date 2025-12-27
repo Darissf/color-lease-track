@@ -240,6 +240,7 @@ const RentalContracts = () => {
         google_maps_link: contractForm.google_maps_link || null,
         notes: contractForm.notes || null,
         tanggal_ambil: contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "yyyy-MM-dd") : null,
+        tanggal_kirim: format(contractForm.start_date, "yyyy-MM-dd"),
       };
 
       if (editingContractId) {
@@ -729,31 +730,7 @@ const RentalContracts = () => {
                 </div>
               </div>
 
-              <div>
-                <Label>Status</Label>
-                <Select
-                  value={contractForm.status}
-                  onValueChange={(value) => {
-                    const updates: Partial<typeof contractForm> = { status: value };
-                    // Auto-fill tanggal_ambil saat status = "selesai" dan belum ada tanggal
-                    if (value === "selesai" && !contractForm.tanggal_ambil) {
-                      updates.tanggal_ambil = new Date();
-                    }
-                    setContractForm({ ...contractForm, ...updates });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="perpanjangan">Perpanjangan</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="masa sewa">Masa Sewa</SelectItem>
-                    <SelectItem value="berulang">Berulang</SelectItem>
-                    <SelectItem value="selesai">Selesai</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Status dihapus - sekarang dikelola via unlock table di list kontrak */}
 
               {/* Tagihan Section */}
               <div className="grid grid-cols-2 gap-4">
