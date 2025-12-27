@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { QuickReplyTemplates } from './QuickReplyTemplates';
 import { compressImage } from '@/utils/imageCompressor';
+import { getAssetUrl } from '@/lib/assetUrl';
 
 interface WhatsAppChatPanelProps {
   conversationId: string;
@@ -133,13 +134,13 @@ export const WhatsAppChatPanel = ({ conversationId }: WhatsAppChatPanelProps) =>
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
+      // Get public URL and convert to asset URL
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      // Send message with media
-      await sendMessage(conversationId, newMessage || '📷 Gambar', urlData.publicUrl);
+      // Send message with media using proxied URL
+      await sendMessage(conversationId, newMessage || '📷 Gambar', getAssetUrl(urlData.publicUrl));
       setNewMessage('');
       
       toast({
@@ -182,13 +183,13 @@ export const WhatsAppChatPanel = ({ conversationId }: WhatsAppChatPanelProps) =>
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
+      // Get public URL and convert to asset URL
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      // Send message with media
-      await sendMessage(conversationId, `📎 ${file.name}`, urlData.publicUrl);
+      // Send message with media using proxied URL
+      await sendMessage(conversationId, `📎 ${file.name}`, getAssetUrl(urlData.publicUrl));
       
       toast({
         title: 'Berhasil',

@@ -25,6 +25,7 @@ import { useAppTheme } from "@/contexts/AppThemeContext";
 import { z } from "zod";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
+import { getAssetUrl } from "@/lib/assetUrl";
 
 interface PhoneEntry {
   nomor: string;
@@ -481,7 +482,7 @@ const ClientGroups = () => {
         .from(bucket)
         .getPublicUrl(fileName);
 
-      uploadedFiles.push({ name: file.name, url: publicUrl });
+      uploadedFiles.push({ name: file.name, url: getAssetUrl(publicUrl) });
     }
 
     return uploadedFiles;

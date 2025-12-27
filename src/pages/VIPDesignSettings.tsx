@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { ImageCropper } from "@/components/ImageCropper";
 import { FaviconCropper } from "@/components/FaviconCropper";
 import { compressImage, isCompressibleImage, formatFileSize, withTimeout } from "@/utils/imageCompressor";
+import { getAssetUrl } from "@/lib/assetUrl";
 
 const UPLOAD_TIMEOUT_MS = 30000; // 30 seconds timeout
 
@@ -323,13 +324,14 @@ const VIPDesignSettings = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
+      // Get public URL and convert to asset URL
       const { data: { publicUrl } } = supabase.storage
         .from('brand-images')
         .getPublicUrl(filePath);
+      const assetUrl = getAssetUrl(publicUrl);
 
-      setFormData({ ...formData, brand_image_url: publicUrl });
-      setImagePreview(publicUrl);
+      setFormData({ ...formData, brand_image_url: assetUrl });
+      setImagePreview(assetUrl);
       toast.success("Gambar berhasil diupload!");
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -439,9 +441,10 @@ const VIPDesignSettings = () => {
       const { data: { publicUrl } } = supabase.storage
         .from('brand-images')
         .getPublicUrl(filePath);
+      const sidebarAssetUrl = getAssetUrl(publicUrl);
 
-      setFormData({ ...formData, sidebar_logo_url: publicUrl });
-      setSidebarImagePreview(publicUrl);
+      setFormData({ ...formData, sidebar_logo_url: sidebarAssetUrl });
+      setSidebarImagePreview(sidebarAssetUrl);
       toast.success("Logo sidebar berhasil diupload!");
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -551,10 +554,11 @@ const VIPDesignSettings = () => {
       const { data: { publicUrl } } = supabase.storage
         .from('brand-images')
         .getPublicUrl(filePath);
+      const faviconAssetUrl = getAssetUrl(publicUrl);
 
       setFormData({ 
         ...formData, 
-        favicon_url: publicUrl,
+        favicon_url: faviconAssetUrl,
         favicon_type: fileExt || 'png'
       });
       toast.success("Favicon berhasil diupload!");
