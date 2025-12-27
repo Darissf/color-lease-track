@@ -167,21 +167,21 @@ export function InventoryItemHistory({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl">
-        <SheetHeader className="pb-4 border-b">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="font-mono">
+      <SheetContent className="w-full sm:max-w-xl p-4 sm:p-6">
+        <SheetHeader className="pb-3 border-b">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge variant="outline" className="font-mono text-xs">
               {item.item_code}
             </Badge>
-            <Badge variant="secondary">{item.category}</Badge>
+            <Badge variant="secondary" className="text-xs">{item.category}</Badge>
           </div>
-          <SheetTitle className="text-xl">{item.item_name}</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-base sm:text-xl">{item.item_name}</SheetTitle>
+          <SheetDescription className="text-xs sm:text-sm">
             Stok total: {item.total_quantity} {item.unit_type}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="py-4">
+        <div className="py-3">
           <ItemHistoryStats
             totalRentals={totalRentals}
             activeRentals={activeRentals}
@@ -191,23 +191,24 @@ export function InventoryItemHistory({
         </div>
 
         <Tabs defaultValue="contracts" className="flex-1">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="contracts" className="gap-2">
-              <FileText className="h-4 w-4" />
-              Riwayat Kontrak
+          <TabsList className="w-full grid grid-cols-2 h-9">
+            <TabsTrigger value="contracts" className="gap-1.5 text-xs sm:text-sm">
+              <FileText className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Riwayat Kontrak</span>
+              <span className="sm:hidden">Kontrak</span>
             </TabsTrigger>
-            <TabsTrigger value="movements" className="gap-2">
-              <Activity className="h-4 w-4" />
+            <TabsTrigger value="movements" className="gap-1.5 text-xs sm:text-sm">
+              <Activity className="h-3.5 w-3.5" />
               Timeline
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="h-[calc(100vh-380px)] mt-4">
-            <TabsContent value="contracts" className="mt-0">
+          <ScrollArea className="h-[calc(100vh-340px)] sm:h-[calc(100vh-380px)] mt-3">
+            <TabsContent value="contracts" className="mt-0 pr-2">
               <ItemContractHistory contracts={contracts} loading={loading} />
             </TabsContent>
 
-            <TabsContent value="movements" className="mt-0">
+            <TabsContent value="movements" className="mt-0 pr-2">
               <ItemMovementTimeline movements={movements} loading={loading} />
             </TabsContent>
           </ScrollArea>

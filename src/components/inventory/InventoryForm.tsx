@@ -129,7 +129,7 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="item_code">Kode Barang *</Label>
               <Input
@@ -155,7 +155,7 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="category">Kategori *</Label>
               <Select
@@ -195,7 +195,7 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="total_quantity">Total Stok *</Label>
               <Input

@@ -50,19 +50,19 @@ export function ItemHistoryStats({
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 gap-2">
       {stats.map((stat) => (
         <Card key={stat.label} className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${stat.bg}`}>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-lg ${stat.bg} shrink-0`}>
+                <stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="text-lg font-bold">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{stat.label}</p>
+                <p className="text-sm sm:text-base font-bold leading-tight">
                   {stat.value.toLocaleString("id-ID")}
-                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                  <span className="text-[10px] sm:text-xs font-normal text-muted-foreground ml-1 hidden sm:inline">
                     {stat.suffix}
                   </span>
                 </p>

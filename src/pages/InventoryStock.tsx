@@ -220,28 +220,29 @@ export default function InventoryStock() {
     <div className="h-[calc(100vh-104px)] overflow-hidden flex flex-col">
       {/* Header */}
       <div className="shrink-0 mb-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Package className="h-6 w-6 text-primary" />
+              <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
                 Stok Barang
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                 Kelola persediaan scaffolding dan aksesoris
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchItems} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={fetchItems} disabled={loading} size="sm" className="flex-1 sm:flex-none">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="ml-2 hidden sm:inline">Refresh</span>
             </Button>
-            <Button onClick={() => { setEditData(null); setShowForm(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Barang
+            <Button onClick={() => { setEditData(null); setShowForm(true); }} size="sm" className="flex-1 sm:flex-none">
+              <Plus className="h-4 w-4" />
+              <span className="ml-2 hidden sm:inline">Tambah Barang</span>
+              <span className="ml-2 sm:hidden">Tambah</span>
             </Button>
           </div>
         </div>
@@ -260,12 +261,18 @@ export default function InventoryStock() {
 
       {/* Tabs */}
       <Tabs defaultValue="items" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="shrink-0">
-          <TabsTrigger value="items">Daftar Barang</TabsTrigger>
-          <TabsTrigger value="contracts">Kontrak Terkait</TabsTrigger>
-          <TabsTrigger value="income">Pemasukan</TabsTrigger>
-          <TabsTrigger value="history">
-            <History className="h-4 w-4 mr-2" />
+        <TabsList className="shrink-0 w-full h-auto flex flex-wrap gap-1 p-1">
+          <TabsTrigger value="items" className="flex-1 sm:flex-none text-xs sm:text-sm">
+            <span className="hidden sm:inline">Daftar Barang</span>
+            <span className="sm:hidden">Barang</span>
+          </TabsTrigger>
+          <TabsTrigger value="contracts" className="flex-1 sm:flex-none text-xs sm:text-sm">
+            <span className="hidden sm:inline">Kontrak Terkait</span>
+            <span className="sm:hidden">Kontrak</span>
+          </TabsTrigger>
+          <TabsTrigger value="income" className="flex-1 sm:flex-none text-xs sm:text-sm">Pemasukan</TabsTrigger>
+          <TabsTrigger value="history" className="flex-1 sm:flex-none text-xs sm:text-sm">
+            <History className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Riwayat
           </TabsTrigger>
         </TabsList>
@@ -302,12 +309,12 @@ export default function InventoryStock() {
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
-                  <TableHead className="w-16">No</TableHead>
-                  <TableHead>Kode Barang</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead className="text-right">Stok Barang</TableHead>
-                  <TableHead className="text-right">Jumlah Stok</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                  <TableHead className="w-10 sm:w-16 text-xs sm:text-sm">No</TableHead>
+                  <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Kode</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Nama</TableHead>
+                  <TableHead className="text-right text-xs sm:text-sm">Tersedia</TableHead>
+                  <TableHead className="text-right text-xs sm:text-sm hidden md:table-cell">Total</TableHead>
+                  <TableHead className="text-right text-xs sm:text-sm w-20 sm:w-auto">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -336,56 +343,62 @@ export default function InventoryStock() {
 
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="text-muted-foreground text-sm">
+                        <TableCell className="text-muted-foreground text-xs sm:text-sm">
                           {rowNumber}
                         </TableCell>
-                        <TableCell className="font-mono text-sm">
+                        <TableCell className="font-mono text-xs sm:text-sm hidden sm:table-cell">
                           {item.item_code}
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium">{item.item_name}</div>
+                          <div className="font-medium text-xs sm:text-sm">{item.item_name}</div>
+                          <div className="text-xs text-muted-foreground sm:hidden">
+                            {item.item_code}
+                          </div>
                           {item.description && (
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground hidden sm:block">
                               {item.description}
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={lowStock ? "text-destructive font-semibold" : ""}>
+                          <span className={`text-xs sm:text-sm ${lowStock ? "text-destructive font-semibold" : ""}`}>
                             {available} {item.unit_type}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="text-right font-medium text-xs sm:text-sm hidden md:table-cell">
                           {item.total_quantity} {item.unit_type}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
+                          <div className="flex justify-end gap-0.5 sm:gap-1">
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              className="h-7 w-7 sm:h-8 sm:w-8"
                               onClick={() => setHistoryItem(item)}
                               title="Lihat History"
                             >
-                              <ScrollText className="h-4 w-4 text-primary" />
+                              <ScrollText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              className="h-7 w-7 sm:h-8 sm:w-8"
                               onClick={() => {
                                 setEditData(item);
                                 setShowForm(true);
                               }}
                               title="Edit"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              className="h-7 w-7 sm:h-8 sm:w-8"
                               onClick={() => setDeleteConfirm(item.id)}
                               title="Hapus"
                             >
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-destructive" />
                             </Button>
                           </div>
                         </TableCell>
