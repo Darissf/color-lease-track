@@ -167,17 +167,17 @@ export default function PublicContractPage() {
         {/* Status & Client Info */}
         <Card>
           <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
-            <div className="flex items-start sm:items-center justify-between gap-2 flex-col sm:flex-row">
+            <div className="flex items-center gap-3 flex-wrap">
               <Badge variant="outline" className={getStatusColor(contract.status)}>
                 {contract.status}
               </Badge>
               {contract.keterangan && (
-                <div className="w-full p-3 bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg border border-gray-200/50">
+                <div className="flex-1 min-w-0 p-3 bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg border border-gray-200/50">
                   <div className="flex items-start gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-0.5">Catatan</div>
-                      <p className="text-sm sm:text-base text-foreground">{contract.keterangan}</p>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-muted-foreground mb-0.5">Nama Proyek</div>
+                      <p className="text-base text-foreground truncate">{contract.keterangan}</p>
                     </div>
                   </div>
                 </div>
