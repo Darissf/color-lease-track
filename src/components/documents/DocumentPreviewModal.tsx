@@ -76,7 +76,7 @@ export const DocumentPreviewModal = ({
 
   if (!documentData) return null;
 
-  const companyName = settings?.company_name || brandSettings?.app_name || "Sewa Scaffolding Bali";
+  const companyName = settings?.company_name || brandSettings?.brand_text || "Sewa Scaffolding Bali";
   const fileName = `${documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}_${documentData.documentNumber}`;
 
   return (
@@ -110,7 +110,7 @@ export const DocumentPreviewModal = ({
                 companyPhone={settings?.company_phone}
                 ownerName={settings?.owner_name}
                 signatureUrl={settings?.signature_image_url || undefined}
-                logoUrl={brandSettings?.logo_url || undefined}
+                logoUrl={brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || undefined}
                 contractInvoice={documentData.contractInvoice}
                 period={documentData.period}
               />
@@ -129,7 +129,7 @@ export const DocumentPreviewModal = ({
                 companyPhone={settings?.company_phone}
                 ownerName={settings?.owner_name}
                 signatureUrl={settings?.signature_image_url || undefined}
-                logoUrl={brandSettings?.logo_url || undefined}
+                logoUrl={brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || undefined}
                 invoiceNumber={documentData.invoiceNumber}
                 paymentDate={documentData.paymentDate}
               />
