@@ -14,6 +14,7 @@ import { Upload, Trash2, Edit, Star, StarOff, GripVertical, Plus } from "lucide-
 import { motion, Reorder } from "framer-motion";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
+import { getAssetUrl } from "@/lib/assetUrl";
 
 interface PortfolioProject {
   id: string;
@@ -83,7 +84,7 @@ export default function PortfolioManager() {
       .from("portfolio-images")
       .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    return getAssetUrl(data.publicUrl);
   };
 
   // Add project mutation

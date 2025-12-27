@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { compressImage } from '@/utils/imageCompressor';
+import { getAssetUrl } from '@/lib/assetUrl';
 
 interface ProofUploaderProps {
   onUpload: (photos: string[], notes: string) => void;
@@ -49,7 +50,7 @@ export const ProofUploader: React.FC<ProofUploaderProps> = ({
           .from('payment-proofs')
           .getPublicUrl(fileName);
 
-        uploadedUrls.push(urlData.publicUrl);
+        uploadedUrls.push(getAssetUrl(urlData.publicUrl));
       }
 
       setPhotos(prev => [...prev, ...uploadedUrls]);

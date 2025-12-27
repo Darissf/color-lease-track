@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { formatRupiah } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { getNowInJakarta } from "@/lib/timezone";
+import { getAssetUrl } from "@/lib/assetUrl";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 
 interface ClientGroup {
@@ -207,7 +208,7 @@ const RentalContracts = () => {
         .from(bucket)
         .getPublicUrl(fileName);
 
-      uploadedFiles.push({ name: file.name, url: publicUrl });
+      uploadedFiles.push({ name: file.name, url: getAssetUrl(publicUrl) });
     }
 
     return uploadedFiles;

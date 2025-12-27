@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, Trash2, Loader2, User } from "lucide-react";
 import { ImageCropper } from "./ImageCropper";
 import { SakuraConfetti } from "./SakuraConfetti";
+import { getAssetUrl } from "@/lib/assetUrl";
 
 interface AvatarUploadProps {
   currentAvatarUrl: string | null;
@@ -93,13 +94,14 @@ export function AvatarUpload({ currentAvatarUrl, userId, onUploadSuccess }: Avat
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
+      // Get public URL and convert to asset URL
       const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      const assetUrl = getAssetUrl(data.publicUrl);
 
-      // Update profile
+      // Update profile with proxied URL
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ avatar_url: data.publicUrl })
+        .update({ avatar_url: assetUrl })
         .eq("id", userId);
 
       if (updateError) throw updateError;
@@ -113,7 +115,7 @@ export function AvatarUpload({ currentAvatarUrl, userId, onUploadSuccess }: Avat
         description: "Avatar telah diperbarui",
       });
 
-      onUploadSuccess(data.publicUrl);
+      onUploadSuccess(assetUrl);
     } catch (error) {
       console.error("Error uploading avatar:", error);
       toast({
