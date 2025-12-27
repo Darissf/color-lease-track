@@ -63,7 +63,7 @@ const TEMPLATE_TYPES = {
   invoice: {
     label: 'Invoice',
     requiredVars: ['customer_name', 'invoice_number', 'amount', 'due_date', 'company_name'],
-    sampleData: { customer_name: 'PT ABC', invoice_number: 'INV-001', amount: '5.000.000', due_date: '30 Nov 2025', company_name: 'Sewa Scaffolding Bali' }
+    sampleData: { customer_name: 'PT ABC', invoice_number: '000001', amount: '5.000.000', due_date: '30 Nov 2025', company_name: 'Sewa Scaffolding Bali' }
   },
   custom: {
     label: 'Custom Template',
