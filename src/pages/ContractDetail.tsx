@@ -704,8 +704,8 @@ export default function ContractDetail() {
     setDocumentData({
       documentType: 'invoice',
       documentNumber: contract.invoice || contract.id.slice(0, 6).toUpperCase(),
-      issueDate: new Date().toISOString(),
-      dueDate: contract.end_date,
+      issuedAt: new Date(),
+      dueDate: new Date(contract.end_date),
       clientName: contract.client_groups?.nama || 'Client',
       clientPhone: contract.client_groups?.nomor_telepon || '',
       description: contract.keterangan || 'Sewa Scaffolding',
@@ -736,9 +736,9 @@ export default function ContractDetail() {
     const verificationCode = `VRF-${Date.now().toString(36).toUpperCase()}`;
     
     setDocumentData({
-      documentType: 'receipt',
+      documentType: 'kwitansi',
       documentNumber: String(payment.payment_number).padStart(6, '0'),
-      issueDate: payment.payment_date,
+      issuedAt: new Date(payment.payment_date),
       clientName: contract.client_groups?.nama || 'Client',
       clientPhone: contract.client_groups?.nomor_telepon || '',
       description: `Pembayaran #${payment.payment_number} - ${contract.keterangan || 'Sewa Scaffolding'}`,
@@ -746,7 +746,7 @@ export default function ContractDetail() {
       status: 'lunas',
       verificationCode,
       invoiceNumber: contract.invoice,
-      paymentDate: payment.payment_date,
+      paymentDate: new Date(payment.payment_date),
     });
     setDocumentPreviewOpen(true);
   };
