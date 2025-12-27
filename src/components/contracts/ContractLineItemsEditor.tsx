@@ -13,11 +13,12 @@ import {
   calculateLineItemSubtotal, 
   calculateTotalItems,
   calculateTotalTransport,
+  calculateSubtotal,
   calculateGrandTotal,
   type LineItem,
   type TemplateData
 } from '@/lib/contractTemplateGenerator';
-import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen } from 'lucide-react';
+import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen, Tag, FileSignature } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InventoryItem {
@@ -47,6 +48,8 @@ export function ContractLineItemsEditor({
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [transportDelivery, setTransportDelivery] = useState(0);
   const [transportPickup, setTransportPickup] = useState(0);
+  const [contractTitle, setContractTitle] = useState('');
+  const [discount, setDiscount] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -92,16 +95,18 @@ export function ContractLineItemsEditor({
       })));
     }
     
-    // Fetch transport costs from contract
+    // Fetch transport costs and discount from contract
     const { data: contractData } = await supabase
       .from('rental_contracts')
-      .select('transport_cost_delivery, transport_cost_pickup')
+      .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan')
       .eq('id', contractId)
       .single();
     
     if (contractData) {
       setTransportDelivery(Number(contractData.transport_cost_delivery) || 0);
       setTransportPickup(Number(contractData.transport_cost_pickup) || 0);
+      setDiscount(Number(contractData.discount) || 0);
+      setContractTitle(contractData.keterangan || '');
     }
     
     setLoading(false);
@@ -206,6 +211,8 @@ export function ContractLineItemsEditor({
     lineItems,
     transportDelivery,
     transportPickup,
+    contractTitle,
+    discount,
   });
 
   const handleSave = async () => {
@@ -253,12 +260,13 @@ export function ContractLineItemsEditor({
       const template = generateRincianTemplate(getTemplateData());
       const grandTotal = calculateGrandTotal(getTemplateData());
 
-      // Update contract with transport costs and template
+      // Update contract with transport costs, discount and template
       const { error: updateError } = await supabase
         .from('rental_contracts')
         .update({
           transport_cost_delivery: transportDelivery,
           transport_cost_pickup: transportPickup,
+          discount: discount,
           rincian_template: template,
           tagihan: grandTotal,
           tagihan_belum_bayar: grandTotal, // Reset - in real app, calculate based on payments
@@ -279,6 +287,7 @@ export function ContractLineItemsEditor({
 
   const totalItems = calculateTotalItems(lineItems);
   const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
+  const subtotal = calculateSubtotal(getTemplateData());
   const grandTotal = calculateGrandTotal(getTemplateData());
 
   if (loading) {
@@ -294,6 +303,26 @@ export function ContractLineItemsEditor({
 
   return (
     <div className="space-y-4">
+      {/* Keterangan Kontrak */}
+      <Card className="border-dashed border-2 border-blue-400/50 bg-blue-50/30 dark:bg-blue-950/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileSignature className="h-4 w-4 text-blue-500" />
+            Keterangan Kontrak
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Akan muncul di header template (opsional)
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Input
+            value={contractTitle}
+            onChange={(e) => setContractTitle(e.target.value)}
+            placeholder="Contoh: Nabila Beli Rumah Kucing"
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -504,9 +533,42 @@ export function ContractLineItemsEditor({
         </CardContent>
       </Card>
 
+      {/* Diskon */}
+      <Card className="border-dashed border-2 border-green-400/50 bg-green-50/30 dark:bg-green-950/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Tag className="h-4 w-4 text-green-500" />
+            Diskon (Opsional)
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Kosongkan atau isi 0 jika tidak ada diskon
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Input
+            type="number"
+            value={discount || ''}
+            onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+            placeholder="0"
+            min={0}
+          />
+        </CardContent>
+      </Card>
+
       {/* Grand Total */}
       <Card className="bg-primary/5 border-primary/20">
-        <CardContent className="py-4">
+        <CardContent className="py-4 space-y-2">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span>Subtotal (Item + Transport)</span>
+            <span>{formatRupiah(subtotal)}</span>
+          </div>
+          {discount > 0 && (
+            <div className="flex items-center justify-between text-green-600">
+              <span>🏷️ Diskon</span>
+              <span>-{formatRupiah(discount)}</span>
+            </div>
+          )}
+          <Separator />
           <div className="flex items-center justify-between">
             <span className="text-lg font-medium">💵 Total Tagihan</span>
             <span className="text-2xl font-bold text-primary">{formatRupiah(grandTotal)}</span>

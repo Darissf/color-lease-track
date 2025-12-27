@@ -3565,6 +3565,7 @@ export type Database = {
           bukti_pembayaran_files: Json | null
           client_group_id: string
           created_at: string
+          discount: number | null
           end_date: string
           google_maps_link: string | null
           id: string
@@ -3601,6 +3602,7 @@ export type Database = {
           bukti_pembayaran_files?: Json | null
           client_group_id: string
           created_at?: string
+          discount?: number | null
           end_date: string
           google_maps_link?: string | null
           id?: string
@@ -3637,6 +3639,7 @@ export type Database = {
           bukti_pembayaran_files?: Json | null
           client_group_id?: string
           created_at?: string
+          discount?: number | null
           end_date?: string
           google_maps_link?: string | null
           id?: string
