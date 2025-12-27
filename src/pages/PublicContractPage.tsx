@@ -430,7 +430,22 @@ const getStatusColor = (status: string) => {
           </CardContent>
         </Card>
 
-        {/* Payment History */}
+        {/* Rincian Tagihan */}
+        {contract.rincian_template && (
+          <Card>
+            <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+              <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Rincian Tagihan
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6">
+              <pre className="whitespace-pre-wrap font-mono text-xs sm:text-sm p-3 sm:p-4 bg-muted/50 rounded-lg overflow-x-auto leading-relaxed">
+                {contract.rincian_template}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
         {contract.payments && contract.payments.length > 0 && (
           <Card>
             <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">

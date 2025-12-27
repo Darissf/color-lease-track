@@ -1363,6 +1363,66 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_line_items: {
+        Row: {
+          contract_id: string
+          created_at: string | null
+          duration_days: number
+          id: string
+          inventory_item_id: string | null
+          item_name: string
+          quantity: number
+          sort_order: number | null
+          subtotal: number | null
+          unit_price_per_day: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string | null
+          duration_days?: number
+          id?: string
+          inventory_item_id?: string | null
+          item_name: string
+          quantity?: number
+          sort_order?: number | null
+          subtotal?: number | null
+          unit_price_per_day?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string | null
+          duration_days?: number
+          id?: string
+          inventory_item_id?: string | null
+          item_name?: string
+          quantity?: number
+          sort_order?: number | null
+          subtotal?: number | null
+          unit_price_per_day?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_line_items_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_line_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_payments: {
         Row: {
           amount: number
@@ -3465,6 +3525,7 @@ export type Database = {
           lokasi_detail: string | null
           notes: string | null
           penanggung_jawab: string | null
+          rincian_template: string | null
           start_date: string
           status: string
           status_pengambilan: string | null
@@ -3475,6 +3536,8 @@ export type Database = {
           tanggal_ambil: string | null
           tanggal_bayar_terakhir: string | null
           tanggal_kirim: string | null
+          transport_cost_delivery: number | null
+          transport_cost_pickup: number | null
           updated_at: string
           user_id: string
         }
@@ -3498,6 +3561,7 @@ export type Database = {
           lokasi_detail?: string | null
           notes?: string | null
           penanggung_jawab?: string | null
+          rincian_template?: string | null
           start_date: string
           status?: string
           status_pengambilan?: string | null
@@ -3508,6 +3572,8 @@ export type Database = {
           tanggal_ambil?: string | null
           tanggal_bayar_terakhir?: string | null
           tanggal_kirim?: string | null
+          transport_cost_delivery?: number | null
+          transport_cost_pickup?: number | null
           updated_at?: string
           user_id: string
         }
@@ -3531,6 +3597,7 @@ export type Database = {
           lokasi_detail?: string | null
           notes?: string | null
           penanggung_jawab?: string | null
+          rincian_template?: string | null
           start_date?: string
           status?: string
           status_pengambilan?: string | null
@@ -3541,6 +3608,8 @@ export type Database = {
           tanggal_ambil?: string | null
           tanggal_bayar_terakhir?: string | null
           tanggal_kirim?: string | null
+          transport_cost_delivery?: number | null
+          transport_cost_pickup?: number | null
           updated_at?: string
           user_id?: string
         }

@@ -42,6 +42,9 @@ interface PublicContractData {
     status_pengambilan: string | null;
     penanggung_jawab: string | null;
     biaya_kirim: number;
+    rincian_template: string | null;
+    transport_cost_delivery: number | null;
+    transport_cost_pickup: number | null;
     client: {
       nama: string;
       nomor_telepon: string;
