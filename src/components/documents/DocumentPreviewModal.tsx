@@ -68,7 +68,14 @@ export const DocumentPreviewModal = ({
       if (!open || !user || !documentData?.contractId || !documentData?.verificationCode) return;
       
       try {
-          const { error } = await supabase
+        // Determine onConflict based on document type
+        // For kwitansi (receipt): use payment_id + document_type
+        // For invoice: use contract_id + document_type
+        const onConflictColumns = documentData.paymentId 
+          ? 'payment_id,document_type'  // For kwitansi
+          : 'contract_id,document_type'; // For invoice
+          
+        const { error } = await supabase
           .from('invoice_receipts')
           .upsert({
             user_id: user.id,
@@ -84,7 +91,7 @@ export const DocumentPreviewModal = ({
             amount: documentData.amount,
             status: documentData.documentType === 'kwitansi' ? 'LUNAS' : 'BELUM_LUNAS',
           }, {
-            onConflict: 'verification_code'
+            onConflict: onConflictColumns
           });
           
         if (error) {
