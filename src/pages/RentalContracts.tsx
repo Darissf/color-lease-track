@@ -357,7 +357,7 @@ const RentalContracts = () => {
       // Jika selesai dan ada tanggal_ambil, update juga
       if (newStatus === 'selesai' && tanggalAmbil) {
         updateData.tanggal_ambil = format(tanggalAmbil, "yyyy-MM-dd");
-        updateData.status_pengambilan = 'sudah_diambil';
+        updateData.status_pengambilan = 'diambil';
       }
       
       const { error } = await supabase
