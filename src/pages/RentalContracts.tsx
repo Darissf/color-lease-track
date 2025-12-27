@@ -340,6 +340,13 @@ const RentalContracts = () => {
     return differenceInDays(new Date(endDate), new Date());
   };
 
+  const capitalizeWords = (text: string) => {
+    return text
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   const getStatusBadge = (status: string) => {
     const statusLower = status.toLowerCase();
     if (statusLower === 'masa sewa') {
@@ -1080,9 +1087,9 @@ const RentalContracts = () => {
                         </span>
                       </TableCell>
                       <TableCell className={cn(isCompactMode && "py-1 px-2")}>
-                        <Badge className={cn(getStatusBadge(contract.status), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
-                          {contract.status}
-                        </Badge>
+                      <Badge className={cn(getStatusBadge(contract.status), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
+                        {capitalizeWords(contract.status)}
+                      </Badge>
                       </TableCell>
                       <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="text-blue-600 font-bold bg-blue-500/10 px-2 py-1 rounded-md">

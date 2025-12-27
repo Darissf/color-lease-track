@@ -110,7 +110,14 @@ export default function PublicContractPage() {
   const paymentProgress = contract.tagihan > 0 ? (paidAmount / contract.tagihan) * 100 : 0;
   const isFullyPaid = contract.tagihan_belum_bayar <= 0;
 
-  const getStatusColor = (status: string) => {
+const capitalizeWords = (text: string) => {
+  return text
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
+const getStatusColor = (status: string) => {
     switch (status) {
       case 'masa sewa': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
       case 'selesai': return 'bg-green-500/10 text-green-600 border-green-500/20';
@@ -169,7 +176,7 @@ export default function PublicContractPage() {
           <CardContent className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
               <Badge variant="outline" className={getStatusColor(contract.status)}>
-                {contract.status}
+                {capitalizeWords(contract.status)}
               </Badge>
               {contract.keterangan && (
                 <div className="flex-1 min-w-0 p-3 bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg border border-gray-200/50">
