@@ -64,7 +64,7 @@ export function ItemContractHistory({ contracts, loading }: ItemContractHistoryP
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {contracts.map((contract) => {
         const duration = differenceInDays(
           new Date(contract.end_date),
@@ -73,52 +73,52 @@ export function ItemContractHistory({ contracts, loading }: ItemContractHistoryP
 
         return (
           <Card key={contract.id} className="hover:border-primary/30 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 space-y-2">
+            <CardContent className="p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 space-y-1.5 min-w-0">
                   {/* Header */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold text-primary">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-mono font-bold text-primary text-sm">
                       {contract.invoice}
                     </span>
                     {getStatusBadge(contract.status, contract.returned_at)}
                   </div>
 
                   {/* Client */}
-                  <div className="flex items-center gap-2 text-sm">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{contract.client_name}</span>
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                    <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="font-medium truncate">{contract.client_name}</span>
                     <span className="text-muted-foreground">•</span>
-                    <span className="text-muted-foreground">
+                    <span className="text-muted-foreground shrink-0">
                       {contract.quantity} unit
                     </span>
                   </div>
 
                   {/* Period */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      {format(new Date(contract.start_date), "d MMM yyyy", { locale: localeId })}
-                      {" → "}
-                      {format(new Date(contract.end_date), "d MMM yyyy", { locale: localeId })}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                    <Calendar className="h-3.5 w-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">
+                      {format(new Date(contract.start_date), "d MMM yy", { locale: localeId })}
+                      {" - "}
+                      {format(new Date(contract.end_date), "d MMM yy", { locale: localeId })}
                     </span>
-                    <Badge variant="outline" className="text-xs">
-                      {duration} hari
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      {duration}hr
                     </Badge>
                   </div>
 
                   {/* Location */}
                   {contract.location && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span className="truncate max-w-[300px]">{contract.location}</span>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{contract.location}</span>
                     </div>
                   )}
 
                   {/* Return date */}
                   {contract.returned_at && (
-                    <p className="text-xs text-muted-foreground">
-                      Dikembalikan: {format(new Date(contract.returned_at), "d MMM yyyy HH:mm", { locale: localeId })}
+                    <p className="text-[10px] text-muted-foreground">
+                      Kembali: {format(new Date(contract.returned_at), "d MMM yy", { locale: localeId })}
                     </p>
                   )}
                 </div>
@@ -126,10 +126,11 @@ export function ItemContractHistory({ contracts, loading }: ItemContractHistoryP
                 {/* Action */}
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
                   onClick={() => navigate(`/vip/contracts/${contract.id}`)}
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </CardContent>
