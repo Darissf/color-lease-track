@@ -133,7 +133,7 @@ export const DynamicStamp = ({
             dominantBaseline="middle"
             letterSpacing="0.5"
           >
-            {documentNumber}
+            {`No. ${documentNumber}`}
           </text>
 
           {/* Date */}
