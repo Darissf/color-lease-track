@@ -626,31 +626,56 @@ async function scrapeBCA() {
     log(`ATM frame URL: ${atmFrame.url()}`);
     await saveDebug(page, '08b-atm-frame');
     
-    // Step 2: Click "Mutasi Rekening" or "Account Statement" in atm frame
-    log('Looking for Mutasi Rekening / Account Statement link...');
-    const stmtClicked = await atmFrame.evaluate(() => {
+    // Step 2: Click "Mutasi Rekening" in MENU frame (submenu)
+    // After clicking "Informasi Rekening", the menu frame updates to show submenu
+    log('Looking for Mutasi Rekening in MENU frame (submenu)...');
+    
+    // Wait for menu frame to update with submenu
+    await delay(1500);
+    
+    // Re-get the menu frame (it should now show submenu)
+    const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
+    if (!updatedMenuFrame) {
+      throw new Error('Menu frame not found after menu click');
+    }
+    log(`Updated menu frame URL: ${updatedMenuFrame.url()}`);
+    
+    // List all links in updated menu frame for debugging
+    await updatedMenuFrame.evaluate(() => {
+      const links = document.querySelectorAll('a');
+      links.forEach(link => {
+        console.log(`Submenu link: "${link.textContent?.trim()}" -> ${link.href}`);
+      });
+    });
+    
+    // Click "Mutasi Rekening" in the submenu
+    const stmtClicked = await updatedMenuFrame.evaluate(() => {
       const links = document.querySelectorAll('a');
       for (const link of links) {
-        const text = (link.textContent || '').toLowerCase();
+        const text = (link.textContent || '').toLowerCase().trim();
         const href = (link.href || '').toLowerCase();
-        console.log(`ATM link: "${text}" -> ${href}`);
         if (text.includes('mutasi rekening') || 
             text.includes('account statement') ||
             href.includes('accountstmt') ||
-            href.includes('acct_stmt')) {
-          console.log(`Clicking: ${text}`);
+            href.includes('acct_stmt') ||
+            href.includes('balanceinquiry')) {
+          console.log(`Clicking submenu: ${text} -> ${href}`);
           link.click();
-          return { success: true, text };
+          return { success: true, text, href };
         }
       }
       return { success: false };
     });
     
-    log(`Statement click result: ${JSON.stringify(stmtClicked)}`);
+    log(`Submenu click result: ${JSON.stringify(stmtClicked)}`);
     await delay(3000);
     
-    // Re-find atm frame again
+    // Now ATM frame should have the account statement form
     atmFrame = page.frames().find(f => f.name() === 'atm');
+    if (!atmFrame) {
+      throw new Error('ATM frame not found after submenu click');
+    }
+    log(`ATM frame URL after submenu click: ${atmFrame.url()}`);
     await saveDebug(page, '09-account-page');
     
     // Step 3: Set date range in ATM frame
