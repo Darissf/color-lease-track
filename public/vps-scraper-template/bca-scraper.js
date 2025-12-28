@@ -13,10 +13,39 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "2.0.0";
-const SCRAPER_BUILD_DATE = "2025-12-28";
+const SCRAPER_VERSION = "2.1.0";
+const SCRAPER_BUILD_DATE = "2025-12-29";
+// v2.1.0: Fixed timezone bug - now uses WIB (Asia/Jakarta) instead of UTC
 // v2.0.0: Optimized burst mode - login 1x, loop Kembali+Lihat
 // =========================================
+
+// ============ JAKARTA TIMEZONE HELPER ============
+/**
+ * Get current date/time in Jakarta timezone (WIB = UTC+7)
+ * This is critical because VPS servers often run in UTC
+ */
+function getJakartaDate() {
+  const now = new Date();
+  // Jakarta is UTC+7 (420 minutes ahead of UTC)
+  const jakartaOffset = 7 * 60; // 7 hours in minutes
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const jakartaTime = new Date(utcTime + (jakartaOffset * 60000));
+  return jakartaTime;
+}
+
+/**
+ * Format Jakarta date for logging
+ */
+function getJakartaDateString() {
+  const jakarta = getJakartaDate();
+  const day = String(jakarta.getDate()).padStart(2, '0');
+  const month = String(jakarta.getMonth() + 1).padStart(2, '0');
+  const year = jakarta.getFullYear();
+  const hours = String(jakarta.getHours()).padStart(2, '0');
+  const minutes = String(jakarta.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes} WIB`;
+}
+// =================================================
 
 const puppeteer = require('puppeteer');
 const path = require('path');
@@ -87,7 +116,8 @@ console.log('');
 console.log('==========================================');
 console.log('  BCA SCRAPER - STARTING UP');
 console.log('==========================================');
-console.log(`  Timestamp    : ${new Date().toISOString()}`);
+console.log(`  Timestamp    : ${new Date().toISOString()} (UTC)`);
+console.log(`  Jakarta Time : ${getJakartaDateString()}`);
 console.log(`  Chromium Path: ${CONFIG.CHROMIUM_PATH || 'NOT FOUND!'}`);
 console.log(`  User ID      : ${CONFIG.BCA_USER_ID.substring(0, 3)}***`);
 console.log(`  Account      : ${CONFIG.ACCOUNT_NUMBER}`);
@@ -808,12 +838,12 @@ async function scrapeBCA() {
     log(`ATM frame URL after submenu click: ${atmFrame.url()}`);
     await saveDebug(page, '09-account-page');
     
-    // Step 3: Set date range in ATM frame
-    const today = new Date();
+    // Step 3: Set date range in ATM frame (using Jakarta timezone!)
+    const today = getJakartaDate();
     const day = String(today.getDate());
     const month = String(today.getMonth() + 1);
     
-    log(`Setting date: ${day}/${month}`);
+    log(`Setting date: ${day}/${month} (Jakarta time: ${getJakartaDateString()})`);
     
     try {
       // Try to set dates in ATM frame
@@ -1213,14 +1243,14 @@ async function scrapeBCABurstMode() {
     });
     await delay(3000);
     
-    // === STEP 3: SET DATE (ONLY ONCE) ===
-    log('Step 3: Setting date range...');
+    // === STEP 3: SET DATE (ONLY ONCE) - Using Jakarta timezone! ===
+    log(`Step 3: Setting date range (Jakarta time: ${getJakartaDateString()})...`);
     let atmFrame = page.frames().find(f => f.name() === 'atm');
     if (!atmFrame) {
       throw new Error('ATM frame not found');
     }
     
-    const today = new Date();
+    const today = getJakartaDate();
     const day = String(today.getDate());
     const month = String(today.getMonth() + 1);
     const currentYear = today.getFullYear();
