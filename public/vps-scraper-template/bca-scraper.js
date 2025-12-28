@@ -745,18 +745,30 @@ async function scrapeBCA() {
     mutations = await atmFrame.evaluate((year) => {
       const results = [];
       const tables = document.querySelectorAll('table');
-      console.log(`Found ${tables.length} tables`);
+      console.log(`[PARSE] Found ${tables.length} tables total`);
       
-      for (const table of tables) {
+      for (let tableIdx = 0; tableIdx < tables.length; tableIdx++) {
+        const table = tables[tableIdx];
         const rows = table.querySelectorAll('tr');
-        for (const row of rows) {
+        console.log(`[TABLE ${tableIdx}] ${rows.length} rows`);
+        
+        for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+          const row = rows[rowIdx];
           const cells = row.querySelectorAll('td');
-          if (cells.length >= 3) {
-            const firstCell = cells[0]?.innerText?.trim() || '';
+          
+          // Need at least 4 columns: Date, Description, Branch, Mutation
+          if (cells.length >= 4) {
+            const firstCellRaw = cells[0]?.innerText || '';
+            const firstCell = firstCellRaw.trim();
+            const firstCellUpper = firstCell.toUpperCase();
+            
+            // Log first few chars of each row for debugging
+            console.log(`[ROW ${rowIdx}] ${cells.length} cells, first="${firstCell.substring(0, 10)}"`);
             
             // Handle both date format (28/12) and "PEND" for pending transactions
+            // Use includes() for PEND to handle whitespace/hidden chars
             const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
-            const isPending = firstCell.toUpperCase() === 'PEND';
+            const isPending = firstCellUpper.includes('PEND');
             
             if (dateMatch || isPending) {
               let date;
@@ -766,7 +778,7 @@ async function scrapeBCA() {
                 const day = String(now.getDate()).padStart(2, '0');
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 date = `${year}-${month}-${day}`;
-                console.log(`Pending transaction, using today: ${date}`);
+                console.log(`[PEND] Using today's date: ${date}`);
               } else {
                 const day = dateMatch[1].padStart(2, '0');
                 const month = dateMatch[2].padStart(2, '0');
@@ -775,41 +787,46 @@ async function scrapeBCA() {
               
               const description = cells[1]?.innerText?.trim() || '';
               
-              // Look for amount and type in remaining columns
-              // BCA format: amount like "2,345.00" with CR/DB indicator
-              let amount = 0;
-              let type = 'credit';
+              // BCA Table Structure:
+              // Col 0: Date (DD/MM or PEND)
+              // Col 1: Description (Keterangan)
+              // Col 2: Branch (Cab.) - skip this
+              // Col 3: Mutation (Mutasi) - contains amount + CR/DB
+              // Col 4: Balance (Saldo) - skip this
               
-              for (let i = 2; i < cells.length; i++) {
-                const cellText = cells[i]?.innerText?.trim() || '';
-                console.log(`  Cell ${i}: "${cellText}"`);
-                
-                // Check for CR/DB type in cell text
-                if (cellText.toUpperCase().includes('DB')) type = 'debit';
-                if (cellText.toUpperCase().includes('CR')) type = 'credit';
-                
-                // Parse amount - BCA uses comma for thousands, dot for decimals
-                // Format examples: "2,345.00" or "333,000.00"
-                // Remove commas (thousand separators), keep the dot for decimals
-                const cleanedAmount = cellText.replace(/,/g, '').replace(/[^0-9.]/g, '');
-                const parsed = parseFloat(cleanedAmount);
-                
-                if (parsed > 0 && !amount) {
-                  amount = parsed;
-                  console.log(`  Parsed amount: ${amount} from "${cellText}"`);
-                }
+              // Get mutation directly from column index 3
+              const mutasiCell = cells[3]?.innerText?.trim() || '';
+              console.log(`[MUTASI] Col3: "${mutasiCell}"`);
+              
+              // Determine type from CR/DB indicator
+              let type = 'credit';
+              if (mutasiCell.toUpperCase().includes('DB')) {
+                type = 'debit';
               }
               
+              // Parse amount - BCA uses comma for thousands, dot for decimals
+              // Format examples: "2,345.00 CR" or "333,000.00 DB"
+              // Remove commas and non-numeric chars except dot
+              const cleanedAmount = mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, '');
+              const amount = parseFloat(cleanedAmount);
+              
+              console.log(`[AMOUNT] Cleaned: "${cleanedAmount}" -> ${amount}`);
+              
               if (amount > 0) {
-                console.log(`Found mutation: ${date} ${type} ${amount} - ${description.substring(0, 40)}`);
-                results.push({ date, amount: Math.round(amount), type, description });
+                console.log(`[FOUND] ${date} ${type} Rp${amount} - ${description.substring(0, 30)}...`);
+                results.push({ 
+                  date, 
+                  amount: Math.round(amount), 
+                  type, 
+                  description 
+                });
               }
             }
           }
         }
       }
       
-      console.log(`Total mutations found: ${results.length}`);
+      console.log(`[RESULT] Total mutations found: ${results.length}`);
       return results;
     }, currentYear);
 
