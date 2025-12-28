@@ -1839,41 +1839,74 @@ export type Database = {
       }
       document_settings: {
         Row: {
+          accent_color: string | null
+          border_color: string | null
           company_address: string | null
           company_name: string | null
           company_phone: string | null
           counter_invoice: number | null
           counter_receipt: number | null
           created_at: string
+          footer_text: string | null
+          header_color_primary: string | null
+          header_color_secondary: string | null
           id: string
+          logo_position: string | null
           owner_name: string | null
+          paper_size: string | null
+          show_qr_code: boolean | null
+          show_terbilang: boolean | null
           signature_image_url: string | null
+          template_style: string | null
+          terms_conditions: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          accent_color?: string | null
+          border_color?: string | null
           company_address?: string | null
           company_name?: string | null
           company_phone?: string | null
           counter_invoice?: number | null
           counter_receipt?: number | null
           created_at?: string
+          footer_text?: string | null
+          header_color_primary?: string | null
+          header_color_secondary?: string | null
           id?: string
+          logo_position?: string | null
           owner_name?: string | null
+          paper_size?: string | null
+          show_qr_code?: boolean | null
+          show_terbilang?: boolean | null
           signature_image_url?: string | null
+          template_style?: string | null
+          terms_conditions?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          accent_color?: string | null
+          border_color?: string | null
           company_address?: string | null
           company_name?: string | null
           company_phone?: string | null
           counter_invoice?: number | null
           counter_receipt?: number | null
           created_at?: string
+          footer_text?: string | null
+          header_color_primary?: string | null
+          header_color_secondary?: string | null
           id?: string
+          logo_position?: string | null
           owner_name?: string | null
+          paper_size?: string | null
+          show_qr_code?: boolean | null
+          show_terbilang?: boolean | null
           signature_image_url?: string | null
+          template_style?: string | null
+          terms_conditions?: string | null
           updated_at?: string
           user_id?: string
         }
