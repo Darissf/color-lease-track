@@ -94,7 +94,7 @@ export const AnimatedHero = () => {
           >
             {[
               "500+ Proyek Selesai",
-              "10+ Tahun Pengalaman",
+              "4+ Tahun Pengalaman",
               "Sertifikasi SNI",
             ].map((text, idx) => (
               <div key={idx} className="flex items-center gap-2 text-white">

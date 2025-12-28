@@ -72,8 +72,8 @@ const features = [
   },
   {
     icon: Clock,
-    title: "10+ Tahun Pengalaman",
-    description: "Melayani ratusan proyek konstruksi di Bali sejak 2014",
+    title: "4+ Tahun Pengalaman",
+    description: "Melayani ratusan proyek konstruksi di Bali sejak 2022",
     color: "from-blue-500 to-cyan-500",
   },
   {

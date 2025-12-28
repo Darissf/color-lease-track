@@ -24,11 +24,11 @@ export const AboutHero = () => {
             Tentang Kami
           </h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed">
-            Partner terpercaya untuk solusi scaffolding berkualitas di Bali sejak 2014
+            Partner terpercaya untuk solusi scaffolding berkualitas di Bali sejak 2022
           </p>
           <div className="flex items-center justify-center gap-8 mt-8">
             <div className="text-center">
-              <div className="text-4xl font-bold">10+</div>
+              <div className="text-4xl font-bold">4+</div>
               <div className="text-sm opacity-90">Tahun Pengalaman</div>
             </div>
             <div className="w-px h-12 bg-white/30" />

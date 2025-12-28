@@ -5,7 +5,7 @@ import { Award, Building2, Clock, Users } from "lucide-react";
 
 const stats = [
   { icon: Building2, value: 500, suffix: "+", label: "Proyek Selesai", color: "from-blue-500 to-cyan-500" },
-  { icon: Clock, value: 10, suffix: "+", label: "Tahun Pengalaman", color: "from-purple-500 to-pink-500" },
+  { icon: Clock, value: 4, suffix: "+", label: "Tahun Pengalaman", color: "from-purple-500 to-pink-500" },
   { icon: Users, value: 24, suffix: "/7", label: "Customer Support", color: "from-orange-500 to-yellow-500" },
   { icon: Award, value: 100, suffix: "%", label: "Kepuasan Klien", color: "from-green-500 to-emerald-500" },
 ];
