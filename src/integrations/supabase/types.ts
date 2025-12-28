@@ -1850,7 +1850,10 @@ export type Database = {
           footer_text: string | null
           header_color_primary: string | null
           header_color_secondary: string | null
+          icon_maps_url: string | null
+          icon_whatsapp_url: string | null
           id: string
+          invoice_logo_url: string | null
           logo_position: string | null
           owner_name: string | null
           paper_size: string | null
@@ -1874,7 +1877,10 @@ export type Database = {
           footer_text?: string | null
           header_color_primary?: string | null
           header_color_secondary?: string | null
+          icon_maps_url?: string | null
+          icon_whatsapp_url?: string | null
           id?: string
+          invoice_logo_url?: string | null
           logo_position?: string | null
           owner_name?: string | null
           paper_size?: string | null
@@ -1898,7 +1904,10 @@ export type Database = {
           footer_text?: string | null
           header_color_primary?: string | null
           header_color_secondary?: string | null
+          icon_maps_url?: string | null
+          icon_whatsapp_url?: string | null
           id?: string
+          invoice_logo_url?: string | null
           logo_position?: string | null
           owner_name?: string | null
           paper_size?: string | null
