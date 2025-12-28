@@ -81,11 +81,28 @@ function runScraper(mode = 'normal') {
     
     log(`Starting scraper (${mode} mode)...`);
     
-    const args = mode === 'burst' ? ['bca-scraper.js'] : ['bca-scraper.js'];
+    const args = ['bca-scraper.js'];
     const child = spawn('node', args, {
       cwd: __dirname,
-      stdio: 'inherit',
+      stdio: ['inherit', 'pipe', 'pipe'],
+      env: { ...process.env, FORCE_COLOR: '1' },
     });
+    
+    // Stream stdout realtime tanpa buffering
+    if (child.stdout) {
+      child.stdout.setEncoding('utf8');
+      child.stdout.on('data', (data) => {
+        process.stdout.write(data);
+      });
+    }
+    
+    // Stream stderr realtime tanpa buffering
+    if (child.stderr) {
+      child.stderr.setEncoding('utf8');
+      child.stderr.on('data', (data) => {
+        process.stderr.write(data);
+      });
+    }
     
     child.on('close', (code) => {
       isScraperRunning = false;
