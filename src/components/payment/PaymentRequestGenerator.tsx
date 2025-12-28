@@ -73,6 +73,8 @@ export function PaymentRequestGenerator({
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
+  const [burstTriggered, setBurstTriggered] = useState(false);
 
   const minimumAmount = Math.ceil(remainingAmount * 0.5);
   const isPublicMode = !!accessCode;
@@ -273,12 +275,37 @@ export function PaymentRequestGenerator({
       }
 
       setPendingRequest(null);
+      setBurstTriggered(false);
       toast.success("Request dibatalkan");
     } catch (error: any) {
       console.error("Error cancelling request:", error);
       toast.error(error.message || "Gagal membatalkan request");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleConfirmTransfer = async () => {
+    if (!pendingRequest) return;
+
+    setIsConfirmingTransfer(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("trigger-burst-scrape", {
+        body: { request_id: pendingRequest.id },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Gagal memicu pengecekan");
+
+      setBurstTriggered(true);
+      toast.success("Pengecekan dipercepat! Pembayaran akan diverifikasi dalam 1-2 menit.", {
+        duration: 5000,
+      });
+    } catch (error: any) {
+      console.error("Error triggering burst mode:", error);
+      toast.error(error.message || "Gagal memicu pengecekan cepat");
+    } finally {
+      setIsConfirmingTransfer(false);
     }
   };
 
@@ -323,25 +350,50 @@ export function PaymentRequestGenerator({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           <span>Menunggu transfer masuk...</span>
         </div>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={handleCancel}
-          disabled={cancelling}
-          className="gap-1.5"
-        >
-          {cancelling ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+        
+        <div className="flex items-center gap-2 flex-wrap">
+          {!burstTriggered ? (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleConfirmTransfer}
+              disabled={isConfirmingTransfer}
+              className="gap-1.5 bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+            >
+              {isConfirmingTransfer ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <CheckCircle className="h-3 w-3" />
+              )}
+              Saya Sudah Transfer
+            </Button>
           ) : (
-            <X className="h-3 w-3" />
+            <Badge variant="outline" className="gap-1.5 py-1.5 px-3 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
+              <CheckCircle className="h-3 w-3" />
+              Pengecekan dipercepat aktif
+            </Badge>
           )}
-          Batalkan
-        </Button>
+          
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="gap-1.5"
+          >
+            {cancelling ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <X className="h-3 w-3" />
+            )}
+            Batalkan
+          </Button>
+        </div>
       </div>
 
       {/* Bank Info - Only shown when pending request is active */}
