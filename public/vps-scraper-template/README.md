@@ -8,10 +8,12 @@ Script untuk scraping mutasi BCA dari VPS sendiri dan mengirim ke webhook.
 VPS langsung di Indonesia - tidak perlu VPN/proxy.
 - Ikuti panduan di bawah
 
-### Opsi 2: VPS Eropa + OpenVPN Indonesia ⭐
-VPS Eropa dengan koneksi VPN ke Indonesia.
+### Opsi 2: VPS Eropa + OpenVPN Indonesia (Split Tunnel) ⭐
+VPS Eropa dengan koneksi VPN ke Indonesia menggunakan split tunneling.
+- **SSH tetap bisa diakses** via IP VPS langsung
+- **Traffic BCA** otomatis melalui VPN Indonesia
 - Lihat: [README-OPENVPN.md](./README-OPENVPN.md)
-- Jalankan: `sudo ./setup-openvpn.sh`
+- Jalankan: `sudo ./setup-split-tunnel.sh`
 
 ---
 
