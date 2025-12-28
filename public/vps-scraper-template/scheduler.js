@@ -13,17 +13,34 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-// Load config from config.env
+// Load config from config.env with improved parsing
 const configPath = path.join(__dirname, 'config.env');
 if (fs.existsSync(configPath)) {
   const envConfig = fs.readFileSync(configPath, 'utf-8');
   envConfig.split('\n').forEach(line => {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith('#')) {
-      const [key, ...valueParts] = trimmed.split('=');
-      if (key && valueParts.length > 0) {
-        process.env[key.trim()] = valueParts.join('=').trim();
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex > 0) {
+        const key = trimmed.substring(0, eqIndex).trim();
+        let value = trimmed.substring(eqIndex + 1).trim();
+        // Remove surrounding quotes (single or double)
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        process.env[key] = value;
       }
+    }
+  });
+  
+  // Log loaded config for debugging
+  const configKeys = ['BCA_USER_ID', 'BCA_PIN', 'SECRET_KEY', 'WEBHOOK_URL', 'ACCOUNT_NUMBER', 'HEADLESS', 'DEBUG_MODE'];
+  console.log('[SCHEDULER] Loaded config.env:');
+  configKeys.forEach(k => {
+    if (process.env[k]) {
+      const val = k.includes('PIN') || k.includes('SECRET') ? '***' : process.env[k].substring(0, 30);
+      console.log(`  ${k}=${val}${process.env[k].length > 30 ? '...' : ''}`);
     }
   });
 }
@@ -85,7 +102,7 @@ function runScraper(mode = 'normal') {
     const child = spawn('node', args, {
       cwd: __dirname,
       stdio: ['inherit', 'pipe', 'pipe'],
-      env: { ...process.env, FORCE_COLOR: '1' },
+      env: process.env, // Use full process.env, not spread with overrides
     });
     
     // Stream stdout realtime tanpa buffering
