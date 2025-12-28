@@ -157,6 +157,21 @@ serve(async (req: Request) => {
         matchedCount++;
         console.log(`[VPS Scraper Webhook] Matched with request: ${matchedRequest}`);
 
+        // Auto-stop burst mode when match is found
+        try {
+          await supabase
+            .from("payment_provider_settings")
+            .update({
+              burst_in_progress: false,
+              burst_ended_at: new Date().toISOString(),
+              burst_last_match_found: true,
+            })
+            .eq("provider", "vps_scraper");
+          console.log("[VPS Scraper Webhook] Burst mode auto-stopped due to match");
+        } catch (burstError) {
+          console.error("[VPS Scraper Webhook] Failed to stop burst mode:", burstError);
+        }
+
         // Get the matched request details for contract update and notification
         const { data: requestData } = await supabase
           .from("payment_confirmation_requests")

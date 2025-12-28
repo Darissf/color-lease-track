@@ -137,3 +137,9 @@ verify_jwt = false
 
 [functions.cloud-bank-scraper]
 verify_jwt = false
+
+[functions.trigger-burst-scrape]
+verify_jwt = true
+
+[functions.check-burst-command]
+verify_jwt = false

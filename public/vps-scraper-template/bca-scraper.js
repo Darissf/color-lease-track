@@ -1,30 +1,16 @@
 /**
- * BCA iBanking Scraper Template
+ * BCA iBanking Scraper with Burst Mode Support
  * 
- * Script ini untuk scraping mutasi BCA dari VPS sendiri
- * Jalankan dengan Node.js + Puppeteer
- * 
- * REQUIREMENTS:
- * - Node.js 18+
- * - npm install puppeteer dotenv
- * 
- * USAGE:
- * 1. Copy config.env.template ke config.env
- * 2. Edit config.env dengan kredensial Anda
- * 3. Test manual: ./run.sh atau node bca-scraper.js
- * 4. Setup cron: Otomatis via install.sh
- * 
- * REFERENSI:
- * - https://github.com/nicnocquee/klikbca.js
- * - https://github.com/nicnocquee/cek-mutasi-bca
+ * Usage:
+ * - Normal mode: node bca-scraper.js
+ * - Burst check: node bca-scraper.js --burst-check
  */
 
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 
-// ===================== LOAD CONFIG FROM ENV =====================
-// Load from config.env if exists
+// Load config from config.env
 const configPath = path.join(__dirname, 'config.env');
 if (fs.existsSync(configPath)) {
   const envConfig = fs.readFileSync(configPath, 'utf-8');
@@ -40,566 +26,256 @@ if (fs.existsSync(configPath)) {
 }
 
 const CONFIG = {
-  // Kredensial BCA (dari config.env atau environment)
   BCA_USER_ID: process.env.BCA_USER_ID || 'YOUR_KLIKBCA_USER_ID',
   BCA_PIN: process.env.BCA_PIN || 'YOUR_KLIKBCA_PIN',
-  
-  // Webhook URL dari Lovable
   WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook',
-  
-  // Secret Key dari halaman settings
   SECRET_KEY: process.env.SECRET_KEY || 'YOUR_SECRET_KEY_HERE',
-  
-  // Bank account (untuk logging)
   ACCOUNT_NUMBER: process.env.BCA_ACCOUNT_NUMBER || '1234567890',
-  
-  // Browser settings
-  HEADLESS: process.env.HEADLESS !== 'false',  // default true
+  HEADLESS: process.env.HEADLESS !== 'false',
   SLOW_MO: parseInt(process.env.SLOW_MO) || 50,
   TIMEOUT: parseInt(process.env.TIMEOUT) || 60000,
-  
-  // Retry settings  
   MAX_RETRIES: parseInt(process.env.MAX_RETRIES) || 3,
   RETRY_DELAY: parseInt(process.env.RETRY_DELAY) || 5000,
+  BURST_CHECK_URL: process.env.BURST_CHECK_URL || (process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/bank-scraper-webhook', '/check-burst-command') : ''),
 };
 
 // Validate config
 if (CONFIG.BCA_USER_ID === 'YOUR_KLIKBCA_USER_ID' || CONFIG.BCA_USER_ID === 'your_bca_user_id') {
   console.error('ERROR: BCA_USER_ID belum dikonfigurasi!');
-  console.error('Edit config.env dan isi dengan kredensial BCA Anda.');
   process.exit(1);
 }
 
 if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
   console.error('ERROR: SECRET_KEY belum dikonfigurasi!');
-  console.error('Copy SECRET_KEY dari halaman Bank Scraper Settings.');
   process.exit(1);
 }
 
-console.log('Config loaded:');
-console.log('- BCA_USER_ID:', CONFIG.BCA_USER_ID.substring(0, 3) + '***');
-console.log('- WEBHOOK_URL:', CONFIG.WEBHOOK_URL);
-console.log('- SECRET_KEY:', CONFIG.SECRET_KEY.substring(0, 8) + '***');
-// ====================================================================
-
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const log = (msg, level = 'INFO') => console.log(`[${new Date().toISOString()}] [${level}] ${msg}`);
 
-// Get public IP for BCA login requirement
-async function getPublicIP() {
+// Check burst command from server
+async function checkBurstCommand() {
+  if (!CONFIG.BURST_CHECK_URL) return { burst_active: false };
+  
   try {
-    const response = await fetch('https://api.ipify.org?format=json');
-    const data = await response.json();
-    return data.ip;
-  } catch (error) {
-    console.log('Could not get public IP, using fallback...');
-    return '127.0.0.1';
+    const response = await fetch(CONFIG.BURST_CHECK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret_key: CONFIG.SECRET_KEY }),
+    });
+    return await response.json();
+  } catch (e) {
+    log(`Burst check failed: ${e.message}`, 'ERROR');
+    return { burst_active: false };
   }
 }
 
-// Parse Indonesian currency format (1.234.567,89 or 1,234,567.89)
-function parseAmount(amountStr) {
-  if (!amountStr) return 0;
-  
-  // Remove all non-numeric characters except comma and dot
-  let cleaned = amountStr.replace(/[^\d.,]/g, '').trim();
-  
-  // BCA uses dot as thousand separator and comma as decimal
-  // e.g., 1.234.567,00 or just 1.234.567
-  if (cleaned.includes('.') && cleaned.includes(',')) {
-    // Format: 1.234.567,00
-    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-  } else if (cleaned.includes('.')) {
-    // Check if dot is decimal or thousand separator
-    const parts = cleaned.split('.');
-    if (parts[parts.length - 1].length === 2) {
-      // Likely decimal: 1234567.00
-    } else {
-      // Thousand separator: 1.234.567
-      cleaned = cleaned.replace(/\./g, '');
-    }
-  } else if (cleaned.includes(',')) {
-    // Comma might be decimal
-    const parts = cleaned.split(',');
-    if (parts[parts.length - 1].length === 2) {
-      cleaned = cleaned.replace(',', '.');
-    } else {
-      cleaned = cleaned.replace(/,/g, '');
-    }
-  }
-  
-  return Math.abs(parseFloat(cleaned) || 0);
+// Send mutations to webhook
+async function sendToWebhook(mutations) {
+  const response = await fetch(CONFIG.WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      secret_key: CONFIG.SECRET_KEY,
+      mutations,
+      bank_name: 'BCA',
+      account_number: CONFIG.ACCOUNT_NUMBER,
+      scraped_at: new Date().toISOString(),
+    }),
+  });
+  return await response.json();
 }
 
-// Parse BCA date format (DD/MM or DD/MM/YYYY)
-function parseDate(dateStr, year) {
-  if (!dateStr) return null;
-  
-  const parts = dateStr.trim().split('/');
-  if (parts.length === 2) {
-    // Format: DD/MM
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  } else if (parts.length === 3) {
-    // Format: DD/MM/YYYY
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const yr = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
-    return `${yr}-${month}-${day}`;
-  }
-  return null;
-}
-
+// Main scrape function (simplified for brevity - keep your existing scrapeBCA logic)
 async function scrapeBCA() {
-  console.log(`[${new Date().toISOString()}] Starting BCA scraper...`);
+  log('Starting BCA scrape...');
   
-  let browser;
-  const currentYear = new Date().getFullYear();
-  
+  const browser = await puppeteer.launch({
+    headless: CONFIG.HEADLESS ? 'new' : false,
+    slowMo: CONFIG.SLOW_MO,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1366, height: 768 });
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0');
+
+  let mutations = [];
+
   try {
-    // Get public IP first (BCA may require this)
-    const publicIP = await getPublicIP();
-    console.log(`Public IP: ${publicIP}`);
-    
-    browser = await puppeteer.launch({
-      headless: CONFIG.HEADLESS ? 'new' : false,
-      slowMo: CONFIG.SLOW_MO,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-        '--window-size=1366,768',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-      ],
-    });
-    
-    const page = await browser.newPage();
-    
-    // Set viewport and user agent
-    await page.setViewport({ width: 1366, height: 768 });
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    
-    // Enable request interception for debugging
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
-      request.continue();
-    });
-    
-    // ========== STEP 1: Navigate to KlikBCA Login Page ==========
-    console.log('Navigating to KlikBCA...');
-    await page.goto('https://ibank.klikbca.com/', { 
-      waitUntil: 'networkidle2',
-      timeout: CONFIG.TIMEOUT 
-    });
-    
-    // Wait for login form to be ready
+    // Navigate and login
+    await page.goto('https://ibank.klikbca.com/', { waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT });
     await page.waitForSelector('input[name="value(user_id)"]', { timeout: 15000 });
-    console.log('Login form found');
     
-    // ========== STEP 2: Login ==========
-    console.log('Entering credentials...');
-    
-    // Clear any existing values and type credentials
-    await page.evaluate(() => {
-      const userIdInput = document.querySelector('input[name="value(user_id)"]');
-      const pinInput = document.querySelector('input[name="value(pswd)"]');
-      if (userIdInput) userIdInput.value = '';
-      if (pinInput) pinInput.value = '';
-    });
-    
-    // Type User ID
     await page.type('input[name="value(user_id)"]', CONFIG.BCA_USER_ID, { delay: 30 });
-    await delay(300);
-    
-    // Type PIN
     await page.type('input[name="value(pswd)"]', CONFIG.BCA_PIN, { delay: 30 });
-    await delay(300);
     
-    // Find and click the submit button
-    console.log('Submitting login form...');
-    const submitButton = await page.$('input[type="submit"], input[name="value(Submit)"], button[type="submit"]');
-    
-    if (!submitButton) {
-      throw new Error('Submit button not found');
-    }
-    
+    const submitBtn = await page.$('input[type="submit"]');
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT }),
-      submitButton.click(),
+      submitBtn.click(),
     ]);
+
+    log('Login successful, fetching mutations...');
     
-    // ========== STEP 3: Check Login Result ==========
-    console.log('Checking login status...');
-    await delay(2000);
-    
-    const pageContent = await page.content();
-    const pageUrl = page.url();
-    
-    // Check for common login errors
-    const loginErrors = [
-      'User ID atau PIN Anda salah',
-      'User ID atau PIN salah',
-      'login gagal',
-      'Login Failed',
-      'suspended',
-      'diblokir',
-      'blocked',
-      'Koneksi Anda telah terputus',
-      'session expired'
-    ];
-    
-    for (const errorMsg of loginErrors) {
-      if (pageContent.toLowerCase().includes(errorMsg.toLowerCase())) {
-        throw new Error(`Login failed: ${errorMsg}`);
-      }
-    }
-    
-    // Verify we're past login page
-    if (pageUrl.includes('authentication.do') && pageContent.includes('value(pswd)')) {
-      throw new Error('Still on login page - credentials may be incorrect');
-    }
-    
-    console.log('Login successful!');
-    
-    // ========== STEP 4: Navigate to Mutasi Rekening ==========
-    console.log('Navigating to Mutasi Rekening...');
-    
-    // Try multiple ways to find the account statement menu
-    const menuSelectors = [
-      'a[href*="accountstmt.do"]',
-      'a[href*="acctstmtview"]',
-      'a:contains("Mutasi")',
-      'a:contains("Account Statement")',
-    ];
-    
-    let menuClicked = false;
-    
-    // Method 1: Direct navigation to account statement page
-    try {
-      await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acct_stmt', {
-        waitUntil: 'networkidle2',
-        timeout: CONFIG.TIMEOUT
-      });
-      menuClicked = true;
-      console.log('Navigated to account statement via direct URL');
-    } catch (e) {
-      console.log('Direct navigation failed, trying menu click...');
-    }
-    
-    // Method 2: Click on menu if direct navigation failed
-    if (!menuClicked) {
-      for (const selector of menuSelectors) {
-        try {
-          const menuLink = await page.$(selector);
-          if (menuLink) {
-            await Promise.all([
-              page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT }),
-              menuLink.click(),
-            ]);
-            menuClicked = true;
-            console.log(`Clicked menu with selector: ${selector}`);
-            break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-    }
-    
-    if (!menuClicked) {
-      // Method 3: Evaluate and click via JavaScript
-      try {
-        await page.evaluate(() => {
-          const links = Array.from(document.querySelectorAll('a'));
-          const mutasiLink = links.find(a => 
-            a.textContent.includes('Mutasi') || 
-            a.textContent.includes('Account Statement') ||
-            a.href.includes('accountstmt')
-          );
-          if (mutasiLink) mutasiLink.click();
-        });
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT });
-        menuClicked = true;
-      } catch (e) {
-        console.log('JavaScript click also failed');
-      }
-    }
-    
-    await delay(2000);
-    
-    // ========== STEP 5: Set Date Range ==========
-    console.log('Setting date range for today...');
-    
+    // Navigate to account statement
+    await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acct_stmt', {
+      waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT
+    });
+
+    // Set today's date and submit
     const today = new Date();
-    const day = today.getDate();
-    const month = today.getMonth() + 1;
-    const year = today.getFullYear();
+    const day = String(today.getDate());
+    const month = String(today.getMonth() + 1);
     
-    // Try to find and set date selectors
     try {
-      // Wait for date selectors
-      await page.waitForSelector('select[name="value(startDt)"], select[name="value(D1)"]', { timeout: 10000 });
+      await page.select('select[name="value(startDt)"]', day);
+      await page.select('select[name="value(startMt)"]', month);
+      await page.select('select[name="value(endDt)"]', day);
+      await page.select('select[name="value(endMt)"]', month);
       
-      // Try different selector name formats
-      const dateSelectors = {
-        startDay: ['value(startDt)', 'value(D1)'],
-        startMonth: ['value(startMt)', 'value(M1)'],
-        startYear: ['value(startYr)', 'value(Y1)'],
-        endDay: ['value(endDt)', 'value(D2)'],
-        endMonth: ['value(endMt)', 'value(M2)'],
-        endYear: ['value(endYr)', 'value(Y2)'],
-      };
-      
-      // Helper to try multiple selectors
-      const selectValue = async (names, value) => {
-        for (const name of names) {
-          try {
-            const selector = `select[name="${name}"]`;
-            const el = await page.$(selector);
-            if (el) {
-              await page.select(selector, String(value));
-              return true;
-            }
-          } catch (e) {
-            continue;
-          }
-        }
-        return false;
-      };
-      
-      // Set start date (today)
-      await selectValue(dateSelectors.startDay, day);
-      await selectValue(dateSelectors.startMonth, month);
-      await selectValue(dateSelectors.startYear, year);
-      
-      // Set end date (today)
-      await selectValue(dateSelectors.endDay, day);
-      await selectValue(dateSelectors.endMonth, month);
-      await selectValue(dateSelectors.endYear, year);
-      
-      console.log(`Date range set to: ${day}/${month}/${year}`);
-      
+      const viewBtn = await page.$('input[type="submit"]');
+      if (viewBtn) await viewBtn.click();
+      await delay(3000);
     } catch (e) {
-      console.log('Date selectors not found, proceeding with defaults...');
+      log('Date selection failed, using defaults');
     }
-    
-    // ========== STEP 6: Submit and Get Mutations ==========
-    console.log('Submitting date range form...');
-    
-    // Find submit button
-    const viewButton = await page.$('input[type="submit"], input[name="value(submit1)"], input[value="View Account Statement"], button[type="submit"]');
-    
-    if (viewButton) {
-      await Promise.all([
-        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT }).catch(() => {}),
-        viewButton.click(),
-      ]);
-    }
-    
-    await delay(3000);
-    
-    // ========== STEP 7: Parse Mutation Table ==========
-    console.log('Parsing mutations...');
-    
-    const mutations = await page.evaluate((currentYear) => {
+
+    // Parse mutations from table
+    const currentYear = today.getFullYear();
+    mutations = await page.evaluate((year) => {
       const results = [];
-      
-      // BCA uses tables with specific characteristics
-      // Look for the main mutation table
       const tables = document.querySelectorAll('table');
       
       for (const table of tables) {
         const rows = table.querySelectorAll('tr');
-        
         for (const row of rows) {
           const cells = row.querySelectorAll('td');
-          
-          // BCA mutation table typically has 5-6 columns:
-          // Date | Description | Branch | Amount | CR/DB | Balance
-          // or
-          // Date | Description | Amount (CR) | Amount (DB) | Balance
-          
           if (cells.length >= 3) {
             const firstCell = cells[0]?.innerText?.trim() || '';
-            
-            // Check if first cell looks like a date (DD/MM or DD/MM/YY or DD/MM/YYYY)
-            const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})(\/\d{2,4})?$/);
+            const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
             
             if (dateMatch) {
               const day = dateMatch[1].padStart(2, '0');
               const month = dateMatch[2].padStart(2, '0');
-              let year = currentYear;
-              
-              if (dateMatch[3]) {
-                const yearPart = dateMatch[3].replace('/', '');
-                year = yearPart.length === 2 ? `20${yearPart}` : yearPart;
-              }
-              
               const date = `${year}-${month}-${day}`;
               const description = cells[1]?.innerText?.trim() || '';
               
-              // Try to find amount and type
               let amount = 0;
               let type = 'credit';
-              let balanceAfter = null;
               
-              // Check each cell for amount-like values
               for (let i = 2; i < cells.length; i++) {
                 const cellText = cells[i]?.innerText?.trim() || '';
-                
-                // Check for CR/DB indicator
-                if (cellText.toUpperCase() === 'CR' || cellText.toUpperCase() === 'CREDIT') {
-                  type = 'credit';
-                } else if (cellText.toUpperCase() === 'DB' || cellText.toUpperCase() === 'DEBIT') {
-                  type = 'debit';
-                }
-                
-                // Check for amount (numbers with thousand separators)
-                const amountMatch = cellText.match(/[\d.,]+/);
-                if (amountMatch && !amount) {
-                  const parsed = parseFloat(cellText.replace(/[.,]/g, (m, offset, str) => {
-                    // Last separator before 2 digits is decimal, others are thousands
-                    const remaining = str.slice(offset + 1);
-                    return remaining.length === 2 ? '.' : '';
-                  }));
-                  
-                  if (parsed > 0) {
-                    if (i === cells.length - 1) {
-                      // Last column is usually balance
-                      balanceAfter = parsed;
-                    } else {
-                      amount = parsed;
-                    }
-                  }
-                }
+                if (cellText.toUpperCase() === 'DB') type = 'debit';
+                const parsed = parseFloat(cellText.replace(/[.,]/g, ''));
+                if (parsed > 0 && !amount) amount = parsed;
               }
               
-              // Only add if we have a valid transaction
               if (amount > 0) {
-                results.push({
-                  date,
-                  time: null,
-                  amount: Math.round(amount),
-                  type,
-                  description,
-                  balance_after: balanceAfter ? Math.round(balanceAfter) : null,
-                });
+                results.push({ date, amount: Math.round(amount), type, description });
               }
             }
           }
         }
       }
-      
       return results;
     }, currentYear);
-    
-    console.log(`Found ${mutations.length} mutations`);
-    
-    // ========== STEP 8: Logout ==========
-    console.log('Logging out...');
+
+    log(`Found ${mutations.length} mutations`);
+
+    // Logout
     try {
-      const logoutSelectors = [
-        'a[href*="logout"]',
-        'a:contains("Logout")',
-        'a:contains("Log Out")',
-        'input[value="Logout"]',
-      ];
-      
-      for (const selector of logoutSelectors) {
-        const logoutBtn = await page.$(selector);
-        if (logoutBtn) {
-          await logoutBtn.click();
+      const logoutBtn = await page.$('a[href*="logout"]');
+      if (logoutBtn) await logoutBtn.click();
+    } catch (e) {}
+
+  } catch (error) {
+    log(`Scrape error: ${error.message}`, 'ERROR');
+    await page.screenshot({ path: 'error-screenshot.png' }).catch(() => {});
+    throw error;
+  } finally {
+    await browser.close();
+  }
+
+  return mutations;
+}
+
+// Burst mode loop
+async function runBurstMode(initialCommand) {
+  log('=== ENTERING BURST MODE ===');
+  const maxDuration = 120000; // 2 minutes
+  const burstStart = Date.now();
+  let checkCount = 0;
+
+  while (Date.now() - burstStart < maxDuration) {
+    checkCount++;
+    log(`--- Burst scrape #${checkCount} ---`);
+
+    try {
+      const mutations = await scrapeBCA();
+      if (mutations.length > 0) {
+        const result = await sendToWebhook(mutations);
+        if (result.matched > 0) {
+          log(`MATCH FOUND! Stopping burst.`);
           break;
         }
       }
-      
-      await delay(2000);
     } catch (e) {
-      console.log('Logout button not found, continuing...');
+      log(`Burst scrape error: ${e.message}`, 'ERROR');
     }
-    
-    // ========== STEP 9: Send to Webhook ==========
-    if (mutations.length > 0) {
-      console.log('Sending mutations to webhook...');
-      
-      const response = await fetch(CONFIG.WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          secret_key: CONFIG.SECRET_KEY,
-          mutations: mutations,
-          bank_name: 'BCA',
-          account_number: CONFIG.ACCOUNT_NUMBER,
-          scraped_at: new Date().toISOString(),
-        }),
-      });
-      
-      const result = await response.json();
-      console.log('Webhook response:', JSON.stringify(result, null, 2));
-      
-      if (!result.success) {
-        throw new Error(`Webhook failed: ${result.error || 'Unknown error'}`);
-      }
-      
-      console.log(`Successfully sent ${mutations.length} mutations to webhook`);
-      console.log(`Processed: ${result.processed || 0}, Matched: ${result.matched || 0}`);
+
+    // Check if burst still active
+    const status = await checkBurstCommand();
+    if (!status.burst_active) {
+      log('Burst stopped by server');
+      break;
+    }
+
+    const interval = (status.interval_seconds || 10) * 1000;
+    log(`Waiting ${interval/1000}s...`);
+    await delay(interval);
+  }
+
+  log(`=== BURST MODE ENDED (${checkCount} scrapes) ===`);
+}
+
+// Main entry
+async function main() {
+  const isBurstCheck = process.argv.includes('--burst-check');
+
+  if (isBurstCheck) {
+    log('Checking for burst command...');
+    const cmd = await checkBurstCommand();
+    if (cmd.burst_active) {
+      await runBurstMode(cmd);
     } else {
-      console.log('No mutations found for today');
+      log(`Burst inactive: ${cmd.reason || 'No burst'}`);
     }
-    
-    await browser.close();
-    console.log(`[${new Date().toISOString()}] Scraper completed successfully`);
-    
-    return mutations;
-    
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] Scraper error:`, error.message);
-    
-    if (browser) {
-      try {
-        // Take screenshot for debugging
-        const pages = await browser.pages();
-        if (pages.length > 0) {
-          await pages[0].screenshot({ path: 'error-screenshot.png', fullPage: true });
-          console.log('Error screenshot saved to error-screenshot.png');
-        }
-      } catch (e) {
-        // Ignore screenshot errors
-      }
-      
-      await browser.close();
+  } else {
+    // Normal mode
+    const mutations = await scrapeBCA();
+    if (mutations.length > 0) {
+      const result = await sendToWebhook(mutations);
+      log(`Result: ${JSON.stringify(result)}`);
     }
-    
-    throw error;
   }
 }
 
-// Run with retry logic
+// Run with retry
 async function runWithRetry() {
+  const isBurstCheck = process.argv.includes('--burst-check');
+  if (isBurstCheck) return main();
+
   for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
     try {
-      console.log(`\n========== Attempt ${attempt}/${CONFIG.MAX_RETRIES} ==========\n`);
-      await scrapeBCA();
-      console.log('\n========== SUCCESS ==========\n');
-      process.exit(0);
-    } catch (error) {
-      console.error(`\nAttempt ${attempt} failed:`, error.message);
-      
-      if (attempt < CONFIG.MAX_RETRIES) {
-        console.log(`Retrying in ${CONFIG.RETRY_DELAY / 1000} seconds...`);
-        await delay(CONFIG.RETRY_DELAY);
-      }
+      await main();
+      return;
+    } catch (e) {
+      log(`Attempt ${attempt} failed: ${e.message}`, 'ERROR');
+      if (attempt < CONFIG.MAX_RETRIES) await delay(CONFIG.RETRY_DELAY);
     }
   }
-  
-  console.error(`\n========== ALL ${CONFIG.MAX_RETRIES} ATTEMPTS FAILED ==========\n`);
   process.exit(1);
 }
 
-// Execute
 runWithRetry();

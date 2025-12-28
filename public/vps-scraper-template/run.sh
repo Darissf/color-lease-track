@@ -2,6 +2,10 @@
 # ============================================================
 # BCA Scraper Runner
 # Script ini menjalankan scraper dengan config dari config.env
+# 
+# Usage:
+#   ./run.sh              - Normal mode (single scrape)
+#   ./run.sh --burst-check - Check for burst command and run if active
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -29,11 +33,16 @@ fi
 
 # Check if VPN is connected (optional)
 if command -v curl &> /dev/null; then
-    echo "Checking IP address..."
+    echo "[$(date)] Checking IP address..."
     IP=$(curl -s https://api.ipify.org 2>/dev/null || echo "unknown")
-    echo "Current IP: $IP"
+    echo "[$(date)] Current IP: $IP"
 fi
 
-# Run scraper
-echo "Starting BCA Scraper..."
-node bca-scraper.js
+# Check for burst-check mode
+if [ "$1" = "--burst-check" ]; then
+    echo "[$(date)] Running in BURST CHECK mode..."
+    node bca-scraper.js --burst-check
+else
+    echo "[$(date)] Running in NORMAL mode..."
+    node bca-scraper.js
+fi
