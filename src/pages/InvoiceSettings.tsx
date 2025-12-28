@@ -34,7 +34,8 @@ const InvoiceSettings = () => {
       title: "Template Invoice",
       description: "Custom template design untuk invoice",
       color: "bg-blue-600",
-      comingSoon: true,
+      comingSoon: false,
+      href: "/vip/settings/invoice/template",
     },
     {
       icon: FileImage,
