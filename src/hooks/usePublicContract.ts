@@ -21,6 +21,16 @@ interface PendingPaymentRequest {
   status: string;
 }
 
+interface DocumentSettings {
+  company_name: string | null;
+  company_address: string | null;
+  company_phone: string | null;
+  owner_name: string | null;
+  signature_image_url: string | null;
+  logo_url: string | null;
+  site_name: string | null;
+}
+
 interface PublicContractData {
   contract: {
     id: string;
@@ -63,6 +73,7 @@ interface PublicContractData {
     created_at: string;
   };
   pending_request: PendingPaymentRequest | null;
+  document_settings: DocumentSettings | null;
 }
 
 interface UsePublicContractResult {
