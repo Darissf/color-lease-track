@@ -312,7 +312,7 @@ export default function BankScraperSettings() {
     }
   };
 
-
+  const handleTestWebhook = async () => {
     if (!vpsSettings?.webhook_secret_encrypted) {
       toast.error("Generate secret key terlebih dahulu");
       return;
