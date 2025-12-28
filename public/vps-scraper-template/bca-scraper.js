@@ -1,5 +1,11 @@
 /**
- * BCA iBanking Scraper with Burst Mode Support
+ * BCA iBanking Scraper with Enhanced Login Handling
+ * 
+ * Features:
+ * - Multiple click strategies for login button
+ * - Debug screenshots at each step
+ * - Frame handling for KlikBCA structure
+ * - Burst mode support
  * 
  * Usage:
  * - Normal mode: node bca-scraper.js
@@ -25,6 +31,21 @@ if (fs.existsSync(configPath)) {
   });
 }
 
+// Find Chromium path
+function findChromiumPath() {
+  const paths = [
+    '/snap/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable'
+  ];
+  for (const p of paths) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
 const CONFIG = {
   BCA_USER_ID: process.env.BCA_USER_ID || 'YOUR_KLIKBCA_USER_ID',
   BCA_PIN: process.env.BCA_PIN || 'YOUR_KLIKBCA_PIN',
@@ -32,10 +53,12 @@ const CONFIG = {
   SECRET_KEY: process.env.SECRET_KEY || 'YOUR_SECRET_KEY_HERE',
   ACCOUNT_NUMBER: process.env.BCA_ACCOUNT_NUMBER || '1234567890',
   HEADLESS: process.env.HEADLESS !== 'false',
-  SLOW_MO: parseInt(process.env.SLOW_MO) || 50,
+  SLOW_MO: parseInt(process.env.SLOW_MO) || 0,
   TIMEOUT: parseInt(process.env.TIMEOUT) || 60000,
   MAX_RETRIES: parseInt(process.env.MAX_RETRIES) || 3,
   RETRY_DELAY: parseInt(process.env.RETRY_DELAY) || 5000,
+  CHROMIUM_PATH: process.env.CHROMIUM_PATH || findChromiumPath(),
+  DEBUG_MODE: process.env.DEBUG_MODE !== 'false',
   BURST_CHECK_URL: process.env.BURST_CHECK_URL || (process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/bank-scraper-webhook', '/check-burst-command') : ''),
 };
 
@@ -52,6 +75,23 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const log = (msg, level = 'INFO') => console.log(`[${new Date().toISOString()}] [${level}] ${msg}`);
+
+// Save debug screenshot
+async function saveDebug(page, name, type = 'png') {
+  if (!CONFIG.DEBUG_MODE) return;
+  try {
+    if (type === 'png') {
+      await page.screenshot({ path: `debug-${name}.png`, fullPage: true });
+      log(`Screenshot: debug-${name}.png`);
+    } else {
+      const html = await page.content();
+      fs.writeFileSync(`debug-${name}.html`, html);
+      log(`HTML saved: debug-${name}.html`);
+    }
+  } catch (e) {
+    log(`Debug save failed: ${e.message}`, 'WARN');
+  }
+}
 
 // Check burst command from server
 async function checkBurstCommand() {
@@ -72,56 +112,338 @@ async function checkBurstCommand() {
 
 // Send mutations to webhook
 async function sendToWebhook(mutations) {
-  const response = await fetch(CONFIG.WEBHOOK_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      secret_key: CONFIG.SECRET_KEY,
-      mutations,
-      bank_name: 'BCA',
-      account_number: CONFIG.ACCOUNT_NUMBER,
-      scraped_at: new Date().toISOString(),
-    }),
-  });
-  return await response.json();
+  try {
+    const response = await fetch(CONFIG.WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret_key: CONFIG.SECRET_KEY,
+        mutations,
+        bank_name: 'BCA',
+        account_number: CONFIG.ACCOUNT_NUMBER,
+        scraped_at: new Date().toISOString(),
+      }),
+    });
+    return await response.json();
+  } catch (e) {
+    log(`Webhook error: ${e.message}`, 'ERROR');
+    return { error: e.message };
+  }
 }
 
-// Main scrape function (simplified for brevity - keep your existing scrapeBCA logic)
+// Main scrape function with enhanced login handling
 async function scrapeBCA() {
-  log('Starting BCA scrape...');
+  log('=== BCA SCRAPER STARTED ===');
+  log(`Config: USER_ID=${CONFIG.BCA_USER_ID.substring(0, 3)}***, ACCOUNT=${CONFIG.ACCOUNT_NUMBER}`);
+  log(`Using Chromium at: ${CONFIG.CHROMIUM_PATH}`);
+  log(`Headless mode: ${CONFIG.HEADLESS}`);
   
   const browser = await puppeteer.launch({
     headless: CONFIG.HEADLESS ? 'new' : false,
     slowMo: CONFIG.SLOW_MO,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    executablePath: CONFIG.CHROMIUM_PATH,
+    args: [
+      '--no-sandbox', 
+      '--disable-setuid-sandbox', 
+      '--disable-dev-shm-usage',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor'
+    ],
   });
 
+  log('Browser launched successfully');
+  
   const page = await browser.newPage();
   await page.setViewport({ width: 1366, height: 768 });
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0');
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+  // Enable console logging
+  page.on('console', msg => {
+    if (CONFIG.DEBUG_MODE) log(`[BROWSER] ${msg.text()}`, 'DEBUG');
+  });
+  
+  page.on('requestfailed', req => {
+    const url = req.url();
+    if (!url.includes('favicon') && !url.includes('analytics')) {
+      log(`[REQUEST FAILED] ${url} - ${req.failure()?.errorText}`, 'ERROR');
+    }
+  });
 
   let mutations = [];
 
   try {
-    // Navigate and login
-    await page.goto('https://ibank.klikbca.com/', { waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT });
-    await page.waitForSelector('input[name="value(user_id)"]', { timeout: 15000 });
+    // Navigate to KlikBCA
+    log('Navigating to KlikBCA...');
+    await page.goto('https://ibank.klikbca.com/', { 
+      waitUntil: 'networkidle2', 
+      timeout: CONFIG.TIMEOUT 
+    });
     
-    await page.type('input[name="value(user_id)"]', CONFIG.BCA_USER_ID, { delay: 30 });
-    await page.type('input[name="value(pswd)"]', CONFIG.BCA_PIN, { delay: 30 });
+    await delay(2000);
+    await saveDebug(page, '01-login-page');
+    log(`Page title: ${await page.title()}`);
     
-    const submitBtn = await page.$('input[type="submit"]');
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT }),
-      submitBtn.click(),
-    ]);
-
-    log('Login successful, fetching mutations...');
+    // Wait for login form - try multiple selectors
+    log('Waiting for user_id input field...');
+    const userIdSelectors = [
+      'input[name="value(user_id)"]',
+      'input[name="user_id"]',
+      'input#user_id',
+      'input[type="text"]'
+    ];
+    
+    let userIdInput = null;
+    for (const selector of userIdSelectors) {
+      try {
+        await page.waitForSelector(selector, { timeout: 5000 });
+        userIdInput = await page.$(selector);
+        if (userIdInput) {
+          log(`Found user_id with selector: ${selector}`);
+          break;
+        }
+      } catch (e) {
+        // Try next selector
+      }
+    }
+    
+    if (!userIdInput) {
+      throw new Error('Could not find user_id input field');
+    }
+    
+    // Enter credentials
+    log('Entering user ID...');
+    await userIdInput.click({ clickCount: 3 }); // Select all
+    await userIdInput.type(CONFIG.BCA_USER_ID, { delay: 50 });
+    await delay(500);
+    log('User ID entered');
+    
+    log('Entering PIN...');
+    const pinSelectors = [
+      'input[name="value(pswd)"]',
+      'input[name="pswd"]',
+      'input#pswd',
+      'input[type="password"]'
+    ];
+    
+    let pinInput = null;
+    for (const selector of pinSelectors) {
+      pinInput = await page.$(selector);
+      if (pinInput) {
+        log(`Found PIN with selector: ${selector}`);
+        break;
+      }
+    }
+    
+    if (!pinInput) {
+      throw new Error('Could not find PIN input field');
+    }
+    
+    await pinInput.click({ clickCount: 3 });
+    await pinInput.type(CONFIG.BCA_PIN, { delay: 50 });
+    await delay(500);
+    log('PIN entered');
+    
+    await saveDebug(page, '02-credentials-entered');
+    
+    // Find submit button
+    log('Looking for submit button...');
+    await delay(1000); // Wait for any JS to initialize
+    
+    const submitSelectors = [
+      'input[type="submit"]',
+      'input[value="LOGIN"]',
+      'input[name="value(actions)"]',
+      'button[type="submit"]',
+      'input.button'
+    ];
+    
+    let submitButton = null;
+    let submitSelector = null;
+    for (const selector of submitSelectors) {
+      submitButton = await page.$(selector);
+      if (submitButton) {
+        submitSelector = selector;
+        log(`Submit button found with selector: ${selector}`);
+        break;
+      }
+    }
+    
+    if (!submitButton) {
+      await saveDebug(page, '02b-no-submit', 'html');
+      throw new Error('Submit button not found');
+    }
+    
+    await saveDebug(page, '03-before-click');
+    log('Clicking submit button...');
+    
+    // === ENHANCED CLICK STRATEGY ===
+    let loginSuccess = false;
+    
+    // Strategy 1: JavaScript form submit
+    log('Strategy 1: JavaScript form.submit()...');
+    try {
+      const submitted = await page.evaluate(() => {
+        const form = document.querySelector('form');
+        if (form) {
+          form.submit();
+          return true;
+        }
+        return false;
+      });
+      
+      if (submitted) {
+        log('Form submitted via JavaScript');
+        await delay(3000);
+        
+        // Check if we navigated
+        const newUrl = page.url();
+        if (!newUrl.includes('klikbca.com') || newUrl !== 'https://ibank.klikbca.com/') {
+          loginSuccess = true;
+        }
+      }
+    } catch (e) {
+      log(`Strategy 1 failed: ${e.message}`, 'WARN');
+    }
+    
+    await saveDebug(page, '04-after-submit-1');
+    
+    // Check if still on login page
+    const stillOnLogin1 = await page.$('input[name="value(user_id)"], input[name="user_id"]');
+    if (stillOnLogin1 && !loginSuccess) {
+      log('Still on login page, trying Strategy 2...');
+      
+      // Re-enter credentials (they might have been cleared)
+      const userIdField = await page.$('input[name="value(user_id)"], input[name="user_id"]');
+      const pinField = await page.$('input[name="value(pswd)"], input[name="pswd"], input[type="password"]');
+      
+      if (userIdField && pinField) {
+        await userIdField.click({ clickCount: 3 });
+        await userIdField.type(CONFIG.BCA_USER_ID, { delay: 30 });
+        await pinField.click({ clickCount: 3 });
+        await pinField.type(CONFIG.BCA_PIN, { delay: 30 });
+        await delay(500);
+      }
+      
+      // Strategy 2: Direct click on submit with waitForNavigation
+      log('Strategy 2: Direct click with waitForNavigation...');
+      try {
+        const newSubmitBtn = await page.$('input[type="submit"]');
+        if (newSubmitBtn) {
+          await Promise.all([
+            page.waitForNavigation({ 
+              waitUntil: 'networkidle2', 
+              timeout: 15000 
+            }).catch(e => log(`Nav timeout: ${e.message}`, 'WARN')),
+            newSubmitBtn.click()
+          ]);
+          await delay(2000);
+        }
+      } catch (e) {
+        log(`Strategy 2 failed: ${e.message}`, 'WARN');
+      }
+      
+      await saveDebug(page, '05-after-submit-2');
+    }
+    
+    // Check if still on login page
+    const stillOnLogin2 = await page.$('input[name="value(user_id)"], input[name="user_id"]');
+    if (stillOnLogin2) {
+      log('Still on login page, trying Strategy 3...');
+      
+      // Strategy 3: Click via JavaScript on the element
+      log('Strategy 3: Element.click() via JavaScript...');
+      try {
+        await page.evaluate(() => {
+          const buttons = document.querySelectorAll('input');
+          for (const btn of buttons) {
+            if (btn.type === 'submit' || btn.value.toUpperCase().includes('LOGIN')) {
+              btn.click();
+              return true;
+            }
+          }
+          return false;
+        });
+        await delay(5000);
+      } catch (e) {
+        log(`Strategy 3 failed: ${e.message}`, 'WARN');
+      }
+      
+      await saveDebug(page, '06-after-submit-3');
+    }
+    
+    // Check if still on login page
+    await delay(2000);
+    const stillOnLogin3 = await page.$('input[name="value(user_id)"], input[name="user_id"]');
+    if (stillOnLogin3) {
+      // Try Strategy 4: Keyboard Enter
+      log('Still on login page, trying Strategy 4: Keyboard Enter...');
+      
+      const pinField = await page.$('input[type="password"]');
+      if (pinField) {
+        await pinField.focus();
+        await page.keyboard.press('Enter');
+        await delay(5000);
+      }
+      
+      await saveDebug(page, '07-after-enter');
+    }
+    
+    // Final check
+    await delay(2000);
+    await saveDebug(page, '08-final-login-state');
+    await saveDebug(page, '08-final-login-state', 'html');
+    
+    const pageContent = await page.content();
+    const currentUrl = page.url();
+    log(`Current URL: ${currentUrl}`);
+    
+    // Check for error messages
+    if (pageContent.includes('Password atau User ID salah') || 
+        pageContent.includes('incorrect') ||
+        pageContent.includes('invalid') ||
+        pageContent.includes('Kesalahan')) {
+      throw new Error('Login failed - incorrect credentials');
+    }
+    
+    // Check if still on login page
+    const finalLoginCheck = await page.$('input[name="value(user_id)"], input[name="user_id"]');
+    if (finalLoginCheck) {
+      throw new Error('Login failed - still on login page after all attempts');
+    }
+    
+    log('Login successful!');
+    await saveDebug(page, '09-logged-in');
     
     // Navigate to account statement
-    await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acct_stmt', {
-      waitUntil: 'networkidle2', timeout: CONFIG.TIMEOUT
-    });
+    log('Navigating to account statement...');
+    await delay(2000);
+    
+    // Try direct URL navigation
+    try {
+      await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acct_stmt', {
+        waitUntil: 'networkidle2', 
+        timeout: CONFIG.TIMEOUT
+      });
+    } catch (e) {
+      log(`Direct navigation failed: ${e.message}`, 'WARN');
+      
+      // Try clicking menu links
+      await page.evaluate(() => {
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+          const text = (link.textContent || '').toLowerCase();
+          if (text.includes('informasi rekening') || 
+              text.includes('account information')) {
+            link.click();
+            return true;
+          }
+        }
+        return false;
+      });
+      await delay(3000);
+    }
+    
+    await saveDebug(page, '10-account-page');
 
     // Set today's date and submit
     const today = new Date();
@@ -129,17 +451,36 @@ async function scrapeBCA() {
     const month = String(today.getMonth() + 1);
     
     try {
-      await page.select('select[name="value(startDt)"]', day);
-      await page.select('select[name="value(startMt)"]', month);
-      await page.select('select[name="value(endDt)"]', day);
-      await page.select('select[name="value(endMt)"]', month);
+      // Try different date selector patterns
+      const dateSelectors = [
+        { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' },
+        { start: 'select[name="startDt"]', startMt: 'select[name="startMt"]', end: 'select[name="endDt"]', endMt: 'select[name="endMt"]' }
+      ];
       
-      const viewBtn = await page.$('input[type="submit"]');
-      if (viewBtn) await viewBtn.click();
-      await delay(3000);
+      for (const sel of dateSelectors) {
+        try {
+          await page.select(sel.start, day);
+          await page.select(sel.startMt, month);
+          await page.select(sel.end, day);
+          await page.select(sel.endMt, month);
+          log('Date range set successfully');
+          break;
+        } catch (e) {
+          // Try next pattern
+        }
+      }
+      
+      // Click view button
+      const viewBtn = await page.$('input[type="submit"], input[value*="Lihat"], input[value*="View"]');
+      if (viewBtn) {
+        await viewBtn.click();
+        await delay(3000);
+      }
     } catch (e) {
-      log('Date selection failed, using defaults');
+      log(`Date selection failed: ${e.message}`, 'WARN');
     }
+    
+    await saveDebug(page, '11-mutations-result');
 
     // Parse mutations from table
     const currentYear = today.getFullYear();
@@ -185,16 +526,37 @@ async function scrapeBCA() {
 
     // Logout
     try {
-      const logoutBtn = await page.$('a[href*="logout"]');
-      if (logoutBtn) await logoutBtn.click();
-    } catch (e) {}
+      log('Logging out...');
+      const logoutClicked = await page.evaluate(() => {
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+          const text = (link.textContent || '').toLowerCase();
+          if (text.includes('logout') || text.includes('keluar')) {
+            link.click();
+            return true;
+          }
+        }
+        return false;
+      });
+      if (logoutClicked) {
+        await delay(2000);
+        log('Logged out successfully');
+      }
+    } catch (e) {
+      log(`Logout error: ${e.message}`, 'WARN');
+    }
+    
+    await saveDebug(page, '12-final');
 
   } catch (error) {
     log(`Scrape error: ${error.message}`, 'ERROR');
-    await page.screenshot({ path: 'error-screenshot.png' }).catch(() => {});
+    log(`Stack: ${error.stack}`, 'DEBUG');
+    await saveDebug(page, 'error-state');
+    await saveDebug(page, 'error-state', 'html');
     throw error;
   } finally {
     await browser.close();
+    log('Browser closed');
   }
 
   return mutations;
@@ -257,6 +619,8 @@ async function main() {
     if (mutations.length > 0) {
       const result = await sendToWebhook(mutations);
       log(`Result: ${JSON.stringify(result)}`);
+    } else {
+      log('No mutations found');
     }
   }
 }
