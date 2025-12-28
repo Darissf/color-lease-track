@@ -1,10 +1,10 @@
 /**
- * BCA iBanking Scraper with Enhanced Login Handling
+ * BCA iBanking Scraper with Enhanced Frame/Iframe Handling
  * 
  * Features:
- * - Multiple click strategies for login button
+ * - Proper iframe detection and handling
+ * - Multiple fallback strategies for login
  * - Debug screenshots at each step
- * - Frame handling for KlikBCA structure
  * - Burst mode support
  * 
  * Usage:
@@ -131,7 +131,261 @@ async function sendToWebhook(mutations) {
   }
 }
 
-// Main scrape function with enhanced login handling
+/**
+ * Find the frame containing the login form
+ * KlikBCA uses iframes, so we need to search all frames
+ */
+async function findLoginFrame(page) {
+  const frames = page.frames();
+  log(`Total frames on page: ${frames.length}`);
+  
+  // Log all frames for debugging
+  for (let i = 0; i < frames.length; i++) {
+    const f = frames[i];
+    const url = f.url();
+    const name = f.name() || 'unnamed';
+    log(`Frame ${i}: name="${name}", url=${url.substring(0, 80)}...`);
+  }
+  
+  // First, check main page
+  try {
+    const mainInput = await page.$('input[name="value(user_id)"]');
+    if (mainInput) {
+      log('Login form found in MAIN PAGE');
+      return { frame: page, isMainPage: true };
+    }
+  } catch (e) {}
+  
+  // Search all frames
+  for (const frame of frames) {
+    try {
+      const input = await frame.$('input[name="value(user_id)"]');
+      if (input) {
+        log(`Login form found in FRAME: ${frame.url()}`);
+        return { frame, isMainPage: false };
+      }
+    } catch (e) {
+      // Frame might be inaccessible
+    }
+  }
+  
+  // Try alternative selectors in all frames
+  const altSelectors = ['input[name="user_id"]', 'input#user_id', 'input[type="text"][size]'];
+  for (const selector of altSelectors) {
+    for (const frame of frames) {
+      try {
+        const input = await frame.$(selector);
+        if (input) {
+          log(`Login form found with "${selector}" in frame: ${frame.url()}`);
+          return { frame, isMainPage: frame === page.mainFrame() };
+        }
+      } catch (e) {}
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Enter credentials using multiple strategies
+ */
+async function enterCredentials(frame, userId, pin) {
+  log('Entering credentials...');
+  
+  // Strategy 1: Use frame.type() with focus
+  try {
+    log('Strategy 1: Using frame.type() with focus...');
+    
+    const userIdInput = await frame.$('input[name="value(user_id)"]') || 
+                        await frame.$('input[name="user_id"]') ||
+                        await frame.$('input#user_id');
+    
+    const pinInput = await frame.$('input[name="value(pswd)"]') || 
+                     await frame.$('input[name="pswd"]') ||
+                     await frame.$('input#pswd') ||
+                     await frame.$('input[type="password"]');
+    
+    if (userIdInput && pinInput) {
+      // Focus and clear first
+      await userIdInput.focus();
+      await delay(200);
+      await frame.evaluate(el => { el.value = ''; }, userIdInput);
+      await userIdInput.type(userId, { delay: 50 });
+      log('User ID entered via type()');
+      
+      await pinInput.focus();
+      await delay(200);
+      await frame.evaluate(el => { el.value = ''; }, pinInput);
+      await pinInput.type(pin, { delay: 50 });
+      log('PIN entered via type()');
+      
+      return true;
+    }
+  } catch (e) {
+    log(`Strategy 1 failed: ${e.message}`, 'WARN');
+  }
+  
+  // Strategy 2: Use frame.evaluate() for direct DOM manipulation
+  try {
+    log('Strategy 2: Using frame.evaluate() for direct DOM...');
+    
+    const success = await frame.evaluate((userId, pin) => {
+      const findInput = (selectors) => {
+        for (const sel of selectors) {
+          const el = document.querySelector(sel);
+          if (el) return el;
+        }
+        return null;
+      };
+      
+      const userIdInput = findInput([
+        'input[name="value(user_id)"]',
+        'input[name="user_id"]',
+        'input#user_id'
+      ]);
+      
+      const pinInput = findInput([
+        'input[name="value(pswd)"]',
+        'input[name="pswd"]',
+        'input#pswd',
+        'input[type="password"]'
+      ]);
+      
+      if (userIdInput && pinInput) {
+        userIdInput.value = userId;
+        userIdInput.dispatchEvent(new Event('input', { bubbles: true }));
+        userIdInput.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        pinInput.value = pin;
+        pinInput.dispatchEvent(new Event('input', { bubbles: true }));
+        pinInput.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        return true;
+      }
+      return false;
+    }, userId, pin);
+    
+    if (success) {
+      log('Credentials entered via evaluate()');
+      return true;
+    }
+  } catch (e) {
+    log(`Strategy 2 failed: ${e.message}`, 'WARN');
+  }
+  
+  // Strategy 3: Keyboard simulation
+  try {
+    log('Strategy 3: Using keyboard simulation...');
+    
+    // Tab to first field and type
+    await frame.keyboard.press('Tab');
+    await delay(200);
+    for (const char of userId) {
+      await frame.keyboard.type(char);
+      await delay(30);
+    }
+    
+    await frame.keyboard.press('Tab');
+    await delay(200);
+    for (const char of pin) {
+      await frame.keyboard.type(char);
+      await delay(30);
+    }
+    
+    log('Credentials entered via keyboard');
+    return true;
+  } catch (e) {
+    log(`Strategy 3 failed: ${e.message}`, 'WARN');
+  }
+  
+  return false;
+}
+
+/**
+ * Submit login form using multiple strategies
+ */
+async function submitLogin(frame, page) {
+  log('Attempting to submit login form...');
+  
+  // Strategy 1: JavaScript form.submit()
+  try {
+    log('Submit Strategy 1: form.submit()...');
+    const submitted = await frame.evaluate(() => {
+      const form = document.querySelector('form');
+      if (form) {
+        form.submit();
+        return true;
+      }
+      return false;
+    });
+    
+    if (submitted) {
+      log('Form submitted via form.submit()');
+      await delay(3000);
+      return true;
+    }
+  } catch (e) {
+    log(`Submit Strategy 1 failed: ${e.message}`, 'WARN');
+  }
+  
+  // Strategy 2: Click submit button
+  try {
+    log('Submit Strategy 2: Click submit button...');
+    const submitBtn = await frame.$('input[type="submit"]') ||
+                      await frame.$('input[value="LOGIN"]') ||
+                      await frame.$('input[name="value(actions)"]');
+    
+    if (submitBtn) {
+      await submitBtn.click();
+      log('Submit button clicked');
+      await delay(3000);
+      return true;
+    }
+  } catch (e) {
+    log(`Submit Strategy 2 failed: ${e.message}`, 'WARN');
+  }
+  
+  // Strategy 3: JavaScript click on submit
+  try {
+    log('Submit Strategy 3: JavaScript click...');
+    const clicked = await frame.evaluate(() => {
+      const buttons = document.querySelectorAll('input[type="submit"], input[value="LOGIN"]');
+      for (const btn of buttons) {
+        btn.click();
+        return true;
+      }
+      return false;
+    });
+    
+    if (clicked) {
+      log('Submit clicked via JavaScript');
+      await delay(3000);
+      return true;
+    }
+  } catch (e) {
+    log(`Submit Strategy 3 failed: ${e.message}`, 'WARN');
+  }
+  
+  // Strategy 4: Keyboard Enter on password field
+  try {
+    log('Submit Strategy 4: Keyboard Enter...');
+    const pinInput = await frame.$('input[type="password"]');
+    if (pinInput) {
+      await pinInput.focus();
+      await delay(100);
+      await frame.keyboard.press('Enter');
+      log('Enter key pressed');
+      await delay(3000);
+      return true;
+    }
+  } catch (e) {
+    log(`Submit Strategy 4 failed: ${e.message}`, 'WARN');
+  }
+  
+  return false;
+}
+
+// Main scrape function with enhanced frame handling
 async function scrapeBCA() {
   log('=== BCA SCRAPER STARTED ===');
   log(`Config: USER_ID=${CONFIG.BCA_USER_ID.substring(0, 3)}***, ACCOUNT=${CONFIG.ACCOUNT_NUMBER}`);
@@ -181,217 +435,57 @@ async function scrapeBCA() {
     
     await delay(2000);
     await saveDebug(page, '01-login-page');
+    await saveDebug(page, '01-login-page', 'html');
     log(`Page title: ${await page.title()}`);
     
-    // Wait for login form - try multiple selectors
-    log('Waiting for user_id input field...');
-    const userIdSelectors = [
-      'input[name="value(user_id)"]',
-      'input[name="user_id"]',
-      'input#user_id',
-      'input[type="text"]'
-    ];
+    // === FIND LOGIN FRAME ===
+    log('Searching for login form in frames...');
+    const frameResult = await findLoginFrame(page);
     
-    let userIdInput = null;
-    for (const selector of userIdSelectors) {
-      try {
-        await page.waitForSelector(selector, { timeout: 5000 });
-        userIdInput = await page.$(selector);
-        if (userIdInput) {
-          log(`Found user_id with selector: ${selector}`);
-          break;
-        }
-      } catch (e) {
-        // Try next selector
-      }
+    if (!frameResult) {
+      throw new Error('Could not find login form in any frame');
     }
     
-    if (!userIdInput) {
-      throw new Error('Could not find user_id input field');
+    const { frame, isMainPage } = frameResult;
+    log(`Using ${isMainPage ? 'main page' : 'iframe'} for login`);
+    
+    // === ENTER CREDENTIALS ===
+    const credentialsEntered = await enterCredentials(frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+    if (!credentialsEntered) {
+      throw new Error('Failed to enter credentials');
     }
     
-    // Enter credentials
-    log('Entering user ID...');
-    await userIdInput.click({ clickCount: 3 }); // Select all
-    await userIdInput.type(CONFIG.BCA_USER_ID, { delay: 50 });
     await delay(500);
-    log('User ID entered');
-    
-    log('Entering PIN...');
-    const pinSelectors = [
-      'input[name="value(pswd)"]',
-      'input[name="pswd"]',
-      'input#pswd',
-      'input[type="password"]'
-    ];
-    
-    let pinInput = null;
-    for (const selector of pinSelectors) {
-      pinInput = await page.$(selector);
-      if (pinInput) {
-        log(`Found PIN with selector: ${selector}`);
-        break;
-      }
-    }
-    
-    if (!pinInput) {
-      throw new Error('Could not find PIN input field');
-    }
-    
-    await pinInput.click({ clickCount: 3 });
-    await pinInput.type(CONFIG.BCA_PIN, { delay: 50 });
-    await delay(500);
-    log('PIN entered');
-    
     await saveDebug(page, '02-credentials-entered');
     
-    // Find submit button
-    log('Looking for submit button...');
-    await delay(1000); // Wait for any JS to initialize
+    // === SUBMIT LOGIN ===
+    await saveDebug(page, '03-before-submit');
+    const submitted = await submitLogin(frame, page);
     
-    const submitSelectors = [
-      'input[type="submit"]',
-      'input[value="LOGIN"]',
-      'input[name="value(actions)"]',
-      'button[type="submit"]',
-      'input.button'
-    ];
-    
-    let submitButton = null;
-    let submitSelector = null;
-    for (const selector of submitSelectors) {
-      submitButton = await page.$(selector);
-      if (submitButton) {
-        submitSelector = selector;
-        log(`Submit button found with selector: ${selector}`);
-        break;
-      }
+    if (!submitted) {
+      log('All submit strategies failed, trying additional methods...', 'WARN');
     }
     
-    if (!submitButton) {
-      await saveDebug(page, '02b-no-submit', 'html');
-      throw new Error('Submit button not found');
+    await delay(3000);
+    await saveDebug(page, '04-after-submit');
+    
+    // Check if still on login page - try re-submit if needed
+    let loginFrame = await findLoginFrame(page);
+    if (loginFrame) {
+      log('Still on login page, re-entering credentials and trying again...');
+      
+      await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+      await delay(500);
+      await submitLogin(loginFrame.frame, page);
+      await delay(3000);
+      
+      await saveDebug(page, '05-second-attempt');
     }
     
-    await saveDebug(page, '03-before-click');
-    log('Clicking submit button...');
-    
-    // === ENHANCED CLICK STRATEGY ===
-    let loginSuccess = false;
-    
-    // Strategy 1: JavaScript form submit
-    log('Strategy 1: JavaScript form.submit()...');
-    try {
-      const submitted = await page.evaluate(() => {
-        const form = document.querySelector('form');
-        if (form) {
-          form.submit();
-          return true;
-        }
-        return false;
-      });
-      
-      if (submitted) {
-        log('Form submitted via JavaScript');
-        await delay(3000);
-        
-        // Check if we navigated
-        const newUrl = page.url();
-        if (!newUrl.includes('klikbca.com') || newUrl !== 'https://ibank.klikbca.com/') {
-          loginSuccess = true;
-        }
-      }
-    } catch (e) {
-      log(`Strategy 1 failed: ${e.message}`, 'WARN');
-    }
-    
-    await saveDebug(page, '04-after-submit-1');
-    
-    // Check if still on login page
-    const stillOnLogin1 = await page.$('input[name="value(user_id)"], input[name="user_id"]');
-    if (stillOnLogin1 && !loginSuccess) {
-      log('Still on login page, trying Strategy 2...');
-      
-      // Re-enter credentials (they might have been cleared)
-      const userIdField = await page.$('input[name="value(user_id)"], input[name="user_id"]');
-      const pinField = await page.$('input[name="value(pswd)"], input[name="pswd"], input[type="password"]');
-      
-      if (userIdField && pinField) {
-        await userIdField.click({ clickCount: 3 });
-        await userIdField.type(CONFIG.BCA_USER_ID, { delay: 30 });
-        await pinField.click({ clickCount: 3 });
-        await pinField.type(CONFIG.BCA_PIN, { delay: 30 });
-        await delay(500);
-      }
-      
-      // Strategy 2: Direct click on submit with waitForNavigation
-      log('Strategy 2: Direct click with waitForNavigation...');
-      try {
-        const newSubmitBtn = await page.$('input[type="submit"]');
-        if (newSubmitBtn) {
-          await Promise.all([
-            page.waitForNavigation({ 
-              waitUntil: 'networkidle2', 
-              timeout: 15000 
-            }).catch(e => log(`Nav timeout: ${e.message}`, 'WARN')),
-            newSubmitBtn.click()
-          ]);
-          await delay(2000);
-        }
-      } catch (e) {
-        log(`Strategy 2 failed: ${e.message}`, 'WARN');
-      }
-      
-      await saveDebug(page, '05-after-submit-2');
-    }
-    
-    // Check if still on login page
-    const stillOnLogin2 = await page.$('input[name="value(user_id)"], input[name="user_id"]');
-    if (stillOnLogin2) {
-      log('Still on login page, trying Strategy 3...');
-      
-      // Strategy 3: Click via JavaScript on the element
-      log('Strategy 3: Element.click() via JavaScript...');
-      try {
-        await page.evaluate(() => {
-          const buttons = document.querySelectorAll('input');
-          for (const btn of buttons) {
-            if (btn.type === 'submit' || btn.value.toUpperCase().includes('LOGIN')) {
-              btn.click();
-              return true;
-            }
-          }
-          return false;
-        });
-        await delay(5000);
-      } catch (e) {
-        log(`Strategy 3 failed: ${e.message}`, 'WARN');
-      }
-      
-      await saveDebug(page, '06-after-submit-3');
-    }
-    
-    // Check if still on login page
+    // Final login check
     await delay(2000);
-    const stillOnLogin3 = await page.$('input[name="value(user_id)"], input[name="user_id"]');
-    if (stillOnLogin3) {
-      // Try Strategy 4: Keyboard Enter
-      log('Still on login page, trying Strategy 4: Keyboard Enter...');
-      
-      const pinField = await page.$('input[type="password"]');
-      if (pinField) {
-        await pinField.focus();
-        await page.keyboard.press('Enter');
-        await delay(5000);
-      }
-      
-      await saveDebug(page, '07-after-enter');
-    }
-    
-    // Final check
-    await delay(2000);
-    await saveDebug(page, '08-final-login-state');
-    await saveDebug(page, '08-final-login-state', 'html');
+    await saveDebug(page, '06-final-login-state');
+    await saveDebug(page, '06-final-login-state', 'html');
     
     const pageContent = await page.content();
     const currentUrl = page.url();
@@ -406,13 +500,13 @@ async function scrapeBCA() {
     }
     
     // Check if still on login page
-    const finalLoginCheck = await page.$('input[name="value(user_id)"], input[name="user_id"]');
+    const finalLoginCheck = await findLoginFrame(page);
     if (finalLoginCheck) {
       throw new Error('Login failed - still on login page after all attempts');
     }
     
     log('Login successful!');
-    await saveDebug(page, '09-logged-in');
+    await saveDebug(page, '07-logged-in');
     
     // Navigate to account statement
     log('Navigating to account statement...');
@@ -443,7 +537,7 @@ async function scrapeBCA() {
       await delay(3000);
     }
     
-    await saveDebug(page, '10-account-page');
+    await saveDebug(page, '08-account-page');
 
     // Set today's date and submit
     const today = new Date();
@@ -480,7 +574,7 @@ async function scrapeBCA() {
       log(`Date selection failed: ${e.message}`, 'WARN');
     }
     
-    await saveDebug(page, '11-mutations-result');
+    await saveDebug(page, '09-mutations-result');
 
     // Parse mutations from table
     const currentYear = today.getFullYear();
@@ -546,7 +640,7 @@ async function scrapeBCA() {
       log(`Logout error: ${e.message}`, 'WARN');
     }
     
-    await saveDebug(page, '12-final');
+    await saveDebug(page, '10-final');
 
   } catch (error) {
     log(`Scrape error: ${error.message}`, 'ERROR');
