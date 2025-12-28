@@ -13,8 +13,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "2.1.0";
+const SCRAPER_VERSION = "2.1.1";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v2.1.1: Fixed button click stuck - using Promise.race with timeout
 // v2.1.0: Fixed timezone bug - now uses WIB (Asia/Jakarta) instead of UTC
 // v2.0.0: Optimized burst mode - login 1x, loop Kembali+Lihat
 // =========================================
@@ -873,14 +874,19 @@ async function scrapeBCA() {
       
       log(`Date set result: ${JSON.stringify(dateSet)}`);
       
-      // Click view button in ATM frame
-      const viewClicked = await atmFrame.evaluate(() => {
+      // Click view button in ATM frame with timeout protection
+      // The button click triggers a page navigation, so evaluate() might never return
+      // We use Promise.race to handle this gracefully
+      log('Attempting to click Lihat Mutasi button...');
+      
+      const clickPromise = atmFrame.evaluate(() => {
         const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"], input[name*="Submit"]');
         for (const btn of buttons) {
           console.log(`Button: value="${btn.value}" name="${btn.name}"`);
           if (btn.value.toLowerCase().includes('lihat') || 
               btn.value.toLowerCase().includes('view') ||
               btn.type === 'submit') {
+            // Click the button - this will trigger navigation
             btn.click();
             return { success: true, value: btn.value };
           }
@@ -888,7 +894,21 @@ async function scrapeBCA() {
         return { success: false };
       });
       
-      log(`View button result: ${JSON.stringify(viewClicked)}`);
+      // Race between evaluate completing and a 5 second timeout
+      // If page navigates, evaluate() will hang, so timeout wins and we continue
+      const timeoutPromise = new Promise(resolve => 
+        setTimeout(() => resolve({ success: true, timeout: true, message: 'Button click assumed successful (navigation detected)' }), 5000)
+      );
+      
+      const viewClicked = await Promise.race([clickPromise, timeoutPromise]);
+      
+      if (viewClicked.timeout) {
+        log(`View button: Click triggered navigation (timeout expected behavior)`);
+      } else {
+        log(`View button result: ${JSON.stringify(viewClicked)}`);
+      }
+      
+      // Wait for page to load after navigation
       await delay(3000);
     } catch (e) {
       log(`Date selection failed: ${e.message}`, 'WARN');
