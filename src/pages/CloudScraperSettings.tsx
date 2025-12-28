@@ -22,6 +22,7 @@ import {
   Zap, Clock, Timer, History, RefreshCw, Code, Calendar
 } from "lucide-react";
 import { VersionHistoryPanel } from "@/components/scraper/VersionHistoryPanel";
+import { VPSScriptDownloadDialog } from "@/components/scraper/VPSScriptDownloadDialog";
 
 interface VPSSettings {
   id: string;
@@ -1145,6 +1146,23 @@ export default function BankScraperSettings() {
                   )}
                   bca-scraper.js
                 </Button>
+              </div>
+
+              {/* VPS Script Download Dialog */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                    <Terminal className="h-4 w-4" />
+                    VPS Terminal Script
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Copy-paste script ke terminal VPS untuk download semua file langsung dari website
+                  </p>
+                </div>
+                <VPSScriptDownloadDialog 
+                  webhookUrl={vpsWebhookUrl}
+                  secretKey={vpsSettings?.webhook_secret_encrypted || undefined}
+                />
               </div>
             </div>
 
