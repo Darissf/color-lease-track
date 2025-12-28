@@ -147,39 +147,38 @@ async function findLoginFrame(page) {
     log(`Frame ${i}: name="${name}", url=${url.substring(0, 80)}...`);
   }
   
-  // First, check main page
-  try {
-    const mainInput = await page.$('input[name="value(user_id)"]');
-    if (mainInput) {
-      log('Login form found in MAIN PAGE');
-      return { frame: page, isMainPage: true };
-    }
-  } catch (e) {}
+  // Priority selectors - VISIBLE input fields first, then hidden
+  const loginSelectors = [
+    'input#txt_user_id',           // Visible User ID field (priority)
+    'input[name="txt_user_id"]',   // Visible User ID field alt
+    'input[name="value(user_id)"]', // Hidden field fallback
+    'input[name="user_id"]',
+    'input#user_id'
+  ];
   
-  // Search all frames
-  for (const frame of frames) {
+  // First, check main page
+  for (const selector of loginSelectors) {
     try {
-      const input = await frame.$('input[name="value(user_id)"]');
-      if (input) {
-        log(`Login form found in FRAME: ${frame.url()}`);
-        return { frame, isMainPage: false };
+      const mainInput = await page.$(selector);
+      if (mainInput) {
+        log(`Login form found in MAIN PAGE with "${selector}"`);
+        return { frame: page, isMainPage: true };
       }
-    } catch (e) {
-      // Frame might be inaccessible
-    }
+    } catch (e) {}
   }
   
-  // Try alternative selectors in all frames
-  const altSelectors = ['input[name="user_id"]', 'input#user_id', 'input[type="text"][size]'];
-  for (const selector of altSelectors) {
+  // Search all frames
+  for (const selector of loginSelectors) {
     for (const frame of frames) {
       try {
         const input = await frame.$(selector);
         if (input) {
-          log(`Login form found with "${selector}" in frame: ${frame.url()}`);
-          return { frame, isMainPage: frame === page.mainFrame() };
+          log(`Login form found with "${selector}" in FRAME: ${frame.url()}`);
+          return { frame, isMainPage: false };
         }
-      } catch (e) {}
+      } catch (e) {
+        // Frame might be inaccessible
+      }
     }
   }
   
@@ -192,27 +191,40 @@ async function findLoginFrame(page) {
 async function enterCredentials(frame, userId, pin) {
   log('Entering credentials...');
   
-  // Strategy 1: Use frame.type() with focus
+  // Strategy 1: Use VISIBLE input fields (txt_user_id, txt_pswd) - CORRECT APPROACH
   try {
-    log('Strategy 1: Using frame.type() with focus...');
+    log('Strategy 1: Using VISIBLE input fields (txt_user_id, txt_pswd)...');
     
-    const userIdInput = await frame.$('input[name="value(user_id)"]') || 
-                        await frame.$('input[name="user_id"]') ||
-                        await frame.$('input#user_id');
+    // Priority: VISIBLE fields first (txt_user_id, txt_pswd)
+    const userIdInput = await frame.$('input#txt_user_id') || 
+                        await frame.$('input[name="txt_user_id"]') ||
+                        await frame.$('input[name="value(user_id)"]'); // hidden fallback
     
-    const pinInput = await frame.$('input[name="value(pswd)"]') || 
-                     await frame.$('input[name="pswd"]') ||
-                     await frame.$('input#pswd') ||
-                     await frame.$('input[type="password"]');
+    const pinInput = await frame.$('input#txt_pswd') || 
+                     await frame.$('input[name="txt_pswd"]') ||
+                     await frame.$('input[type="password"]') ||
+                     await frame.$('input[name="value(pswd)"]'); // hidden fallback
     
     if (userIdInput && pinInput) {
-      // Focus and clear first
+      // Log which selectors were found
+      const userIdSelector = await frame.evaluate(el => {
+        return `id="${el.id}" name="${el.name}" type="${el.type}"`;
+      }, userIdInput);
+      log(`Found User ID input: ${userIdSelector}`);
+      
+      const pinSelector = await frame.evaluate(el => {
+        return `id="${el.id}" name="${el.name}" type="${el.type}"`;
+      }, pinInput);
+      log(`Found PIN input: ${pinSelector}`);
+      
+      // Focus, clear and type into User ID
       await userIdInput.focus();
       await delay(200);
       await frame.evaluate(el => { el.value = ''; }, userIdInput);
       await userIdInput.type(userId, { delay: 50 });
       log('User ID entered via type()');
       
+      // Focus, clear and type into PIN
       await pinInput.focus();
       await delay(200);
       await frame.evaluate(el => { el.value = ''; }, pinInput);
@@ -220,46 +232,62 @@ async function enterCredentials(frame, userId, pin) {
       log('PIN entered via type()');
       
       return true;
+    } else {
+      log(`User ID input found: ${!!userIdInput}, PIN input found: ${!!pinInput}`, 'WARN');
     }
   } catch (e) {
     log(`Strategy 1 failed: ${e.message}`, 'WARN');
   }
   
-  // Strategy 2: Use frame.evaluate() for direct DOM manipulation
+  // Strategy 2: Use frame.evaluate() for direct DOM manipulation with VISIBLE fields
   try {
-    log('Strategy 2: Using frame.evaluate() for direct DOM...');
+    log('Strategy 2: Using frame.evaluate() with VISIBLE fields...');
     
     const success = await frame.evaluate((userId, pin) => {
       const findInput = (selectors) => {
         for (const sel of selectors) {
           const el = document.querySelector(sel);
-          if (el) return el;
+          if (el) {
+            console.log(`Found input with selector: ${sel}`);
+            return el;
+          }
         }
         return null;
       };
       
+      // Priority: VISIBLE fields first
       const userIdInput = findInput([
-        'input[name="value(user_id)"]',
+        'input#txt_user_id',           // Visible - priority
+        'input[name="txt_user_id"]',   // Visible - alt
+        'input[name="value(user_id)"]', // Hidden - fallback
         'input[name="user_id"]',
         'input#user_id'
       ]);
       
       const pinInput = findInput([
-        'input[name="value(pswd)"]',
+        'input#txt_pswd',              // Visible - priority
+        'input[name="txt_pswd"]',      // Visible - alt
+        'input[type="password"]',      // Generic password
+        'input[name="value(pswd)"]',   // Hidden - fallback
         'input[name="pswd"]',
-        'input#pswd',
-        'input[type="password"]'
+        'input#pswd'
       ]);
       
+      console.log(`UserID input found: ${!!userIdInput}, PIN input found: ${!!pinInput}`);
+      
       if (userIdInput && pinInput) {
+        // Set value and trigger events
         userIdInput.value = userId;
         userIdInput.dispatchEvent(new Event('input', { bubbles: true }));
         userIdInput.dispatchEvent(new Event('change', { bubbles: true }));
+        userIdInput.dispatchEvent(new Event('keyup', { bubbles: true }));
         
         pinInput.value = pin;
         pinInput.dispatchEvent(new Event('input', { bubbles: true }));
         pinInput.dispatchEvent(new Event('change', { bubbles: true }));
+        pinInput.dispatchEvent(new Event('keyup', { bubbles: true }));
         
+        console.log(`Credentials set: userID=${userId.substring(0,3)}***, pinLength=${pin.length}`);
         return true;
       }
       return false;
@@ -273,27 +301,31 @@ async function enterCredentials(frame, userId, pin) {
     log(`Strategy 2 failed: ${e.message}`, 'WARN');
   }
   
-  // Strategy 3: Keyboard simulation
+  // Strategy 3: Click on input first, then type (simulates real user)
   try {
-    log('Strategy 3: Using keyboard simulation...');
+    log('Strategy 3: Click + type simulation...');
     
-    // Tab to first field and type
-    await frame.keyboard.press('Tab');
-    await delay(200);
-    for (const char of userId) {
-      await frame.keyboard.type(char);
-      await delay(30);
+    const userIdInput = await frame.$('input#txt_user_id') || 
+                        await frame.$('input[name="txt_user_id"]');
+    const pinInput = await frame.$('input#txt_pswd') || 
+                     await frame.$('input[name="txt_pswd"]') ||
+                     await frame.$('input[type="password"]');
+    
+    if (userIdInput && pinInput) {
+      // Click on User ID field
+      await userIdInput.click({ clickCount: 3 }); // Triple click to select all
+      await delay(100);
+      await frame.keyboard.type(userId, { delay: 50 });
+      log('User ID entered via click+type');
+      
+      // Click on PIN field
+      await pinInput.click({ clickCount: 3 });
+      await delay(100);
+      await frame.keyboard.type(pin, { delay: 50 });
+      log('PIN entered via click+type');
+      
+      return true;
     }
-    
-    await frame.keyboard.press('Tab');
-    await delay(200);
-    for (const char of pin) {
-      await frame.keyboard.type(char);
-      await delay(30);
-    }
-    
-    log('Credentials entered via keyboard');
-    return true;
   } catch (e) {
     log(`Strategy 3 failed: ${e.message}`, 'WARN');
   }
@@ -303,16 +335,83 @@ async function enterCredentials(frame, userId, pin) {
 
 /**
  * Submit login form using multiple strategies
+ * IMPORTANT: Must CLICK the LOGIN button to trigger Login_Form_Validator() JavaScript
  */
 async function submitLogin(frame, page) {
   log('Attempting to submit login form...');
   
-  // Strategy 1: JavaScript form.submit()
+  // Strategy 1: Click LOGIN button (PREFERRED - triggers JavaScript validator)
   try {
-    log('Submit Strategy 1: form.submit()...');
+    log('Submit Strategy 1: Click LOGIN button (triggers validator)...');
+    
+    // Find LOGIN button - various selectors
+    const submitBtn = await frame.$('input[value="LOGIN"]') ||
+                      await frame.$('input[type="submit"]') ||
+                      await frame.$('input[name="value(Submit)"]') ||
+                      await frame.$('input[name="value(actions)"]') ||
+                      await frame.$('input.btn') ||
+                      await frame.$('input[onclick*="Login_Form_Validator"]');
+    
+    if (submitBtn) {
+      // Log button info
+      const btnInfo = await frame.evaluate(el => {
+        return `value="${el.value}" name="${el.name}" onclick="${el.getAttribute('onclick') || 'none'}"`;
+      }, submitBtn);
+      log(`Found submit button: ${btnInfo}`);
+      
+      await submitBtn.click();
+      log('LOGIN button clicked');
+      await delay(3000);
+      return true;
+    }
+  } catch (e) {
+    log(`Submit Strategy 1 failed: ${e.message}`, 'WARN');
+  }
+  
+  // Strategy 2: JavaScript click with validator trigger
+  try {
+    log('Submit Strategy 2: JavaScript click with validator...');
+    const clicked = await frame.evaluate(() => {
+      // First, try to call validator directly if it exists
+      if (typeof Login_Form_Validator === 'function') {
+        console.log('Calling Login_Form_Validator directly');
+        Login_Form_Validator(document.forms[0]);
+        return true;
+      }
+      
+      // Otherwise, click the button
+      const buttons = document.querySelectorAll('input[value="LOGIN"], input[type="submit"]');
+      for (const btn of buttons) {
+        console.log(`Clicking button: ${btn.value}`);
+        btn.click();
+        return true;
+      }
+      return false;
+    });
+    
+    if (clicked) {
+      log('Submit via JavaScript click/validator');
+      await delay(3000);
+      return true;
+    }
+  } catch (e) {
+    log(`Submit Strategy 2 failed: ${e.message}`, 'WARN');
+  }
+  
+  // Strategy 3: form.submit() - BACKUP ONLY (may skip JavaScript validation)
+  try {
+    log('Submit Strategy 3: form.submit() (backup)...');
     const submitted = await frame.evaluate(() => {
       const form = document.querySelector('form');
       if (form) {
+        // Try to trigger onsubmit handler first
+        if (form.onsubmit) {
+          const result = form.onsubmit();
+          if (result === false) {
+            console.log('onsubmit returned false, not submitting');
+            return false;
+          }
+        }
         form.submit();
         return true;
       }
@@ -325,51 +424,15 @@ async function submitLogin(frame, page) {
       return true;
     }
   } catch (e) {
-    log(`Submit Strategy 1 failed: ${e.message}`, 'WARN');
-  }
-  
-  // Strategy 2: Click submit button
-  try {
-    log('Submit Strategy 2: Click submit button...');
-    const submitBtn = await frame.$('input[type="submit"]') ||
-                      await frame.$('input[value="LOGIN"]') ||
-                      await frame.$('input[name="value(actions)"]');
-    
-    if (submitBtn) {
-      await submitBtn.click();
-      log('Submit button clicked');
-      await delay(3000);
-      return true;
-    }
-  } catch (e) {
-    log(`Submit Strategy 2 failed: ${e.message}`, 'WARN');
-  }
-  
-  // Strategy 3: JavaScript click on submit
-  try {
-    log('Submit Strategy 3: JavaScript click...');
-    const clicked = await frame.evaluate(() => {
-      const buttons = document.querySelectorAll('input[type="submit"], input[value="LOGIN"]');
-      for (const btn of buttons) {
-        btn.click();
-        return true;
-      }
-      return false;
-    });
-    
-    if (clicked) {
-      log('Submit clicked via JavaScript');
-      await delay(3000);
-      return true;
-    }
-  } catch (e) {
     log(`Submit Strategy 3 failed: ${e.message}`, 'WARN');
   }
   
   // Strategy 4: Keyboard Enter on password field
   try {
     log('Submit Strategy 4: Keyboard Enter...');
-    const pinInput = await frame.$('input[type="password"]');
+    const pinInput = await frame.$('input#txt_pswd') || 
+                     await frame.$('input[name="txt_pswd"]') ||
+                     await frame.$('input[type="password"]');
     if (pinInput) {
       await pinInput.focus();
       await delay(100);
