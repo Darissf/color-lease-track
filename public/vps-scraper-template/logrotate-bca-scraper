@@ -1,0 +1,100 @@
+# ============================================
+# BCA Scraper Log Rotation Configuration
+# ============================================
+# Copy this file to /etc/logrotate.d/bca-scraper
+# Or let install-service.sh handle it automatically
+#
+# Manual install:
+#   sudo cp logrotate-bca-scraper /etc/logrotate.d/bca-scraper
+#   sudo chmod 644 /etc/logrotate.d/bca-scraper
+#
+# Test config:
+#   sudo logrotate -d /etc/logrotate.d/bca-scraper
+#
+# Force rotation:
+#   sudo logrotate -f /etc/logrotate.d/bca-scraper
+# ============================================
+
+/var/log/bca-scraper.log
+/var/log/bca-scraper-error.log
+{
+    # ========================================
+    # Rotation Schedule
+    # ========================================
+    
+    # Rotate logs daily
+    daily
+    
+    # Keep 7 days of old logs
+    rotate 7
+    
+    # Also rotate if size exceeds 100MB
+    # (whichever comes first: daily or size)
+    maxsize 100M
+    
+    # Minimum size to consider for rotation
+    # Don't rotate if log is smaller than this
+    minsize 1M
+    
+    # ========================================
+    # Compression Settings
+    # ========================================
+    
+    # Compress rotated logs
+    compress
+    
+    # Don't compress the most recently rotated log
+    # (gives time for any processes still writing to it)
+    delaycompress
+    
+    # Use gzip compression (default)
+    compresscmd /bin/gzip
+    uncompresscmd /bin/gunzip
+    compressext .gz
+    
+    # ========================================
+    # Error Handling
+    # ========================================
+    
+    # Don't error if log file is missing
+    missingok
+    
+    # Don't rotate if log file is empty
+    notifempty
+    
+    # ========================================
+    # Rotation Method
+    # ========================================
+    
+    # Use copytruncate instead of moving the log file
+    # This is safer for processes that keep the file open
+    # The process doesn't need to be restarted
+    copytruncate
+    
+    # ========================================
+    # File Permissions
+    # ========================================
+    
+    # Create new log files with these permissions
+    # create mode owner group
+    create 644 root root
+    
+    # ========================================
+    # Notifications (Optional)
+    # ========================================
+    
+    # Uncomment to run script after rotation
+    # postrotate
+    #     # Notify systemd to reopen log files
+    #     systemctl kill -s HUP bca-scraper || true
+    # endscript
+    
+    # ========================================
+    # Date Extension (Optional)
+    # ========================================
+    
+    # Add date to rotated log filename
+    # e.g., bca-scraper.log-20241228.gz
+    dateext
+    dateformat -%Y%m%d
+}

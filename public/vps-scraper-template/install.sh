@@ -216,6 +216,7 @@ echo "STEP 6: Setting permissions..."
 chmod +x run.sh 2>/dev/null || true
 chmod +x bca-scraper.js 2>/dev/null || true
 chmod +x scheduler.js 2>/dev/null || true
+chmod +x install-service.sh 2>/dev/null || true
 print_success "Scripts are executable"
 
 # ============================================================
@@ -226,8 +227,15 @@ echo "STEP 7: Setting up systemd service..."
 
 read -p "Setup systemd service untuk scheduler daemon? (Y/n): " SETUP_SERVICE
 if [ "$SETUP_SERVICE" != "n" ] && [ "$SETUP_SERVICE" != "N" ]; then
-    # Create systemd service file
-    cat > /tmp/bca-scraper.service << EOF
+    # Use the new install-service.sh if available
+    if [ -f "install-service.sh" ]; then
+        echo ""
+        print_success "Using install-service.sh for advanced service setup..."
+        echo ""
+        sudo ./install-service.sh
+    else
+        # Fallback to basic service setup
+        cat > /tmp/bca-scraper.service << EOF
 [Unit]
 Description=BCA Scraper Scheduler
 After=network.target openvpn-client@indonesia.service
@@ -242,34 +250,38 @@ Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-
-# Environment
 Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-    sudo mv /tmp/bca-scraper.service /etc/systemd/system/bca-scraper.service
-    sudo systemctl daemon-reload
-    sudo systemctl enable bca-scraper
-    
-    print_success "Systemd service created"
-    echo ""
-    echo "Service commands:"
-    echo "  Start:   sudo systemctl start bca-scraper"
-    echo "  Stop:    sudo systemctl stop bca-scraper"
-    echo "  Status:  sudo systemctl status bca-scraper"
-    echo "  Logs:    sudo journalctl -u bca-scraper -f"
+        sudo mv /tmp/bca-scraper.service /etc/systemd/system/bca-scraper.service
+        sudo systemctl daemon-reload
+        sudo systemctl enable bca-scraper
+        
+        print_success "Systemd service created (basic mode)"
+        echo ""
+        echo "Service commands:"
+        echo "  Start:   sudo systemctl start bca-scraper"
+        echo "  Stop:    sudo systemctl stop bca-scraper"
+        echo "  Status:  sudo systemctl status bca-scraper"
+        echo "  Logs:    sudo journalctl -u bca-scraper -f"
+    fi
 else
     echo ""
     echo "Untuk menjalankan scheduler manual:"
     echo "  ./run.sh --daemon"
+    echo ""
+    echo "Untuk setup service nanti:"
+    echo "  sudo ./install-service.sh"
 fi
 
 # Create log files
 sudo touch /var/log/bca-scraper.log 2>/dev/null || touch bca-scraper.log
-sudo chmod 666 /var/log/bca-scraper.log 2>/dev/null || true
+sudo touch /var/log/bca-scraper-error.log 2>/dev/null || touch bca-scraper-error.log
+sudo chmod 644 /var/log/bca-scraper.log 2>/dev/null || true
+sudo chmod 644 /var/log/bca-scraper-error.log 2>/dev/null || true
 
 # ============================================================
 # DONE!
@@ -300,6 +312,8 @@ echo "4. Start scheduler daemon:"
 echo "   sudo systemctl start bca-scraper"
 echo ""
 echo "5. Cek log scheduler:"
+echo "   tail -f /var/log/bca-scraper.log"
+echo "   # atau"
 echo "   sudo journalctl -u bca-scraper -f"
 echo ""
 echo "============================================================"
@@ -311,7 +325,18 @@ echo "- Poll server setiap 60 detik untuk mengambil konfigurasi"
 echo "- Scrape sesuai interval yang diset di website (5m, 10m, dst)"
 echo "- Otomatis switch ke burst mode jika di-trigger dari website"
 echo ""
-echo "Anda bisa mengubah interval scraping dari:"
-echo "  Website > Bank Scraper Settings > Normal Mode"
+echo "SERVICE FEATURES:"
+echo "- Auto-restart jika crash (30 detik delay)"
+echo "- Auto-start saat server reboot"
+echo "- Memory limit: 2GB max"
+echo "- CPU limit: 80%"
+echo "- Log rotation: daily, 7 hari retention"
+echo "- Watchdog: restart jika hang > 10 menit"
+echo ""
+echo "SERVICE MANAGEMENT:"
+echo "  Status:    sudo systemctl status bca-scraper"
+echo "  Restart:   sudo systemctl restart bca-scraper"
+echo "  Logs:      tail -f /var/log/bca-scraper.log"
+echo "  Uninstall: sudo ./install-service.sh --uninstall"
 echo ""
 echo "============================================================"
