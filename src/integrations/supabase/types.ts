@@ -3602,42 +3602,60 @@ export type Database = {
       payment_provider_settings: {
         Row: {
           api_key_encrypted: string | null
+          bank_credentials: Json | null
           config: Json | null
           created_at: string
           error_count: number | null
           id: string
           is_active: boolean | null
           last_error: string | null
+          last_scrape_at: string | null
           last_webhook_at: string | null
           provider: string
+          scrape_interval_minutes: number | null
+          scrape_status: string | null
+          total_mutations_found: number | null
+          total_scrapes: number | null
           updated_at: string
           user_id: string
           webhook_secret_encrypted: string | null
         }
         Insert: {
           api_key_encrypted?: string | null
+          bank_credentials?: Json | null
           config?: Json | null
           created_at?: string
           error_count?: number | null
           id?: string
           is_active?: boolean | null
           last_error?: string | null
+          last_scrape_at?: string | null
           last_webhook_at?: string | null
           provider?: string
+          scrape_interval_minutes?: number | null
+          scrape_status?: string | null
+          total_mutations_found?: number | null
+          total_scrapes?: number | null
           updated_at?: string
           user_id: string
           webhook_secret_encrypted?: string | null
         }
         Update: {
           api_key_encrypted?: string | null
+          bank_credentials?: Json | null
           config?: Json | null
           created_at?: string
           error_count?: number | null
           id?: string
           is_active?: boolean | null
           last_error?: string | null
+          last_scrape_at?: string | null
           last_webhook_at?: string | null
           provider?: string
+          scrape_interval_minutes?: number | null
+          scrape_status?: string | null
+          total_mutations_found?: number | null
+          total_scrapes?: number | null
           updated_at?: string
           user_id?: string
           webhook_secret_encrypted?: string | null
