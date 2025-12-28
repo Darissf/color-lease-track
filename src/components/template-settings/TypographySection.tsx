@@ -39,8 +39,8 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
       <div className="space-y-2">
         <Label className="text-sm font-medium">Font Heading</Label>
         <Select
-          value={settings.heading_font_family}
-          onValueChange={(value) => updateSetting('heading_font_family', value)}
+          value={settings.heading_font}
+          onValueChange={(value) => updateSetting('heading_font', value)}
         >
           <SelectTrigger>
             <SelectValue />
@@ -60,11 +60,11 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Ukuran Font Dasar</Label>
-          <span className="text-sm text-muted-foreground">{settings.font_size_base}px</span>
+          <span className="text-sm text-muted-foreground">{settings.base_font_size}px</span>
         </div>
         <Slider
-          value={[settings.font_size_base]}
-          onValueChange={([value]) => updateSetting('font_size_base', value)}
+          value={[settings.base_font_size]}
+          onValueChange={([value]) => updateSetting('base_font_size', value)}
           min={10}
           max={16}
           step={1}
@@ -103,7 +103,7 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
         <h3 
           className="text-lg font-bold mb-1" 
           style={{ 
-            fontFamily: settings.heading_font_family === 'inherit' ? settings.font_family : settings.heading_font_family 
+            fontFamily: settings.heading_font === 'inherit' ? settings.font_family : settings.heading_font 
           }}
         >
           Judul Dokumen
@@ -111,7 +111,7 @@ export const TypographySection: React.FC<TypographySectionProps> = ({
         <p 
           style={{ 
             fontFamily: settings.font_family, 
-            fontSize: `${settings.font_size_base}px` 
+            fontSize: `${settings.base_font_size}px` 
           }}
         >
           Contoh teks body dokumen dengan font dan ukuran yang dipilih.

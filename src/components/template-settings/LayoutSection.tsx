@@ -94,12 +94,12 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
             <div className="flex gap-2">
               <div 
                 className="w-8 h-8 rounded border cursor-pointer"
-                style={{ backgroundColor: settings.table_header_text_color }}
+                style={{ backgroundColor: settings.table_header_text }}
               />
               <Input
                 type="color"
-                value={settings.table_header_text_color}
-                onChange={(e) => updateSetting('table_header_text_color', e.target.value)}
+                value={settings.table_header_text}
+                onChange={(e) => updateSetting('table_header_text', e.target.value)}
                 className="flex-1 h-8"
               />
             </div>
@@ -139,12 +139,12 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
             <div className="flex gap-2">
               <div 
                 className="w-8 h-8 rounded border cursor-pointer"
-                style={{ backgroundColor: settings.table_alternating_color }}
+                style={{ backgroundColor: settings.table_alt_row_bg }}
               />
               <Input
                 type="color"
-                value={settings.table_alternating_color}
-                onChange={(e) => updateSetting('table_alternating_color', e.target.value)}
+                value={settings.table_alt_row_bg}
+                onChange={(e) => updateSetting('table_alt_row_bg', e.target.value)}
                 className="flex-1 h-8"
               />
             </div>
