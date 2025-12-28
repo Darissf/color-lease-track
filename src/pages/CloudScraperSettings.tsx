@@ -401,20 +401,39 @@ export default function BankScraperSettings() {
     try {
       const zip = new JSZip();
       
-      const [installRes, configRes, scraperRes, runRes, readmeRes] = await Promise.all([
+      // Fetch all files including OpenVPN split tunneling files
+      const [
+        installRes, configRes, scraperRes, runRes, readmeRes,
+        // OpenVPN split tunneling files
+        setupSplitTunnelRes, vpnUpRes, vpnDownRes, readmeOpenvpnRes, setupOpenvpnRes
+      ] = await Promise.all([
         fetch("/vps-scraper-template/install.sh"),
         fetch("/vps-scraper-template/config.env.template"),
         fetch("/vps-scraper-template/bca-scraper.js"),
         fetch("/vps-scraper-template/run.sh"),
         fetch("/vps-scraper-template/README.txt"),
+        // OpenVPN split tunneling files
+        fetch("/vps-scraper-template/setup-split-tunnel.sh"),
+        fetch("/vps-scraper-template/vpn-up.sh"),
+        fetch("/vps-scraper-template/vpn-down.sh"),
+        fetch("/vps-scraper-template/README-OPENVPN.md"),
+        fetch("/vps-scraper-template/setup-openvpn.sh"),
       ]);
 
-      const [installText, configText, scraperText, runText, readmeText] = await Promise.all([
+      const [
+        installText, configText, scraperText, runText, readmeText,
+        setupSplitTunnelText, vpnUpText, vpnDownText, readmeOpenvpnText, setupOpenvpnText
+      ] = await Promise.all([
         installRes.text(),
         configRes.text(),
         scraperRes.text(),
         runRes.text(),
         readmeRes.text(),
+        setupSplitTunnelRes.text(),
+        vpnUpRes.text(),
+        vpnDownRes.text(),
+        readmeOpenvpnRes.text(),
+        setupOpenvpnRes.text(),
       ]);
 
       let configContent = configText;
@@ -429,11 +448,19 @@ export default function BankScraperSettings() {
         `WEBHOOK_URL=${vpsWebhookUrl}`
       );
 
+      // Main scraper files
       zip.file("install.sh", installText);
       zip.file("config.env", configContent);
       zip.file("bca-scraper.js", scraperText);
       zip.file("run.sh", runText);
       zip.file("README.txt", readmeText);
+      
+      // OpenVPN split tunneling files
+      zip.file("setup-split-tunnel.sh", setupSplitTunnelText);
+      zip.file("vpn-up.sh", vpnUpText);
+      zip.file("vpn-down.sh", vpnDownText);
+      zip.file("README-OPENVPN.md", readmeOpenvpnText);
+      zip.file("setup-openvpn.sh", setupOpenvpnText);
 
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
