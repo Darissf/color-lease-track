@@ -404,22 +404,25 @@ export default function BankScraperSettings() {
       const zip = new JSZip();
       
       // Fetch all files including OpenVPN split tunneling files
+      // Cache busting timestamp to ensure latest files
+      const cacheBuster = `?v=${Date.now()}`;
+      
       const [
         installRes, configRes, scraperRes, runRes, readmeRes,
         // OpenVPN split tunneling files
         setupSplitTunnelRes, vpnUpRes, vpnDownRes, readmeOpenvpnRes, setupOpenvpnRes
       ] = await Promise.all([
-        fetch("/vps-scraper-template/install.sh"),
-        fetch("/vps-scraper-template/config.env.template"),
-        fetch("/vps-scraper-template/bca-scraper.js"),
-        fetch("/vps-scraper-template/run.sh"),
-        fetch("/vps-scraper-template/README.txt"),
+        fetch(`/vps-scraper-template/install.sh${cacheBuster}`),
+        fetch(`/vps-scraper-template/config.env.template${cacheBuster}`),
+        fetch(`/vps-scraper-template/bca-scraper.js${cacheBuster}`),
+        fetch(`/vps-scraper-template/run.sh${cacheBuster}`),
+        fetch(`/vps-scraper-template/README.txt${cacheBuster}`),
         // OpenVPN split tunneling files
-        fetch("/vps-scraper-template/setup-split-tunnel.sh"),
-        fetch("/vps-scraper-template/vpn-up.sh"),
-        fetch("/vps-scraper-template/vpn-down.sh"),
-        fetch("/vps-scraper-template/README-OPENVPN.md"),
-        fetch("/vps-scraper-template/setup-openvpn.sh"),
+        fetch(`/vps-scraper-template/setup-split-tunnel.sh${cacheBuster}`),
+        fetch(`/vps-scraper-template/vpn-up.sh${cacheBuster}`),
+        fetch(`/vps-scraper-template/vpn-down.sh${cacheBuster}`),
+        fetch(`/vps-scraper-template/README-OPENVPN.md${cacheBuster}`),
+        fetch(`/vps-scraper-template/setup-openvpn.sh${cacheBuster}`),
       ]);
 
       const [
@@ -486,7 +489,8 @@ export default function BankScraperSettings() {
   const handleDownloadScraperOnly = async () => {
     setDownloadingScraperOnly(true);
     try {
-      const response = await fetch("/vps-scraper-template/bca-scraper.js");
+      // Cache busting to ensure latest file
+      const response = await fetch(`/vps-scraper-template/bca-scraper.js?v=${Date.now()}`);
       const content = await response.text();
       const lineCount = content.split('\n').length;
       
