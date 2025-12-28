@@ -29,6 +29,8 @@ export function PaymentVerificationStatus({
   const [timeRemaining, setTimeRemaining] = useState("");
   const [copied, setCopied] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [burstTriggered, setBurstTriggered] = useState(false);
+  const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
 
   const triggerConfetti = useCallback(() => {
     confetti({
@@ -69,20 +71,25 @@ export function PaymentVerificationStatus({
     }
   };
 
-  // Trigger burst scrape when component mounts
-  useEffect(() => {
-    const triggerBurst = async () => {
-      try {
-        console.log("[PaymentVerification] Triggering burst scrape...");
-        await supabase.functions.invoke("trigger-burst-scrape", {
-          body: { request_id: requestId }
-        });
-      } catch (err) {
-        console.error("Failed to trigger burst scrape:", err);
-      }
-    };
-    triggerBurst();
-  }, [requestId]);
+  // Manual trigger burst scrape when user confirms transfer
+  const handleConfirmTransfer = async () => {
+    if (burstTriggered || isConfirmingTransfer) return;
+    
+    setIsConfirmingTransfer(true);
+    try {
+      console.log("[PaymentVerification] Triggering burst scrape...");
+      await supabase.functions.invoke("trigger-burst-scrape", {
+        body: { request_id: requestId }
+      });
+      setBurstTriggered(true);
+      toast.success("Pengecekan dipercepat diaktifkan! Sistem akan memverifikasi pembayaran Anda.");
+    } catch (err) {
+      console.error("Failed to trigger burst scrape:", err);
+      toast.error("Gagal mengaktifkan pengecekan cepat");
+    } finally {
+      setIsConfirmingTransfer(false);
+    }
+  };
 
   useEffect(() => {
     // Subscribe to realtime updates
@@ -209,25 +216,49 @@ export function PaymentVerificationStatus({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Menunggu transfer masuk...</span>
                   </div>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    onClick={handleCancel}
-                    disabled={cancelling}
-                    className="gap-1.5"
-                  >
-                    {cancelling ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                  
+                  <div className="flex items-center gap-2">
+                    {!burstTriggered ? (
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={handleConfirmTransfer}
+                        disabled={isConfirmingTransfer}
+                        className="gap-1.5 bg-green-600 hover:bg-green-700 flex-1"
+                      >
+                        {isConfirmingTransfer ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-3 w-3" />
+                        )}
+                        Saya Sudah Transfer
+                      </Button>
                     ) : (
-                      <X className="h-3 w-3" />
+                      <div className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm">
+                        <CheckCircle className="h-3 w-3" />
+                        Pengecekan dipercepat aktif
+                      </div>
                     )}
-                    Batalkan
-                  </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                      className="gap-1.5"
+                    >
+                      {cancelling ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <X className="h-3 w-3" />
+                      )}
+                      Batalkan
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
