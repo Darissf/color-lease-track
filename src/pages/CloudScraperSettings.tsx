@@ -929,8 +929,10 @@ export default function BankScraperSettings() {
                       <li>Login ke VPNJantit</li>
                       <li>Pilih server <strong>Indonesia</strong></li>
                       <li>Download file <code className="bg-muted px-1 rounded">.ovpn</code></li>
-                      <li>Catat username & password VPN</li>
                     </ol>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <strong>Note:</strong> File .ovpn biasanya sudah berisi credentials lengkap. Tidak perlu catat username/password terpisah.
+                    </p>
                     <Button variant="outline" size="sm" asChild>
                       <a href="https://vpnjantit.com" target="_blank" rel="noopener noreferrer" className="gap-2">
                         <ExternalLink className="h-3 w-3" /> VPNJantit
@@ -1036,14 +1038,15 @@ export default function BankScraperSettings() {
                     <p>nano config.env</p>
                   </div>
                   <div className="p-3 bg-muted/30 rounded-lg text-sm">
-                    <p className="font-medium mb-2">Isi yang perlu diubah:</p>
+                    <p className="font-medium mb-2">Isi yang WAJIB diubah:</p>
                     <ul className="text-muted-foreground space-y-1">
-                      <li>• <code>VPN_USERNAME</code> - Username VPNJantit</li>
-                      <li>• <code>VPN_PASSWORD</code> - Password VPNJantit</li>
                       <li>• <code>BCA_USER_ID</code> - User ID KlikBCA</li>
                       <li>• <code>BCA_PIN</code> - PIN KlikBCA</li>
                       <li>• <code>BCA_ACCOUNT_NUMBER</code> - Nomor rekening BCA</li>
                     </ul>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <strong>VPN:</strong> Tidak perlu isi VPN_USERNAME/PASSWORD. File .ovpn sudah berisi credentials lengkap.
+                    </p>
                   </div>
                 </AccordionContent>
               </AccordionItem>

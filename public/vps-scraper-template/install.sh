@@ -64,7 +64,7 @@ if [ ! -f "config.env" ]; then
     if [ -f "config.env.template" ]; then
         cp config.env.template config.env
         print_warning "config.env dibuat dari template"
-        echo "PENTING: Edit config.env dengan kredensial Anda!"
+        echo "PENTING: Edit config.env dengan kredensial BCA Anda!"
     else
         print_error "config.env.template tidak ditemukan!"
         exit 1
@@ -178,8 +178,8 @@ if [ -n "$OVPN_FILE" ]; then
     # Copy .ovpn file
     sudo cp "$OVPN_FILE" /etc/openvpn/client/indonesia.conf
     
-    # Create auth file if credentials are in config.env
-    if [ -n "$VPN_USERNAME" ] && [ "$VPN_USERNAME" != "your_vpn_username" ]; then
+    # Create auth file ONLY if VPN credentials are provided and not empty/placeholder
+    if [ -n "$VPN_USERNAME" ] && [ "$VPN_USERNAME" != "your_vpn_username" ] && [ "$VPN_USERNAME" != "" ]; then
         echo "$VPN_USERNAME" | sudo tee /etc/openvpn/client/auth.txt > /dev/null
         echo "$VPN_PASSWORD" | sudo tee -a /etc/openvpn/client/auth.txt > /dev/null
         sudo chmod 600 /etc/openvpn/client/auth.txt
@@ -191,10 +191,11 @@ if [ -n "$OVPN_FILE" ]; then
             sudo sed -i 's|auth-user-pass.*|auth-user-pass /etc/openvpn/client/auth.txt|g' /etc/openvpn/client/indonesia.conf
         fi
         
-        print_success "VPN credentials configured"
+        print_success "VPN credentials configured (dari config.env)"
     else
-        print_warning "VPN credentials not set in config.env"
-        echo "Edit config.env dan isi VPN_USERNAME dan VPN_PASSWORD"
+        # No separate credentials needed - .ovpn file will be used as-is
+        print_success "Using .ovpn file directly (no separate auth needed)"
+        echo "  File .ovpn akan digunakan apa adanya"
     fi
     
     # Enable and start OpenVPN service
@@ -286,21 +287,29 @@ echo "============================================================"
 echo ""
 echo "LANGKAH SELANJUTNYA:"
 echo ""
-echo "1. Edit config.env dengan kredensial Anda:"
+echo "1. Edit config.env dengan kredensial BCA Anda:"
 echo "   nano config.env"
 echo ""
-echo "2. Start VPN Indonesia (jika ada .ovpn):"
+echo "   Isi yang WAJIB:"
+echo "   - BCA_USER_ID (User ID KlikBCA)"
+echo "   - BCA_PIN (PIN KlikBCA)"
+echo "   - BCA_ACCOUNT_NUMBER (Nomor Rekening)"
+echo "   - SECRET_KEY (dari UI Bank Scraper Settings)"
+echo ""
+echo "2. Start VPN Indonesia:"
 echo "   sudo systemctl start openvpn-client@indonesia"
 echo ""
-echo "3. Test scraper manual:"
+echo "3. Cek IP (harus Indonesia):"
+echo "   curl https://api.ipify.org"
+echo ""
+echo "4. Test scraper manual:"
 echo "   ./run.sh"
 echo ""
-echo "4. Test burst check manual:"
+echo "5. Test burst check manual:"
 echo "   ./run.sh --burst-check"
 echo ""
-echo "5. Cek log:"
+echo "6. Cek log:"
 echo "   tail -f /var/log/bca-scraper.log"
-echo "   tail -f /var/log/bca-scraper-burst.log"
 echo ""
 echo "============================================================"
 echo ""

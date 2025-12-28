@@ -33,7 +33,7 @@ Di VPS, jalankan:
 
 Installer akan:
 - Install Node.js, OpenVPN, Puppeteer
-- Setup VPN Indonesia
+- Setup VPN Indonesia (dari file .ovpn)
 - Setup cron job otomatis
 
 
@@ -43,10 +43,16 @@ Edit file config.env dengan kredensial Anda:
 
   nano config.env
 
-Isi bagian:
-- VPN_USERNAME & VPN_PASSWORD (dari VPNJantit)
-- BCA_USER_ID & BCA_PIN
-- SECRET_KEY (sudah terisi dari UI)
+Isi yang WAJIB:
+- BCA_USER_ID (User ID KlikBCA)
+- BCA_PIN (PIN KlikBCA)
+- BCA_ACCOUNT_NUMBER (Nomor Rekening)
+- SECRET_KEY (dari UI Bank Scraper Settings)
+
+CATATAN tentang VPN:
+- File .ovpn biasanya sudah berisi credentials lengkap
+- VPN_USERNAME dan VPN_PASSWORD TIDAK PERLU diisi
+- Cukup upload file .ovpn saja
 
 
 ============================================================
