@@ -10,12 +10,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatRupiah } from "@/lib/currency";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { FileText, AlertCircle, CheckCircle, ArrowLeft, Truck, Package, MapPin, Calendar, CreditCard, Clock, Building2, Copy, Send } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle, ArrowLeft, Truck, Package, MapPin, Calendar, CreditCard } from "lucide-react";
 import { useAppTheme } from "@/contexts/AppThemeContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { PaymentVerificationModal } from "@/components/payment/PaymentVerificationModal";
-import { PaymentVerificationStatus } from "@/components/payment/PaymentVerificationStatus";
+import { PaymentRequestGenerator } from "@/components/payment/PaymentRequestGenerator";
 
 interface ContractDetail {
   id: string;
@@ -61,10 +60,7 @@ export default function MyContractDetail() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
-  const [verificationUniqueAmount, setVerificationUniqueAmount] = useState(0);
-  const [verificationExpiresAt, setVerificationExpiresAt] = useState("");
+  const [pendingPaymentRequest, setPendingPaymentRequest] = useState<any>(null);
 
   useEffect(() => {
     if (user && id) {
@@ -78,7 +74,7 @@ export default function MyContractDetail() {
     
     const { data } = await supabase
       .from("payment_confirmation_requests")
-      .select("id, unique_amount, expires_at")
+      .select("id, unique_amount, unique_code, amount_expected, expires_at, created_by_role, status")
       .eq("contract_id", id)
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString())
@@ -86,9 +82,7 @@ export default function MyContractDetail() {
       .maybeSingle();
     
     if (data) {
-      setActiveVerificationId(data.id);
-      setVerificationUniqueAmount(data.unique_amount || 0);
-      setVerificationExpiresAt(data.expires_at || "");
+      setPendingPaymentRequest(data);
     }
   };
 
@@ -139,15 +133,10 @@ export default function MyContractDetail() {
     toast.success("Berhasil disalin!");
   };
 
-  const handleVerificationSuccess = (requestId: string, uniqueAmount: number, expiresAt: string) => {
-    setActiveVerificationId(requestId);
-    setVerificationUniqueAmount(uniqueAmount);
-    setVerificationExpiresAt(expiresAt);
-  };
-
   const handleVerificationComplete = () => {
     fetchContractDetail();
-    setActiveVerificationId(null);
+    fetchPendingVerification();
+    setPendingPaymentRequest(null);
   };
 
   if (loading) {
@@ -362,75 +351,25 @@ export default function MyContractDetail() {
               </CardContent>
             </Card>
 
-            {/* Payment Instructions */}
-            {contract.tagihan_belum_bayar > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Transfer Ke
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {bankAccounts.map((bank) => (
-                    <div key={bank.id} className="p-3 border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-sm">{bank.bank_name}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => copyToClipboard(bank.account_number)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <p className="font-mono text-lg">{bank.account_number}</p>
-                      {bank.account_holder_name && (
-                        <p className="text-xs text-muted-foreground">a.n. {bank.account_holder_name}</p>
-                      )}
-                    </div>
-                  ))}
-                  
-                  {/* Verification Status or Button */}
-                  {activeVerificationId ? (
-                    <PaymentVerificationStatus
-                      requestId={activeVerificationId}
-                      uniqueAmount={verificationUniqueAmount}
-                      expiresAt={verificationExpiresAt}
-                      onClose={() => setActiveVerificationId(null)}
-                      onVerified={handleVerificationComplete}
-                    />
-                  ) : (
-                    <Button 
-                      className="w-full" 
-                      onClick={() => setShowVerificationModal(true)}
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      Sudah Transfer
-                    </Button>
-                  )}
-                  
-                  <p className="text-xs text-muted-foreground text-center">
-                    Klik tombol di atas setelah transfer untuk verifikasi otomatis
-                  </p>
-                </CardContent>
-              </Card>
+            {/* Payment Request Generator - Replaces old Transfer Instructions */}
+            {contract.tagihan_belum_bayar > 0 && bankAccounts[0] && (
+              <PaymentRequestGenerator
+                contractId={contract.id}
+                customerName={contract.keterangan || "Customer"}
+                remainingAmount={contract.tagihan_belum_bayar}
+                pendingRequest={pendingPaymentRequest}
+                onPaymentVerified={handleVerificationComplete}
+                bankInfo={{
+                  bank_name: bankAccounts[0].bank_name,
+                  account_number: bankAccounts[0].account_number,
+                  account_holder_name: bankAccounts[0].account_holder_name || undefined,
+                }}
+                cardTitle="Bayar Tagihan"
+              />
             )}
           </div>
         </div>
       </div>
-
-      {/* Payment Verification Modal */}
-      {contract && (
-        <PaymentVerificationModal
-          open={showVerificationModal}
-          onOpenChange={setShowVerificationModal}
-          contractId={contract.id}
-          customerName={contract.keterangan || "Customer"}
-          remainingAmount={contract.tagihan_belum_bayar}
-          onSuccess={handleVerificationSuccess}
-        />
-      )}
     </div>
   );
 }
