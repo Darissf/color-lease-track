@@ -1126,12 +1126,25 @@ export default function BankScraperSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Important Note */}
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+              <p className="text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  <strong>Penting:</strong> VPS di luar Indonesia memerlukan VPN split tunneling agar BCA bisa diakses 
+                  sambil SSH tetap berjalan. Tutorial ini sudah mencakup setup split tunnel.
+                </span>
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {[
-                { icon: Download, label: "1. Download", desc: "File .ovpn & Setup Package" },
+                { icon: Download, label: "1. Download", desc: "VPN & Package" },
                 { icon: Upload, label: "2. Upload", desc: "Ke VPS via SFTP" },
                 { icon: Play, label: "3. Install", desc: "Jalankan install.sh" },
-                { icon: Settings, label: "4. Config", desc: "Edit config.env" },
+                { icon: Server, label: "4. Split Tunnel", desc: "Setup OpenVPN" },
+                { icon: Settings, label: "5. Config", desc: "Edit config.env" },
+                { icon: Monitor, label: "6. Test", desc: "Verifikasi" },
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col items-center p-3 bg-muted/30 rounded-lg text-center">
                   <div className="p-2 rounded-full bg-primary/10 mb-2">
@@ -1174,20 +1187,27 @@ export default function BankScraperSettings() {
                   </div>
                   <Separator />
                   <div className="space-y-2">
-                    <h4 className="font-medium">Download File .ovpn dari VPNJantit</h4>
+                    <h4 className="font-medium">Download File .ovpn dari VPN Provider</h4>
                     <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
-                      <li>Login ke VPNJantit</li>
+                      <li>Login ke VPN provider (VPNJantit, Surfshark, NordVPN, dll)</li>
                       <li>Pilih server <strong>Indonesia</strong></li>
                       <li>Download file <code className="bg-muted px-1 rounded">.ovpn</code></li>
                     </ol>
                     <p className="text-xs text-muted-foreground mt-2">
                       <strong>Note:</strong> File .ovpn biasanya sudah berisi credentials lengkap. Tidak perlu catat username/password terpisah.
                     </p>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href="https://vpnjantit.com" target="_blank" rel="noopener noreferrer" className="gap-2">
-                        <ExternalLink className="h-3 w-3" /> VPNJantit
-                      </a>
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href="https://vpnjantit.com" target="_blank" rel="noopener noreferrer" className="gap-2">
+                          <ExternalLink className="h-3 w-3" /> VPNJantit
+                        </a>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href="https://surfshark.com" target="_blank" rel="noopener noreferrer" className="gap-2">
+                          <ExternalLink className="h-3 w-3" /> Surfshark
+                        </a>
+                      </Button>
+                    </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -1206,13 +1226,28 @@ export default function BankScraperSettings() {
                   </p>
                   <div className="p-3 bg-muted/30 rounded-lg">
                     <p className="text-sm font-medium mb-2">Isi package:</p>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>✓ <code>install.sh</code> - Script installer otomatis</li>
-                      <li>✓ <code>config.env</code> - File konfigurasi (SECRET_KEY sudah terisi)</li>
-                      <li>✓ <code>bca-scraper.js</code> - Script scraper BCA</li>
-                      <li>✓ <code>run.sh</code> - Script untuk menjalankan scraper</li>
-                      <li>✓ <code>README.txt</code> - Panduan singkat</li>
-                    </ul>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs font-medium text-primary mb-1">Core Files:</p>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>✓ <code>install.sh</code> - Installer otomatis</li>
+                          <li>✓ <code>config.env</code> - Konfigurasi</li>
+                          <li>✓ <code>bca-scraper.js</code> - Script scraper</li>
+                          <li>✓ <code>run.sh</code> - Runner script</li>
+                          <li>✓ <code>README.txt</code> - Panduan singkat</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">OpenVPN Split Tunnel:</p>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>✓ <code>setup-split-tunnel.sh</code> - Setup VPN</li>
+                          <li>✓ <code>vpn-up.sh</code> - Routing script</li>
+                          <li>✓ <code>vpn-down.sh</code> - Cleanup script</li>
+                          <li>✓ <code>setup-openvpn.sh</code> - Basic setup</li>
+                          <li>✓ <code>README-OPENVPN.md</code> - Panduan VPN</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -1243,6 +1278,9 @@ export default function BankScraperSettings() {
 
                   <div className="space-y-2">
                     <h4 className="font-medium">Upload Files via SFTP</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Upload semua file dari ZIP + file <code>.ovpn</code> ke folder <code>/root/bca-scraper/</code>
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" size="sm" asChild>
                         <a href="https://winscp.net/eng/download.php" target="_blank" rel="noopener noreferrer" className="gap-2">
@@ -1262,17 +1300,47 @@ export default function BankScraperSettings() {
               <AccordionItem value="step4">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">4</div>
-                    <span>Jalankan Installer</span>
+                    <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-sm">4</div>
+                    <span>Setup OpenVPN Split Tunnel</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pl-11 space-y-3">
-                  <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
-                    <p>chmod +x install.sh && ./install.sh</p>
+                <AccordionContent className="pl-11 space-y-4">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      <strong>Penting:</strong> Step ini WAJIB untuk VPS di luar Indonesia. Split tunneling memastikan SSH tetap bisa diakses saat VPN aktif.
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Script akan otomatis install Node.js, OpenVPN, Puppeteer, dan setup cron job.
-                  </p>
+
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Jalankan Setup Script</h4>
+                    <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                      <p className="text-zinc-500"># Pastikan file .ovpn sudah di /root/bca-scraper/</p>
+                      <p>cd /root/bca-scraper</p>
+                      <p>chmod +x setup-split-tunnel.sh</p>
+                      <p>sudo ./setup-split-tunnel.sh</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <p className="text-sm font-medium mb-2">Script akan otomatis:</p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>✓ Install OpenVPN & dependencies</li>
+                      <li>✓ Konfigurasi split tunneling (SSH tetap direct)</li>
+                      <li>✓ Setup routing rules via vpn-up.sh & vpn-down.sh</li>
+                      <li>✓ Enable OpenVPN service</li>
+                      <li>✓ Verifikasi koneksi VPN Indonesia</li>
+                    </ul>
+                  </div>
+
+                  <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <p className="text-sm text-destructive flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                      <span>
+                        <strong>Jika SSH putus:</strong> Tunggu 2-3 menit, lalu coba reconnect. Jika masih gagal, 
+                        reboot VPS via control panel hosting (Contabo/Hetzner dashboard).
+                      </span>
+                    </p>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
 
@@ -1280,7 +1348,7 @@ export default function BankScraperSettings() {
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">5</div>
-                    <span>Edit Konfigurasi</span>
+                    <span>Edit Konfigurasi BCA</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pl-11 space-y-3">
@@ -1294,8 +1362,10 @@ export default function BankScraperSettings() {
                       <li>• <code>BCA_PIN</code> - PIN KlikBCA</li>
                       <li>• <code>BCA_ACCOUNT_NUMBER</code> - Nomor rekening BCA</li>
                     </ul>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      <strong>VPN:</strong> Tidak perlu isi VPN_USERNAME/PASSWORD. File .ovpn sudah berisi credentials lengkap.
+                  </div>
+                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-400">
+                      ✓ <code>SECRET_KEY</code> dan <code>WEBHOOK_URL</code> sudah otomatis terisi dari download!
                     </p>
                   </div>
                 </AccordionContent>
@@ -1308,18 +1378,46 @@ export default function BankScraperSettings() {
                     <span>Test & Monitor</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pl-11 space-y-3">
-                  <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
-                    <p className="text-zinc-500"># Start VPN Indonesia</p>
-                    <p>sudo systemctl start openvpn-client@indonesia</p>
-                    <p></p>
-                    <p className="text-zinc-500"># Test scraper manual</p>
-                    <p>./run.sh</p>
+                <AccordionContent className="pl-11 space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Verifikasi Split Tunnel</h4>
+                    <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                      <p className="text-zinc-500"># Cek IP direct (harus IP VPS Eropa)</p>
+                      <p>curl https://api.ipify.org && echo</p>
+                      <p></p>
+                      <p className="text-zinc-500"># Cek IP via VPN (harus IP Indonesia)</p>
+                      <p>curl --interface tun0 https://api.ipify.org && echo</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Test Scraper Manual</h4>
+                    <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                      <p className="text-zinc-500"># Jalankan scraper sekali untuk test</p>
+                      <p>./run.sh</p>
+                      <p></p>
+                      <p className="text-zinc-500"># Monitor log</p>
+                      <p>tail -f /var/log/bca-scraper.log</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Commands Berguna</h4>
+                    <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                      <p className="text-zinc-500"># Cek status VPN</p>
+                      <p>sudo systemctl status openvpn-client@indonesia</p>
+                      <p></p>
+                      <p className="text-zinc-500"># Restart VPN jika perlu</p>
+                      <p>sudo systemctl restart openvpn-client@indonesia</p>
+                      <p></p>
+                      <p className="text-zinc-500"># Lihat log split tunnel</p>
+                      <p>cat /var/log/vpn-split-tunnel.log</p>
+                    </div>
                   </div>
 
                   <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                     <p className="text-sm text-green-700 dark:text-green-400 font-medium">
-                      🎉 Selesai! Scraper akan jalan otomatis setiap 5 menit.
+                      🎉 Selesai! Scraper akan jalan otomatis setiap 5 menit via cron job.
                     </p>
                   </div>
                 </AccordionContent>
