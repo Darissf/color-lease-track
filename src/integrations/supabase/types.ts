@@ -3617,6 +3617,7 @@ export type Database = {
           error_count: number | null
           id: string
           is_active: boolean | null
+          last_burst_check_at: string | null
           last_error: string | null
           last_scrape_at: string | null
           last_webhook_at: string | null
@@ -3647,6 +3648,7 @@ export type Database = {
           error_count?: number | null
           id?: string
           is_active?: boolean | null
+          last_burst_check_at?: string | null
           last_error?: string | null
           last_scrape_at?: string | null
           last_webhook_at?: string | null
@@ -3677,6 +3679,7 @@ export type Database = {
           error_count?: number | null
           id?: string
           is_active?: boolean | null
+          last_burst_check_at?: string | null
           last_error?: string | null
           last_scrape_at?: string | null
           last_webhook_at?: string | null
