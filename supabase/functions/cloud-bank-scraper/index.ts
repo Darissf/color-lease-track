@@ -11,6 +11,16 @@ interface BankCredentials {
   account_number: string;
 }
 
+interface ProxyConfig {
+  enabled: boolean;
+  type: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  country: string;
+}
+
 interface MutationData {
   date: string;
   time: string;
@@ -94,8 +104,21 @@ Deno.serve(async (req) => {
     }
 
     const credentials = settings.bank_credentials as BankCredentials;
+    const proxyConfig = settings.proxy_config as ProxyConfig | null;
+    
     if (!credentials?.user_id || !credentials?.pin || !credentials?.account_number) {
       throw new Error('BCA credentials not configured');
+    }
+    
+    // Log proxy status
+    if (proxyConfig?.enabled) {
+      const proxyUsername = proxyConfig.country 
+        ? `${proxyConfig.username}-country-${proxyConfig.country}`
+        : proxyConfig.username;
+      console.log(`[Cloud Bank Scraper] Proxy ENABLED: ${proxyConfig.host}:${proxyConfig.port} (${proxyConfig.country})`);
+      console.log(`[Cloud Bank Scraper] Proxy username: ${proxyUsername}`);
+    } else {
+      console.log('[Cloud Bank Scraper] Proxy DISABLED - direct connection');
     }
 
     // Update status
@@ -128,6 +151,7 @@ Deno.serve(async (req) => {
       const burstResults = await scrapeBCAMutationsBurstMode(
         browserlessApiKey, 
         credentials,
+        proxyConfig,
         burstInterval,
         maxChecks,
         async (checkNumber: number, mutations: MutationData[]) => {
@@ -184,7 +208,7 @@ Deno.serve(async (req) => {
       // NORMAL MODE: Single login, single check
       console.log('[Cloud Bank Scraper] Running in NORMAL mode...');
       
-      const mutations = await scrapeBCAMutationsWithRetry(browserlessApiKey, credentials);
+      const mutations = await scrapeBCAMutationsWithRetry(browserlessApiKey, credentials, proxyConfig);
       console.log(`[Cloud Bank Scraper] Found ${mutations.length} mutations`);
 
       const result = await processMutations(supabase, settings, mutations);
@@ -373,7 +397,7 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
 }
 
 // Retry wrapper for normal mode scraping
-async function scrapeBCAMutationsWithRetry(apiKey: string, credentials: BankCredentials, maxRetries = 1): Promise<MutationData[]> {
+async function scrapeBCAMutationsWithRetry(apiKey: string, credentials: BankCredentials, proxyConfig: ProxyConfig | null, maxRetries = 1): Promise<MutationData[]> {
   let lastError: Error | null = null;
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -382,7 +406,7 @@ async function scrapeBCAMutationsWithRetry(apiKey: string, credentials: BankCred
         console.log(`[Browserless] Retry attempt ${attempt}/${maxRetries} after 5 seconds...`);
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
-      return await scrapeBCAMutations(apiKey, credentials);
+      return await scrapeBCAMutations(apiKey, credentials, proxyConfig);
     } catch (error: unknown) {
       lastError = error as Error;
       console.error(`[Browserless] Attempt ${attempt + 1} failed:`, lastError.message);
@@ -397,7 +421,7 @@ async function scrapeBCAMutationsWithRetry(apiKey: string, credentials: BankCred
   throw lastError || new Error('Scraping failed after retries');
 }
 
-async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials): Promise<MutationData[]> {
+async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials, proxyConfig: ProxyConfig | null): Promise<MutationData[]> {
   // Browserless REST API timeout is in MILLISECONDS
   // Maximum 60000ms (60 seconds) for free plan
   console.log('[Browserless] Starting scrape request with 60s timeout...');
@@ -406,12 +430,24 @@ async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials):
   const fetchTimeout = setTimeout(() => controller.abort(), 80000); // 80s total timeout for fetch
   
   try {
+    // Build request body with optional proxy launch args
+    // deno-lint-ignore no-explicit-any
+    const requestBody: any = {
+      code: generateBrowserlessCode(credentials, proxyConfig),
+    };
+    
+    // Add launch args for proxy if enabled
+    if (proxyConfig?.enabled && proxyConfig.host && proxyConfig.port) {
+      requestBody.launch = {
+        args: [`--proxy-server=http://${proxyConfig.host}:${proxyConfig.port}`]
+      };
+      console.log(`[Browserless] Using proxy: ${proxyConfig.host}:${proxyConfig.port}`);
+    }
+    
     const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=60000`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        code: generateBrowserlessCode(credentials),
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
@@ -446,6 +482,7 @@ async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials):
 async function scrapeBCAMutationsBurstMode(
   apiKey: string, 
   credentials: BankCredentials,
+  proxyConfig: ProxyConfig | null,
   intervalSeconds: number,
   maxChecks: number,
   onCheck: (checkNumber: number, mutations: MutationData[]) => Promise<boolean>
@@ -458,12 +495,24 @@ async function scrapeBCAMutationsBurstMode(
   const burstTimeoutMs = 60000;
   console.log(`[Burst Mode] Using timeout: ${burstTimeoutMs}ms`);
   
+  // Build request body with optional proxy launch args
+  // deno-lint-ignore no-explicit-any
+  const requestBody: any = {
+    code: generateBurstModeCode(credentials, proxyConfig, intervalSeconds, maxChecks),
+  };
+  
+  // Add launch args for proxy if enabled
+  if (proxyConfig?.enabled && proxyConfig.host && proxyConfig.port) {
+    requestBody.launch = {
+      args: [`--proxy-server=http://${proxyConfig.host}:${proxyConfig.port}`]
+    };
+    console.log(`[Burst Mode] Using proxy: ${proxyConfig.host}:${proxyConfig.port}`);
+  }
+  
   const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=${burstTimeoutMs}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      code: generateBurstModeCode(credentials, intervalSeconds, maxChecks),
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
@@ -502,13 +551,29 @@ async function scrapeBCAMutationsBurstMode(
   };
 }
 
-function generateBrowserlessCode(credentials: BankCredentials): string {
+function generateBrowserlessCode(credentials: BankCredentials, proxyConfig: ProxyConfig | null): string {
+  // Build proxy auth code if proxy is enabled
+  const proxyAuthCode = proxyConfig?.enabled && proxyConfig.username && proxyConfig.password
+    ? `
+        // Authenticate with proxy
+        const proxyUsername = ${JSON.stringify(proxyConfig.country ? `${proxyConfig.username}-country-${proxyConfig.country}` : proxyConfig.username)};
+        const proxyPassword = ${JSON.stringify(proxyConfig.password)};
+        await page.authenticate({
+          username: proxyUsername,
+          password: proxyPassword
+        });
+        console.log('[BCA] Proxy authentication set:', proxyUsername);
+      `
+    : '';
+    
   return `
     export default async ({ page }) => {
       const CONFIG = ${JSON.stringify(credentials)};
       const mutations = [];
       
       try {
+        ${proxyAuthCode}
+        
         // KlikBCA is very slow from US servers - use maximum timeouts
         // Total operation should complete in ~55 seconds to fit within 60s limit
         page.setDefaultTimeout(45000);
@@ -683,7 +748,21 @@ function generateBrowserlessCode(credentials: BankCredentials): string {
   `;
 }
 
-function generateBurstModeCode(credentials: BankCredentials, intervalSeconds: number, maxChecks: number): string {
+function generateBurstModeCode(credentials: BankCredentials, proxyConfig: ProxyConfig | null, intervalSeconds: number, maxChecks: number): string {
+  // Build proxy auth code if proxy is enabled
+  const proxyAuthCode = proxyConfig?.enabled && proxyConfig.username && proxyConfig.password
+    ? `
+        // Authenticate with proxy
+        const proxyUsername = ${JSON.stringify(proxyConfig.country ? `${proxyConfig.username}-country-${proxyConfig.country}` : proxyConfig.username)};
+        const proxyPassword = ${JSON.stringify(proxyConfig.password)};
+        await page.authenticate({
+          username: proxyUsername,
+          password: proxyPassword
+        });
+        console.log('[BCA] Proxy authentication set:', proxyUsername);
+      `
+    : '';
+    
   return `
     export default async ({ page }) => {
       const CONFIG = ${JSON.stringify(credentials)};
@@ -691,6 +770,8 @@ function generateBurstModeCode(credentials: BankCredentials, intervalSeconds: nu
       const MAX_CHECKS = ${maxChecks};
       const allMutations = [];
       let totalChecks = 0;
+      
+      ${proxyAuthCode}
       
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
       
