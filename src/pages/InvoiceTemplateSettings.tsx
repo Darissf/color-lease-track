@@ -51,17 +51,12 @@ const InvoiceTemplateSettings = () => {
     setCropTarget(target as CropTarget);
   }, []);
 
-  const handleCrop = async (croppedImageData: string) => {
+  const handleCrop = async (blob: Blob) => {
     if (!cropTarget) return;
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      const base64Data = croppedImageData.split(',')[1];
-      const byteCharacters = atob(base64Data);
-      const byteArray = new Uint8Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) byteArray[i] = byteCharacters.charCodeAt(i);
-      const blob = new Blob([byteArray], { type: 'image/png' });
       const fileName = `${user.id}/${cropTarget}-${Date.now()}.png`;
       const { error: uploadError } = await supabase.storage.from('brand-images').upload(fileName, blob, { contentType: 'image/png', upsert: true });
       if (uploadError) throw uploadError;
@@ -182,7 +177,7 @@ const InvoiceTemplateSettings = () => {
       </div>
 
       {cropFile && (
-        <ImageCropper imageFile={cropFile} onCrop={handleCrop} onClose={() => { setCropFile(null); setCropTarget(null); }} aspectRatio={cropTarget?.includes('logo') ? 1 : cropTarget?.includes('signature') ? 3 : 1} />
+        <ImageCropper file={cropFile} onCrop={handleCrop} onCancel={() => { setCropFile(null); setCropTarget(null); }} />
       )}
     </div>
   );

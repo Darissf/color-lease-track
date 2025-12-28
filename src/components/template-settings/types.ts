@@ -87,6 +87,10 @@ export interface TemplateSettings {
   
   // Color Preset
   color_preset: string;
+  
+  // Legacy/Additional
+  template_style: string;
+  paper_size: string;
 }
 
 export const defaultSettings: TemplateSettings = {
@@ -165,6 +169,9 @@ export const defaultSettings: TemplateSettings = {
   custom_note: '',
   
   color_preset: 'cyan-blue',
+  
+  template_style: 'modern',
+  paper_size: 'A4',
 };
 
 export const colorPresets = {
