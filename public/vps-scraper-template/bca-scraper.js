@@ -6,12 +6,13 @@
  * 
  * REQUIREMENTS:
  * - Node.js 18+
- * - npm install puppeteer
+ * - npm install puppeteer dotenv
  * 
  * USAGE:
- * 1. Edit konfigurasi di bagian CONFIG
- * 2. Test manual: node bca-scraper.js
- * 3. Setup cron: */5 * * * * node /path/to/bca-scraper.js >> /var/log/bca-scraper.log 2>&1
+ * 1. Copy config.env.template ke config.env
+ * 2. Edit config.env dengan kredensial Anda
+ * 3. Test manual: ./run.sh atau node bca-scraper.js
+ * 4. Setup cron: Otomatis via install.sh
  * 
  * REFERENSI:
  * - https://github.com/nicnocquee/klikbca.js
@@ -19,31 +20,66 @@
  */
 
 const puppeteer = require('puppeteer');
+const path = require('path');
+const fs = require('fs');
 
-// ===================== CONFIG - EDIT BAGIAN INI =====================
+// ===================== LOAD CONFIG FROM ENV =====================
+// Load from config.env if exists
+const configPath = path.join(__dirname, 'config.env');
+if (fs.existsSync(configPath)) {
+  const envConfig = fs.readFileSync(configPath, 'utf-8');
+  envConfig.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const [key, ...valueParts] = trimmed.split('=');
+      if (key && valueParts.length > 0) {
+        process.env[key.trim()] = valueParts.join('=').trim();
+      }
+    }
+  });
+}
+
 const CONFIG = {
-  // Kredensial BCA
-  BCA_USER_ID: 'YOUR_KLIKBCA_USER_ID',
-  BCA_PIN: 'YOUR_KLIKBCA_PIN',
+  // Kredensial BCA (dari config.env atau environment)
+  BCA_USER_ID: process.env.BCA_USER_ID || 'YOUR_KLIKBCA_USER_ID',
+  BCA_PIN: process.env.BCA_PIN || 'YOUR_KLIKBCA_PIN',
   
   // Webhook URL dari Lovable
-  WEBHOOK_URL: 'https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook',
+  WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook',
   
   // Secret Key dari halaman settings
-  SECRET_KEY: 'YOUR_SECRET_KEY_HERE',
+  SECRET_KEY: process.env.SECRET_KEY || 'YOUR_SECRET_KEY_HERE',
   
   // Bank account (untuk logging)
-  ACCOUNT_NUMBER: '1234567890',
+  ACCOUNT_NUMBER: process.env.BCA_ACCOUNT_NUMBER || '1234567890',
   
   // Browser settings
-  HEADLESS: true,           // false untuk debug (melihat browser)
-  SLOW_MO: 50,              // delay antar aksi (ms)
-  TIMEOUT: 60000,           // timeout navigasi (ms)
+  HEADLESS: process.env.HEADLESS !== 'false',  // default true
+  SLOW_MO: parseInt(process.env.SLOW_MO) || 50,
+  TIMEOUT: parseInt(process.env.TIMEOUT) || 60000,
   
   // Retry settings  
-  MAX_RETRIES: 3,
-  RETRY_DELAY: 5000,        // delay antara retry (ms)
+  MAX_RETRIES: parseInt(process.env.MAX_RETRIES) || 3,
+  RETRY_DELAY: parseInt(process.env.RETRY_DELAY) || 5000,
 };
+
+// Validate config
+if (CONFIG.BCA_USER_ID === 'YOUR_KLIKBCA_USER_ID' || CONFIG.BCA_USER_ID === 'your_bca_user_id') {
+  console.error('ERROR: BCA_USER_ID belum dikonfigurasi!');
+  console.error('Edit config.env dan isi dengan kredensial BCA Anda.');
+  process.exit(1);
+}
+
+if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
+  console.error('ERROR: SECRET_KEY belum dikonfigurasi!');
+  console.error('Copy SECRET_KEY dari halaman Bank Scraper Settings.');
+  process.exit(1);
+}
+
+console.log('Config loaded:');
+console.log('- BCA_USER_ID:', CONFIG.BCA_USER_ID.substring(0, 3) + '***');
+console.log('- WEBHOOK_URL:', CONFIG.WEBHOOK_URL);
+console.log('- SECRET_KEY:', CONFIG.SECRET_KEY.substring(0, 8) + '***');
 // ====================================================================
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
