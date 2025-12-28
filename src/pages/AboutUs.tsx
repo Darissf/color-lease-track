@@ -56,7 +56,7 @@ const achievements = [
   },
   {
     icon: Clock,
-    label: "10+ Tahun",
+    label: "4+ Tahun",
     description: "Melayani Bali dengan dedikasi",
   },
   {
@@ -72,7 +72,7 @@ export default function AboutUs() {
       {/* SEO */}
       <SEOHead
         title="Tentang Kami - Sewa Scaffolding Bali"
-        description="Kenali Sewa Scaffolding Bali lebih dekat. Berpengalaman 10+ tahun melayani 500+ proyek konstruksi di Bali dengan tim profesional dan scaffolding bersertifikasi SNI."
+        description="Kenali Sewa Scaffolding Bali lebih dekat. Berpengalaman 4+ tahun melayani 500+ proyek konstruksi di Bali dengan tim profesional dan scaffolding bersertifikasi SNI."
         keywords="tentang scaffolding bali, profil perusahaan scaffolding, tim scaffolding profesional, sejarah scaffolding bali"
         canonical="/about"
         structuredData={[
