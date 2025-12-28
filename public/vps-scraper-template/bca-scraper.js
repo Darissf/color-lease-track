@@ -13,8 +13,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "1.0.0";
+const SCRAPER_VERSION = "2.0.0";
 const SCRAPER_BUILD_DATE = "2025-12-28";
+// v2.0.0: Optimized burst mode - login 1x, loop Kembali+Lihat
 // =========================================
 
 const puppeteer = require('puppeteer');
@@ -1072,54 +1073,443 @@ async function scrapeBCA() {
   return parsedMutations;
 }
 
-// Burst mode loop with improved timing
-async function runBurstMode(initialCommand) {
-  log('=== ENTERING BURST MODE ===');
-  const maxDuration = 150000; // 2.5 minutes (increased from 2 minutes)
+/**
+ * OPTIMIZED BURST MODE: Login 1x, then loop "Kembali" + "Lihat" tanpa logout
+ * Flow: Login → Navigasi ke Mutasi → Set Tanggal → Lihat → [Loop: Grab → Kembali → Lihat] → Logout
+ */
+async function scrapeBCABurstMode() {
+  log('=== BCA BURST MODE SCRAPER STARTED ===');
+  log(`Config: USER_ID=${CONFIG.BCA_USER_ID.substring(0, 3)}***, ACCOUNT=${CONFIG.ACCOUNT_NUMBER}`);
+  
+  const maxIterations = 24;
+  const maxDuration = 150000; // 2.5 minutes
   const burstStart = Date.now();
   let checkCount = 0;
-
-  while (Date.now() - burstStart < maxDuration) {
-    checkCount++;
-    log(`--- Burst scrape #${checkCount} ---`);
-
-    // Check if stuck before starting new scrape
-    if (checkStuckStatus()) {
-      log('Stuck detected before burst scrape, forcing cleanup...', 'ERROR');
-      await forceCleanup();
-      await delay(5000);
+  let matchFound = false;
+  
+  // Track scrape start for stuck detection
+  scrapeStartTime = Date.now();
+  isScrapingActive = true;
+  
+  let browser;
+  let page;
+  
+  try {
+    // === STEP 1: LAUNCH BROWSER & LOGIN (ONLY ONCE) ===
+    log('Step 1: Launching browser...');
+    browser = await puppeteer.launch({
+      headless: CONFIG.HEADLESS ? 'new' : false,
+      slowMo: CONFIG.SLOW_MO,
+      executablePath: CONFIG.CHROMIUM_PATH,
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox', 
+        '--disable-dev-shm-usage',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor'
+      ],
+    });
+    log('Browser launched successfully!');
+    
+    page = await browser.newPage();
+    await page.setViewport({ width: 1366, height: 768 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    page.setDefaultTimeout(CONFIG.TIMEOUT);
+    page.setDefaultNavigationTimeout(CONFIG.TIMEOUT);
+    
+    // Navigate to KlikBCA
+    log('Navigating to KlikBCA...');
+    await page.goto('https://ibank.klikbca.com/', { 
+      waitUntil: 'networkidle2', 
+      timeout: CONFIG.TIMEOUT 
+    });
+    
+    await delay(2000);
+    await saveDebug(page, 'burst-01-login-page');
+    
+    // Find login frame
+    const frameResult = await findLoginFrame(page);
+    if (!frameResult) {
+      throw new Error('Could not find login form in any frame');
     }
-
-    try {
-      const mutations = await scrapeBCA();
+    
+    const { frame, isMainPage } = frameResult;
+    log(`Using ${isMainPage ? 'main page' : 'iframe'} for login`);
+    
+    // Enter credentials
+    const credentialsEntered = await enterCredentials(frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+    if (!credentialsEntered) {
+      throw new Error('Failed to enter credentials');
+    }
+    
+    await delay(500);
+    await saveDebug(page, 'burst-02-credentials-entered');
+    
+    // Submit login
+    const submitted = await submitLogin(frame, page);
+    if (!submitted) {
+      log('Submit strategies failed', 'WARN');
+    }
+    
+    await delay(3000);
+    
+    // Check if still on login page
+    let loginFrame = await findLoginFrame(page);
+    if (loginFrame) {
+      log('Still on login page, re-entering credentials...');
+      await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+      await delay(500);
+      await submitLogin(loginFrame.frame, page);
+      await delay(3000);
+    }
+    
+    // Final login check
+    const finalLoginCheck = await findLoginFrame(page);
+    if (finalLoginCheck) {
+      throw new Error('Login failed - still on login page');
+    }
+    
+    log('LOGIN SUCCESSFUL!');
+    await saveDebug(page, 'burst-03-logged-in');
+    
+    // === STEP 2: NAVIGATE TO MUTASI REKENING (ONLY ONCE) ===
+    log('Step 2: Navigating to Mutasi Rekening...');
+    await delay(2000);
+    
+    // Find menu frame
+    const menuFrame = page.frames().find(f => f.name() === 'menu');
+    if (!menuFrame) {
+      throw new Error('Menu frame not found after login');
+    }
+    
+    // Click "Informasi Rekening"
+    log('Clicking Informasi Rekening...');
+    await menuFrame.evaluate(() => {
+      const links = document.querySelectorAll('a');
+      for (const link of links) {
+        const text = (link.textContent || '').toLowerCase();
+        if (text.includes('informasi rekening') || text.includes('account information')) {
+          link.click();
+          return true;
+        }
+      }
+      return false;
+    });
+    await delay(3000);
+    
+    // Re-get menu frame and click "Mutasi Rekening"
+    const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
+    log('Clicking Mutasi Rekening...');
+    await updatedMenuFrame.evaluate(() => {
+      const links = document.querySelectorAll('a');
+      for (const link of links) {
+        const text = (link.textContent || '').toLowerCase();
+        if (text.includes('mutasi rekening') || text.includes('account statement')) {
+          link.click();
+          return true;
+        }
+      }
+      return false;
+    });
+    await delay(3000);
+    
+    // === STEP 3: SET DATE (ONLY ONCE) ===
+    log('Step 3: Setting date range...');
+    let atmFrame = page.frames().find(f => f.name() === 'atm');
+    if (!atmFrame) {
+      throw new Error('ATM frame not found');
+    }
+    
+    const today = new Date();
+    const day = String(today.getDate());
+    const month = String(today.getMonth() + 1);
+    const currentYear = today.getFullYear();
+    
+    await atmFrame.evaluate((day, month) => {
+      const selectors = [
+        { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' },
+        { start: 'select[name="startDt"]', startMt: 'select[name="startMt"]', end: 'select[name="endDt"]', endMt: 'select[name="endMt"]' }
+      ];
+      
+      for (const sel of selectors) {
+        const startDt = document.querySelector(sel.start);
+        const startMt = document.querySelector(sel.startMt);
+        const endDt = document.querySelector(sel.end);
+        const endMt = document.querySelector(sel.endMt);
+        
+        if (startDt && startMt && endDt && endMt) {
+          startDt.value = day;
+          startMt.value = month;
+          endDt.value = day;
+          endMt.value = month;
+          return true;
+        }
+      }
+      return false;
+    }, day, month);
+    
+    log(`Date set: ${day}/${month}/${currentYear}`);
+    await saveDebug(page, 'burst-04-date-set');
+    
+    // === STEP 4: FIRST CLICK "LIHAT" ===
+    log('Step 4: First click Lihat...');
+    await atmFrame.evaluate(() => {
+      const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"]');
+      for (const btn of buttons) {
+        if (btn.value.toLowerCase().includes('lihat') || btn.value.toLowerCase().includes('view') || btn.type === 'submit') {
+          btn.click();
+          return true;
+        }
+      }
+      return false;
+    });
+    await delay(3000);
+    await saveDebug(page, 'burst-05-first-result');
+    
+    // === STEP 5: BURST LOOP - GRAB → KEMBALI → LIHAT ===
+    log('=== ENTERING BURST LOOP ===');
+    
+    while (checkCount < maxIterations && (Date.now() - burstStart < maxDuration)) {
+      checkCount++;
+      log(`--- Burst iteration #${checkCount} ---`);
+      
+      // Re-find ATM frame (content may have changed)
+      atmFrame = page.frames().find(f => f.name() === 'atm');
+      if (!atmFrame) {
+        log('ATM frame lost, breaking loop', 'ERROR');
+        break;
+      }
+      
+      // 5a. GRAB DATA from table
+      const mutations = await atmFrame.evaluate((year) => {
+        const results = [];
+        const seen = new Set();
+        const tables = document.querySelectorAll('table');
+        
+        for (const table of tables) {
+          const rows = table.querySelectorAll('tr');
+          for (const row of rows) {
+            const cells = row.querySelectorAll('td');
+            if (cells.length > 10) continue;
+            
+            if (cells.length >= 4) {
+              const firstCell = (cells[0]?.innerText || '').trim();
+              const firstCellUpper = firstCell.toUpperCase();
+              
+              const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
+              const isPending = firstCellUpper.includes('PEND');
+              
+              if (dateMatch || isPending) {
+                let date;
+                if (isPending) {
+                  const now = new Date();
+                  date = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                } else {
+                  date = `${year}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
+                }
+                
+                const description = cells[1]?.innerText?.trim() || '';
+                const mutasiCell = cells[3]?.innerText?.trim() || '';
+                
+                let type = 'credit';
+                const descUpper = description.toUpperCase();
+                if (descUpper.includes(' DB') || descUpper.includes('/DB') || mutasiCell.toUpperCase().includes('DB')) {
+                  type = 'debit';
+                }
+                
+                // Skip debit transactions
+                if (type === 'debit') continue;
+                
+                const cleanedAmount = mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, '');
+                const amount = parseFloat(cleanedAmount);
+                
+                if (amount > 0) {
+                  const dedupKey = `${date}-${Math.round(amount)}-${description.substring(0, 30)}`;
+                  if (!seen.has(dedupKey)) {
+                    seen.add(dedupKey);
+                    results.push({ date, amount: Math.round(amount), type, description });
+                  }
+                }
+              }
+            }
+          }
+        }
+        return results;
+      }, currentYear);
+      
+      log(`Found ${mutations.length} credit mutations`);
+      
+      // 5b. SEND TO WEBHOOK if mutations found
       if (mutations && mutations.length > 0) {
         const result = await sendToWebhook(mutations);
-        if (result.matched > 0) {
-          log(`MATCH FOUND! Stopping burst.`);
+        log(`Webhook result: ${JSON.stringify(result)}`);
+        
+        if (result.matched && result.matched > 0) {
+          log(`MATCH FOUND! Payment verified.`);
+          matchFound = true;
           break;
         }
       }
-    } catch (e) {
-      log(`Burst scrape error: ${e.message}`, 'ERROR');
-      // Force cleanup on error
-      await forceCleanup();
+      
+      // 5c. CHECK SERVER STATUS
+      const status = await checkBurstCommand();
+      if (!status.burst_active) {
+        log('Burst stopped by server');
+        break;
+      }
+      
+      // Check if max duration exceeded
+      if (Date.now() - burstStart >= maxDuration) {
+        log('Max burst duration reached');
+        break;
+      }
+      
+      // 5d. CLICK "KEMBALI" to go back to form
+      log('Clicking Kembali...');
+      const kembaliClicked = await atmFrame.evaluate(() => {
+        // Try button first
+        const buttons = document.querySelectorAll('input[type="button"], input[type="submit"]');
+        for (const btn of buttons) {
+          const value = (btn.value || '').toLowerCase();
+          if (value.includes('kembali') || value.includes('back')) {
+            btn.click();
+            console.log(`Clicked button: ${btn.value}`);
+            return { success: true, method: 'button', value: btn.value };
+          }
+        }
+        
+        // Try link
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+          const text = (link.textContent || '').toLowerCase();
+          if (text.includes('kembali') || text.includes('back')) {
+            link.click();
+            console.log(`Clicked link: ${link.textContent}`);
+            return { success: true, method: 'link', text: link.textContent };
+          }
+        }
+        
+        return { success: false };
+      });
+      
+      log(`Kembali result: ${JSON.stringify(kembaliClicked)}`);
+      
+      if (!kembaliClicked.success) {
+        log('Could not find Kembali button, breaking loop', 'WARN');
+        break;
+      }
+      
+      await delay(2000);
+      
+      // 5e. Re-find ATM frame and CLICK "LIHAT" again (date still preserved)
+      atmFrame = page.frames().find(f => f.name() === 'atm');
+      if (!atmFrame) {
+        log('ATM frame lost after Kembali', 'ERROR');
+        break;
+      }
+      
+      log('Clicking Lihat...');
+      const lihatClicked = await atmFrame.evaluate(() => {
+        const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"]');
+        for (const btn of buttons) {
+          const value = (btn.value || '').toLowerCase();
+          if (value.includes('lihat') || value.includes('view') || btn.type === 'submit') {
+            btn.click();
+            console.log(`Clicked: ${btn.value}`);
+            return { success: true, value: btn.value };
+          }
+        }
+        return { success: false };
+      });
+      
+      log(`Lihat result: ${JSON.stringify(lihatClicked)}`);
+      
+      if (!lihatClicked.success) {
+        log('Could not find Lihat button, breaking loop', 'WARN');
+        break;
+      }
+      
+      // 5f. Wait for results to load
       await delay(3000);
+      
+      // Small additional delay between iterations
+      await delay(2000);
     }
-
-    // Check if burst still active
-    const status = await checkBurstCommand();
-    if (!status.burst_active) {
-      log('Burst stopped by server');
-      break;
+    
+    log(`=== BURST LOOP ENDED (${checkCount} iterations, match=${matchFound}) ===`);
+    
+    // === STEP 6: LOGOUT ===
+    log('Step 6: Logging out...');
+    try {
+      await page.evaluate(() => {
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+          const text = (link.textContent || '').toLowerCase();
+          if (text.includes('logout') || text.includes('keluar')) {
+            link.click();
+            return true;
+          }
+        }
+        return false;
+      });
+      await delay(2000);
+      log('Logged out successfully');
+    } catch (e) {
+      log(`Logout error: ${e.message}`, 'WARN');
     }
-
-    // Increased minimum interval to avoid BCA detection
-    const interval = Math.max((status.interval_seconds || 10) * 1000, 12000); // Min 12 seconds
-    log(`Waiting ${interval/1000}s...`);
-    await delay(interval);
+    
+    await saveDebug(page, 'burst-99-final');
+    
+    return { iterations: checkCount, matchFound };
+    
+  } catch (error) {
+    log(`Burst mode error: ${error.message}`, 'ERROR');
+    log(`Stack: ${error.stack}`, 'DEBUG');
+    if (page) {
+      await saveDebug(page, 'burst-error-state');
+    }
+    throw error;
+  } finally {
+    isScrapingActive = false;
+    scrapeStartTime = null;
+    
+    if (browser) {
+      try {
+        await browser.close();
+        log('Browser closed');
+      } catch (closeErr) {
+        log(`Browser close error: ${closeErr.message}`, 'WARN');
+      }
+    }
+    
+    // Force cleanup orphan processes
+    try {
+      const { execSync } = require('child_process');
+      execSync('pkill -f "chromium.*puppeteer_dev" 2>/dev/null || true', { stdio: 'ignore' });
+    } catch (e) {}
   }
+}
 
-  log(`=== BURST MODE ENDED (${checkCount} scrapes) ===`);
+// Burst mode entry point - calls the optimized scrapeBCABurstMode()
+async function runBurstMode(initialCommand) {
+  log('=== ENTERING BURST MODE ===');
+  
+  // Check if stuck before starting
+  if (checkStuckStatus()) {
+    log('Stuck detected before burst mode, forcing cleanup...', 'ERROR');
+    await forceCleanup();
+    await delay(5000);
+  }
+  
+  try {
+    const result = await scrapeBCABurstMode();
+    log(`Burst mode completed: ${result.iterations} iterations, match=${result.matchFound}`);
+  } catch (e) {
+    log(`Burst mode failed: ${e.message}`, 'ERROR');
+    await forceCleanup();
+  }
+  
+  log('=== BURST MODE ENDED ===');
 }
 
 // Main entry
