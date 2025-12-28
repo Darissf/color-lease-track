@@ -4261,6 +4261,57 @@ export type Database = {
           },
         ]
       }
+      scraper_versions: {
+        Row: {
+          changelog: string | null
+          content: string
+          content_hash: string
+          created_at: string | null
+          deployed_at: string | null
+          deployed_to_vps: boolean | null
+          file_size_bytes: number | null
+          id: string
+          is_current: boolean | null
+          line_count: number | null
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string
+          version_number: string
+        }
+        Insert: {
+          changelog?: string | null
+          content: string
+          content_hash: string
+          created_at?: string | null
+          deployed_at?: string | null
+          deployed_to_vps?: boolean | null
+          file_size_bytes?: number | null
+          id?: string
+          is_current?: boolean | null
+          line_count?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id: string
+          version_number: string
+        }
+        Update: {
+          changelog?: string | null
+          content?: string
+          content_hash?: string
+          created_at?: string | null
+          deployed_at?: string | null
+          deployed_to_vps?: boolean | null
+          file_size_bytes?: number | null
+          id?: string
+          is_current?: boolean | null
+          line_count?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string
+          version_number?: string
+        }
+        Relationships: []
+      }
       security_rate_limits: {
         Row: {
           created_at: string | null
@@ -5516,6 +5567,7 @@ export type Database = {
           month: string
         }[]
       }
+      get_next_scraper_version: { Args: { p_user_id: string }; Returns: string }
       get_pending_burst_requests: {
         Args: { p_user_id?: string }
         Returns: {

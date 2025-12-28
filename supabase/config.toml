@@ -146,3 +146,9 @@ verify_jwt = false
 
 [functions.get-scraper-config]
 verify_jwt = false
+
+[functions.check-scraper-update]
+verify_jwt = false
+
+[functions.update-scraper-status]
+verify_jwt = false

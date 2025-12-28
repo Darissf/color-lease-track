@@ -19,8 +19,9 @@ import {
   Loader2, Server, CheckCircle, Download, Terminal,
   AlertCircle, Webhook, FileText, AlertTriangle,
   ExternalLink, Package, FolderDown, BookOpen, Upload, Settings, Play, Monitor,
-  Zap, Clock, Timer
+  Zap, Clock, Timer, History
 } from "lucide-react";
+import { VersionHistoryPanel } from "@/components/scraper/VersionHistoryPanel";
 
 interface VPSSettings {
   id: string;
@@ -1062,9 +1063,20 @@ export default function BankScraperSettings() {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
 
-            <Separator />
+        {/* Version History Panel */}
+        {user?.id && (
+          <VersionHistoryPanel 
+            userId={user.id} 
+            onVersionChange={fetchData}
+          />
+        )}
 
+        {/* Individual Files Accordion */}
+        <Card>
+          <CardContent className="pt-6">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="files" className="border-none">
                 <AccordionTrigger className="text-sm text-muted-foreground hover:no-underline py-2">
