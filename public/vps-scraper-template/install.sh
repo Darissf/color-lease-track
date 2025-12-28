@@ -5,7 +5,7 @@
 # Script ini akan:
 # 1. Install semua dependencies (Node.js, OpenVPN, Puppeteer)
 # 2. Setup OpenVPN dengan file .ovpn yang tersedia
-# 3. Setup cron job untuk scraping otomatis (normal + burst check)
+# 3. Setup systemd service untuk scheduler daemon
 # ============================================================
 
 set -e
@@ -215,67 +215,61 @@ echo "STEP 6: Setting permissions..."
 
 chmod +x run.sh 2>/dev/null || true
 chmod +x bca-scraper.js 2>/dev/null || true
+chmod +x scheduler.js 2>/dev/null || true
 print_success "Scripts are executable"
 
 # ============================================================
-# STEP 7: Setup cron jobs (normal + burst check)
+# STEP 7: Setup systemd service for scheduler
 # ============================================================
 echo ""
-echo "STEP 7: Setting up cron jobs..."
+echo "STEP 7: Setting up systemd service..."
 
-# Normal scrape every 5 minutes
-CRON_NORMAL="*/5 * * * * cd $SCRIPT_DIR && ./run.sh >> /var/log/bca-scraper.log 2>&1"
+read -p "Setup systemd service untuk scheduler daemon? (Y/n): " SETUP_SERVICE
+if [ "$SETUP_SERVICE" != "n" ] && [ "$SETUP_SERVICE" != "N" ]; then
+    # Create systemd service file
+    cat > /tmp/bca-scraper.service << EOF
+[Unit]
+Description=BCA Scraper Scheduler
+After=network.target openvpn-client@indonesia.service
+Wants=openvpn-client@indonesia.service
 
-# Burst check every 30 seconds (via wrapper script)
-CRON_BURST="* * * * * cd $SCRIPT_DIR && ./burst-check-loop.sh >> /var/log/bca-scraper-burst.log 2>&1"
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$SCRIPT_DIR
+ExecStart=/usr/bin/node $SCRIPT_DIR/scheduler.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
-# Create burst check loop script (runs twice per minute for 30-second polling)
-cat > burst-check-loop.sh << 'EOF'
-#!/bin/bash
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
+# Environment
+Environment=NODE_ENV=production
 
-# Run burst check
-./run.sh --burst-check
-
-# Wait 30 seconds
-sleep 30
-
-# Run again
-./run.sh --burst-check
+[Install]
+WantedBy=multi-user.target
 EOF
 
-chmod +x burst-check-loop.sh
-print_success "Burst check loop script created"
-
-# Check if cron jobs already exist
-if crontab -l 2>/dev/null | grep -q "bca-scraper"; then
-    print_warning "Cron job sudah ada, akan di-update"
-    # Remove old cron jobs
-    crontab -l 2>/dev/null | grep -v "bca-scraper" | crontab -
-fi
-
-read -p "Setup cron jobs untuk scraping otomatis? (Y/n): " SETUP_CRON
-if [ "$SETUP_CRON" != "n" ] && [ "$SETUP_CRON" != "N" ]; then
-    (crontab -l 2>/dev/null; echo "$CRON_NORMAL") | crontab -
-    (crontab -l 2>/dev/null; echo "$CRON_BURST") | crontab -
-    print_success "Cron jobs berhasil ditambahkan:"
-    echo "  - Normal scrape: setiap 5 menit"
-    echo "  - Burst check: setiap 30 detik"
-else
-    echo "Cron jobs tidak ditambahkan. Untuk menambahkan manual:"
-    echo "crontab -e"
+    sudo mv /tmp/bca-scraper.service /etc/systemd/system/bca-scraper.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable bca-scraper
+    
+    print_success "Systemd service created"
     echo ""
-    echo "Tambahkan baris:"
-    echo "$CRON_NORMAL"
-    echo "$CRON_BURST"
+    echo "Service commands:"
+    echo "  Start:   sudo systemctl start bca-scraper"
+    echo "  Stop:    sudo systemctl stop bca-scraper"
+    echo "  Status:  sudo systemctl status bca-scraper"
+    echo "  Logs:    sudo journalctl -u bca-scraper -f"
+else
+    echo ""
+    echo "Untuk menjalankan scheduler manual:"
+    echo "  ./run.sh --daemon"
 fi
 
 # Create log files
 sudo touch /var/log/bca-scraper.log 2>/dev/null || touch bca-scraper.log
-sudo touch /var/log/bca-scraper-burst.log 2>/dev/null || touch bca-scraper-burst.log
 sudo chmod 666 /var/log/bca-scraper.log 2>/dev/null || true
-sudo chmod 666 /var/log/bca-scraper-burst.log 2>/dev/null || true
 
 # ============================================================
 # DONE!
@@ -302,20 +296,22 @@ echo ""
 echo "3. Cek IP (harus Indonesia):"
 echo "   curl https://api.ipify.org"
 echo ""
-echo "4. Test scraper manual:"
-echo "   ./run.sh"
+echo "4. Start scheduler daemon:"
+echo "   sudo systemctl start bca-scraper"
 echo ""
-echo "5. Test burst check manual:"
-echo "   ./run.sh --burst-check"
-echo ""
-echo "6. Cek log:"
-echo "   tail -f /var/log/bca-scraper.log"
+echo "5. Cek log scheduler:"
+echo "   sudo journalctl -u bca-scraper -f"
 echo ""
 echo "============================================================"
 echo ""
-echo "BURST MODE:"
-echo "Scraper akan otomatis polling server setiap 30 detik."
-echo "Ketika ada payment request pending, admin bisa trigger burst mode"
-echo "dari UI dan VPS akan scrape setiap 10 detik untuk verifikasi cepat."
+echo "MODE OPERASI:"
+echo ""
+echo "Scheduler daemon akan:"
+echo "- Poll server setiap 60 detik untuk mengambil konfigurasi"
+echo "- Scrape sesuai interval yang diset di website (5m, 10m, dst)"
+echo "- Otomatis switch ke burst mode jika di-trigger dari website"
+echo ""
+echo "Anda bisa mengubah interval scraping dari:"
+echo "  Website > Bank Scraper Settings > Normal Mode"
 echo ""
 echo "============================================================"

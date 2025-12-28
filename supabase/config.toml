@@ -143,3 +143,6 @@ verify_jwt = true
 
 [functions.check-burst-command]
 verify_jwt = false
+
+[functions.get-scraper-config]
+verify_jwt = false

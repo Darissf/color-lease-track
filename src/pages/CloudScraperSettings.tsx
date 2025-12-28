@@ -34,6 +34,8 @@ interface VPSSettings {
   config: Record<string, unknown>;
   total_scrapes?: number;
   total_mutations_found?: number;
+  // Normal mode fields
+  scrape_interval_minutes?: number;
   // Burst mode fields
   burst_enabled?: boolean;
   burst_in_progress?: boolean;
@@ -45,6 +47,17 @@ interface VPSSettings {
   burst_request_id?: string | null;
   last_burst_check_at?: string | null;
 }
+
+const INTERVAL_OPTIONS = [
+  { value: 5, label: '5 menit' },
+  { value: 10, label: '10 menit' },
+  { value: 15, label: '15 menit' },
+  { value: 30, label: '30 menit' },
+  { value: 60, label: '1 jam' },
+  { value: 180, label: '3 jam' },
+  { value: 360, label: '6 jam' },
+  { value: 720, label: '12 jam' },
+];
 
 export default function BankScraperSettings() {
   const { isSuperAdmin, user } = useAuth();
@@ -66,6 +79,9 @@ export default function BankScraperSettings() {
     interval_seconds: 10,
     duration_seconds: 120
   });
+  
+  // Normal Mode State
+  const [scrapeInterval, setScrapeInterval] = useState(10);
 
   const vpsWebhookUrl = `https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook`;
 
@@ -82,6 +98,11 @@ export default function BankScraperSettings() {
       if (vpsData) {
         const settings = vpsData as unknown as VPSSettings;
         setVpsSettings(settings);
+        
+        // Update normal mode interval from settings
+        if (settings.scrape_interval_minutes) {
+          setScrapeInterval(settings.scrape_interval_minutes);
+        }
         
         // Update burst config from settings
         if (settings.burst_interval_seconds) {
@@ -269,7 +290,29 @@ export default function BankScraperSettings() {
     }
   };
 
-  const handleTestWebhook = async () => {
+  const handleUpdateScrapeInterval = async (newInterval: number) => {
+    if (!vpsSettings) return;
+    
+    setScrapeInterval(newInterval);
+    
+    try {
+      const { error } = await supabase
+        .from("payment_provider_settings")
+        .update({ scrape_interval_minutes: newInterval })
+        .eq("id", vpsSettings.id);
+
+      if (error) throw error;
+      
+      const intervalLabel = INTERVAL_OPTIONS.find(o => o.value === newInterval)?.label || `${newInterval} menit`;
+      toast.success(`Interval scraping diubah ke ${intervalLabel}`);
+      fetchData();
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || "Gagal update interval");
+    }
+  };
+
+
     if (!vpsSettings?.webhook_secret_encrypted) {
       toast.error("Generate secret key terlebih dahulu");
       return;
@@ -523,6 +566,98 @@ export default function BankScraperSettings() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Normal Mode Card */}
+        <Card className="border-2 border-sky-500/30 bg-gradient-to-br from-sky-500/5 to-cyan-500/5">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-sky-500/20">
+                  <Clock className="h-5 w-5 text-sky-500" />
+                </div>
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    Normal Mode (Interval Scraping)
+                    {vpsSettings?.is_active && (
+                      <Badge variant="default" className="bg-sky-500">
+                        Aktif
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Scrape secara berkala sesuai interval yang dipilih
+                  </CardDescription>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Interval Selection */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Timer className="h-4 w-4" />
+                Pilih Interval Scraping
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {INTERVAL_OPTIONS.map((option) => (
+                  <Button
+                    key={option.value}
+                    variant={scrapeInterval === option.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleUpdateScrapeInterval(option.value)}
+                    disabled={!vpsSettings}
+                    className={`${
+                      scrapeInterval === option.value 
+                        ? 'bg-sky-500 hover:bg-sky-600 text-white' 
+                        : 'hover:border-sky-500/50'
+                    }`}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status Info */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="p-3 bg-muted/30 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground mb-1">Interval Aktif</p>
+                <p className="font-semibold text-sky-600 dark:text-sky-400">
+                  {INTERVAL_OPTIONS.find(o => o.value === scrapeInterval)?.label || `${scrapeInterval}m`}
+                </p>
+              </div>
+              <div className="p-3 bg-muted/30 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground mb-1">Total Scrapes</p>
+                <p className="text-xl font-bold">{vpsSettings?.total_scrapes || 0}</p>
+              </div>
+              <div className="p-3 bg-muted/30 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground mb-1">Last Webhook</p>
+                <p className="font-medium text-xs">
+                  {vpsSettings?.last_webhook_at 
+                    ? formatDistanceToNow(new Date(vpsSettings.last_webhook_at), { addSuffix: true, locale: localeId })
+                    : '-'
+                  }
+                </p>
+              </div>
+            </div>
+
+            {!vpsSettings?.is_active && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <p className="text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Aktifkan VPS Scraper terlebih dahulu untuk menggunakan Normal Mode
+                </p>
+              </div>
+            )}
+
+            <div className="p-3 bg-muted/20 rounded-lg">
+              <p className="text-xs text-muted-foreground">
+                <strong>Note:</strong> VPS scheduler akan otomatis mengambil konfigurasi interval dari server setiap 60 detik. 
+                Perubahan interval akan langsung diterapkan tanpa perlu restart VPS.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Burst Mode Card */}
         <Card className={`border-2 ${vpsSettings?.burst_in_progress ? 'border-amber-500 bg-amber-500/5' : 'border-primary/30'}`}>
