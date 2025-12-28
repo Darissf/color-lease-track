@@ -5,6 +5,7 @@ import { formatRupiah } from "@/lib/currency";
 import { terbilang } from "@/lib/terbilang";
 import { DynamicStamp } from "./DynamicStamp";
 import QRCode from "react-qr-code";
+import { MapPin, Phone } from "lucide-react";
 
 interface InvoiceTemplateProps {
   documentNumber: string;
@@ -55,34 +56,41 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
         className="bg-white text-gray-900 p-8 w-[210mm] min-h-[297mm] mx-auto shadow-lg"
         style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
       >
+        {/* Blue Stripe Bar */}
+        <div className="h-3 bg-gradient-to-r from-cyan-500 to-blue-600 -mx-8 -mt-8 mb-6" />
+
         {/* Header */}
-        <div className="flex items-start justify-between border-b-2 border-gray-300 pb-4 mb-6">
-          <div className="flex items-center gap-4">
+        <div className="flex items-start justify-between pb-4 mb-6 border-b-2 border-blue-200">
+          <div className="flex items-start gap-4">
             {logoUrl && (
-              <img src={logoUrl} alt="Logo" className="h-16 w-16 object-contain" />
+              <img src={logoUrl} alt="Logo" className="h-20 w-20 object-contain" />
             )}
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{companyName}</h1>
+              <h1 className="text-2xl font-bold text-cyan-600 tracking-wide">{companyName}</h1>
               {companyAddress && (
-                <p className="text-sm text-gray-600">{companyAddress}</p>
+                <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                  <MapPin className="h-3 w-3 text-cyan-500 flex-shrink-0" />
+                  {companyAddress}
+                </p>
               )}
               {companyPhone && (
-                <p className="text-sm text-gray-600">Telp: {companyPhone}</p>
+                <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                  <Phone className="h-3 w-3 text-green-500 flex-shrink-0" />
+                  {companyPhone}
+                </p>
               )}
             </div>
           </div>
+          
+          {/* Document Type & Number */}
           <div className="text-right">
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-700 border border-orange-300">
-              ⏳ BELUM LUNAS
-            </span>
+            <h2 className="text-xl font-bold text-cyan-600 mb-2">INVOICE</h2>
+            <div className="border-2 border-cyan-500 px-4 py-1 inline-block">
+              <span className="text-sm text-gray-500">NO.</span>
+              <span className="text-lg font-bold ml-2">{documentNumber}</span>
+            </div>
+            <p className="text-sm text-gray-500 mt-2">{formattedDate}</p>
           </div>
-        </div>
-
-        {/* Title */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 tracking-wide">INVOICE</h2>
-          <p className="text-lg font-semibold text-gray-700">No: {documentNumber}</p>
-          <p className="text-sm text-gray-500">Tanggal: {formattedDate}</p>
         </div>
 
         {/* Client Info */}
