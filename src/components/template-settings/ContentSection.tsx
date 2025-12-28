@@ -39,11 +39,11 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Tagline Perusahaan</Label>
           <Switch
-            checked={settings.show_company_tagline}
-            onCheckedChange={(checked) => updateSetting('show_company_tagline', checked)}
+            checked={settings.show_tagline}
+            onCheckedChange={(checked) => updateSetting('show_tagline', checked)}
           />
         </div>
-        {settings.show_company_tagline && (
+        {settings.show_tagline && (
           <Input
             value={settings.company_tagline}
             onChange={(e) => updateSetting('company_tagline', e.target.value)}

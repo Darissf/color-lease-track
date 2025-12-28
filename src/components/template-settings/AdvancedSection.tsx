@@ -99,17 +99,17 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
           <div className="space-y-4">
             {/* Custom Stamp Upload */}
             <div className="border-2 border-dashed rounded-lg p-3">
-              {settings.custom_stamp_url ? (
+              {settings.stamp_image_url ? (
                 <div className="flex items-center gap-3">
                   <div className="w-16 h-16 rounded bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjZGRkIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNkZGQiLz48L3N2Zz4=')]">
-                    <img src={settings.custom_stamp_url} alt="Stamp" className="w-full h-full object-contain" />
+                    <img src={settings.stamp_image_url} alt="Stamp" className="w-full h-full object-contain" />
                   </div>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => stampInputRef.current?.click()} disabled={uploading}>
                       <Upload className="h-3 w-3 mr-1" />
                       Ganti
                     </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => onRemoveImage('custom_stamp_url')} className="text-destructive">
+                    <Button type="button" variant="outline" size="sm" onClick={() => onRemoveImage('stamp_image_url')} className="text-destructive">
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>

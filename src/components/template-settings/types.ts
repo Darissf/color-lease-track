@@ -19,12 +19,13 @@ export interface TemplateSettings {
   
   // Typography
   font_family: string;
-  font_size_base: number;
-  heading_font_family: string;
+  base_font_size: number;
+  heading_font: string;
   
   // Header Layout
   header_style: string;
-  show_company_tagline: boolean;
+  show_header_stripe: boolean;
+  show_tagline: boolean;
   company_tagline: string;
   header_stripe_height: number;
   header_stripe_style: string;
@@ -47,10 +48,10 @@ export interface TemplateSettings {
   
   // Table Styling
   table_header_bg: string;
-  table_header_text_color: string;
+  table_header_text: string;
   table_border_style: string;
   table_alternating_rows: boolean;
-  table_alternating_color: string;
+  table_alt_row_bg: string;
   
   // Signature & Stamp
   signature_image_url: string | null;
@@ -58,7 +59,9 @@ export interface TemplateSettings {
   signer_name: string;
   signer_title: string;
   show_stamp: boolean;
-  custom_stamp_url: string | null;
+  stamp_image_url: string | null;
+  stamp_text: string;
+  stamp_color: string;
   stamp_color_lunas: string;
   stamp_color_belum_lunas: string;
   stamp_opacity: number;
@@ -111,13 +114,14 @@ export const defaultSettings: TemplateSettings = {
   icon_website_url: null,
   
   font_family: 'Segoe UI',
-  font_size_base: 12,
-  heading_font_family: 'inherit',
+  base_font_size: 14,
+  heading_font: 'inherit',
   
   header_style: 'modern',
-  show_company_tagline: false,
+  show_header_stripe: true,
+  show_tagline: false,
   company_tagline: '',
-  header_stripe_height: 3,
+  header_stripe_height: 12,
   header_stripe_style: 'gradient',
   
   company_name: '',
@@ -128,35 +132,37 @@ export const defaultSettings: TemplateSettings = {
   company_npwp: '',
   owner_name: '',
   
-  show_bank_info: true,
+  show_bank_info: false,
   bank_name: '',
   bank_account_number: '',
   bank_account_name: '',
   bank_logo_url: null,
   
   table_header_bg: '#f3f4f6',
-  table_header_text_color: '#111827',
+  table_header_text: '#374151',
   table_border_style: 'solid',
   table_alternating_rows: false,
-  table_alternating_color: '#f9fafb',
+  table_alt_row_bg: '#f9fafb',
   
   signature_image_url: null,
   signature_url: null,
   signer_name: '',
   signer_title: '',
   show_stamp: true,
-  custom_stamp_url: null,
+  stamp_image_url: null,
+  stamp_text: 'LUNAS',
+  stamp_color: '#22c55e',
   stamp_color_lunas: '#047857',
   stamp_color_belum_lunas: '#b91c1c',
-  stamp_opacity: 90,
+  stamp_opacity: 80,
   
   show_watermark: false,
   watermark_type: 'logo',
-  watermark_text: '',
-  watermark_opacity: 5,
+  watermark_text: 'DRAFT',
+  watermark_opacity: 10,
   
   qr_size: 80,
-  qr_position: 'bottom-left',
+  qr_position: 'bottom-section',
   qr_include_amount: false,
   
   invoice_prefix: 'INV',
@@ -221,12 +227,14 @@ export const colorPresets = {
 
 export const fontFamilies = [
   { value: 'Segoe UI', label: 'Segoe UI' },
-  { value: 'Inter', label: 'Inter' },
-  { value: 'Roboto', label: 'Roboto' },
-  { value: 'Open Sans', label: 'Open Sans' },
-  { value: 'Lato', label: 'Lato' },
-  { value: 'Poppins', label: 'Poppins' },
-  { value: 'Montserrat', label: 'Montserrat' },
+  { value: 'inter', label: 'Inter' },
+  { value: 'roboto', label: 'Roboto' },
+  { value: 'open-sans', label: 'Open Sans' },
+  { value: 'lato', label: 'Lato' },
+  { value: 'poppins', label: 'Poppins' },
+  { value: 'montserrat', label: 'Montserrat' },
+  { value: 'playfair', label: 'Playfair Display' },
+  { value: 'merriweather', label: 'Merriweather' },
 ];
 
 export const headerStyles = [
