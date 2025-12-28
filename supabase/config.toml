@@ -134,3 +134,6 @@ verify_jwt = false
 
 [functions.bank-scraper-webhook]
 verify_jwt = false
+
+[functions.cloud-bank-scraper]
+verify_jwt = false

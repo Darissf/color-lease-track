@@ -77,6 +77,7 @@ const InvoiceSettings = lazy(() => import("./pages/InvoiceSettings"));
 const InvoiceTemplateSettings = lazy(() => import("./pages/InvoiceTemplateSettings"));
 const PaymentAutoSettings = lazy(() => import("./pages/PaymentAutoSettings"));
 const VPSPaymentSettings = lazy(() => import("./pages/VPSPaymentSettings"));
+const CloudScraperSettings = lazy(() => import("./pages/CloudScraperSettings"));
 
 // Client Portal Pages
 const MyContracts = lazy(() => import("./pages/MyContracts"));
@@ -205,6 +206,7 @@ const App = () => (
                                   <Route path="/settings/invoice/template" element={<InvoiceTemplateSettings />} />
                                   <Route path="/settings/payment-auto" element={<PaymentAutoSettings />} />
                                   <Route path="/settings/vps-payment" element={<VPSPaymentSettings />} />
+                                  <Route path="/settings/cloud-scraper" element={<CloudScraperSettings />} />
                                   {/* Client Portal Routes */}
                                   <Route path="/client-dashboard" element={<ClientDashboard />} />
                                   <Route path="/my-contracts" element={<MyContracts />} />
