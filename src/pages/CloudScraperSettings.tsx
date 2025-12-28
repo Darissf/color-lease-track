@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { VersionHistoryPanel } from "@/components/scraper/VersionHistoryPanel";
 import { VPSScriptDownloadDialog } from "@/components/scraper/VPSScriptDownloadDialog";
+import { ScraperFileUploader } from "@/components/scraper/ScraperFileUploader";
 
 interface VPSSettings {
   id: string;
@@ -1159,10 +1160,13 @@ export default function BankScraperSettings() {
                     Copy-paste script ke terminal VPS untuk download semua file langsung dari website
                   </p>
                 </div>
-                <VPSScriptDownloadDialog 
-                  webhookUrl={vpsWebhookUrl}
-                  secretKey={vpsSettings?.webhook_secret_encrypted || undefined}
-                />
+                <div className="flex gap-2">
+                  <ScraperFileUploader />
+                  <VPSScriptDownloadDialog 
+                    webhookUrl={vpsWebhookUrl}
+                    secretKey={vpsSettings?.webhook_secret_encrypted || undefined}
+                  />
+                </div>
               </div>
             </div>
 

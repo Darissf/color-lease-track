@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, Download, Terminal, Check, Zap, PlayCircle } from "lucide-react";
+import { Copy, Download, Terminal, Check, Zap, PlayCircle, AlertTriangle } from "lucide-react";
 
 interface VPSScriptDownloadDialogProps {
   webhookUrl: string;
@@ -21,12 +21,15 @@ export function VPSScriptDownloadDialog({ webhookUrl, secretKey }: VPSScriptDown
   const [copied, setCopied] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  const baseUrl = window.location.origin;
+  // Use Supabase edge function URL for reliable file serving
+  // This solves the SPA problem where preview URLs return HTML instead of raw files
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://uqzzpxfmwhmhiqniiyjk.supabase.co';
+  const fileBaseUrl = `${supabaseUrl}/functions/v1/get-scraper-file`;
 
   const downloadScript = `#!/bin/bash
 # =========================================
-# BCA Scraper - Download Script
-# Generated from: ${baseUrl}
+# BCA Scraper - Download Script v2.0
+# Using Edge Function for reliable file serving
 # =========================================
 
 set -e
@@ -44,32 +47,32 @@ if [ -f "config.env" ]; then
     cp config.env config.env.backup
 fi
 
-# Download semua file
-BASE_URL="${baseUrl}/vps-scraper-template"
+# Download semua file dari Edge Function
+FILE_URL="${fileBaseUrl}"
 TIMESTAMP=$(date +%s)
 
 echo "📥 Downloading core files..."
-curl -sL "$BASE_URL/bca-scraper.js?v=$TIMESTAMP" -o bca-scraper.js
-curl -sL "$BASE_URL/scheduler.js?v=$TIMESTAMP" -o scheduler.js
-curl -sL "$BASE_URL/run.sh?v=$TIMESTAMP" -o run.sh
-curl -sL "$BASE_URL/install.sh?v=$TIMESTAMP" -o install.sh
-curl -sL "$BASE_URL/install-service.sh?v=$TIMESTAMP" -o install-service.sh
+curl -sL "$FILE_URL?file=bca-scraper.js&v=$TIMESTAMP" -o bca-scraper.js
+curl -sL "$FILE_URL?file=scheduler.js&v=$TIMESTAMP" -o scheduler.js
+curl -sL "$FILE_URL?file=run.sh&v=$TIMESTAMP" -o run.sh
+curl -sL "$FILE_URL?file=install.sh&v=$TIMESTAMP" -o install.sh
+curl -sL "$FILE_URL?file=install-service.sh&v=$TIMESTAMP" -o install-service.sh
 
 echo "📥 Downloading config templates..."
-curl -sL "$BASE_URL/config.env.template?v=$TIMESTAMP" -o config.env.template
-curl -sL "$BASE_URL/bca-scraper.service?v=$TIMESTAMP" -o bca-scraper.service
-curl -sL "$BASE_URL/logrotate-bca-scraper?v=$TIMESTAMP" -o logrotate-bca-scraper
+curl -sL "$FILE_URL?file=config.env.template&v=$TIMESTAMP" -o config.env.template
+curl -sL "$FILE_URL?file=bca-scraper.service&v=$TIMESTAMP" -o bca-scraper.service
+curl -sL "$FILE_URL?file=logrotate-bca-scraper&v=$TIMESTAMP" -o logrotate-bca-scraper
 
 echo "📥 Downloading VPN scripts..."
-curl -sL "$BASE_URL/setup-openvpn.sh?v=$TIMESTAMP" -o setup-openvpn.sh
-curl -sL "$BASE_URL/setup-split-tunnel.sh?v=$TIMESTAMP" -o setup-split-tunnel.sh
-curl -sL "$BASE_URL/vpn-up.sh?v=$TIMESTAMP" -o vpn-up.sh
-curl -sL "$BASE_URL/vpn-down.sh?v=$TIMESTAMP" -o vpn-down.sh
+curl -sL "$FILE_URL?file=setup-openvpn.sh&v=$TIMESTAMP" -o setup-openvpn.sh
+curl -sL "$FILE_URL?file=setup-split-tunnel.sh&v=$TIMESTAMP" -o setup-split-tunnel.sh
+curl -sL "$FILE_URL?file=vpn-up.sh&v=$TIMESTAMP" -o vpn-up.sh
+curl -sL "$FILE_URL?file=vpn-down.sh&v=$TIMESTAMP" -o vpn-down.sh
 
 echo "📥 Downloading documentation..."
-curl -sL "$BASE_URL/README.md?v=$TIMESTAMP" -o README.md
-curl -sL "$BASE_URL/README.txt?v=$TIMESTAMP" -o README.txt
-curl -sL "$BASE_URL/README-OPENVPN.md?v=$TIMESTAMP" -o README-OPENVPN.md
+curl -sL "$FILE_URL?file=README.md&v=$TIMESTAMP" -o README.md
+curl -sL "$FILE_URL?file=README.txt&v=$TIMESTAMP" -o README.txt
+curl -sL "$FILE_URL?file=README-OPENVPN.md&v=$TIMESTAMP" -o README-OPENVPN.md
 
 # Set permissions
 echo "🔧 Setting permissions..."
@@ -87,6 +90,22 @@ elif [ ! -f "config.env" ]; then
     sed -i 's|WEBHOOK_URL=.*|WEBHOOK_URL=${webhookUrl}|' config.env
 fi
 
+# Verify files are valid JavaScript (not HTML error pages)
+echo "🔍 Verifying downloaded files..."
+if head -1 bca-scraper.js | grep -q "^/\\*\\*"; then
+    echo "✅ bca-scraper.js - OK"
+else
+    echo "❌ bca-scraper.js seems corrupted! Check if files are uploaded to storage."
+    exit 1
+fi
+
+if head -1 scheduler.js | grep -q "^/\\*\\*"; then
+    echo "✅ scheduler.js - OK"
+else
+    echo "❌ scheduler.js seems corrupted! Check if files are uploaded to storage."
+    exit 1
+fi
+
 echo ""
 echo "✅ Download selesai!"
 echo ""
@@ -101,13 +120,13 @@ echo ""
 
   // Quick install - download semua file dulu, baru jalankan installer
   const quickInstallScript = `mkdir -p /root/bca-scraper && cd /root/bca-scraper && \\
-curl -sL "${baseUrl}/vps-scraper-template/bca-scraper.js" -o bca-scraper.js && \\
-curl -sL "${baseUrl}/vps-scraper-template/scheduler.js" -o scheduler.js && \\
-curl -sL "${baseUrl}/vps-scraper-template/run.sh" -o run.sh && \\
-curl -sL "${baseUrl}/vps-scraper-template/install.sh" -o install.sh && \\
-curl -sL "${baseUrl}/vps-scraper-template/install-service.sh" -o install-service.sh && \\
-curl -sL "${baseUrl}/vps-scraper-template/config.env.template" -o config.env.template && \\
-curl -sL "${baseUrl}/vps-scraper-template/bca-scraper.service" -o bca-scraper.service && \\
+curl -sL "${fileBaseUrl}?file=bca-scraper.js" -o bca-scraper.js && \\
+curl -sL "${fileBaseUrl}?file=scheduler.js" -o scheduler.js && \\
+curl -sL "${fileBaseUrl}?file=run.sh" -o run.sh && \\
+curl -sL "${fileBaseUrl}?file=install.sh" -o install.sh && \\
+curl -sL "${fileBaseUrl}?file=install-service.sh" -o install-service.sh && \\
+curl -sL "${fileBaseUrl}?file=config.env.template" -o config.env.template && \\
+curl -sL "${fileBaseUrl}?file=bca-scraper.service" -o bca-scraper.service && \\
 chmod +x *.sh && ./install.sh`;
 
   // Nohup scripts - alternatif tanpa systemd
@@ -142,6 +161,15 @@ chmod +x *.sh && ./install.sh`;
             Copy script di bawah dan paste ke terminal VPS Anda untuk mendownload semua file scraper.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Important notice about file upload */}
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-600 dark:text-amber-400">
+            <strong>Penting:</strong> Pastikan file scraper sudah diupload ke storage bucket <code>scraper-files</code>. 
+            Jika belum, upload manual via dashboard atau gunakan fitur upload di bawah.
+          </div>
+        </div>
 
         <Tabs defaultValue="full" className="flex-1 overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-3">

@@ -152,3 +152,6 @@ verify_jwt = false
 
 [functions.update-scraper-status]
 verify_jwt = false
+
+[functions.get-scraper-file]
+verify_jwt = false
