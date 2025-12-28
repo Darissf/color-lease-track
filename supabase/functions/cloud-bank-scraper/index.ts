@@ -342,8 +342,8 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
 }
 
 async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials): Promise<MutationData[]> {
-  // Use timeout parameter in URL for Browserless V2 (120 seconds - value is in SECONDS not milliseconds)
-  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=120`, {
+  // Use timeout parameter in URL for Browserless V2 (300 seconds / 5 minutes)
+  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=300`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -418,22 +418,26 @@ function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolea
       const mutations = [];
       
       try {
+        // Set shorter default timeouts for faster operation
+        page.setDefaultTimeout(45000);
+        page.setDefaultNavigationTimeout(45000);
+        
         // Navigate to KlikBCA
         await page.goto('https://ibank.klikbca.com/', { 
-          waitUntil: 'networkidle2',
-          timeout: 60000 
+          waitUntil: 'domcontentloaded',
+          timeout: 30000 
         });
         
         // Wait for login form
-        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 30000 });
+        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 20000 });
         
         // Fill login form
-        await page.type('input[name="value(user_id)"]', CONFIG.user_id);
-        await page.type('input[name="value(pswd)"]', CONFIG.pin);
+        await page.type('input[name="value(user_id)"]', CONFIG.user_id, { delay: 50 });
+        await page.type('input[name="value(pswd)"]', CONFIG.pin, { delay: 50 });
         
         // Submit login
         await Promise.all([
-          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
+          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
           page.click('input[name="value(Submit)"]')
         ]);
         
@@ -446,8 +450,8 @@ function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolea
         
         // Navigate to Account Statement (Mutasi Rekening)
         await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acctstmtview', {
-          waitUntil: 'networkidle2',
-          timeout: 60000
+          waitUntil: 'domcontentloaded',
+          timeout: 30000
         });
         
         // Set date range (today)
@@ -479,7 +483,7 @@ function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolea
         const submitBtn = await page.$('input[type="submit"]');
         if (submitBtn) {
           await Promise.all([
-            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
+            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
             submitBtn.click()
           ]);
         }
