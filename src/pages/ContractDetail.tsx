@@ -1082,15 +1082,15 @@ export default function ContractDetail() {
                     variant="outline"
                     className="justify-start"
                     onClick={() => handleGenerateReceipt()}
-                    disabled={paymentHistory.length === 0}
+                    disabled={contract.tagihan_belum_bayar > 0}
                   >
                     <FileCheck className="h-4 w-4 mr-2" />
                     Generate Kwitansi
                   </Button>
                 </div>
-                {paymentHistory.length === 0 && (
+                {contract.tagihan_belum_bayar > 0 && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Kwitansi akan tersedia setelah ada pembayaran
+                    Kwitansi akan tersedia setelah tagihan lunas 100%
                   </p>
                 )}
               </CardContent>
