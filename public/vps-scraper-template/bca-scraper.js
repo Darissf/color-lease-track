@@ -826,6 +826,12 @@ async function scrapeBCA() {
               console.log(`[AMOUNT] Cleaned: "${cleanedAmount}" -> ${amount}`);
               console.log(`[TYPE] Detected: ${type} (desc="${descUpper.substring(0, 30)}")`);
               
+              // FILTER: Skip debit transactions - only process credits (incoming payments)
+              if (type === 'debit') {
+                console.log(`[SKIP] Debit transaction ignored - Rp${amount}`);
+                continue;
+              }
+              
               if (amount > 0) {
                 // FIX 1: Deduplicate using unique key
                 const dedupKey = `${date}-${Math.round(amount)}-${description.substring(0, 30)}`;
