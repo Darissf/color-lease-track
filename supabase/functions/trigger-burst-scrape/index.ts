@@ -18,20 +18,20 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { request_id } = body;
 
-    console.log(`[Trigger Burst] Starting burst scrape for request: ${request_id}`);
+    console.log(`[Trigger Burst] Starting burst mode for VPS scraper, request: ${request_id || 'manual'}`);
 
-    // Check if cloud scraper is active
+    // Check if VPS scraper is active
     const { data: settings, error: settingsError } = await supabase
       .from('payment_provider_settings')
       .select('*')
-      .eq('provider', 'cloud_scraper')
+      .eq('provider', 'vps_scraper')
       .eq('is_active', true)
       .single();
 
     if (settingsError || !settings) {
-      console.log('[Trigger Burst] Cloud scraper not active');
+      console.log('[Trigger Burst] VPS scraper not active');
       return new Response(
-        JSON.stringify({ success: false, error: 'Cloud scraper not configured or inactive' }),
+        JSON.stringify({ success: false, error: 'VPS scraper not configured or inactive' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -68,42 +68,37 @@ Deno.serve(async (req) => {
     }
 
     // Update status to indicate burst is starting
-    await supabase
+    // VPS will poll check-burst-command to know when to start burst mode
+    const { error: updateError } = await supabase
       .from('payment_provider_settings')
       .update({
         burst_in_progress: true,
         burst_started_at: new Date().toISOString(),
-        burst_request_id: request_id,
+        burst_request_id: request_id || null,
         burst_check_count: 0,
         burst_last_match_found: false,
       })
       .eq('id', settings.id);
 
-    console.log('[Trigger Burst] Starting burst mode scraper...');
-
-    // Use EdgeRuntime.waitUntil for background processing
-    const burstPromise = supabase.functions.invoke('cloud-bank-scraper', {
-      body: { 
-        mode: 'burst',
-        burst_request_id: request_id
-      }
-    });
-
-    // @ts-ignore - EdgeRuntime is available in Deno Deploy
-    if (typeof EdgeRuntime !== 'undefined') {
-      // @ts-ignore
-      EdgeRuntime.waitUntil(burstPromise);
+    if (updateError) {
+      console.error('[Trigger Burst] Failed to update settings:', updateError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to start burst mode' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
-    // Return immediately with burst started status
+    console.log('[Trigger Burst] Burst mode activated for VPS scraper');
+
+    // Return immediately - VPS will detect this via polling check-burst-command
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Burst mode started',
+        message: 'Burst mode activated. VPS will start burst scraping on next poll.',
         burst_started_at: new Date().toISOString(),
-        burst_interval_seconds: settings.burst_interval_seconds || 5,
+        burst_interval_seconds: settings.burst_interval_seconds || 10,
         burst_duration_seconds: settings.burst_duration_seconds || 120,
-        max_checks: Math.floor((settings.burst_duration_seconds || 120) / (settings.burst_interval_seconds || 5))
+        max_checks: Math.floor((settings.burst_duration_seconds || 120) / (settings.burst_interval_seconds || 10))
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -5,7 +5,7 @@
 # Script ini akan:
 # 1. Install semua dependencies (Node.js, OpenVPN, Puppeteer)
 # 2. Setup OpenVPN dengan file .ovpn yang tersedia
-# 3. Setup cron job untuk scraping otomatis
+# 3. Setup cron job untuk scraping otomatis (normal + burst check)
 # ============================================================
 
 set -e
@@ -217,31 +217,64 @@ chmod +x bca-scraper.js 2>/dev/null || true
 print_success "Scripts are executable"
 
 # ============================================================
-# STEP 7: Setup cron job
+# STEP 7: Setup cron jobs (normal + burst check)
 # ============================================================
 echo ""
-echo "STEP 7: Setting up cron job..."
+echo "STEP 7: Setting up cron jobs..."
 
-CRON_CMD="*/5 * * * * cd $SCRIPT_DIR && ./run.sh >> /var/log/bca-scraper.log 2>&1"
+# Normal scrape every 5 minutes
+CRON_NORMAL="*/5 * * * * cd $SCRIPT_DIR && ./run.sh >> /var/log/bca-scraper.log 2>&1"
 
-# Check if cron job already exists
+# Burst check every 30 seconds (via wrapper script)
+CRON_BURST="* * * * * cd $SCRIPT_DIR && ./burst-check-loop.sh >> /var/log/bca-scraper-burst.log 2>&1"
+
+# Create burst check loop script (runs twice per minute for 30-second polling)
+cat > burst-check-loop.sh << 'EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Run burst check
+./run.sh --burst-check
+
+# Wait 30 seconds
+sleep 30
+
+# Run again
+./run.sh --burst-check
+EOF
+
+chmod +x burst-check-loop.sh
+print_success "Burst check loop script created"
+
+# Check if cron jobs already exist
 if crontab -l 2>/dev/null | grep -q "bca-scraper"; then
-    print_warning "Cron job sudah ada"
-else
-    read -p "Setup cron job untuk jalan setiap 5 menit? (Y/n): " SETUP_CRON
-    if [ "$SETUP_CRON" != "n" ] && [ "$SETUP_CRON" != "N" ]; then
-        (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
-        print_success "Cron job berhasil ditambahkan"
-    else
-        echo "Cron job tidak ditambahkan. Untuk menambahkan manual:"
-        echo "crontab -e"
-        echo "Tambahkan baris: $CRON_CMD"
-    fi
+    print_warning "Cron job sudah ada, akan di-update"
+    # Remove old cron jobs
+    crontab -l 2>/dev/null | grep -v "bca-scraper" | crontab -
 fi
 
-# Create log file
+read -p "Setup cron jobs untuk scraping otomatis? (Y/n): " SETUP_CRON
+if [ "$SETUP_CRON" != "n" ] && [ "$SETUP_CRON" != "N" ]; then
+    (crontab -l 2>/dev/null; echo "$CRON_NORMAL") | crontab -
+    (crontab -l 2>/dev/null; echo "$CRON_BURST") | crontab -
+    print_success "Cron jobs berhasil ditambahkan:"
+    echo "  - Normal scrape: setiap 5 menit"
+    echo "  - Burst check: setiap 30 detik"
+else
+    echo "Cron jobs tidak ditambahkan. Untuk menambahkan manual:"
+    echo "crontab -e"
+    echo ""
+    echo "Tambahkan baris:"
+    echo "$CRON_NORMAL"
+    echo "$CRON_BURST"
+fi
+
+# Create log files
 sudo touch /var/log/bca-scraper.log 2>/dev/null || touch bca-scraper.log
+sudo touch /var/log/bca-scraper-burst.log 2>/dev/null || touch bca-scraper-burst.log
 sudo chmod 666 /var/log/bca-scraper.log 2>/dev/null || true
+sudo chmod 666 /var/log/bca-scraper-burst.log 2>/dev/null || true
 
 # ============================================================
 # DONE!
@@ -262,7 +295,18 @@ echo ""
 echo "3. Test scraper manual:"
 echo "   ./run.sh"
 echo ""
-echo "4. Cek log:"
+echo "4. Test burst check manual:"
+echo "   ./run.sh --burst-check"
+echo ""
+echo "5. Cek log:"
 echo "   tail -f /var/log/bca-scraper.log"
+echo "   tail -f /var/log/bca-scraper-burst.log"
+echo ""
+echo "============================================================"
+echo ""
+echo "BURST MODE:"
+echo "Scraper akan otomatis polling server setiap 30 detik."
+echo "Ketika ada payment request pending, admin bisa trigger burst mode"
+echo "dari UI dan VPS akan scrape setiap 10 detik untuk verifikasi cepat."
 echo ""
 echo "============================================================"
