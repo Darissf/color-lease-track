@@ -139,7 +139,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.trigger-burst-scrape]
-verify_jwt = true
+verify_jwt = false
 
 [functions.check-burst-command]
 verify_jwt = false
