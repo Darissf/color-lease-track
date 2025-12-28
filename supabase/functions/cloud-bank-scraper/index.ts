@@ -437,7 +437,7 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
   return { processedCount, matchedCount, matched };
 }
 
-// Test proxy connection by fetching IP info
+// Test proxy connection using /content API endpoint
 async function testProxyConnection(apiKey: string, proxyConfig: ProxyConfig): Promise<{ success: boolean; ip?: string; country?: string; latency?: number; error?: string }> {
   console.log(`[Proxy Test] Testing proxy: ${proxyConfig.host}:${proxyConfig.port} (${proxyConfig.country})`);
   
@@ -450,52 +450,21 @@ async function testProxyConnection(apiKey: string, proxyConfig: ProxyConfig): Pr
       ? `${proxyConfig.username}-country-${proxyConfig.country}`
       : proxyConfig.username;
     
-    const testCode = `
-module.exports = async ({ page }) => {
-  try {
-    // Authenticate with proxy
-    await page.authenticate({
-      username: '${proxyUsername}',
-      password: '${proxyConfig.password}'
-    });
+    // Use /content endpoint with proxy as query string parameter
+    const proxyParam = encodeURIComponent(`http://${proxyConfig.host}:${proxyConfig.port}`);
+    const browserlessUrl = `https://production-sfo.browserless.io/content?token=${apiKey}&--proxy-server=${proxyParam}`;
     
-    const startTime = Date.now();
-    
-    // Navigate to IP check API
-    await page.goto('https://httpbin.org/ip', { waitUntil: 'domcontentloaded', timeout: 20000 });
-    
-    const latency = Date.now() - startTime;
-    
-    // Get page content
-    const content = await page.content();
-    const ipMatch = content.match(/"origin":\\s*"([^"]+)"/);
-    const ip = ipMatch ? ipMatch[1] : null;
-    
-    if (!ip) {
-      return { success: false, error: 'Could not detect IP address' };
-    }
-    
-    return { 
-      success: true, 
-      ip: ip,
-      latency: latency
-    };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-};
-`;
-
     const requestBody = {
-      code: testCode,
-      launch: {
-        args: [`--proxy-server=http://${proxyConfig.host}:${proxyConfig.port}`]
+      url: 'https://httpbin.org/ip',
+      authenticate: {
+        username: proxyUsername,
+        password: proxyConfig.password
       }
     };
     
-    console.log(`[Proxy Test] Sending request to Browserless...`);
+    console.log(`[Proxy Test] Sending request to Browserless /content endpoint...`);
     
-    const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=25000`, {
+    const response = await fetch(browserlessUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
@@ -510,24 +479,29 @@ module.exports = async ({ page }) => {
       throw new Error(`Browserless error: ${errorText.substring(0, 100)}`);
     }
 
-    const result = await response.json();
+    // /content endpoint returns HTML content directly
+    const htmlContent = await response.text();
     const totalLatency = Date.now() - startTime;
     
-    console.log(`[Proxy Test] Result:`, result);
+    console.log(`[Proxy Test] Response received, parsing IP...`);
     
-    if (result.success) {
-      return {
-        success: true,
-        ip: result.ip,
-        latency: result.latency || totalLatency,
-        country: proxyConfig.country
-      };
-    } else {
-      return {
-        success: false,
-        error: result.error || 'Unknown error from proxy test'
-      };
+    // httpbin.org/ip returns JSON in pre tag: { "origin": "xxx.xxx.xxx.xxx" }
+    const ipMatch = htmlContent.match(/"origin":\s*"([^"]+)"/);
+    const ip = ipMatch ? ipMatch[1] : null;
+    
+    if (!ip) {
+      console.error('[Proxy Test] Could not parse IP from response:', htmlContent.substring(0, 200));
+      return { success: false, error: 'Could not detect IP address from response' };
     }
+    
+    console.log(`[Proxy Test] Success! IP: ${ip}, Latency: ${totalLatency}ms`);
+    
+    return {
+      success: true,
+      ip: ip,
+      latency: totalLatency,
+      country: proxyConfig.country
+    };
   } catch (error: unknown) {
     clearTimeout(fetchTimeout);
     const err = error as Error;
@@ -536,6 +510,7 @@ module.exports = async ({ page }) => {
       return { success: false, error: 'Timeout: Proxy test exceeded 30 seconds' };
     }
     
+    console.error('[Proxy Test] Error:', err.message);
     return { success: false, error: err.message };
   }
 }
@@ -574,21 +549,20 @@ async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials, 
   const fetchTimeout = setTimeout(() => controller.abort(), 80000); // 80s total timeout for fetch
   
   try {
-    // Build request body with optional proxy launch args
-    // deno-lint-ignore no-explicit-any
-    const requestBody: any = {
+    const requestBody = {
       code: generateBrowserlessCode(credentials, proxyConfig),
     };
     
-    // Add launch args for proxy if enabled
+    // Build URL with proxy as query string parameter if enabled
+    let browserlessUrl = `https://production-sfo.browserless.io/function?token=${apiKey}&timeout=60000`;
+    
     if (proxyConfig?.enabled && proxyConfig.host && proxyConfig.port) {
-      requestBody.launch = {
-        args: [`--proxy-server=http://${proxyConfig.host}:${proxyConfig.port}`]
-      };
-      console.log(`[Browserless] Using proxy: ${proxyConfig.host}:${proxyConfig.port}`);
+      const proxyParam = encodeURIComponent(`http://${proxyConfig.host}:${proxyConfig.port}`);
+      browserlessUrl += `&--proxy-server=${proxyParam}`;
+      console.log(`[Browserless] Using proxy via query string: ${proxyConfig.host}:${proxyConfig.port}`);
     }
     
-    const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=60000`, {
+    const response = await fetch(browserlessUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
@@ -639,21 +613,20 @@ async function scrapeBCAMutationsBurstMode(
   const burstTimeoutMs = 60000;
   console.log(`[Burst Mode] Using timeout: ${burstTimeoutMs}ms`);
   
-  // Build request body with optional proxy launch args
-  // deno-lint-ignore no-explicit-any
-  const requestBody: any = {
+  const requestBody = {
     code: generateBurstModeCode(credentials, proxyConfig, intervalSeconds, maxChecks),
   };
   
-  // Add launch args for proxy if enabled
+  // Build URL with proxy as query string parameter if enabled
+  let browserlessUrl = `https://production-sfo.browserless.io/function?token=${apiKey}&timeout=${burstTimeoutMs}`;
+  
   if (proxyConfig?.enabled && proxyConfig.host && proxyConfig.port) {
-    requestBody.launch = {
-      args: [`--proxy-server=http://${proxyConfig.host}:${proxyConfig.port}`]
-    };
-    console.log(`[Burst Mode] Using proxy: ${proxyConfig.host}:${proxyConfig.port}`);
+    const proxyParam = encodeURIComponent(`http://${proxyConfig.host}:${proxyConfig.port}`);
+    browserlessUrl += `&--proxy-server=${proxyParam}`;
+    console.log(`[Burst Mode] Using proxy via query string: ${proxyConfig.host}:${proxyConfig.port}`);
   }
   
-  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=${burstTimeoutMs}`, {
+  const response = await fetch(browserlessUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(requestBody),
