@@ -19,7 +19,7 @@ import {
   Loader2, Server, CheckCircle, Download, Terminal,
   AlertCircle, Webhook, FileText, AlertTriangle,
   ExternalLink, Package, FolderDown, BookOpen, Upload, Settings, Play, Monitor,
-  Zap, Clock, Timer, History
+  Zap, Clock, Timer, History, RefreshCw, Code, Calendar
 } from "lucide-react";
 import { VersionHistoryPanel } from "@/components/scraper/VersionHistoryPanel";
 
@@ -67,6 +67,15 @@ export default function BankScraperSettings() {
   const [loading, setLoading] = useState(true);
   const [generatingPackage, setGeneratingPackage] = useState(false);
   const [downloadingScraperOnly, setDownloadingScraperOnly] = useState(false);
+  
+  // Scraper File Info State
+  const [scraperFileInfo, setScraperFileInfo] = useState<{
+    version: string;
+    buildDate: string;
+    lineCount: number;
+    loaded: boolean;
+  } | null>(null);
+  const [loadingFileInfo, setLoadingFileInfo] = useState(false);
   
   // VPS Settings State
   const [vpsSettings, setVpsSettings] = useState<VPSSettings | null>(null);
@@ -140,13 +149,40 @@ export default function BankScraperSettings() {
     }
   }, []);
 
+  // Fetch scraper file info (version, line count, build date)
+  const fetchScraperFileInfo = useCallback(async () => {
+    setLoadingFileInfo(true);
+    try {
+      const response = await fetch(`/vps-scraper-template/bca-scraper.js?v=${Date.now()}`);
+      const content = await response.text();
+      
+      // Parse version dari file
+      const versionMatch = content.match(/SCRAPER_VERSION\s*=\s*["']([^"']+)["']/);
+      const buildDateMatch = content.match(/SCRAPER_BUILD_DATE\s*=\s*["']([^"']+)["']/);
+      const lineCount = content.split('\n').length;
+      
+      setScraperFileInfo({
+        version: versionMatch?.[1] || 'unknown',
+        buildDate: buildDateMatch?.[1] || 'unknown',
+        lineCount,
+        loaded: true
+      });
+    } catch (error) {
+      console.error('Failed to fetch scraper file info:', error);
+      setScraperFileInfo(null);
+    } finally {
+      setLoadingFileInfo(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isSuperAdmin) {
       navigate("/");
       return;
     }
     fetchData();
-  }, [isSuperAdmin, navigate, fetchData]);
+    fetchScraperFileInfo();
+  }, [isSuperAdmin, navigate, fetchData, fetchScraperFileInfo]);
 
   // Auto-refresh burst status
   useEffect(() => {
@@ -1001,6 +1037,59 @@ export default function BankScraperSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* File Info Badge */}
+            <div className="flex flex-wrap gap-2 items-center p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              {loadingFileInfo ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Memuat info file...
+                </div>
+              ) : scraperFileInfo?.loaded ? (
+                <>
+                  <Badge variant="outline" className="border-blue-500/50 text-blue-700 dark:text-blue-400">
+                    <Code className="h-3 w-3 mr-1" />
+                    v{scraperFileInfo.version}
+                  </Badge>
+                  <Badge variant="outline" className="border-purple-500/50 text-purple-700 dark:text-purple-400">
+                    <FileText className="h-3 w-3 mr-1" />
+                    {scraperFileInfo.lineCount} lines
+                  </Badge>
+                  <Badge variant="outline" className="border-emerald-500/50 text-emerald-700 dark:text-emerald-400">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Build: {scraperFileInfo.buildDate}
+                  </Badge>
+                  <span className="text-xs text-green-600 dark:text-green-400 ml-auto flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" />
+                    File terbaru siap didownload
+                  </span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={fetchScraperFileInfo}
+                    className="gap-1 h-7 px-2"
+                    disabled={loadingFileInfo}
+                  >
+                    <RefreshCw className={`h-3 w-3 ${loadingFileInfo ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-4 w-4" />
+                  Gagal memuat info file
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={fetchScraperFileInfo}
+                    className="gap-1 h-7 px-2"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Coba Lagi
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div className="p-4 bg-background/80 rounded-lg border border-primary/30">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="flex-1">

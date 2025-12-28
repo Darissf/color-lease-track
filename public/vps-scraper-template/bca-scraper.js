@@ -12,6 +12,11 @@
  * - Burst check: node bca-scraper.js --burst-check
  */
 
+// ============ SCRAPER VERSION ============
+const SCRAPER_VERSION = "1.0.0";
+const SCRAPER_BUILD_DATE = "2025-12-28";
+// =========================================
+
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
@@ -1119,6 +1124,11 @@ async function runBurstMode(initialCommand) {
 
 // Main entry
 async function main() {
+  log(`========================================`);
+  log(`  BCA iBanking Scraper`);
+  log(`  Version: ${SCRAPER_VERSION} (${SCRAPER_BUILD_DATE})`);
+  log(`========================================`);
+  
   const isBurstCheck = process.argv.includes('--burst-check');
 
   // Check stuck status before any operation
