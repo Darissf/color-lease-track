@@ -16,8 +16,18 @@ import { id as localeId } from "date-fns/locale";
 import { 
   ArrowLeft, Cloud, Eye, EyeOff,
   Loader2, Play, RefreshCw, CheckCircle, 
-  AlertCircle, Zap, Clock, Database, Rocket, Timer
+  AlertCircle, Zap, Clock, Database, Rocket, Timer, Globe, Shield
 } from "lucide-react";
+
+interface ProxyConfig {
+  enabled: boolean;
+  type: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  country: string;
+}
 
 interface CloudScraperSettings {
   id: string;
@@ -44,6 +54,8 @@ interface CloudScraperSettings {
   burst_started_at: string | null;
   burst_check_count: number;
   burst_last_match_found: boolean;
+  // Proxy config
+  proxy_config: ProxyConfig | null;
 }
 
 // Cooldown duration in seconds
@@ -71,6 +83,15 @@ export default function CloudScraperSettings() {
   // Burst mode state
   const [burstEnabled, setBurstEnabled] = useState(true);
   const [burstInterval, setBurstInterval] = useState("5");
+  
+  // Proxy state
+  const [proxyEnabled, setProxyEnabled] = useState(false);
+  const [proxyHost, setProxyHost] = useState("dc.pr.oxylabs.io");
+  const [proxyPort, setProxyPort] = useState("10000");
+  const [proxyUsername, setProxyUsername] = useState("");
+  const [proxyPassword, setProxyPassword] = useState("");
+  const [proxyCountry, setProxyCountry] = useState("ID");
+  const [showProxyPassword, setShowProxyPassword] = useState(false);
   const [burstDuration, setBurstDuration] = useState("120");
 
   // Calculate cooldown based on last_scrape_at
@@ -127,6 +148,15 @@ export default function CloudScraperSettings() {
         setBurstEnabled(typedData.burst_enabled ?? true);
         setBurstInterval(String(typedData.burst_interval_seconds || 5));
         setBurstDuration(String(typedData.burst_duration_seconds || 120));
+        // Load proxy config
+        if (typedData.proxy_config) {
+          setProxyEnabled(typedData.proxy_config.enabled ?? false);
+          setProxyHost(typedData.proxy_config.host || "dc.pr.oxylabs.io");
+          setProxyPort(String(typedData.proxy_config.port || 10000));
+          setProxyUsername(typedData.proxy_config.username || "");
+          setProxyPassword(typedData.proxy_config.password || "");
+          setProxyCountry(typedData.proxy_config.country || "ID");
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -158,10 +188,22 @@ export default function CloudScraperSettings() {
 
     setSaving(true);
     try {
-      const credentials = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const credentials: any = {
         user_id: bcaUserId,
         pin: bcaPin,
         account_number: bcaAccountNumber,
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const proxyConfig: any = {
+        enabled: proxyEnabled,
+        type: "http",
+        host: proxyHost,
+        port: parseInt(proxyPort),
+        username: proxyUsername,
+        password: proxyPassword,
+        country: proxyCountry,
       };
 
       if (settings) {
@@ -173,24 +215,28 @@ export default function CloudScraperSettings() {
             burst_enabled: burstEnabled,
             burst_interval_seconds: parseInt(burstInterval),
             burst_duration_seconds: parseInt(burstDuration),
+            proxy_config: proxyConfig,
             is_active: true,
           })
           .eq("id", settings.id);
         
         if (error) throw error;
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const insertData: any = {
+          provider: "cloud_scraper",
+          user_id: user?.id,
+          bank_credentials: credentials,
+          scrape_interval_minutes: parseInt(scrapeInterval),
+          burst_enabled: burstEnabled,
+          burst_interval_seconds: parseInt(burstInterval),
+          burst_duration_seconds: parseInt(burstDuration),
+          proxy_config: proxyConfig,
+          is_active: true,
+        };
         const { error } = await supabase
           .from("payment_provider_settings")
-          .insert({
-            provider: "cloud_scraper",
-            user_id: user?.id,
-            bank_credentials: credentials,
-            scrape_interval_minutes: parseInt(scrapeInterval),
-            burst_enabled: burstEnabled,
-            burst_interval_seconds: parseInt(burstInterval),
-            burst_duration_seconds: parseInt(burstDuration),
-            is_active: true,
-          });
+          .insert([insertData]);
         
         if (error) throw error;
       }
@@ -517,6 +563,128 @@ export default function CloudScraperSettings() {
                 ({Math.floor(parseInt(burstDuration) / parseInt(burstInterval))} pengecekan) tanpa login ulang.
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Proxy Configuration */}
+        <Card className="border-green-500/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-green-600" />
+              Proxy Configuration (Oxylabs)
+            </CardTitle>
+            <CardDescription>
+              Gunakan proxy untuk akses lebih cepat dan stabil dari Indonesia
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-green-500/5 rounded-lg border border-green-500/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-green-500/10">
+                  <Shield className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium">Aktifkan Proxy</p>
+                  <p className="text-xs text-muted-foreground">
+                    Koneksi via Oxylabs Datacenter Proxy untuk kecepatan maksimal
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={proxyEnabled}
+                onCheckedChange={setProxyEnabled}
+              />
+            </div>
+
+            {proxyEnabled && (
+              <>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="proxy-host">Proxy Host</Label>
+                    <Input
+                      id="proxy-host"
+                      value={proxyHost}
+                      onChange={(e) => setProxyHost(e.target.value)}
+                      placeholder="dc.pr.oxylabs.io"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="proxy-port">Proxy Port</Label>
+                    <Input
+                      id="proxy-port"
+                      value={proxyPort}
+                      onChange={(e) => setProxyPort(e.target.value)}
+                      placeholder="10000"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="proxy-username">Username</Label>
+                    <Input
+                      id="proxy-username"
+                      value={proxyUsername}
+                      onChange={(e) => setProxyUsername(e.target.value)}
+                      placeholder="username_oxylabs"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="proxy-password">Password</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="proxy-password"
+                        type={showProxyPassword ? "text" : "password"}
+                        value={proxyPassword}
+                        onChange={(e) => setProxyPassword(e.target.value)}
+                        placeholder="password"
+                      />
+                      <Button variant="ghost" size="icon" onClick={() => setShowProxyPassword(!showProxyPassword)}>
+                        {showProxyPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="proxy-country">Lokasi Proxy</Label>
+                  <Select value={proxyCountry} onValueChange={setProxyCountry}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih negara" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ID">🇮🇩 Indonesia (ID) - Recommended</SelectItem>
+                      <SelectItem value="SG">🇸🇬 Singapore (SG)</SelectItem>
+                      <SelectItem value="MY">🇲🇾 Malaysia (MY)</SelectItem>
+                      <SelectItem value="US">🇺🇸 United States (US)</SelectItem>
+                      <SelectItem value="JP">🇯🇵 Japan (JP)</SelectItem>
+                      <SelectItem value="AU">🇦🇺 Australia (AU)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    <strong>Username yang akan digunakan:</strong>{" "}
+                    <code className="bg-background/50 px-2 py-0.5 rounded text-xs">
+                      {proxyUsername ? `${proxyUsername}-country-${proxyCountry}` : "username-country-ID"}
+                    </code>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Oxylabs akan routing koneksi melalui datacenter di {proxyCountry === "ID" ? "Indonesia" : proxyCountry}
+                  </p>
+                </div>
+              </>
+            )}
+
+            {!proxyEnabled && (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  <strong>Tanpa proxy:</strong> Koneksi langsung dari server Browserless (US). 
+                  Mungkin lebih lambat dan timeout untuk akses KlikBCA.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

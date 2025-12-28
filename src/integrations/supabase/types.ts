@@ -3620,6 +3620,7 @@ export type Database = {
           last_scrape_at: string | null
           last_webhook_at: string | null
           provider: string
+          proxy_config: Json | null
           scrape_interval_minutes: number | null
           scrape_status: string | null
           total_mutations_found: number | null
@@ -3648,6 +3649,7 @@ export type Database = {
           last_scrape_at?: string | null
           last_webhook_at?: string | null
           provider?: string
+          proxy_config?: Json | null
           scrape_interval_minutes?: number | null
           scrape_status?: string | null
           total_mutations_found?: number | null
@@ -3676,6 +3678,7 @@ export type Database = {
           last_scrape_at?: string | null
           last_webhook_at?: string | null
           provider?: string
+          proxy_config?: Json | null
           scrape_interval_minutes?: number | null
           scrape_status?: string | null
           total_mutations_found?: number | null
