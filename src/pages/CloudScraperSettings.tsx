@@ -17,7 +17,7 @@ import {
   ArrowLeft, Cloud, Eye, EyeOff, Key, Copy,
   Loader2, Server, CheckCircle, Download, Terminal,
   AlertCircle, Database, Webhook, FileText, AlertTriangle,
-  ExternalLink
+  ExternalLink, Package, FolderDown
 } from "lucide-react";
 
 interface VPSSettings {
@@ -380,46 +380,68 @@ export default function BankScraperSettings() {
               </Card>
             </div>
 
-            {/* Download Scripts */}
-            <Card>
+            {/* Download Setup Package */}
+            <Card className="border-primary/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Download className="h-5 w-5" />
-                  Download Scripts & Setup Guide
+                  <Package className="h-5 w-5 text-primary" />
+                  Download Setup Package
                 </CardTitle>
                 <CardDescription>
-                  Download semua file yang diperlukan untuk setup VPS scraper
+                  Download semua file dalam satu paket untuk setup VPS scraper
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-3">
-                  <Button variant="outline" className="justify-start gap-3 h-auto py-3" asChild>
-                    <a href="/vps-scraper-template/bca-scraper.js" download>
-                      <Terminal className="h-5 w-5" />
-                      <div className="text-left">
-                        <p className="font-medium">bca-scraper.js</p>
-                        <p className="text-xs text-muted-foreground">Node.js + Puppeteer script</p>
-                      </div>
-                    </a>
-                  </Button>
-                  <Button variant="outline" className="justify-start gap-3 h-auto py-3" asChild>
-                    <a href="/vps-scraper-template/setup-openvpn.sh" download>
-                      <FileText className="h-5 w-5" />
-                      <div className="text-left">
-                        <p className="font-medium">setup-openvpn.sh</p>
-                        <p className="text-xs text-muted-foreground">Auto setup script</p>
-                      </div>
-                    </a>
-                  </Button>
-                  <Button variant="outline" className="justify-start gap-3 h-auto py-3" asChild>
-                    <a href="/vps-scraper-template/README-OPENVPN.md" download>
-                      <FileText className="h-5 w-5" />
-                      <div className="text-left">
-                        <p className="font-medium">README-OPENVPN.md</p>
-                        <p className="text-xs text-muted-foreground">Panduan lengkap</p>
-                      </div>
-                    </a>
-                  </Button>
+                {/* Main Download Button */}
+                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex-1">
+                      <h4 className="font-semibold">All-in-One Setup Package</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Download semua file: install.sh, config.env, bca-scraper.js, run.sh, dan panduan setup.
+                        {vpsSettings?.webhook_secret_encrypted && (
+                          <span className="text-green-600 dark:text-green-400"> Secret Key sudah terisi otomatis!</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Individual Files */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Download file individual:</Label>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                      <a href="/vps-scraper-template/install.sh" download>
+                        <FolderDown className="h-4 w-4" />
+                        <span>install.sh</span>
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                      <a href="/vps-scraper-template/config.env.template" download="config.env">
+                        <FileText className="h-4 w-4" />
+                        <span>config.env</span>
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                      <a href="/vps-scraper-template/bca-scraper.js" download>
+                        <Terminal className="h-4 w-4" />
+                        <span>bca-scraper.js</span>
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                      <a href="/vps-scraper-template/run.sh" download>
+                        <Terminal className="h-4 w-4" />
+                        <span>run.sh</span>
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                      <a href="/vps-scraper-template/README.txt" download>
+                        <FileText className="h-4 w-4" />
+                        <span>README.txt</span>
+                      </a>
+                    </Button>
+                  </div>
                 </div>
 
                 <Separator />
@@ -489,21 +511,40 @@ export default function BankScraperSettings() {
             {/* Quick Setup Steps */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Setup (5 Steps)</CardTitle>
+                <CardTitle>Quick Setup (4 Langkah)</CardTitle>
                 <CardDescription>
-                  Panduan singkat setup VPS scraper dengan OpenVPN Indonesia
+                  Panduan singkat setup VPS scraper - semua otomatis!
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-3">
+                <div className="grid gap-4">
                   {[
-                    { step: 1, title: "Beli VPS Eropa", desc: "Contabo, Hetzner, DigitalOcean (~$5-10/bulan)" },
-                    { step: 2, title: "Generate Secret Key", desc: "Klik tombol Generate di atas" },
-                    { step: 3, title: "Jalankan Setup Script", desc: "sudo ./setup-openvpn.sh di VPS" },
-                    { step: 4, title: "Edit Konfigurasi", desc: "Masukkan credentials BCA & secret key" },
-                    { step: 5, title: "Setup Cron Job", desc: "Jalankan otomatis setiap 5-10 menit" },
+                    { 
+                      step: 1, 
+                      title: "Persiapan", 
+                      desc: "Beli VPS Eropa (Contabo/Hetzner ~$5/bulan) & Download file .ovpn dari VPNJantit",
+                      highlight: false
+                    },
+                    { 
+                      step: 2, 
+                      title: "Upload ke VPS", 
+                      desc: "Upload semua file (install.sh, config.env, bca-scraper.js, run.sh, + file .ovpn) ke folder /root/bca-scraper di VPS",
+                      highlight: false
+                    },
+                    { 
+                      step: 3, 
+                      title: "Jalankan Installer", 
+                      desc: "chmod +x install.sh && sudo ./install.sh - Otomatis install Node.js, OpenVPN, dan setup cron!",
+                      highlight: true
+                    },
+                    { 
+                      step: 4, 
+                      title: "Edit config.env", 
+                      desc: "nano config.env → Isi BCA_USER_ID, BCA_PIN, dan VPN credentials. SECRET_KEY sudah terisi!",
+                      highlight: false
+                    },
                   ].map((item) => (
-                    <div key={item.step} className="flex gap-4 items-start">
+                    <div key={item.step} className={`flex gap-4 items-start p-3 rounded-lg ${item.highlight ? 'bg-green-500/10 border border-green-500/30' : ''}`}>
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm">
                         {item.step}
                       </div>
@@ -513,6 +554,17 @@ export default function BankScraperSettings() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Terminal Example */}
+                <div className="p-4 bg-zinc-900 rounded-lg text-green-400 font-mono text-xs overflow-x-auto">
+                  <p className="text-zinc-500"># Di VPS, setelah upload semua file:</p>
+                  <p>$ cd /root/bca-scraper</p>
+                  <p>$ chmod +x install.sh && sudo ./install.sh</p>
+                  <p className="text-zinc-500"># Ikuti instruksi installer, lalu:</p>
+                  <p>$ nano config.env  <span className="text-zinc-500"># Edit credentials</span></p>
+                  <p>$ ./run.sh  <span className="text-zinc-500"># Test manual</span></p>
+                  <p className="text-green-300 mt-2"># Selesai! Scraper jalan otomatis tiap 5 menit 🎉</p>
                 </div>
               </CardContent>
             </Card>
