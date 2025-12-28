@@ -54,9 +54,12 @@ const CONFIG = {
   ACCOUNT_NUMBER: process.env.BCA_ACCOUNT_NUMBER || '1234567890',
   HEADLESS: process.env.HEADLESS !== 'false',
   SLOW_MO: parseInt(process.env.SLOW_MO) || 0,
-  TIMEOUT: parseInt(process.env.TIMEOUT) || 60000,
+  TIMEOUT: parseInt(process.env.TIMEOUT) || 90000,       // Increased from 60s to 90s
+  LOGIN_TIMEOUT: parseInt(process.env.LOGIN_TIMEOUT) || 30000,  // 30s timeout for login navigation
+  SCRAPE_TIMEOUT: parseInt(process.env.SCRAPE_TIMEOUT) || 120000, // 2 minutes max for entire scrape
   MAX_RETRIES: parseInt(process.env.MAX_RETRIES) || 3,
-  RETRY_DELAY: parseInt(process.env.RETRY_DELAY) || 5000,
+  RETRY_DELAY: parseInt(process.env.RETRY_DELAY) || 15000,  // Increased from 5s to 15s
+  STUCK_TIMEOUT: parseInt(process.env.STUCK_TIMEOUT) || 180000, // 3 minutes = stuck
   CHROMIUM_PATH: process.env.CHROMIUM_PATH || findChromiumPath(),
   DEBUG_MODE: process.env.DEBUG_MODE !== 'false',
   BURST_CHECK_URL: process.env.BURST_CHECK_URL || (process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/bank-scraper-webhook', '/check-burst-command') : ''),
@@ -120,7 +123,38 @@ try {
 console.log('');
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// Add random delay to avoid detection
+const randomDelay = (min, max) => delay(Math.floor(Math.random() * (max - min + 1)) + min);
 const log = (msg, level = 'INFO') => console.log(`[${new Date().toISOString()}] [${level}] ${msg}`);
+
+// Stuck detection - track scrape start time
+let scrapeStartTime = null;
+let isScrapingActive = false;
+
+function checkStuckStatus() {
+  if (!isScrapingActive || !scrapeStartTime) return false;
+  const elapsed = Date.now() - scrapeStartTime;
+  if (elapsed > CONFIG.STUCK_TIMEOUT) {
+    log(`STUCK DETECTED! Scrape running for ${Math.round(elapsed/1000)}s (limit: ${CONFIG.STUCK_TIMEOUT/1000}s)`, 'ERROR');
+    return true;
+  }
+  return false;
+}
+
+// Cleanup function for stuck scraper
+async function forceCleanup() {
+  log('Force cleanup initiated...', 'WARN');
+  isScrapingActive = false;
+  scrapeStartTime = null;
+  
+  try {
+    const { execSync } = require('child_process');
+    execSync('pkill -9 -f "chromium.*puppeteer" 2>/dev/null || true', { stdio: 'ignore' });
+    log('Force killed all Chromium processes');
+  } catch (e) {
+    // Ignore
+  }
+}
 
 // Save debug screenshot
 async function saveDebug(page, name, type = 'png') {
@@ -263,18 +297,19 @@ async function enterCredentials(frame, userId, pin) {
       }, pinInput);
       log(`Found PIN input: ${pinSelector}`);
       
-      // Focus, clear and type into User ID
+      // Focus, clear and type into User ID with slower typing
       await userIdInput.focus();
-      await delay(200);
+      await randomDelay(200, 400);
       await frame.evaluate(el => { el.value = ''; }, userIdInput);
-      await userIdInput.type(userId, { delay: 50 });
+      await userIdInput.type(userId, { delay: 80 }); // Slower typing
       log('User ID entered via type()');
       
-      // Focus, clear and type into PIN
+      // Focus, clear and type into PIN with slower typing
+      await randomDelay(300, 500);
       await pinInput.focus();
-      await delay(200);
+      await randomDelay(200, 400);
       await frame.evaluate(el => { el.value = ''; }, pinInput);
-      await pinInput.type(pin, { delay: 50 });
+      await pinInput.type(pin, { delay: 80 }); // Slower typing
       log('PIN entered via type()');
       
       return true;
@@ -358,16 +393,17 @@ async function enterCredentials(frame, userId, pin) {
                      await frame.$('input[type="password"]');
     
     if (userIdInput && pinInput) {
-      // Click on User ID field
+      // Click on User ID field with random delay
       await userIdInput.click({ clickCount: 3 }); // Triple click to select all
-      await delay(100);
-      await frame.keyboard.type(userId, { delay: 50 });
+      await randomDelay(100, 200);
+      await frame.keyboard.type(userId, { delay: 80 }); // Slower typing
       log('User ID entered via click+type');
       
-      // Click on PIN field
+      // Click on PIN field with random delay
+      await randomDelay(300, 600);
       await pinInput.click({ clickCount: 3 });
-      await delay(100);
-      await frame.keyboard.type(pin, { delay: 50 });
+      await randomDelay(100, 200);
+      await frame.keyboard.type(pin, { delay: 80 }); // Slower typing
       log('PIN entered via click+type');
       
       return true;
@@ -501,8 +537,25 @@ async function scrapeBCA() {
   log(`Using Chromium at: ${CONFIG.CHROMIUM_PATH}`);
   log(`Headless mode: ${CONFIG.HEADLESS}`);
   
+  // Track scrape start for stuck detection
+  scrapeStartTime = Date.now();
+  isScrapingActive = true;
+  
+  // Create timeout promise for global scrape timeout
+  let scrapeTimeoutId;
+  const scrapeTimeoutPromise = new Promise((_, reject) => {
+    scrapeTimeoutId = setTimeout(() => {
+      reject(new Error(`Scrape timeout exceeded (${CONFIG.SCRAPE_TIMEOUT/1000}s)`));
+    }, CONFIG.SCRAPE_TIMEOUT);
+  });
+  
+  // Initialize parsedMutations outside try block to fix the bug
+  let parsedMutations = [];
+  
   // Browser launch with explicit try-catch for debugging
   let browser;
+  let page;
+  
   try {
     log('Attempting to launch Puppeteer browser...');
     browser = await puppeteer.launch({
@@ -532,12 +585,18 @@ async function scrapeBCA() {
     console.error('2. Check Chromium installation: apt install chromium-browser');
     console.error('3. Try running Chromium directly: ' + CONFIG.CHROMIUM_PATH + ' --version');
     console.error('');
+    clearTimeout(scrapeTimeoutId);
+    isScrapingActive = false;
     throw launchError;
   }
   
-  const page = await browser.newPage();
+  page = await browser.newPage();
   await page.setViewport({ width: 1366, height: 768 });
   await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+  
+  // Set page-level timeouts
+  page.setDefaultTimeout(CONFIG.TIMEOUT);
+  page.setDefaultNavigationTimeout(CONFIG.TIMEOUT);
 
   // Enable console logging
   page.on('console', msg => {
@@ -937,9 +996,15 @@ async function scrapeBCA() {
       return { mutations: results, debitCount, dupCount };
     }, currentYear);
 
-    const { mutations: parsedMutations, debitCount, dupCount } = mutations;
-    
-    log(`Found ${parsedMutations.length} credit mutations (skipped ${debitCount} debits, ${dupCount} duplicates)`);
+    // FIX: Validate mutations object before destructuring
+    if (mutations && typeof mutations === 'object' && Array.isArray(mutations.mutations)) {
+      const { mutations: parsed, debitCount = 0, dupCount = 0 } = mutations;
+      parsedMutations = parsed;
+      log(`Found ${parsedMutations.length} credit mutations (skipped ${debitCount} debits, ${dupCount} duplicates)`);
+    } else {
+      log('Invalid mutations result, using empty array', 'WARN');
+      parsedMutations = [];
+    }
 
     // Logout
     try {
@@ -974,6 +1039,11 @@ async function scrapeBCA() {
     }
     throw error;
   } finally {
+    // Clear the timeout
+    clearTimeout(scrapeTimeoutId);
+    isScrapingActive = false;
+    scrapeStartTime = null;
+    
     // Close browser gracefully
     if (browser) {
       try {
@@ -997,10 +1067,10 @@ async function scrapeBCA() {
   return parsedMutations;
 }
 
-// Burst mode loop
+// Burst mode loop with improved timing
 async function runBurstMode(initialCommand) {
   log('=== ENTERING BURST MODE ===');
-  const maxDuration = 120000; // 2 minutes
+  const maxDuration = 150000; // 2.5 minutes (increased from 2 minutes)
   const burstStart = Date.now();
   let checkCount = 0;
 
@@ -1008,9 +1078,16 @@ async function runBurstMode(initialCommand) {
     checkCount++;
     log(`--- Burst scrape #${checkCount} ---`);
 
+    // Check if stuck before starting new scrape
+    if (checkStuckStatus()) {
+      log('Stuck detected before burst scrape, forcing cleanup...', 'ERROR');
+      await forceCleanup();
+      await delay(5000);
+    }
+
     try {
       const mutations = await scrapeBCA();
-      if (mutations.length > 0) {
+      if (mutations && mutations.length > 0) {
         const result = await sendToWebhook(mutations);
         if (result.matched > 0) {
           log(`MATCH FOUND! Stopping burst.`);
@@ -1019,6 +1096,9 @@ async function runBurstMode(initialCommand) {
       }
     } catch (e) {
       log(`Burst scrape error: ${e.message}`, 'ERROR');
+      // Force cleanup on error
+      await forceCleanup();
+      await delay(3000);
     }
 
     // Check if burst still active
@@ -1028,7 +1108,8 @@ async function runBurstMode(initialCommand) {
       break;
     }
 
-    const interval = (status.interval_seconds || 10) * 1000;
+    // Increased minimum interval to avoid BCA detection
+    const interval = Math.max((status.interval_seconds || 10) * 1000, 12000); // Min 12 seconds
     log(`Waiting ${interval/1000}s...`);
     await delay(interval);
   }
@@ -1039,6 +1120,13 @@ async function runBurstMode(initialCommand) {
 // Main entry
 async function main() {
   const isBurstCheck = process.argv.includes('--burst-check');
+
+  // Check stuck status before any operation
+  if (checkStuckStatus()) {
+    log('Previous scrape detected as stuck, forcing cleanup...', 'WARN');
+    await forceCleanup();
+    await delay(3000);
+  }
 
   if (isBurstCheck) {
     log('Checking for burst command...');
@@ -1051,7 +1139,7 @@ async function main() {
   } else {
     // Normal mode
     const mutations = await scrapeBCA();
-    if (mutations.length > 0) {
+    if (mutations && mutations.length > 0) {
       const result = await sendToWebhook(mutations);
       log(`Result: ${JSON.stringify(result)}`);
     } else {
@@ -1060,20 +1148,38 @@ async function main() {
   }
 }
 
-// Run with retry
+// Run with retry - improved with stuck detection
 async function runWithRetry() {
   const isBurstCheck = process.argv.includes('--burst-check');
   if (isBurstCheck) return main();
 
   for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
     try {
+      // Check for stuck status before each attempt
+      if (checkStuckStatus()) {
+        log(`Attempt ${attempt}: Stuck detected, forcing cleanup...`, 'WARN');
+        await forceCleanup();
+        await delay(5000);
+      }
+      
       await main();
       return;
     } catch (e) {
       log(`Attempt ${attempt} failed: ${e.message}`, 'ERROR');
-      if (attempt < CONFIG.MAX_RETRIES) await delay(CONFIG.RETRY_DELAY);
+      
+      // Force cleanup after failure
+      await forceCleanup();
+      
+      if (attempt < CONFIG.MAX_RETRIES) {
+        // Add random delay to avoid detection patterns
+        const retryDelay = CONFIG.RETRY_DELAY + Math.floor(Math.random() * 5000);
+        log(`Waiting ${retryDelay/1000}s before retry...`);
+        await delay(retryDelay);
+      }
     }
   }
+  
+  log('All retry attempts exhausted', 'ERROR');
   process.exit(1);
 }
 
