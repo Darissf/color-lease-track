@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import { id as localeId } from "date-fns/locale";
 import { 
   ArrowLeft, Cloud, Eye, EyeOff,
   Loader2, Play, RefreshCw, CheckCircle, 
-  AlertCircle, Zap, Clock, Database, Rocket
+  AlertCircle, Zap, Clock, Database, Rocket, Timer
 } from "lucide-react";
 
 interface CloudScraperSettings {
@@ -46,6 +46,9 @@ interface CloudScraperSettings {
   burst_last_match_found: boolean;
 }
 
+// Cooldown duration in seconds
+const COOLDOWN_SECONDS = 30;
+
 export default function CloudScraperSettings() {
   const { isSuperAdmin, user } = useAuth();
   const navigate = useNavigate();
@@ -54,6 +57,9 @@ export default function CloudScraperSettings() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [settings, setSettings] = useState<CloudScraperSettings | null>(null);
+  
+  // Cooldown state
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   
   // Form state
   const [bcaUserId, setBcaUserId] = useState("");
@@ -66,6 +72,32 @@ export default function CloudScraperSettings() {
   const [burstEnabled, setBurstEnabled] = useState(true);
   const [burstInterval, setBurstInterval] = useState("5");
   const [burstDuration, setBurstDuration] = useState("120");
+
+  // Calculate cooldown based on last_scrape_at
+  const updateCooldown = useCallback(() => {
+    if (!settings?.last_scrape_at) {
+      setCooldownRemaining(0);
+      return;
+    }
+    
+    const lastScrape = new Date(settings.last_scrape_at).getTime();
+    const now = Date.now();
+    const elapsed = Math.floor((now - lastScrape) / 1000);
+    const remaining = Math.max(0, COOLDOWN_SECONDS - elapsed);
+    setCooldownRemaining(remaining);
+  }, [settings?.last_scrape_at]);
+
+  // Cooldown timer
+  useEffect(() => {
+    updateCooldown();
+    
+    if (cooldownRemaining > 0) {
+      const timer = setInterval(() => {
+        setCooldownRemaining(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [cooldownRemaining, updateCooldown]);
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -112,6 +144,11 @@ export default function CloudScraperSettings() {
       return () => clearInterval(interval);
     }
   }, [settings?.burst_in_progress]);
+
+  // Update cooldown when settings change
+  useEffect(() => {
+    updateCooldown();
+  }, [settings?.last_scrape_at, updateCooldown]);
 
   const handleSave = async () => {
     if (!bcaUserId || !bcaPin || !bcaAccountNumber) {
@@ -192,7 +229,16 @@ export default function CloudScraperSettings() {
       return;
     }
 
+    // Check cooldown
+    if (cooldownRemaining > 0) {
+      toast.error(`Tunggu ${cooldownRemaining} detik sebelum menjalankan lagi`);
+      return;
+    }
+
     setTesting(true);
+    // Start cooldown immediately for UI feedback
+    setCooldownRemaining(COOLDOWN_SECONDS);
+    
     try {
       const { data, error } = await supabase.functions.invoke("cloud-bank-scraper", {
         body: {},
@@ -203,7 +249,13 @@ export default function CloudScraperSettings() {
       if (data?.success) {
         toast.success(`Scraping selesai! ${data.mutations_found} mutasi ditemukan, ${data.matched} matched`);
       } else {
-        toast.error(`Scraping gagal: ${data?.error || "Unknown error"}`);
+        // Check for rate limit error
+        if (data?.cooldown_remaining) {
+          setCooldownRemaining(data.cooldown_remaining);
+          toast.error(data.error || "Rate limit tercapai");
+        } else {
+          toast.error(`Scraping gagal: ${data?.error || "Unknown error"}`);
+        }
       }
       
       fetchData();
@@ -224,6 +276,9 @@ export default function CloudScraperSettings() {
       </div>
     );
   }
+
+  const isOnCooldown = cooldownRemaining > 0;
+  const isRunning = settings?.scrape_status === 'running';
 
   return (
     <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
@@ -271,6 +326,30 @@ export default function CloudScraperSettings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Cooldown Banner */}
+        {isOnCooldown && (
+          <Card className="bg-amber-500/10 border-amber-500/30">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2 rounded-full bg-amber-500/20">
+                  <Timer className="h-5 w-5 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-amber-700 dark:text-amber-400">
+                    Cooldown Aktif
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Tunggu {cooldownRemaining} detik untuk mencegah rate limit dari Browserless
+                  </p>
+                </div>
+                <Badge variant="outline" className="border-amber-500 text-amber-600">
+                  {cooldownRemaining}s
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Credentials Form */}
         <Card>
@@ -344,13 +423,24 @@ export default function CloudScraperSettings() {
                 Simpan Pengaturan
               </Button>
               {settings?.is_active && (
-                <Button variant="outline" onClick={handleRunNow} disabled={testing}>
+                <Button 
+                  variant="outline" 
+                  onClick={handleRunNow} 
+                  disabled={testing || isOnCooldown || isRunning}
+                >
                   {testing ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : isOnCooldown ? (
+                    <Timer className="h-4 w-4 mr-2" />
                   ) : (
                     <Play className="h-4 w-4 mr-2" />
                   )}
-                  Jalankan Sekarang
+                  {isOnCooldown 
+                    ? `Tunggu ${cooldownRemaining}s` 
+                    : isRunning 
+                      ? "Sedang Berjalan..." 
+                      : "Jalankan Sekarang"
+                  }
                 </Button>
               )}
             </div>
