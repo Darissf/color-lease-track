@@ -37,8 +37,11 @@ interface BurstResult {
   matched_request_id?: string;
 }
 
-// Rate limit: minimum 30 seconds between scrapes
-const MIN_SCRAPE_INTERVAL_MS = 30000;
+// INCREASED: Rate limit from 30s to 60s to avoid BCA detection
+const MIN_SCRAPE_INTERVAL_MS = 60000;
+
+// Stuck detection: if scrape_status is 'running' for more than this, consider it stuck
+const STUCK_THRESHOLD_MS = 180000; // 3 minutes
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -52,7 +55,7 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // Parse request body for mode
-  let mode: 'normal' | 'burst' | 'test_proxy' = 'normal';
+  let mode: 'normal' | 'burst' | 'test_proxy' | 'check_stuck' = 'normal';
   let burstRequestId: string | null = null;
   let testProxyConfig: ProxyConfig | null = null;
   
@@ -65,6 +68,61 @@ Deno.serve(async (req) => {
     }
   } catch {
     // Default to normal mode if no body
+  }
+
+  // Handle check_stuck mode - detect and reset stuck scraper
+  if (mode === 'check_stuck') {
+    console.log('[Cloud Bank Scraper] Checking for stuck scraper...');
+    
+    const { data: settings, error: settingsError } = await supabase
+      .from('payment_provider_settings')
+      .select('*')
+      .eq('provider', 'cloud_scraper')
+      .single();
+
+    if (settingsError || !settings) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Cloud scraper not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const isRunning = settings.scrape_status === 'running';
+    const lastScrapeAt = settings.last_scrape_at ? new Date(settings.last_scrape_at).getTime() : 0;
+    const timeSinceLastScrape = Date.now() - lastScrapeAt;
+    const isStuck = isRunning && timeSinceLastScrape > STUCK_THRESHOLD_MS;
+
+    if (isStuck) {
+      console.log(`[Cloud Bank Scraper] Detected stuck scraper (running for ${Math.round(timeSinceLastScrape / 1000)}s), resetting...`);
+      
+      await supabase
+        .from('payment_provider_settings')
+        .update({
+          scrape_status: 'idle',
+          burst_in_progress: false,
+          last_error: `Auto-reset: Scraper terjebak selama ${Math.round(timeSinceLastScrape / 1000)} detik`,
+        })
+        .eq('id', settings.id);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          was_stuck: true, 
+          stuck_duration_seconds: Math.round(timeSinceLastScrape / 1000) 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        was_stuck: false, 
+        is_running: isRunning,
+        seconds_since_last_scrape: Math.round(timeSinceLastScrape / 1000)
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   // Handle test_proxy mode separately (doesn't need DB settings)
@@ -127,17 +185,47 @@ Deno.serve(async (req) => {
       );
     }
 
-    // RATE LIMIT CHECK: Prevent 429 errors from Browserless
+    // STUCK CHECK: If currently running, check if it's stuck
+    if (settings.scrape_status === 'running') {
+      const lastScrapeAt = settings.last_scrape_at ? new Date(settings.last_scrape_at).getTime() : 0;
+      const timeSinceLastScrape = Date.now() - lastScrapeAt;
+      
+      if (timeSinceLastScrape > STUCK_THRESHOLD_MS) {
+        // Auto-recover from stuck state
+        console.log(`[Cloud Bank Scraper] Auto-recovering from stuck state (${Math.round(timeSinceLastScrape / 1000)}s)`);
+        await supabase
+          .from('payment_provider_settings')
+          .update({
+            scrape_status: 'idle',
+            burst_in_progress: false,
+            last_error: `Auto-reset: Scraper terjebak selama ${Math.round(timeSinceLastScrape / 1000)} detik`,
+          })
+          .eq('id', settings.id);
+      } else {
+        // Still running normally, reject new request
+        const waitSeconds = Math.ceil((STUCK_THRESHOLD_MS - timeSinceLastScrape) / 1000);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Scraper sedang berjalan. Tunggu hingga selesai atau ${waitSeconds} detik untuk auto-reset.`,
+            is_running: true 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 409 }
+        );
+      }
+    }
+
+    // RATE LIMIT CHECK: Prevent 429 errors from Browserless with LONGER cooldown
     const lastScrapeAt = settings.last_scrape_at ? new Date(settings.last_scrape_at).getTime() : 0;
     const timeSinceLastScrape = Date.now() - lastScrapeAt;
     
-    if (timeSinceLastScrape < MIN_SCRAPE_INTERVAL_MS) {
+    if (timeSinceLastScrape < MIN_SCRAPE_INTERVAL_MS && settings.scrape_status !== 'running') {
       const waitSeconds = Math.ceil((MIN_SCRAPE_INTERVAL_MS - timeSinceLastScrape) / 1000);
       console.log(`[Cloud Bank Scraper] Rate limit: Too soon since last scrape. Wait ${waitSeconds}s`);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: `Rate limit: Tunggu ${waitSeconds} detik sebelum menjalankan lagi`,
+          error: `Cooldown: Tunggu ${waitSeconds} detik sebelum menjalankan lagi (mencegah deteksi BCA)`,
           cooldown_remaining: waitSeconds 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
@@ -204,6 +292,12 @@ Deno.serve(async (req) => {
             .from('payment_provider_settings')
             .update({ burst_check_count: checkNumber })
             .eq('id', settings.id);
+
+          // FIXED: Only process if mutations is a valid array with items
+          if (!Array.isArray(mutations) || mutations.length === 0) {
+            console.log(`[Cloud Bank Scraper] Burst check #${checkNumber}: No mutations to process`);
+            return false; // Continue burst
+          }
 
           // Process mutations and check for match
           const matchResult = await processMutations(supabase, settings, mutations);
@@ -285,13 +379,16 @@ Deno.serve(async (req) => {
 
     // Check for specific error types
     const is429Error = err.message.includes('429') || err.message.includes('Too Many Requests');
-    const isTimeoutError = err.message.includes('timeout') || err.message.includes('timed out');
+    const isTimeoutError = err.message.includes('timeout') || err.message.includes('timed out') || err.message.includes('AbortError');
+    const isSessionError = err.message.includes('session') || err.message.includes('Session');
     
     let userFriendlyError = err.message;
     if (is429Error) {
-      userFriendlyError = 'Rate limit tercapai. Tunggu 30 detik sebelum menjalankan lagi.';
+      userFriendlyError = 'Rate limit tercapai. Tunggu 60 detik sebelum menjalankan lagi.';
     } else if (isTimeoutError) {
-      userFriendlyError = 'Timeout: KlikBCA lambat merespon. Coba lagi dalam 30 detik.';
+      userFriendlyError = 'Timeout: KlikBCA lambat merespon. Coba lagi dalam 60 detik.';
+    } else if (isSessionError) {
+      userFriendlyError = 'Session error: Mungkin ada session lain yang aktif. Tunggu 5 menit.';
     }
 
     // Update error status
@@ -326,8 +423,26 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
   let matchedCount = 0;
   let matched = false;
 
+  // FIXED: Validate mutations array before processing
+  if (!Array.isArray(mutations)) {
+    console.error('[Cloud Bank Scraper] processMutations received non-array:', typeof mutations);
+    return { processedCount: 0, matchedCount: 0, matched: false };
+  }
+
   for (const mutation of mutations) {
+    // FIXED: Validate mutation object
+    if (!mutation || typeof mutation !== 'object') {
+      console.warn('[Cloud Bank Scraper] Skipping invalid mutation:', mutation);
+      continue;
+    }
+
     if (mutation.type !== 'credit') continue;
+
+    // Validate required fields
+    if (!mutation.date || !mutation.amount || !mutation.description) {
+      console.warn('[Cloud Bank Scraper] Skipping mutation with missing fields:', mutation);
+      continue;
+    }
 
     // Check for duplicate
     const { data: existing } = await supabase
@@ -348,7 +463,7 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
       .insert({
         user_id: settings.user_id,
         transaction_date: mutation.date,
-        transaction_time: mutation.time,
+        transaction_time: mutation.time || null,
         amount: mutation.amount,
         transaction_type: mutation.type,
         description: mutation.description,
@@ -522,16 +637,17 @@ async function scrapeBCAMutationsWithRetry(apiKey: string, credentials: BankCred
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       if (attempt > 0) {
-        console.log(`[Browserless] Retry attempt ${attempt}/${maxRetries} after 5 seconds...`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        // INCREASED: retry delay from 5s to 10s
+        console.log(`[Browserless] Retry attempt ${attempt}/${maxRetries} after 10 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 10000));
       }
       return await scrapeBCAMutations(apiKey, credentials, proxyConfig);
     } catch (error: unknown) {
       lastError = error as Error;
       console.error(`[Browserless] Attempt ${attempt + 1} failed:`, lastError.message);
       
-      // Don't retry on 429 (rate limit) errors
-      if (lastError.message.includes('429') || lastError.message.includes('Too Many Requests')) {
+      // Don't retry on 429 (rate limit) or session errors
+      if (lastError.message.includes('429') || lastError.message.includes('Too Many Requests') || lastError.message.includes('session')) {
         throw lastError;
       }
     }
@@ -541,12 +657,11 @@ async function scrapeBCAMutationsWithRetry(apiKey: string, credentials: BankCred
 }
 
 async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials, proxyConfig: ProxyConfig | null): Promise<MutationData[]> {
-  // Browserless REST API timeout is in MILLISECONDS
-  // Maximum 60000ms (60 seconds) for free plan
-  console.log('[Browserless] Starting scrape request with 60s timeout...');
+  // INCREASED: timeout from 60s to 90s for slower connections
+  console.log('[Browserless] Starting scrape request with 90s timeout...');
   
   const controller = new AbortController();
-  const fetchTimeout = setTimeout(() => controller.abort(), 80000); // 80s total timeout for fetch
+  const fetchTimeout = setTimeout(() => controller.abort(), 100000); // 100s total timeout for fetch
   
   try {
     const requestBody = {
@@ -554,7 +669,8 @@ async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials, 
     };
     
     // Build URL with proxy as query string parameter if enabled
-    let browserlessUrl = `https://production-sfo.browserless.io/function?token=${apiKey}&timeout=60000`;
+    // INCREASED: timeout from 60000 to 90000ms
+    let browserlessUrl = `https://production-sfo.browserless.io/function?token=${apiKey}&timeout=90000`;
     
     if (proxyConfig?.enabled && proxyConfig.host && proxyConfig.port) {
       const proxyParam = encodeURIComponent(`http://${proxyConfig.host}:${proxyConfig.port}`);
@@ -577,21 +693,24 @@ async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials, 
       
       // Check for specific error types
       if (response.status === 429 || errorText.includes('429') || errorText.includes('Too Many Requests')) {
-        throw new Error('429 Too Many Requests: Rate limit tercapai. Tunggu 30 detik.');
+        throw new Error('429 Too Many Requests: Rate limit tercapai. Tunggu 60 detik.');
       }
       
       throw new Error(`Browserless error: ${errorText}`);
     }
 
     const result = await response.json();
-    console.log('[Browserless] Scrape completed, mutations found:', result.mutations?.length || 0);
-    return result.mutations || [];
+    
+    // FIXED: Validate result.mutations is an array
+    const mutations = Array.isArray(result.mutations) ? result.mutations : [];
+    console.log('[Browserless] Scrape completed, mutations found:', mutations.length);
+    return mutations;
   } catch (error: unknown) {
     clearTimeout(fetchTimeout);
     const err = error as Error;
     
     if (err.name === 'AbortError') {
-      throw new Error('Request timeout: Scraping melebihi 80 detik');
+      throw new Error('Request timeout: Scraping melebihi 100 detik');
     }
     throw error;
   }
@@ -608,64 +727,86 @@ async function scrapeBCAMutationsBurstMode(
   
   console.log(`[Burst Mode] Starting with ${intervalSeconds}s interval, max ${maxChecks} checks`);
   
-  // Browserless REST API timeout is in MILLISECONDS
-  // Burst mode needs higher plan - cap at 60000ms for free plan
-  const burstTimeoutMs = 60000;
+  // INCREASED: timeout from 60000 to 90000ms
+  const burstTimeoutMs = 90000;
   console.log(`[Burst Mode] Using timeout: ${burstTimeoutMs}ms`);
   
-  const requestBody = {
-    code: generateBurstModeCode(credentials, proxyConfig, intervalSeconds, maxChecks),
-  };
+  const controller = new AbortController();
+  const fetchTimeout = setTimeout(() => controller.abort(), burstTimeoutMs + 10000); // Extra 10s buffer
   
-  // Build URL with proxy as query string parameter if enabled
-  let browserlessUrl = `https://production-sfo.browserless.io/function?token=${apiKey}&timeout=${burstTimeoutMs}`;
-  
-  if (proxyConfig?.enabled && proxyConfig.host && proxyConfig.port) {
-    const proxyParam = encodeURIComponent(`http://${proxyConfig.host}:${proxyConfig.port}`);
-    browserlessUrl += `&--proxy-server=${proxyParam}`;
-    console.log(`[Burst Mode] Using proxy via query string: ${proxyConfig.host}:${proxyConfig.port}`);
-  }
-  
-  const response = await fetch(browserlessUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
+  try {
+    const requestBody = {
+      code: generateBurstModeCode(credentials, proxyConfig, intervalSeconds, maxChecks),
+    };
     
-    if (response.status === 429 || errorText.includes('429')) {
-      throw new Error('429 Too Many Requests: Rate limit tercapai. Tunggu 30 detik.');
+    // Build URL with proxy as query string parameter if enabled
+    let browserlessUrl = `https://production-sfo.browserless.io/function?token=${apiKey}&timeout=${burstTimeoutMs}`;
+    
+    if (proxyConfig?.enabled && proxyConfig.host && proxyConfig.port) {
+      const proxyParam = encodeURIComponent(`http://${proxyConfig.host}:${proxyConfig.port}`);
+      browserlessUrl += `&--proxy-server=${proxyParam}`;
+      console.log(`[Burst Mode] Using proxy via query string: ${proxyConfig.host}:${proxyConfig.port}`);
     }
     
-    throw new Error(`Browserless error: ${errorText}`);
-  }
+    const response = await fetch(browserlessUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
 
-  const result = await response.json();
-  
-  // Process each batch of mutations from burst mode
-  let totalMutations = 0;
-  let matchFound = false;
-  
-  if (result.allMutations && Array.isArray(result.allMutations)) {
-    for (let i = 0; i < result.allMutations.length; i++) {
-      const mutations = result.allMutations[i] || [];
+    clearTimeout(fetchTimeout);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      
+      if (response.status === 429 || errorText.includes('429')) {
+        throw new Error('429 Too Many Requests: Rate limit tercapai. Tunggu 60 detik.');
+      }
+      
+      throw new Error(`Browserless error: ${errorText}`);
+    }
+
+    const result = await response.json();
+    
+    // Process each batch of mutations from burst mode
+    let totalMutations = 0;
+    let matchFound = false;
+    
+    // FIXED: Validate allMutations is an array
+    const allMutations = Array.isArray(result.allMutations) ? result.allMutations : [];
+    
+    for (let i = 0; i < allMutations.length; i++) {
+      // FIXED: Validate each mutations batch is an array
+      const mutations = Array.isArray(allMutations[i]) ? allMutations[i] : [];
       totalMutations += mutations.length;
       
-      const shouldStop = await onCheck(i + 1, mutations);
-      if (shouldStop) {
-        matchFound = true;
-        break;
+      try {
+        const shouldStop = await onCheck(i + 1, mutations);
+        if (shouldStop) {
+          matchFound = true;
+          break;
+        }
+      } catch (checkError) {
+        console.error(`[Burst Mode] Error in check #${i + 1}:`, checkError);
+        // Continue to next check even if one fails
       }
     }
+    
+    return {
+      totalChecks: result.totalChecks || allMutations.length,
+      matchFound,
+      totalMutations
+    };
+  } catch (error: unknown) {
+    clearTimeout(fetchTimeout);
+    const err = error as Error;
+    
+    if (err.name === 'AbortError') {
+      throw new Error('Burst mode timeout: Melebihi batas waktu');
+    }
+    throw error;
   }
-  
-  return {
-    totalChecks: result.totalChecks || 0,
-    matchFound,
-    totalMutations
-  };
 }
 
 function generateBrowserlessCode(credentials: BankCredentials, proxyConfig: ProxyConfig | null): string {
@@ -691,49 +832,55 @@ function generateBrowserlessCode(credentials: BankCredentials, proxyConfig: Prox
       try {
         ${proxyAuthCode}
         
-        // KlikBCA is very slow from US servers - use maximum timeouts
-        // Total operation should complete in ~55 seconds to fit within 60s limit
-        page.setDefaultTimeout(45000);
-        page.setDefaultNavigationTimeout(50000);
+        // INCREASED: timeouts for slow connections
+        page.setDefaultTimeout(60000);
+        page.setDefaultNavigationTimeout(70000);
         
         console.log('[BCA] Navigating to login page...');
         
-        // Navigate to KlikBCA - use networkidle0 for more reliable loading
-        // This waits until there are no network connections for 500ms
+        // Navigate to KlikBCA - use networkidle2 for more reliable loading
         await page.goto('https://ibank.klikbca.com/', { 
-          waitUntil: 'networkidle0',
-          timeout: 45000 
+          waitUntil: 'networkidle2',
+          timeout: 60000 
         });
         
-        // Wait for login form
+        // Wait for login form with longer timeout
         console.log('[BCA] Waiting for login form...');
-        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 20000 });
+        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 30000 });
         
-        // Fill login form
+        // SLOWER: typing to avoid detection
         console.log('[BCA] Filling credentials...');
-        await page.type('input[name="value(user_id)"]', CONFIG.user_id, { delay: 50 });
-        await page.type('input[name="value(pswd)"]', CONFIG.pin, { delay: 50 });
+        await page.type('input[name="value(user_id)"]', CONFIG.user_id, { delay: 100 });
+        await new Promise(r => setTimeout(r, 500)); // Extra delay between fields
+        await page.type('input[name="value(pswd)"]', CONFIG.pin, { delay: 100 });
         
-        // Submit login - use networkidle0 to ensure page fully loads
+        // Extra delay before submit
+        await new Promise(r => setTimeout(r, 1000));
+        
+        // Submit login
         console.log('[BCA] Submitting login...');
         await Promise.all([
-          page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 50000 }),
+          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
           page.click('input[name="value(Submit)"]')
         ]);
         
         // Quick login check
         const pageContent = await page.content();
         if (pageContent.includes('User ID atau PIN salah') || 
-            pageContent.includes('Login gagal')) {
-          throw new Error('Login failed: Invalid credentials');
+            pageContent.includes('Login gagal') ||
+            pageContent.includes('Session tidak valid')) {
+          throw new Error('Login failed: Invalid credentials or session');
         }
         
         console.log('[BCA] Login successful, navigating to mutations...');
         
+        // Extra delay after login
+        await new Promise(r => setTimeout(r, 2000));
+        
         // Navigate to Account Statement (Mutasi Rekening)
         await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acctstmtview', {
-          waitUntil: 'networkidle0',
-          timeout: 45000
+          waitUntil: 'networkidle2',
+          timeout: 60000
         });
         
         // Set date range (today)
@@ -745,10 +892,15 @@ function generateBrowserlessCode(credentials: BankCredentials, proxyConfig: Prox
         console.log('[BCA] Setting date range...');
         try {
           await page.select('select[name="value(startDt)"]', day);
+          await new Promise(r => setTimeout(r, 200));
           await page.select('select[name="value(startMt)"]', month);
+          await new Promise(r => setTimeout(r, 200));
           await page.select('select[name="value(startYr)"]', year);
+          await new Promise(r => setTimeout(r, 200));
           await page.select('select[name="value(endDt)"]', day);
+          await new Promise(r => setTimeout(r, 200));
           await page.select('select[name="value(endMt)"]', month);
+          await new Promise(r => setTimeout(r, 200));
           await page.select('select[name="value(endYr)"]', year);
         } catch (e) {
           console.log('[BCA] Using fallback select method...');
@@ -763,12 +915,15 @@ function generateBrowserlessCode(credentials: BankCredentials, proxyConfig: Prox
           }
         }
         
+        // Extra delay before submit
+        await new Promise(r => setTimeout(r, 1000));
+        
         // Submit form
         console.log('[BCA] Submitting date range...');
         const submitBtn = await page.$('input[type="submit"]');
         if (submitBtn) {
           await Promise.all([
-            page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 45000 }),
+            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),
             submitBtn.click()
           ]);
         }
@@ -831,23 +986,29 @@ function generateBrowserlessCode(credentials: BankCredentials, proxyConfig: Prox
         const currentYear = now.getFullYear();
         
         for (const item of tableData) {
-          const [d, m] = item.date.split('/');
-          mutations.push({
-            date: currentYear + '-' + m.padStart(2, '0') + '-' + d.padStart(2, '0'),
-            time: now.toTimeString().split(' ')[0],
-            amount: item.amount,
-            type: item.type,
-            description: item.description,
-            balance_after: item.balance_after
-          });
+          if (item && item.date) {
+            const parts = item.date.split('/');
+            if (parts.length === 2) {
+              const [d, m] = parts;
+              mutations.push({
+                date: currentYear + '-' + m.padStart(2, '0') + '-' + d.padStart(2, '0'),
+                time: now.toTimeString().split(' ')[0],
+                amount: item.amount,
+                type: item.type,
+                description: item.description,
+                balance_after: item.balance_after
+              });
+            }
+          }
         }
         
-        // Logout
+        // Logout with delay
         console.log('[BCA] Logging out...');
+        await new Promise(r => setTimeout(r, 1000));
         try {
           await page.goto('https://ibank.klikbca.com/authentication.do?value(actions)=logout', {
             waitUntil: 'domcontentloaded',
-            timeout: 10000
+            timeout: 15000
           });
         } catch (e) {
           console.log('[BCA] Logout skipped (timeout is okay)');
@@ -879,11 +1040,14 @@ function generateBurstModeCode(credentials: BankCredentials, proxyConfig: ProxyC
         console.log('[BCA] Proxy authentication set:', proxyUsername);
       `
     : '';
+  
+  // INCREASED: minimum interval to 8 seconds to avoid detection
+  const safeInterval = Math.max(intervalSeconds, 8);
     
   return `
     export default async ({ page }) => {
       const CONFIG = ${JSON.stringify(credentials)};
-      const INTERVAL_SECONDS = ${intervalSeconds};
+      const INTERVAL_SECONDS = ${safeInterval};
       const MAX_CHECKS = ${maxChecks};
       const allMutations = [];
       let totalChecks = 0;
@@ -893,60 +1057,68 @@ function generateBurstModeCode(credentials: BankCredentials, proxyConfig: ProxyC
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
       
       const parseMutationTable = async () => {
-        return await page.evaluate(() => {
-          const results = [];
-          const tables = document.querySelectorAll('table');
-          
-          for (const table of tables) {
-            const rows = table.querySelectorAll('tr');
-            for (const row of rows) {
-              const cells = row.querySelectorAll('td');
-              if (cells.length >= 3) {
-                const firstCell = cells[0]?.innerText?.trim() || '';
-                if (/^\\d{2}\\/\\d{2}$/.test(firstCell)) {
-                  const desc = cells[1]?.innerText?.trim() || '';
-                  const amountText = cells[2]?.innerText?.trim() || '';
-                  
-                  let type = 'debit';
-                  let balanceAfter = null;
-                  
-                  if (cells.length >= 4) {
-                    const typeCell = cells[3]?.innerText?.trim()?.toUpperCase() || '';
-                    if (typeCell === 'CR' || typeCell.includes('CR')) {
-                      type = 'credit';
+        try {
+          return await page.evaluate(() => {
+            const results = [];
+            const tables = document.querySelectorAll('table');
+            
+            for (const table of tables) {
+              const rows = table.querySelectorAll('tr');
+              for (const row of rows) {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 3) {
+                  const firstCell = cells[0]?.innerText?.trim() || '';
+                  if (/^\\d{2}\\/\\d{2}$/.test(firstCell)) {
+                    const desc = cells[1]?.innerText?.trim() || '';
+                    const amountText = cells[2]?.innerText?.trim() || '';
+                    
+                    let type = 'debit';
+                    let balanceAfter = null;
+                    
+                    if (cells.length >= 4) {
+                      const typeCell = cells[3]?.innerText?.trim()?.toUpperCase() || '';
+                      if (typeCell === 'CR' || typeCell.includes('CR')) {
+                        type = 'credit';
+                      }
                     }
-                  }
-                  
-                  if (cells.length >= 5) {
-                    const balText = cells[4]?.innerText?.trim()?.replace(/[^\\d.,]/g, '');
-                    balanceAfter = parseFloat(balText.replace(/,/g, '')) || null;
-                  }
-                  
-                  const amount = parseFloat(amountText.replace(/[^\\d.,]/g, '').replace(/,/g, '')) || 0;
-                  
-                  if (amount > 0) {
-                    results.push({
-                      date: firstCell,
-                      description: desc,
-                      amount: amount,
-                      type: type,
-                      balance_after: balanceAfter
-                    });
+                    
+                    if (cells.length >= 5) {
+                      const balText = cells[4]?.innerText?.trim()?.replace(/[^\\d.,]/g, '');
+                      balanceAfter = parseFloat(balText.replace(/,/g, '')) || null;
+                    }
+                    
+                    const amount = parseFloat(amountText.replace(/[^\\d.,]/g, '').replace(/,/g, '')) || 0;
+                    
+                    if (amount > 0) {
+                      results.push({
+                        date: firstCell,
+                        description: desc,
+                        amount: amount,
+                        type: type,
+                        balance_after: balanceAfter
+                      });
+                    }
                   }
                 }
               }
             }
-          }
-          
-          return results;
-        });
+            
+            return results;
+          });
+        } catch (e) {
+          console.error('[Burst] Error parsing table:', e.message);
+          return [];
+        }
       };
       
       const formatMutations = (tableData) => {
+        if (!Array.isArray(tableData)) return [];
         const now = new Date();
         const currentYear = now.getFullYear();
-        return tableData.map(item => {
-          const [d, m] = item.date.split('/');
+        return tableData.filter(item => item && item.date).map(item => {
+          const parts = item.date.split('/');
+          if (parts.length !== 2) return null;
+          const [d, m] = parts;
           return {
             date: currentYear + '-' + m.padStart(2, '0') + '-' + d.padStart(2, '0'),
             time: now.toTimeString().split(' ')[0],
@@ -955,41 +1127,50 @@ function generateBurstModeCode(credentials: BankCredentials, proxyConfig: ProxyC
             description: item.description,
             balance_after: item.balance_after
           };
-        });
+        }).filter(Boolean);
       };
       
       try {
         console.log('[Burst] Starting BCA login...');
         
-        // Single login with optimized settings
-        page.setDefaultTimeout(30000);
-        page.setDefaultNavigationTimeout(35000);
+        // INCREASED: timeouts for slow connections
+        page.setDefaultTimeout(45000);
+        page.setDefaultNavigationTimeout(50000);
         
         await page.goto('https://ibank.klikbca.com/', { 
-          waitUntil: 'domcontentloaded',
-          timeout: 30000 
+          waitUntil: 'networkidle2',
+          timeout: 45000 
         });
         
-        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 20000 });
-        await page.type('input[name="value(user_id)"]', CONFIG.user_id, { delay: 30 });
-        await page.type('input[name="value(pswd)"]', CONFIG.pin, { delay: 30 });
+        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 25000 });
+        
+        // SLOWER: typing to avoid detection
+        await page.type('input[name="value(user_id)"]', CONFIG.user_id, { delay: 80 });
+        await sleep(500);
+        await page.type('input[name="value(pswd)"]', CONFIG.pin, { delay: 80 });
+        await sleep(1000);
         
         await Promise.all([
-          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 35000 }),
+          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 50000 }),
           page.click('input[name="value(Submit)"]')
         ]);
         
         const pageContent = await page.content();
-        if (pageContent.includes('User ID atau PIN salah') || pageContent.includes('Login gagal')) {
-          throw new Error('Login failed: Invalid credentials');
+        if (pageContent.includes('User ID atau PIN salah') || 
+            pageContent.includes('Login gagal') ||
+            pageContent.includes('Session tidak valid')) {
+          throw new Error('Login failed: Invalid credentials or session');
         }
         
         console.log('[Burst] Login successful, starting mutation checks...');
         
+        // Extra delay after login
+        await sleep(2000);
+        
         // Navigate to statement page
         await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acctstmtview', {
-          waitUntil: 'domcontentloaded',
-          timeout: 30000
+          waitUntil: 'networkidle2',
+          timeout: 45000
         });
         
         // Set date range (today) once
@@ -1000,10 +1181,15 @@ function generateBurstModeCode(credentials: BankCredentials, proxyConfig: ProxyC
         
         try {
           await page.select('select[name="value(startDt)"]', day);
+          await sleep(150);
           await page.select('select[name="value(startMt)"]', month);
+          await sleep(150);
           await page.select('select[name="value(startYr)"]', year);
+          await sleep(150);
           await page.select('select[name="value(endDt)"]', day);
+          await sleep(150);
           await page.select('select[name="value(endMt)"]', month);
+          await sleep(150);
           await page.select('select[name="value(endYr)"]', year);
         } catch (e) {
           const selects = await page.$$('select');
@@ -1017,11 +1203,13 @@ function generateBurstModeCode(credentials: BankCredentials, proxyConfig: ProxyC
           }
         }
         
+        await sleep(1000);
+        
         // First check
         const submitBtn = await page.$('input[type="submit"]');
         if (submitBtn) {
           await Promise.all([
-            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 45000 }),
             submitBtn.click()
           ]);
         }
@@ -1044,26 +1232,37 @@ function generateBurstModeCode(credentials: BankCredentials, proxyConfig: ProxyC
             await sleep(INTERVAL_SECONDS * 1000);
             
             // Refresh the statement page (no re-login needed)
-            await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+            try {
+              await page.reload({ waitUntil: 'networkidle2', timeout: 45000 });
+            } catch (reloadErr) {
+              console.log('[Burst] Reload timeout, continuing...');
+            }
+            
+            await sleep(500);
             
             // Re-submit the form to get fresh data
             const refreshBtn = await page.$('input[type="submit"]');
             if (refreshBtn) {
-              await Promise.all([
-                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
-                refreshBtn.click()
-              ]);
+              try {
+                await Promise.all([
+                  page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 45000 }),
+                  refreshBtn.click()
+                ]);
+              } catch (navErr) {
+                console.log('[Burst] Navigation timeout, continuing...');
+              }
             }
           }
         }
         
         console.log('[Burst] Burst complete, logging out...');
         
-        // Logout after all checks
+        // Logout after all checks with delay
+        await sleep(1000);
         try {
           await page.goto('https://ibank.klikbca.com/authentication.do?value(actions)=logout', {
             waitUntil: 'domcontentloaded',
-            timeout: 10000
+            timeout: 15000
           });
         } catch (e) {}
         
