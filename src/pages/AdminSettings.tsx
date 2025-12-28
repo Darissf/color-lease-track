@@ -297,22 +297,22 @@ const AdminSettings = () => {
           </Card>
 
           <Card 
-            className="p-3 sm:p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-blue-500"
-            onClick={() => navigate("/vip/settings/cloud-scraper")}
+            className="p-3 sm:p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-green-500"
+            onClick={() => navigate("/vip/settings/bank-scraper")}
           >
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-green-600 flex items-center justify-center shrink-0">
                 <Server className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-blue-600 transition-colors truncate">
-                  Cloud Bank Scraper
+                <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-green-600 transition-colors truncate">
+                  Bank Scraper
                 </h3>
                 <p className="text-xs text-muted-foreground truncate">
-                  Verifikasi pembayaran otomatis (tanpa VPS)
+                  VPS Scraper dengan OpenVPN Indonesia
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-blue-600" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-green-600" />
             </div>
           </Card>
         </div>
