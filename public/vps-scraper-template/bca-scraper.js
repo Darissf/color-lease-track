@@ -109,6 +109,16 @@ if (!fs.existsSync(CONFIG.CHROMIUM_PATH)) {
 console.log(`[OK] Chromium verified at: ${CONFIG.CHROMIUM_PATH}`);
 console.log('');
 
+// === STARTUP CLEANUP - Kill any orphan chromium from previous runs ===
+try {
+  const { execSync } = require('child_process');
+  execSync('pkill -f "chromium.*puppeteer" 2>/dev/null || true', { stdio: 'ignore' });
+  console.log('[OK] Cleaned up orphan Chromium processes');
+} catch (e) {
+  // Ignore - process might not exist
+}
+console.log('');
+
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const log = (msg, level = 'INFO') => console.log(`[${new Date().toISOString()}] [${level}] ${msg}`);
 
@@ -883,7 +893,8 @@ async function scrapeBCA() {
               
               // FILTER: Skip debit transactions - only process credits (incoming payments)
               if (type === 'debit') {
-                console.log(`[SKIP] Debit transaction ignored - Rp${amount}`);
+                window.__debitCount = (window.__debitCount || 0) + 1;
+                console.log(`[SKIP-DEBIT #${window.__debitCount}] Rp${amount.toLocaleString()} - ${description.substring(0, 40)}...`);
                 continue;
               }
               
@@ -892,7 +903,8 @@ async function scrapeBCA() {
                 const dedupKey = `${date}-${Math.round(amount)}-${description.substring(0, 30)}`;
                 
                 if (seen.has(dedupKey)) {
-                  console.log(`[SKIP] Duplicate: ${dedupKey}`);
+                  window.__dupCount = (window.__dupCount || 0) + 1;
+                  console.log(`[SKIP-DUP #${window.__dupCount}] ${dedupKey}`);
                   continue;
                 }
                 seen.add(dedupKey);
@@ -910,11 +922,24 @@ async function scrapeBCA() {
         }
       }
       
-      console.log(`[RESULT] Total unique mutations found: ${results.length}`);
-      return results;
+      // Summary logging
+      const debitCount = window.__debitCount || 0;
+      const dupCount = window.__dupCount || 0;
+      console.log('');
+      console.log('============ TRANSACTION SUMMARY ============');
+      console.log(`  Credits (incoming):     ${results.length}`);
+      console.log(`  Debits skipped:         ${debitCount}`);
+      console.log(`  Duplicates skipped:     ${dupCount}`);
+      console.log(`  Total rows processed:   ${results.length + debitCount + dupCount}`);
+      console.log('=============================================');
+      console.log('');
+      
+      return { mutations: results, debitCount, dupCount };
     }, currentYear);
 
-    log(`Found ${mutations.length} mutations`);
+    const { mutations: parsedMutations, debitCount, dupCount } = mutations;
+    
+    log(`Found ${parsedMutations.length} credit mutations (skipped ${debitCount} debits, ${dupCount} duplicates)`);
 
     // Logout
     try {
@@ -943,15 +968,33 @@ async function scrapeBCA() {
   } catch (error) {
     log(`Scrape error: ${error.message}`, 'ERROR');
     log(`Stack: ${error.stack}`, 'DEBUG');
-    await saveDebug(page, 'error-state');
-    await saveDebug(page, 'error-state', 'html');
+    if (page) {
+      await saveDebug(page, 'error-state');
+      await saveDebug(page, 'error-state', 'html');
+    }
     throw error;
   } finally {
-    await browser.close();
-    log('Browser closed');
+    // Close browser gracefully
+    if (browser) {
+      try {
+        await browser.close();
+        log('Browser closed');
+      } catch (closeErr) {
+        log(`Browser close error: ${closeErr.message}`, 'WARN');
+      }
+    }
+    
+    // Force cleanup orphan chromium processes
+    try {
+      const { execSync } = require('child_process');
+      execSync('pkill -f "chromium.*puppeteer_dev" 2>/dev/null || true', { stdio: 'ignore' });
+      log('Orphan processes cleaned up');
+    } catch (e) {
+      // Ignore
+    }
   }
 
-  return mutations;
+  return parsedMutations;
 }
 
 // Burst mode loop
