@@ -1840,84 +1840,222 @@ export type Database = {
       document_settings: {
         Row: {
           accent_color: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_logo_url: string | null
+          bank_name: string | null
           border_color: string | null
+          color_preset: string | null
           company_address: string | null
+          company_email: string | null
           company_name: string | null
+          company_npwp: string | null
           company_phone: string | null
+          company_tagline: string | null
+          company_website: string | null
           counter_invoice: number | null
           counter_receipt: number | null
           created_at: string
+          custom_note: string | null
+          custom_stamp_url: string | null
+          default_due_days: number | null
+          font_family: string | null
+          font_size_base: number | null
           footer_text: string | null
           header_color_primary: string | null
           header_color_secondary: string | null
+          header_stripe_height: number | null
+          header_stripe_style: string | null
+          header_style: string | null
+          heading_font_family: string | null
+          icon_email_url: string | null
           icon_maps_url: string | null
+          icon_website_url: string | null
           icon_whatsapp_url: string | null
           id: string
           invoice_logo_url: string | null
+          invoice_prefix: string | null
+          late_fee_text: string | null
           logo_position: string | null
+          number_format: string | null
           owner_name: string | null
           paper_size: string | null
+          qr_include_amount: boolean | null
+          qr_position: string | null
+          qr_size: number | null
+          receipt_prefix: string | null
+          show_bank_info: boolean | null
+          show_company_tagline: boolean | null
+          show_due_date: boolean | null
           show_qr_code: boolean | null
+          show_stamp: boolean | null
           show_terbilang: boolean | null
+          show_watermark: boolean | null
           signature_image_url: string | null
+          signature_url: string | null
+          signer_name: string | null
+          signer_title: string | null
+          stamp_color_belum_lunas: string | null
+          stamp_color_lunas: string | null
+          stamp_opacity: number | null
+          table_alternating_color: string | null
+          table_alternating_rows: boolean | null
+          table_border_style: string | null
+          table_header_bg: string | null
+          table_header_text_color: string | null
           template_style: string | null
           terms_conditions: string | null
           updated_at: string
           user_id: string
+          watermark_opacity: number | null
+          watermark_text: string | null
+          watermark_type: string | null
         }
         Insert: {
           accent_color?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_logo_url?: string | null
+          bank_name?: string | null
           border_color?: string | null
+          color_preset?: string | null
           company_address?: string | null
+          company_email?: string | null
           company_name?: string | null
+          company_npwp?: string | null
           company_phone?: string | null
+          company_tagline?: string | null
+          company_website?: string | null
           counter_invoice?: number | null
           counter_receipt?: number | null
           created_at?: string
+          custom_note?: string | null
+          custom_stamp_url?: string | null
+          default_due_days?: number | null
+          font_family?: string | null
+          font_size_base?: number | null
           footer_text?: string | null
           header_color_primary?: string | null
           header_color_secondary?: string | null
+          header_stripe_height?: number | null
+          header_stripe_style?: string | null
+          header_style?: string | null
+          heading_font_family?: string | null
+          icon_email_url?: string | null
           icon_maps_url?: string | null
+          icon_website_url?: string | null
           icon_whatsapp_url?: string | null
           id?: string
           invoice_logo_url?: string | null
+          invoice_prefix?: string | null
+          late_fee_text?: string | null
           logo_position?: string | null
+          number_format?: string | null
           owner_name?: string | null
           paper_size?: string | null
+          qr_include_amount?: boolean | null
+          qr_position?: string | null
+          qr_size?: number | null
+          receipt_prefix?: string | null
+          show_bank_info?: boolean | null
+          show_company_tagline?: boolean | null
+          show_due_date?: boolean | null
           show_qr_code?: boolean | null
+          show_stamp?: boolean | null
           show_terbilang?: boolean | null
+          show_watermark?: boolean | null
           signature_image_url?: string | null
+          signature_url?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          stamp_color_belum_lunas?: string | null
+          stamp_color_lunas?: string | null
+          stamp_opacity?: number | null
+          table_alternating_color?: string | null
+          table_alternating_rows?: boolean | null
+          table_border_style?: string | null
+          table_header_bg?: string | null
+          table_header_text_color?: string | null
           template_style?: string | null
           terms_conditions?: string | null
           updated_at?: string
           user_id: string
+          watermark_opacity?: number | null
+          watermark_text?: string | null
+          watermark_type?: string | null
         }
         Update: {
           accent_color?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_logo_url?: string | null
+          bank_name?: string | null
           border_color?: string | null
+          color_preset?: string | null
           company_address?: string | null
+          company_email?: string | null
           company_name?: string | null
+          company_npwp?: string | null
           company_phone?: string | null
+          company_tagline?: string | null
+          company_website?: string | null
           counter_invoice?: number | null
           counter_receipt?: number | null
           created_at?: string
+          custom_note?: string | null
+          custom_stamp_url?: string | null
+          default_due_days?: number | null
+          font_family?: string | null
+          font_size_base?: number | null
           footer_text?: string | null
           header_color_primary?: string | null
           header_color_secondary?: string | null
+          header_stripe_height?: number | null
+          header_stripe_style?: string | null
+          header_style?: string | null
+          heading_font_family?: string | null
+          icon_email_url?: string | null
           icon_maps_url?: string | null
+          icon_website_url?: string | null
           icon_whatsapp_url?: string | null
           id?: string
           invoice_logo_url?: string | null
+          invoice_prefix?: string | null
+          late_fee_text?: string | null
           logo_position?: string | null
+          number_format?: string | null
           owner_name?: string | null
           paper_size?: string | null
+          qr_include_amount?: boolean | null
+          qr_position?: string | null
+          qr_size?: number | null
+          receipt_prefix?: string | null
+          show_bank_info?: boolean | null
+          show_company_tagline?: boolean | null
+          show_due_date?: boolean | null
           show_qr_code?: boolean | null
+          show_stamp?: boolean | null
           show_terbilang?: boolean | null
+          show_watermark?: boolean | null
           signature_image_url?: string | null
+          signature_url?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          stamp_color_belum_lunas?: string | null
+          stamp_color_lunas?: string | null
+          stamp_opacity?: number | null
+          table_alternating_color?: string | null
+          table_alternating_rows?: boolean | null
+          table_border_style?: string | null
+          table_header_bg?: string | null
+          table_header_text_color?: string | null
           template_style?: string | null
           terms_conditions?: string | null
           updated_at?: string
           user_id?: string
+          watermark_opacity?: number | null
+          watermark_text?: string | null
+          watermark_type?: string | null
         }
         Relationships: []
       }
