@@ -7,30 +7,34 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { access_code } = await req.json();
+    const { access_code, document_type, payment_id } = await req.json();
 
     if (!access_code) {
-      console.error("Missing access_code in request");
       return new Response(
         JSON.stringify({ error: "Access code is required" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log("Fetching public contract for access_code:", access_code);
+    if (!document_type || !['invoice', 'kwitansi'].includes(document_type)) {
+      return new Response(
+        JSON.stringify({ error: "Valid document_type (invoice/kwitansi) is required" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Generating ${document_type} for access_code:`, access_code);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // First, get the public link and check if it's valid
+    // Validate access code
     const { data: linkData, error: linkError } = await supabase
       .from('contract_public_links')
       .select('*')
@@ -50,53 +54,25 @@ serve(async (req) => {
     const now = new Date();
     const expiresAt = new Date(linkData.expires_at);
     if (now > expiresAt) {
-      console.log("Link has expired:", access_code);
-      
-      // Fetch invoice number for WhatsApp message
-      const { data: contractBasic } = await supabase
-        .from('rental_contracts')
-        .select('invoice')
-        .eq('id', linkData.contract_id)
-        .single();
-      
       return new Response(
-        JSON.stringify({ 
-          error: "Link sudah expired", 
-          code: "EXPIRED",
-          expired_at: linkData.expires_at,
-          invoice: contractBasic?.invoice || null
-        }),
+        JSON.stringify({ error: "Link sudah expired", code: "EXPIRED" }),
         { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get the contract details
+    // Get contract details
     const { data: contractData, error: contractError } = await supabase
       .from('rental_contracts')
       .select(`
         id,
         invoice,
         keterangan,
-        jenis_scaffolding,
-        lokasi_detail,
-        google_maps_link,
         start_date,
         end_date,
         tanggal,
-        tanggal_kirim,
-        tanggal_ambil,
-        jumlah_unit,
         tagihan,
         tagihan_belum_bayar,
-        status,
-        status_pengiriman,
-        status_pengambilan,
-        penanggung_jawab,
-        biaya_kirim,
-        client_group_id,
-        rincian_template,
-        transport_cost_delivery,
-        transport_cost_pickup
+        client_group_id
       `)
       .eq('id', linkData.contract_id)
       .single();
@@ -104,53 +80,27 @@ serve(async (req) => {
     if (contractError || !contractData) {
       console.error("Contract not found:", contractError);
       return new Response(
-        JSON.stringify({ error: "Kontrak tidak ditemukan", code: "CONTRACT_NOT_FOUND" }),
+        JSON.stringify({ error: "Kontrak tidak ditemukan" }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // For kwitansi, check if fully paid
+    if (document_type === 'kwitansi' && contractData.tagihan_belum_bayar > 0) {
+      return new Response(
+        JSON.stringify({ error: "Kwitansi hanya dapat dibuat jika tagihan sudah lunas 100%", code: "NOT_PAID" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Get client info
     const { data: clientData } = await supabase
       .from('client_groups')
-      .select('nama, nomor_telepon, icon')
+      .select('nama, nomor_telepon')
       .eq('id', contractData.client_group_id)
       .single();
 
-    // Get bank account info if there's remaining payment
-    let bankInfo = null;
-    if (contractData.tagihan_belum_bayar > 0) {
-      const { data: bankData } = await supabase
-        .from('bank_accounts')
-        .select('bank_name, account_number, account_holder_name')
-        .eq('user_id', linkData.user_id)
-        .eq('is_active', true)
-        .limit(1)
-        .single();
-      
-      if (bankData) {
-        bankInfo = bankData;
-      }
-    }
-
-    // Get payment history
-    const { data: payments } = await supabase
-      .from('contract_payments')
-      .select('id, payment_date, amount, payment_number, notes, payment_source, confirmed_by')
-      .eq('contract_id', linkData.contract_id)
-      .order('payment_date', { ascending: false });
-
-    // Get pending payment request if any
-    const { data: pendingRequest } = await supabase
-      .from('payment_confirmation_requests')
-      .select('id, unique_amount, unique_code, amount_expected, expires_at, created_by_role, status')
-      .eq('contract_id', linkData.contract_id)
-      .eq('status', 'pending')
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Get document settings for the contract owner
+    // Get document settings
     const { data: documentSettings } = await supabase
       .from('document_settings')
       .select('company_name, company_address, company_phone, owner_name, signature_image_url')
@@ -164,23 +114,55 @@ serve(async (req) => {
       .eq('user_id', linkData.user_id)
       .single();
 
-    // Increment view count (fire and forget)
-    supabase.rpc('increment_contract_link_views', { p_access_code: access_code })
-      .then(() => console.log("View count incremented"));
+    // Generate verification code
+    const { data: verificationCode, error: vcError } = await supabase
+      .rpc('generate_verification_code');
+
+    if (vcError) {
+      console.error("Error generating verification code:", vcError);
+      return new Response(
+        JSON.stringify({ error: "Gagal generate verification code" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // For kwitansi, get the latest payment or specific payment
+    let paymentData = null;
+    if (document_type === 'kwitansi') {
+      if (payment_id) {
+        const { data: payment } = await supabase
+          .from('contract_payments')
+          .select('*')
+          .eq('id', payment_id)
+          .eq('contract_id', linkData.contract_id)
+          .single();
+        paymentData = payment;
+      } else {
+        // Get the latest payment
+        const { data: payment } = await supabase
+          .from('contract_payments')
+          .select('*')
+          .eq('contract_id', linkData.contract_id)
+          .order('payment_date', { ascending: false })
+          .limit(1)
+          .single();
+        paymentData = payment;
+      }
+    }
 
     const response = {
+      verification_code: verificationCode,
       contract: {
-        ...contractData,
-        client: clientData || null,
-        bank: bankInfo,
-        payments: payments || [],
+        id: contractData.id,
+        invoice: contractData.invoice,
+        keterangan: contractData.keterangan,
+        start_date: contractData.start_date,
+        end_date: contractData.end_date,
+        tanggal: contractData.tanggal,
+        tagihan: contractData.tagihan,
+        tagihan_belum_bayar: contractData.tagihan_belum_bayar,
       },
-      link: {
-        expires_at: linkData.expires_at,
-        view_count: linkData.view_count + 1,
-        created_at: linkData.created_at,
-      },
-      pending_request: pendingRequest || null,
+      client: clientData,
       document_settings: documentSettings ? {
         company_name: documentSettings.company_name,
         company_address: documentSettings.company_address,
@@ -190,16 +172,18 @@ serve(async (req) => {
         logo_url: brandSettings?.logo_url || null,
         site_name: brandSettings?.site_name || null,
       } : null,
+      payment: paymentData,
+      document_type,
     };
 
-    console.log("Successfully fetched public contract data");
+    console.log(`Successfully generated ${document_type} data`);
     return new Response(
       JSON.stringify(response),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {
-    console.error("Error in contract-public-view:", error);
+    console.error("Error in public-document-generate:", error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: "Internal server error", message }),

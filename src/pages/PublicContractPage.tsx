@@ -21,7 +21,9 @@ import {
   XCircle,
   Eye,
   MessageCircle,
-  ExternalLink
+  ExternalLink,
+  FileCheck,
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -31,11 +33,28 @@ import { formatCurrency } from '@/lib/currency';
 import { SITE_NAME } from '@/lib/seo';
 import { renderIcon } from '@/lib/renderIcon';
 import { PublicPaymentRequest } from '@/components/payment/PublicPaymentRequest';
+import { PublicDocumentPreviewModal } from '@/components/documents/PublicDocumentPreviewModal';
 
 export default function PublicContractPage() {
   const { accessCode } = useParams<{ accessCode: string }>();
   const { data, loading, error, errorCode, expiredAt, expiredInvoice, refetch } = usePublicContract(accessCode || '');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentType, setDocumentType] = useState<'invoice' | 'kwitansi'>('invoice');
+
+  const handleOpenInvoice = () => {
+    setDocumentType('invoice');
+    setDocumentModalOpen(true);
+  };
+
+  const handleOpenKwitansi = () => {
+    if (data?.contract.tagihan_belum_bayar && data.contract.tagihan_belum_bayar > 0) {
+      toast.error('Kwitansi hanya tersedia setelah tagihan lunas 100%');
+      return;
+    }
+    setDocumentType('kwitansi');
+    setDocumentModalOpen(true);
+  };
 
   const copyToClipboard = async (text: string, field: string) => {
     try {
@@ -272,6 +291,42 @@ const getStatusColor = (status: string) => {
             </div>
 
             {/* Bank Info moved to PublicPaymentRequest component */}
+          </CardContent>
+        </Card>
+
+        {/* Download Document Section */}
+        <Card>
+          <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Download Dokumen
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 px-3 sm:px-6">
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start min-h-[44px]"
+                onClick={handleOpenInvoice}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Download Invoice
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start min-h-[44px]"
+                onClick={handleOpenKwitansi}
+                disabled={contract.tagihan_belum_bayar > 0}
+              >
+                <FileCheck className="w-4 h-4 mr-2" />
+                Download Kwitansi
+              </Button>
+            </div>
+            {contract.tagihan_belum_bayar > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Kwitansi akan tersedia setelah tagihan lunas 100%
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -514,6 +569,28 @@ const getStatusColor = (status: string) => {
           </div>
         </div>
       </div>
+
+      {/* Document Preview Modal */}
+      {accessCode && data?.document_settings !== undefined && (
+        <PublicDocumentPreviewModal
+          open={documentModalOpen}
+          onOpenChange={setDocumentModalOpen}
+          accessCode={accessCode}
+          documentType={documentType}
+          contractData={{
+            id: contract.id,
+            invoice: contract.invoice,
+            keterangan: contract.keterangan,
+            start_date: contract.start_date,
+            end_date: contract.end_date,
+            tanggal: contract.tanggal,
+            tagihan: contract.tagihan,
+            tagihan_belum_bayar: contract.tagihan_belum_bayar,
+          }}
+          clientData={contract.client}
+          documentSettings={data.document_settings}
+        />
+      )}
     </div>
   );
 }

@@ -128,3 +128,6 @@ verify_jwt = false
 
 [functions.verify-document]
 verify_jwt = false
+
+[functions.public-document-generate]
+verify_jwt = false
