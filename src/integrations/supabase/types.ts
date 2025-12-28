@@ -3603,6 +3603,14 @@ export type Database = {
         Row: {
           api_key_encrypted: string | null
           bank_credentials: Json | null
+          burst_check_count: number | null
+          burst_duration_seconds: number | null
+          burst_enabled: boolean | null
+          burst_in_progress: boolean | null
+          burst_interval_seconds: number | null
+          burst_last_match_found: boolean | null
+          burst_request_id: string | null
+          burst_started_at: string | null
           config: Json | null
           created_at: string
           error_count: number | null
@@ -3623,6 +3631,14 @@ export type Database = {
         Insert: {
           api_key_encrypted?: string | null
           bank_credentials?: Json | null
+          burst_check_count?: number | null
+          burst_duration_seconds?: number | null
+          burst_enabled?: boolean | null
+          burst_in_progress?: boolean | null
+          burst_interval_seconds?: number | null
+          burst_last_match_found?: boolean | null
+          burst_request_id?: string | null
+          burst_started_at?: string | null
           config?: Json | null
           created_at?: string
           error_count?: number | null
@@ -3643,6 +3659,14 @@ export type Database = {
         Update: {
           api_key_encrypted?: string | null
           bank_credentials?: Json | null
+          burst_check_count?: number | null
+          burst_duration_seconds?: number | null
+          burst_enabled?: boolean | null
+          burst_in_progress?: boolean | null
+          burst_interval_seconds?: number | null
+          burst_last_match_found?: boolean | null
+          burst_request_id?: string | null
+          burst_started_at?: string | null
           config?: Json | null
           created_at?: string
           error_count?: number | null

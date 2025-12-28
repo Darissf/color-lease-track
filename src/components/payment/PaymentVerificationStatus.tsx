@@ -69,6 +69,21 @@ export function PaymentVerificationStatus({
     }
   };
 
+  // Trigger burst scrape when component mounts
+  useEffect(() => {
+    const triggerBurst = async () => {
+      try {
+        console.log("[PaymentVerification] Triggering burst scrape...");
+        await supabase.functions.invoke("trigger-burst-scrape", {
+          body: { request_id: requestId }
+        });
+      } catch (err) {
+        console.error("Failed to trigger burst scrape:", err);
+      }
+    };
+    triggerBurst();
+  }, [requestId]);
+
   useEffect(() => {
     // Subscribe to realtime updates
     const channel = supabase

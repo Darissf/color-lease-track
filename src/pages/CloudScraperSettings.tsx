@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +16,7 @@ import { id as localeId } from "date-fns/locale";
 import { 
   ArrowLeft, Cloud, Eye, EyeOff,
   Loader2, Play, RefreshCw, CheckCircle, 
-  AlertCircle, Zap, Clock, Database
+  AlertCircle, Zap, Clock, Database, Rocket
 } from "lucide-react";
 
 interface CloudScraperSettings {
@@ -35,6 +36,14 @@ interface CloudScraperSettings {
   total_mutations_found: number;
   last_error: string | null;
   error_count: number;
+  // Burst mode fields
+  burst_enabled: boolean;
+  burst_interval_seconds: number;
+  burst_duration_seconds: number;
+  burst_in_progress: boolean;
+  burst_started_at: string | null;
+  burst_check_count: number;
+  burst_last_match_found: boolean;
 }
 
 export default function CloudScraperSettings() {
@@ -52,6 +61,11 @@ export default function CloudScraperSettings() {
   const [bcaAccountNumber, setBcaAccountNumber] = useState("");
   const [scrapeInterval, setScrapeInterval] = useState("10");
   const [showPin, setShowPin] = useState(false);
+  
+  // Burst mode state
+  const [burstEnabled, setBurstEnabled] = useState(true);
+  const [burstInterval, setBurstInterval] = useState("5");
+  const [burstDuration, setBurstDuration] = useState("120");
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -78,6 +92,9 @@ export default function CloudScraperSettings() {
         setBcaPin(typedData.bank_credentials?.pin || "");
         setBcaAccountNumber(typedData.bank_credentials?.account_number || "");
         setScrapeInterval(String(typedData.scrape_interval_minutes || 10));
+        setBurstEnabled(typedData.burst_enabled ?? true);
+        setBurstInterval(String(typedData.burst_interval_seconds || 5));
+        setBurstDuration(String(typedData.burst_duration_seconds || 120));
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -85,6 +102,16 @@ export default function CloudScraperSettings() {
       setLoading(false);
     }
   };
+  
+  // Auto-refresh when burst is in progress
+  useEffect(() => {
+    if (settings?.burst_in_progress) {
+      const interval = setInterval(() => {
+        fetchData();
+      }, 3000); // Refresh every 3 seconds
+      return () => clearInterval(interval);
+    }
+  }, [settings?.burst_in_progress]);
 
   const handleSave = async () => {
     if (!bcaUserId || !bcaPin || !bcaAccountNumber) {
@@ -106,6 +133,9 @@ export default function CloudScraperSettings() {
           .update({
             bank_credentials: credentials,
             scrape_interval_minutes: parseInt(scrapeInterval),
+            burst_enabled: burstEnabled,
+            burst_interval_seconds: parseInt(burstInterval),
+            burst_duration_seconds: parseInt(burstDuration),
             is_active: true,
           })
           .eq("id", settings.id);
@@ -119,6 +149,9 @@ export default function CloudScraperSettings() {
             user_id: user?.id,
             bank_credentials: credentials,
             scrape_interval_minutes: parseInt(scrapeInterval),
+            burst_enabled: burstEnabled,
+            burst_interval_seconds: parseInt(burstInterval),
+            burst_duration_seconds: parseInt(burstDuration),
             is_active: true,
           });
         
@@ -323,6 +356,134 @@ export default function CloudScraperSettings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Burst Mode Settings */}
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Rocket className="h-5 w-5 text-primary" />
+              Burst Mode Settings
+            </CardTitle>
+            <CardDescription>
+              Mode cepat: 1x login, cek mutasi berulang setiap 5 detik selama 2 menit saat user konfirmasi transfer
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-primary/10">
+                  <Zap className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">Aktifkan Burst Mode</p>
+                  <p className="text-xs text-muted-foreground">
+                    Auto-trigger saat customer konfirmasi pembayaran
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={burstEnabled}
+                onCheckedChange={setBurstEnabled}
+              />
+            </div>
+
+            {burstEnabled && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="burst-interval">Interval Cek (detik)</Label>
+                  <Select value={burstInterval} onValueChange={setBurstInterval}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih interval" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 detik</SelectItem>
+                      <SelectItem value="5">5 detik (recommended)</SelectItem>
+                      <SelectItem value="10">10 detik</SelectItem>
+                      <SelectItem value="15">15 detik</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="burst-duration">Durasi Burst (detik)</Label>
+                  <Select value={burstDuration} onValueChange={setBurstDuration}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih durasi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="60">1 menit (12 cek)</SelectItem>
+                      <SelectItem value="120">2 menit (24 cek) - recommended</SelectItem>
+                      <SelectItem value="180">3 menit (36 cek)</SelectItem>
+                      <SelectItem value="300">5 menit (60 cek)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Cara kerja:</strong> Saat customer klik "Saya Sudah Transfer", sistem akan login BCA 1x, 
+                lalu cek mutasi setiap {burstInterval} detik selama {Math.floor(parseInt(burstDuration) / 60)} menit 
+                ({Math.floor(parseInt(burstDuration) / parseInt(burstInterval))} pengecekan) tanpa login ulang.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Burst Status - Show when burst is in progress */}
+        {settings?.burst_in_progress && (
+          <Card className="border-2 border-primary bg-primary/5 animate-pulse">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-primary/20 animate-bounce">
+                      <Rocket className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-lg">Burst Mode Aktif</p>
+                      <p className="text-sm text-muted-foreground">
+                        Mengecek mutasi setiap {settings.burst_interval_seconds || 5} detik...
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="default" className="bg-primary animate-pulse">
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Running
+                  </Badge>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Progress</span>
+                    <span className="font-medium">
+                      Check #{settings.burst_check_count || 0} / {Math.floor((settings.burst_duration_seconds || 120) / (settings.burst_interval_seconds || 5))}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={(settings.burst_check_count || 0) / Math.floor((settings.burst_duration_seconds || 120) / (settings.burst_interval_seconds || 5)) * 100} 
+                    className="h-3"
+                  />
+                </div>
+
+                {settings.burst_started_at && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Dimulai: {format(new Date(settings.burst_started_at), "HH:mm:ss", { locale: localeId })}
+                  </p>
+                )}
+
+                {settings.burst_last_match_found && (
+                  <div className="p-3 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span className="font-medium text-green-700 dark:text-green-300">
+                      Pembayaran ditemukan dan diverifikasi!
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Status Card */}
         {settings && (
