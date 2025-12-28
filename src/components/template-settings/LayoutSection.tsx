@@ -37,35 +37,45 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
 
       {/* Header Stripe */}
       <div className="space-y-4 p-4 rounded-lg border bg-card/50">
-        <Label className="text-sm font-medium">Stripe Header</Label>
-        
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Tinggi Stripe</Label>
-            <span className="text-sm">{settings.header_stripe_height}px</span>
-          </div>
-          <Slider
-            value={[settings.header_stripe_height]}
-            onValueChange={([value]) => updateSetting('header_stripe_height', value)}
-            min={0}
-            max={10}
-            step={1}
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium">Stripe Header</Label>
+          <Switch
+            checked={settings.show_header_stripe}
+            onCheckedChange={(checked) => updateSetting('show_header_stripe', checked)}
           />
         </div>
+        
+        {settings.show_header_stripe && (
+          <>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Tinggi Stripe</Label>
+                <span className="text-sm">{settings.header_stripe_height}px</span>
+              </div>
+              <Slider
+                value={[settings.header_stripe_height]}
+                onValueChange={([value]) => updateSetting('header_stripe_height', value)}
+                min={0}
+                max={20}
+                step={1}
+              />
+            </div>
 
-        <Select
-          value={settings.header_stripe_style}
-          onValueChange={(value) => updateSetting('header_stripe_style', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Gaya stripe" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="gradient">Gradient</SelectItem>
-            <SelectItem value="solid">Solid</SelectItem>
-            <SelectItem value="none">Tidak ada</SelectItem>
-          </SelectContent>
-        </Select>
+            <Select
+              value={settings.header_stripe_style}
+              onValueChange={(value) => updateSetting('header_stripe_style', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Gaya stripe" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gradient">Gradient</SelectItem>
+                <SelectItem value="solid">Solid</SelectItem>
+                <SelectItem value="none">Tidak ada</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        )}
       </div>
 
       {/* Table Styling */}
@@ -94,12 +104,12 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
             <div className="flex gap-2">
               <div 
                 className="w-8 h-8 rounded border cursor-pointer"
-                style={{ backgroundColor: settings.table_header_text }}
+                style={{ backgroundColor: settings.table_header_text_color }}
               />
               <Input
                 type="color"
-                value={settings.table_header_text}
-                onChange={(e) => updateSetting('table_header_text', e.target.value)}
+                value={settings.table_header_text_color}
+                onChange={(e) => updateSetting('table_header_text_color', e.target.value)}
                 className="flex-1 h-8"
               />
             </div>
@@ -139,12 +149,12 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
             <div className="flex gap-2">
               <div 
                 className="w-8 h-8 rounded border cursor-pointer"
-                style={{ backgroundColor: settings.table_alt_row_bg }}
+                style={{ backgroundColor: settings.table_alternating_color }}
               />
               <Input
                 type="color"
-                value={settings.table_alt_row_bg}
-                onChange={(e) => updateSetting('table_alt_row_bg', e.target.value)}
+                value={settings.table_alternating_color}
+                onChange={(e) => updateSetting('table_alternating_color', e.target.value)}
                 className="flex-1 h-8"
               />
             </div>

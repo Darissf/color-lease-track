@@ -97,19 +97,43 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
 
         {settings.show_stamp && (
           <div className="space-y-4">
+            {/* Stamp Text */}
+            <div className="space-y-2">
+              <Label className="text-xs">Teks Stempel</Label>
+              <Input
+                value={settings.stamp_text}
+                onChange={(e) => updateSetting('stamp_text', e.target.value)}
+                placeholder="LUNAS"
+              />
+            </div>
+
+            {/* Stamp Color */}
+            <div className="space-y-2">
+              <Label className="text-xs">Warna Stempel</Label>
+              <div className="flex gap-2">
+                <div className="w-8 h-8 rounded border" style={{ backgroundColor: settings.stamp_color }} />
+                <Input
+                  type="color"
+                  value={settings.stamp_color}
+                  onChange={(e) => updateSetting('stamp_color', e.target.value)}
+                  className="flex-1 h-8"
+                />
+              </div>
+            </div>
+
             {/* Custom Stamp Upload */}
             <div className="border-2 border-dashed rounded-lg p-3">
-              {settings.stamp_image_url ? (
+              {settings.custom_stamp_url ? (
                 <div className="flex items-center gap-3">
                   <div className="w-16 h-16 rounded bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjZGRkIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNkZGQiLz48L3N2Zz4=')]">
-                    <img src={settings.stamp_image_url} alt="Stamp" className="w-full h-full object-contain" />
+                    <img src={settings.custom_stamp_url} alt="Stamp" className="w-full h-full object-contain" />
                   </div>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => stampInputRef.current?.click()} disabled={uploading}>
                       <Upload className="h-3 w-3 mr-1" />
                       Ganti
                     </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => onRemoveImage('stamp_image_url')} className="text-destructive">
+                    <Button type="button" variant="outline" size="sm" onClick={() => onRemoveImage('custom_stamp_url')} className="text-destructive">
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -202,6 +226,7 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
                 <SelectValue placeholder="Posisi QR" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="bottom-section">Bagian Bawah</SelectItem>
                 <SelectItem value="bottom-left">Kiri Bawah</SelectItem>
                 <SelectItem value="bottom-right">Kanan Bawah</SelectItem>
                 <SelectItem value="top-right">Kanan Atas</SelectItem>
@@ -255,6 +280,45 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
             <SelectItem value="NNNN/PREFIX/YYYY">0001/PREFIX/2024</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Visibility Toggles */}
+      <div className="space-y-4 p-4 rounded-lg border bg-card/50">
+        <Label className="text-sm font-medium">Visibilitas Elemen</Label>
+        
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Nomor Dokumen</Label>
+            <Switch
+              checked={settings.show_document_number !== false}
+              onCheckedChange={(checked) => updateSetting('show_document_number', checked)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Tanggal Dokumen</Label>
+            <Switch
+              checked={settings.show_document_date !== false}
+              onCheckedChange={(checked) => updateSetting('show_document_date', checked)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Info Klien</Label>
+            <Switch
+              checked={settings.show_client_info !== false}
+              onCheckedChange={(checked) => updateSetting('show_client_info', checked)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Header Tabel</Label>
+            <Switch
+              checked={settings.show_table_header !== false}
+              onCheckedChange={(checked) => updateSetting('show_table_header', checked)}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Additional Settings */}
