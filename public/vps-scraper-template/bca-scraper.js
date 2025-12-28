@@ -744,6 +744,7 @@ async function scrapeBCA() {
     
     mutations = await atmFrame.evaluate((year) => {
       const results = [];
+      const seen = new Set(); // For deduplication
       const tables = document.querySelectorAll('table');
       console.log(`[PARSE] Found ${tables.length} tables total`);
       
@@ -755,6 +756,12 @@ async function scrapeBCA() {
         for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
           const row = rows[rowIdx];
           const cells = row.querySelectorAll('td');
+          
+          // FIX 3: Skip rows with too many cells (header rows with merged cells)
+          if (cells.length > 10) {
+            console.log(`[ROW ${rowIdx}] Skipping - too many cells (${cells.length})`);
+            continue;
+          }
           
           // Need at least 4 columns: Date, Description, Branch, Mutation
           if (cells.length >= 4) {
@@ -798,8 +805,14 @@ async function scrapeBCA() {
               const mutasiCell = cells[3]?.innerText?.trim() || '';
               console.log(`[MUTASI] Col3: "${mutasiCell}"`);
               
-              // Determine type from CR/DB indicator
+              // FIX 2: Determine type from description (more reliable than mutasi cell)
+              // Look for DB indicator in description
               let type = 'credit';
+              const descUpper = description.toUpperCase();
+              if (descUpper.includes(' DB') || descUpper.includes('/DB') || descUpper.includes('DB\n') || descUpper.includes('DB ')) {
+                type = 'debit';
+              }
+              // Also check mutasi cell as fallback
               if (mutasiCell.toUpperCase().includes('DB')) {
                 type = 'debit';
               }
@@ -811,8 +824,18 @@ async function scrapeBCA() {
               const amount = parseFloat(cleanedAmount);
               
               console.log(`[AMOUNT] Cleaned: "${cleanedAmount}" -> ${amount}`);
+              console.log(`[TYPE] Detected: ${type} (desc="${descUpper.substring(0, 30)}")`);
               
               if (amount > 0) {
+                // FIX 1: Deduplicate using unique key
+                const dedupKey = `${date}-${Math.round(amount)}-${description.substring(0, 30)}`;
+                
+                if (seen.has(dedupKey)) {
+                  console.log(`[SKIP] Duplicate: ${dedupKey}`);
+                  continue;
+                }
+                seen.add(dedupKey);
+                
                 console.log(`[FOUND] ${date} ${type} Rp${amount} - ${description.substring(0, 30)}...`);
                 results.push({ 
                   date, 
@@ -826,7 +849,7 @@ async function scrapeBCA() {
         }
       }
       
-      console.log(`[RESULT] Total mutations found: ${results.length}`);
+      console.log(`[RESULT] Total unique mutations found: ${results.length}`);
       return results;
     }, currentYear);
 
