@@ -342,8 +342,8 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
 }
 
 async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials): Promise<MutationData[]> {
-  // Use timeout parameter in URL for Browserless V2 (120 seconds)
-  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=120000`, {
+  // Use timeout parameter in URL for Browserless V2 (120 seconds - value is in SECONDS not milliseconds)
+  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=120`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -370,9 +370,9 @@ async function scrapeBCAMutationsBurstMode(
   
   console.log(`[Burst Mode] Starting with ${intervalSeconds}s interval, max ${maxChecks} checks`);
   
-  // Use Browserless with session persistence for burst mode (5 minutes timeout for burst)
-  const burstTimeout = Math.max(180000, (intervalSeconds * maxChecks + 120) * 1000);
-  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=${burstTimeout}`, {
+  // Use Browserless with session persistence for burst mode (timeout in SECONDS, capped at plan limit)
+  const burstTimeoutSeconds = Math.min(300, Math.max(180, intervalSeconds * maxChecks + 120));
+  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=${burstTimeoutSeconds}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
