@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, ArrowLeft, MessageSquare, ChevronRight, FileText, Mail, BarChart3, Palette, LayoutDashboard, Edit3, Brain, Users, Link, Receipt, Banknote } from "lucide-react";
+import { Shield, ArrowLeft, MessageSquare, ChevronRight, FileText, Mail, BarChart3, Palette, LayoutDashboard, Edit3, Brain, Users, Link, Receipt, Banknote, Server } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppTheme } from "@/contexts/AppThemeContext";
@@ -289,10 +289,30 @@ const AdminSettings = () => {
                   Pembayaran Otomatis
                 </h3>
                 <p className="text-xs text-muted-foreground truncate">
-                  Verifikasi pembayaran otomatis via Mutasibank.co.id
+                  Verifikasi pembayaran via Mutasibank.co.id
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
+            </div>
+          </Card>
+
+          <Card 
+            className="p-3 sm:p-4 hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-green-500"
+            onClick={() => navigate("/vip/settings/vps-payment")}
+          >
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
+                <Server className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-green-600 transition-colors truncate">
+                  VPS Payment Scraper
+                </h3>
+                <p className="text-xs text-muted-foreground truncate">
+                  Verifikasi pembayaran via VPS Self-Hosted
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-green-600" />
             </div>
           </Card>
         </div>

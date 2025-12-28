@@ -76,6 +76,7 @@ const ShortLinkManager = lazy(() => import("./pages/ShortLinkManager"));
 const InvoiceSettings = lazy(() => import("./pages/InvoiceSettings"));
 const InvoiceTemplateSettings = lazy(() => import("./pages/InvoiceTemplateSettings"));
 const PaymentAutoSettings = lazy(() => import("./pages/PaymentAutoSettings"));
+const VPSPaymentSettings = lazy(() => import("./pages/VPSPaymentSettings"));
 
 // Client Portal Pages
 const MyContracts = lazy(() => import("./pages/MyContracts"));
@@ -203,6 +204,7 @@ const App = () => (
                                   <Route path="/settings/invoice/signature" element={<DocumentSignatureSettings />} />
                                   <Route path="/settings/invoice/template" element={<InvoiceTemplateSettings />} />
                                   <Route path="/settings/payment-auto" element={<PaymentAutoSettings />} />
+                                  <Route path="/settings/vps-payment" element={<VPSPaymentSettings />} />
                                   {/* Client Portal Routes */}
                                   <Route path="/client-dashboard" element={<ClientDashboard />} />
                                   <Route path="/my-contracts" element={<MyContracts />} />

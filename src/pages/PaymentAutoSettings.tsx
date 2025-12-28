@@ -19,8 +19,7 @@ import { id as localeId } from "date-fns/locale";
 import { 
   ArrowLeft, Key, Activity, FileText, RefreshCw, 
   CheckCircle, XCircle, Clock, Zap, Copy, Eye, EyeOff,
-  Loader2, AlertCircle, TrendingUp, ExternalLink, Webhook,
-  Server, Download, Terminal
+  Loader2, AlertCircle, TrendingUp, ExternalLink, Webhook
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -68,13 +67,10 @@ export default function PaymentAutoSettings() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [settings, setSettings] = useState<ProviderSettings | null>(null);
-  const [vpsSettings, setVpsSettings] = useState<ProviderSettings | null>(null);
   const [mutations, setMutations] = useState<BankMutation[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
-  const [showVpsSecret, setShowVpsSecret] = useState(false);
-  const [generatingSecret, setGeneratingSecret] = useState(false);
   
   // Form state
   const [form, setForm] = useState({
@@ -82,9 +78,8 @@ export default function PaymentAutoSettings() {
     webhook_secret: "",
   });
 
-  // Generate webhook URLs
+  // Generate webhook URL
   const mutasibankWebhookUrl = `https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/mutasibank-webhook`;
-  const vpsWebhookUrl = `https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook`;
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -107,18 +102,6 @@ export default function PaymentAutoSettings() {
       
       if (settingsData) {
         setSettings(settingsData as ProviderSettings);
-      }
-
-      // Fetch VPS Scraper settings
-      const { data: vpsData } = await supabase
-        .from("payment_provider_settings")
-        .select("*")
-        .eq("provider", "vps_scraper")
-        .limit(1)
-        .maybeSingle();
-      
-      if (vpsData) {
-        setVpsSettings(vpsData as ProviderSettings);
       }
 
       // Fetch mutations
@@ -149,18 +132,6 @@ export default function PaymentAutoSettings() {
 
     setSaving(true);
     try {
-      const payload: Record<string, unknown> = {
-        provider: "mutasibank",
-        user_id: user?.id,
-      };
-
-      if (form.api_key) {
-        payload.api_key_encrypted = form.api_key;
-      }
-      if (form.webhook_secret) {
-        payload.webhook_secret_encrypted = form.webhook_secret;
-      }
-
       if (settings) {
         // Update
         const { error } = await supabase
@@ -257,120 +228,6 @@ export default function PaymentAutoSettings() {
     toast.success("Webhook URL berhasil disalin!");
   };
 
-  const copyVpsWebhookUrl = () => {
-    navigator.clipboard.writeText(vpsWebhookUrl);
-    toast.success("VPS Webhook URL berhasil disalin!");
-  };
-
-  const generateVpsSecretKey = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = 'vps_';
-    for (let i = 0; i < 32; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
-  const handleSaveVpsSettings = async () => {
-    setGeneratingSecret(true);
-    try {
-      const secretKey = generateVpsSecretKey();
-      
-      if (vpsSettings) {
-        // Update existing
-        const { error } = await supabase
-          .from("payment_provider_settings")
-          .update({
-            webhook_secret_encrypted: secretKey,
-            is_active: true,
-          })
-          .eq("id", vpsSettings.id);
-        
-        if (error) throw error;
-      } else {
-        // Insert new
-        const { error } = await supabase
-          .from("payment_provider_settings")
-          .insert({
-            provider: "vps_scraper",
-            user_id: user?.id,
-            webhook_secret_encrypted: secretKey,
-            is_active: true,
-          });
-        
-        if (error) throw error;
-      }
-      
-      toast.success("VPS Scraper berhasil dikonfigurasi!");
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Gagal menyimpan pengaturan VPS");
-    } finally {
-      setGeneratingSecret(false);
-    }
-  };
-
-  const handleToggleVpsActive = async () => {
-    if (!vpsSettings) return;
-    
-    try {
-      const { error } = await supabase
-        .from("payment_provider_settings")
-        .update({ is_active: !vpsSettings.is_active })
-        .eq("id", vpsSettings.id);
-
-      if (error) throw error;
-      toast.success(vpsSettings.is_active ? "VPS Scraper dinonaktifkan" : "VPS Scraper diaktifkan");
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Gagal mengubah status");
-    }
-  };
-
-  const handleTestVpsWebhook = async () => {
-    if (!vpsSettings?.webhook_secret_encrypted) {
-      toast.error("Generate secret key terlebih dahulu");
-      return;
-    }
-    
-    setTesting(true);
-    try {
-      const response = await fetch(vpsWebhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          secret_key: vpsSettings.webhook_secret_encrypted,
-          mutations: [{
-            date: new Date().toISOString().split("T")[0],
-            time: new Date().toTimeString().split(" ")[0],
-            amount: 1,
-            type: "credit",
-            description: "TEST VPS WEBHOOK - IGNORE",
-          }],
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        toast.success("VPS Webhook test berhasil!");
-      } else {
-        toast.error(`VPS Webhook test gagal: ${result.error}`);
-      }
-    } catch (error: any) {
-      toast.error(`Test gagal: ${error.message}`);
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const copyVpsSecretKey = () => {
-    if (vpsSettings?.webhook_secret_encrypted) {
-      navigator.clipboard.writeText(vpsSettings.webhook_secret_encrypted);
-      toast.success("Secret Key berhasil disalin!");
-    }
-  };
-
   if (!isSuperAdmin) return null;
 
   if (loading) {
@@ -391,21 +248,23 @@ export default function PaymentAutoSettings() {
           </Button>
           <div className="flex-1">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Pembayaran Otomatis
+              Pembayaran Otomatis (Mutasibank)
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Verifikasi pembayaran otomatis via Mutasibank atau VPS Scraper
+              Verifikasi pembayaran otomatis via Mutasibank.co.id
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {(settings?.is_active || vpsSettings?.is_active) && (
+            {settings?.is_active && (
               <Badge variant="default" className="bg-green-500">
-                {settings?.is_active && vpsSettings?.is_active 
-                  ? "Keduanya Aktif" 
-                  : settings?.is_active 
-                    ? "Mutasibank Aktif" 
-                    : "VPS Aktif"}
+                Aktif
               </Badge>
+            )}
+            {settings && (
+              <Switch
+                checked={settings.is_active}
+                onCheckedChange={handleToggleActive}
+              />
             )}
           </div>
         </div>
@@ -413,15 +272,11 @@ export default function PaymentAutoSettings() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-4">
-        <Tabs defaultValue="vps" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="vps" className="gap-2">
-              <Server className="h-4 w-4" />
-              <span className="hidden sm:inline">VPS Scraper</span>
-            </TabsTrigger>
+        <Tabs defaultValue="config" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="config" className="gap-2">
               <Key className="h-4 w-4" />
-              <span className="hidden sm:inline">Mutasibank</span>
+              <span className="hidden sm:inline">Konfigurasi</span>
             </TabsTrigger>
             <TabsTrigger value="status" className="gap-2">
               <Activity className="h-4 w-4" />
@@ -437,205 +292,7 @@ export default function PaymentAutoSettings() {
             </TabsTrigger>
           </TabsList>
 
-          {/* VPS Scraper Tab */}
-          <TabsContent value="vps" className="space-y-4">
-            {/* VPS Info Banner */}
-            <Card className="bg-green-500/10 border-green-500/30">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full bg-green-500/20">
-                    <Server className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-green-700 dark:text-green-400">VPS Scraper (Self-Hosted)</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Jalankan script scraper di VPS sendiri. <strong>Gratis tanpa biaya langganan</strong>, 
-                      hanya butuh VPS murah (~$5/bulan). Interval bisa dikonfigurasi via cron.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Secret Key Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    Secret Key
-                  </CardTitle>
-                  <CardDescription>
-                    Generate secret key untuk autentikasi webhook dari VPS
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {vpsSettings?.webhook_secret_encrypted ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Your Secret Key</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type={showVpsSecret ? "text" : "password"}
-                            value={vpsSettings.webhook_secret_encrypted}
-                            readOnly
-                            className="font-mono text-xs"
-                          />
-                          <Button variant="ghost" size="icon" onClick={() => setShowVpsSecret(!showVpsSecret)}>
-                            {showVpsSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                          <Button variant="outline" size="icon" onClick={copyVpsSecretKey}>
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <p className="text-xs text-green-600">✓ Secret key sudah dikonfigurasi</p>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">Status VPS Scraper</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={vpsSettings.is_active}
-                            onCheckedChange={handleToggleVpsActive}
-                          />
-                          <Badge variant={vpsSettings.is_active ? "default" : "secondary"}>
-                            {vpsSettings.is_active ? "Aktif" : "Nonaktif"}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <Button variant="outline" onClick={handleSaveVpsSettings} disabled={generatingSecret} className="w-full">
-                        {generatingSecret && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                        Re-generate Secret Key
-                      </Button>
-                    </>
-                  ) : (
-                    <Button onClick={handleSaveVpsSettings} disabled={generatingSecret} className="w-full">
-                      {generatingSecret && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      Generate Secret Key
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Webhook URL Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Webhook className="h-5 w-5" />
-                    Webhook URL
-                  </CardTitle>
-                  <CardDescription>
-                    URL ini digunakan oleh VPS scraper untuk mengirim data mutasi
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Webhook Endpoint</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={vpsWebhookUrl}
-                        readOnly
-                        className="font-mono text-xs"
-                      />
-                      <Button variant="outline" size="icon" onClick={copyVpsWebhookUrl}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-2">
-                    <Label>Payload Format</Label>
-                    <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-{`{
-  "secret_key": "vps_xxx...",
-  "mutations": [{
-    "date": "2025-12-28",
-    "time": "10:30:00",
-    "amount": 1500000,
-    "type": "credit",
-    "description": "Transfer dari BUDI",
-    "balance_after": 15000000
-  }]
-}`}
-                    </pre>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* VPS Script Download */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Download className="h-5 w-5" />
-                  Download Script
-                </CardTitle>
-                <CardDescription>
-                  Download template script untuk dijalankan di VPS
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Button variant="outline" className="justify-start gap-3 h-auto py-3" asChild>
-                    <a href="/vps-scraper-template/bca-scraper.js" download>
-                      <Terminal className="h-5 w-5" />
-                      <div className="text-left">
-                        <p className="font-medium">bca-scraper.js</p>
-                        <p className="text-xs text-muted-foreground">Node.js + Puppeteer script</p>
-                      </div>
-                    </a>
-                  </Button>
-                  <Button variant="outline" className="justify-start gap-3 h-auto py-3" asChild>
-                    <a href="/vps-scraper-template/README.md" download>
-                      <FileText className="h-5 w-5" />
-                      <div className="text-left">
-                        <p className="font-medium">README.md</p>
-                        <p className="text-xs text-muted-foreground">Panduan setup lengkap</p>
-                      </div>
-                    </a>
-                  </Button>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleTestVpsWebhook} disabled={testing || !vpsSettings?.webhook_secret_encrypted}>
-                    {testing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Test VPS Webhook
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* VPS Status */}
-            {vpsSettings?.last_webhook_at && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-full bg-green-500/20">
-                        <CheckCircle className="h-6 w-6 text-green-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Last VPS Webhook</p>
-                        <p className="font-semibold">
-                          {format(new Date(vpsSettings.last_webhook_at), "dd MMM yyyy HH:mm", { locale: localeId })}
-                        </p>
-                      </div>
-                    </div>
-                    {vpsSettings.last_error && (
-                      <Badge variant="destructive">Error: {vpsSettings.error_count}</Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Configuration Tab (Mutasibank) */}
+          {/* Configuration Tab */}
           <TabsContent value="config" className="space-y-4">
             {/* Info Banner */}
             <Card className="bg-primary/5 border-primary/20">
@@ -939,7 +596,8 @@ export default function PaymentAutoSettings() {
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className={cn(
-                                mut.source === "mutasibank" ? "bg-blue-50 text-blue-700" : ""
+                                mut.source === "mutasibank" ? "bg-blue-50 text-blue-700" : 
+                                mut.source === "vps_scraper" ? "bg-green-50 text-green-700" : ""
                               )}>
                                 {mut.source || "manual"}
                               </Badge>
