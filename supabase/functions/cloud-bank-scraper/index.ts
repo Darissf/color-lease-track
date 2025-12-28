@@ -342,22 +342,41 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
 }
 
 async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials): Promise<MutationData[]> {
-  // Use timeout parameter in URL for Browserless V2 (300 seconds / 5 minutes)
-  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=300`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      code: generateBrowserlessCode(credentials, false),
-    }),
-  });
+  // Browserless timeout must be less than Supabase Edge Function timeout (~150s)
+  // Use 120 seconds for Browserless, leaving buffer for Supabase
+  console.log('[Browserless] Starting scrape request...');
+  
+  const controller = new AbortController();
+  const fetchTimeout = setTimeout(() => controller.abort(), 140000); // 140s fetch timeout
+  
+  try {
+    const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=120`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: generateBrowserlessCode(credentials, false),
+      }),
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Browserless error: ${errorText}`);
+    clearTimeout(fetchTimeout);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Browserless] Error response:', errorText);
+      throw new Error(`Browserless error: ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('[Browserless] Scrape completed, mutations found:', result.mutations?.length || 0);
+    return result.mutations || [];
+  } catch (error: unknown) {
+    clearTimeout(fetchTimeout);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Browserless request timed out after 140 seconds');
+    }
+    throw error;
   }
-
-  const result = await response.json();
-  return result.mutations || [];
 }
 
 async function scrapeBCAMutationsBurstMode(
@@ -418,40 +437,47 @@ function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolea
       const mutations = [];
       
       try {
-        // Set shorter default timeouts for faster operation
-        page.setDefaultTimeout(45000);
-        page.setDefaultNavigationTimeout(45000);
+        // Set aggressive timeouts - total operation should complete in ~90 seconds
+        page.setDefaultTimeout(20000);
+        page.setDefaultNavigationTimeout(25000);
         
-        // Navigate to KlikBCA
+        console.log('[BCA] Navigating to login page...');
+        
+        // Navigate to KlikBCA with minimal wait
         await page.goto('https://ibank.klikbca.com/', { 
-          waitUntil: 'domcontentloaded',
-          timeout: 30000 
+          waitUntil: 'load',
+          timeout: 20000 
         });
         
         // Wait for login form
-        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 20000 });
+        console.log('[BCA] Waiting for login form...');
+        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 15000 });
         
-        // Fill login form
-        await page.type('input[name="value(user_id)"]', CONFIG.user_id, { delay: 50 });
-        await page.type('input[name="value(pswd)"]', CONFIG.pin, { delay: 50 });
+        // Fill login form quickly
+        console.log('[BCA] Filling credentials...');
+        await page.type('input[name="value(user_id)"]', CONFIG.user_id, { delay: 30 });
+        await page.type('input[name="value(pswd)"]', CONFIG.pin, { delay: 30 });
         
         // Submit login
+        console.log('[BCA] Submitting login...');
         await Promise.all([
-          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+          page.waitForNavigation({ waitUntil: 'load', timeout: 25000 }),
           page.click('input[name="value(Submit)"]')
         ]);
         
-        // Check login success
+        // Quick login check
         const pageContent = await page.content();
         if (pageContent.includes('User ID atau PIN salah') || 
             pageContent.includes('Login gagal')) {
           throw new Error('Login failed: Invalid credentials');
         }
         
+        console.log('[BCA] Login successful, navigating to mutations...');
+        
         // Navigate to Account Statement (Mutasi Rekening)
         await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acctstmtview', {
-          waitUntil: 'domcontentloaded',
-          timeout: 30000
+          waitUntil: 'load',
+          timeout: 20000
         });
         
         // Set date range (today)
@@ -480,13 +506,16 @@ function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolea
         }
         
         // Submit form
+        console.log('[BCA] Submitting date range...');
         const submitBtn = await page.$('input[type="submit"]');
         if (submitBtn) {
           await Promise.all([
-            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+            page.waitForNavigation({ waitUntil: 'load', timeout: 20000 }),
             submitBtn.click()
           ]);
         }
+        
+        console.log('[BCA] Parsing mutation table...');
         
         // Parse mutation table
         const tableData = await page.evaluate(() => {
