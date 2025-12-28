@@ -82,8 +82,25 @@ export default function BankScraperSettings() {
   
   // Normal Mode State
   const [scrapeInterval, setScrapeInterval] = useState(10);
+  const [pendingInterval, setPendingInterval] = useState<number | null>(null);
+  
+  // Burst Mode Pending State
+  const [pendingBurstEnabled, setPendingBurstEnabled] = useState<boolean | null>(null);
+  const [pendingBurstConfig, setPendingBurstConfig] = useState<{
+    interval_seconds: number;
+    duration_seconds: number;
+  } | null>(null);
 
   const vpsWebhookUrl = `https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook`;
+  
+  // Check for unsaved changes
+  const hasUnsavedNormalChanges = pendingInterval !== null && pendingInterval !== scrapeInterval;
+  const hasUnsavedBurstChanges = 
+    (pendingBurstEnabled !== null && pendingBurstEnabled !== vpsSettings?.burst_enabled) ||
+    (pendingBurstConfig !== null && (
+      pendingBurstConfig.interval_seconds !== burstConfig.interval_seconds ||
+      pendingBurstConfig.duration_seconds !== burstConfig.duration_seconds
+    ));
 
   const fetchData = useCallback(async () => {
     try {
@@ -202,22 +219,84 @@ export default function BankScraperSettings() {
     }
   };
 
-  const handleToggleBurstEnabled = async () => {
-    if (!vpsSettings) return;
+  // Pending toggle for burst (doesn't save immediately)
+  const handleToggleBurstEnabled = () => {
+    const currentValue = pendingBurstEnabled ?? vpsSettings?.burst_enabled ?? false;
+    setPendingBurstEnabled(!currentValue);
+  };
+  
+  // Pending interval click for normal mode (doesn't save immediately)
+  const handleIntervalClick = (value: number) => {
+    setPendingInterval(value);
+  };
+  
+  // Reset normal mode changes
+  const handleResetNormalConfig = () => {
+    setPendingInterval(null);
+  };
+  
+  // Save normal mode interval
+  const handleSaveNormalConfig = async () => {
+    if (!vpsSettings || pendingInterval === null) return;
     
     try {
       const { error } = await supabase
         .from("payment_provider_settings")
-        .update({ burst_enabled: !vpsSettings.burst_enabled })
+        .update({ scrape_interval_minutes: pendingInterval })
         .eq("id", vpsSettings.id);
 
       if (error) throw error;
-      toast.success(vpsSettings.burst_enabled ? "Burst Mode dinonaktifkan" : "Burst Mode diaktifkan");
+      
+      const intervalLabel = INTERVAL_OPTIONS.find(o => o.value === pendingInterval)?.label || `${pendingInterval} menit`;
+      toast.success(`Interval scraping disimpan: ${intervalLabel}`);
+      setScrapeInterval(pendingInterval);
+      setPendingInterval(null);
       fetchData();
     } catch (error: unknown) {
       const err = error as Error;
-      toast.error(err.message || "Gagal mengubah status burst");
+      toast.error(err.message || "Gagal simpan interval");
     }
+  };
+  
+  // Reset burst mode changes
+  const handleResetBurstConfig = () => {
+    setPendingBurstEnabled(null);
+    setPendingBurstConfig(null);
+  };
+  
+  // Save all burst config (enabled + interval + duration)
+  const handleSaveAllBurstConfig = async () => {
+    if (!vpsSettings) return;
+    
+    const newEnabled = pendingBurstEnabled ?? vpsSettings.burst_enabled;
+    const newConfig = pendingBurstConfig ?? burstConfig;
+    
+    try {
+      const { error } = await supabase
+        .from("payment_provider_settings")
+        .update({ 
+          burst_enabled: newEnabled,
+          burst_interval_seconds: newConfig.interval_seconds,
+          burst_duration_seconds: newConfig.duration_seconds
+        })
+        .eq("id", vpsSettings.id);
+
+      if (error) throw error;
+      toast.success("Konfigurasi Burst Mode berhasil disimpan");
+      setBurstConfig(newConfig);
+      setPendingBurstEnabled(null);
+      setPendingBurstConfig(null);
+      fetchData();
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || "Gagal simpan konfigurasi burst");
+    }
+  };
+  
+  // Handle burst config input changes (pending)
+  const handleBurstConfigChange = (field: 'interval_seconds' | 'duration_seconds', value: number) => {
+    const current = pendingBurstConfig ?? burstConfig;
+    setPendingBurstConfig({ ...current, [field]: value });
   };
 
   const handleTriggerBurst = async () => {
@@ -269,48 +348,9 @@ export default function BankScraperSettings() {
     }
   };
 
-  const handleUpdateBurstConfig = async () => {
-    if (!vpsSettings) return;
-    
-    try {
-      const { error } = await supabase
-        .from("payment_provider_settings")
-        .update({ 
-          burst_interval_seconds: burstConfig.interval_seconds,
-          burst_duration_seconds: burstConfig.duration_seconds
-        })
-        .eq("id", vpsSettings.id);
+  // REMOVED: handleUpdateBurstConfig - replaced by handleSaveAllBurstConfig
 
-      if (error) throw error;
-      toast.success("Konfigurasi burst diupdate");
-      fetchData();
-    } catch (error: unknown) {
-      const err = error as Error;
-      toast.error(err.message || "Gagal update konfigurasi");
-    }
-  };
-
-  const handleUpdateScrapeInterval = async (newInterval: number) => {
-    if (!vpsSettings) return;
-    
-    setScrapeInterval(newInterval);
-    
-    try {
-      const { error } = await supabase
-        .from("payment_provider_settings")
-        .update({ scrape_interval_minutes: newInterval })
-        .eq("id", vpsSettings.id);
-
-      if (error) throw error;
-      
-      const intervalLabel = INTERVAL_OPTIONS.find(o => o.value === newInterval)?.label || `${newInterval} menit`;
-      toast.success(`Interval scraping diubah ke ${intervalLabel}`);
-      fetchData();
-    } catch (error: unknown) {
-      const err = error as Error;
-      toast.error(err.message || "Gagal update interval");
-    }
-  };
+  // REMOVED: handleUpdateScrapeInterval - replaced by handleSaveNormalConfig
 
   const handleTestWebhook = async () => {
     if (!vpsSettings?.webhook_secret_encrypted) {
@@ -599,29 +639,54 @@ export default function BankScraperSettings() {
                 Pilih Interval Scraping
               </Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {INTERVAL_OPTIONS.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant={scrapeInterval === option.value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleUpdateScrapeInterval(option.value)}
-                    disabled={!vpsSettings}
-                    className={`${
-                      scrapeInterval === option.value 
-                        ? 'bg-sky-500 hover:bg-sky-600 text-white' 
-                        : 'hover:border-sky-500/50'
-                    }`}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
+                {INTERVAL_OPTIONS.map((option) => {
+                  const isSelected = (pendingInterval ?? scrapeInterval) === option.value;
+                  const isPending = pendingInterval === option.value && pendingInterval !== scrapeInterval;
+                  return (
+                    <Button
+                      key={option.value}
+                      variant={isSelected ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleIntervalClick(option.value)}
+                      disabled={!vpsSettings}
+                      className={`${
+                        isSelected 
+                          ? 'bg-sky-500 hover:bg-sky-600 text-white' 
+                          : 'hover:border-sky-500/50'
+                      } ${isPending ? 'ring-2 ring-amber-500 ring-offset-2' : ''}`}
+                    >
+                      {option.label}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
+
+            {/* Unsaved Changes Warning & Save Buttons */}
+            {hasUnsavedNormalChanges && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <p className="text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Ada perubahan belum disimpan: <strong>{INTERVAL_OPTIONS.find(o => o.value === pendingInterval)?.label}</strong>
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleResetNormalConfig}>
+                      Reset
+                    </Button>
+                    <Button size="sm" onClick={handleSaveNormalConfig} className="bg-sky-500 hover:bg-sky-600 text-white gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      Simpan Interval
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Status Info */}
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="p-3 bg-muted/30 rounded-lg text-center">
-                <p className="text-xs text-muted-foreground mb-1">Interval Aktif</p>
+                <p className="text-xs text-muted-foreground mb-1">Interval Tersimpan</p>
                 <p className="font-semibold text-sky-600 dark:text-sky-400">
                   {INTERVAL_OPTIONS.find(o => o.value === scrapeInterval)?.label || `${scrapeInterval}m`}
                 </p>
@@ -685,10 +750,15 @@ export default function BankScraperSettings() {
                 <Label htmlFor="burst-toggle" className="text-sm">Enable</Label>
                 <Switch
                   id="burst-toggle"
-                  checked={vpsSettings?.burst_enabled ?? false}
+                  checked={(pendingBurstEnabled ?? vpsSettings?.burst_enabled) ?? false}
                   onCheckedChange={handleToggleBurstEnabled}
                   disabled={!vpsSettings}
                 />
+                {pendingBurstEnabled !== null && pendingBurstEnabled !== vpsSettings?.burst_enabled && (
+                  <Badge variant="outline" className="border-amber-500 text-amber-600 text-xs">
+                    Belum disimpan
+                  </Badge>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -696,7 +766,7 @@ export default function BankScraperSettings() {
             {/* Status & Pending Requests */}
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="p-3 bg-muted/30 rounded-lg text-center">
-                <p className="text-xs text-muted-foreground mb-1">Status</p>
+                <p className="text-xs text-muted-foreground mb-1">Status Tersimpan</p>
                 <div className="flex items-center justify-center gap-2">
                   {vpsSettings?.burst_in_progress ? (
                     <>
@@ -779,8 +849,8 @@ export default function BankScraperSettings() {
                     type="number"
                     min={5}
                     max={30}
-                    value={burstConfig.interval_seconds}
-                    onChange={(e) => setBurstConfig(prev => ({ ...prev, interval_seconds: Number(e.target.value) }))}
+                    value={(pendingBurstConfig ?? burstConfig).interval_seconds}
+                    onChange={(e) => handleBurstConfigChange('interval_seconds', Number(e.target.value))}
                   />
                   <p className="text-xs text-muted-foreground">Scrape setiap X detik saat burst (5-30)</p>
                 </div>
@@ -793,15 +863,33 @@ export default function BankScraperSettings() {
                     type="number"
                     min={60}
                     max={300}
-                    value={burstConfig.duration_seconds}
-                    onChange={(e) => setBurstConfig(prev => ({ ...prev, duration_seconds: Number(e.target.value) }))}
+                    value={(pendingBurstConfig ?? burstConfig).duration_seconds}
+                    onChange={(e) => handleBurstConfigChange('duration_seconds', Number(e.target.value))}
                   />
                   <p className="text-xs text-muted-foreground">Durasi burst aktif (60-300 detik)</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={handleUpdateBurstConfig}>
-                Simpan Konfigurasi
-              </Button>
+              
+              {/* Unsaved Changes Warning & Save Buttons */}
+              {hasUnsavedBurstChanges && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <p className="text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Ada perubahan belum disimpan
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handleResetBurstConfig}>
+                        Reset
+                      </Button>
+                      <Button size="sm" onClick={handleSaveAllBurstConfig} className="bg-primary hover:bg-primary/90 gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        Simpan Konfigurasi
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Last Burst Info */}
