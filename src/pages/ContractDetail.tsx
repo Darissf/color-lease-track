@@ -223,7 +223,7 @@ export default function ContractDetail() {
         )
       `)
       .eq('contract_id', id)
-      .is('returned_at', null);
+      .order('returned_at', { ascending: true, nullsFirst: true });
     
     setStockItems(data || []);
   };
@@ -1407,12 +1407,19 @@ export default function ContractDetail() {
                 {stockItems.length > 0 ? (
                   <div className="space-y-3">
                     {stockItems.map((item: any) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div>
-                          <p className="font-medium">{item.inventory_items?.item_name}</p>
+                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg ${item.returned_at ? 'bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800' : 'bg-muted/30'}`}>
+                        <div className="space-y-1">
+                          <p className={`font-medium ${item.returned_at ? 'text-muted-foreground' : ''}`}>
+                            {item.inventory_items?.item_name}
+                          </p>
                           <p className="text-sm text-muted-foreground">{item.inventory_items?.item_code}</p>
+                          {item.returned_at && (
+                            <Badge variant="outline" className="text-orange-600 border-orange-300 dark:text-orange-400 dark:border-orange-600 text-xs">
+                              Dikembalikan: {format(new Date(item.returned_at), 'dd MMM yyyy HH:mm', { locale: localeId })}
+                            </Badge>
+                          )}
                         </div>
-                        <Badge variant="secondary" className="text-base">
+                        <Badge variant={item.returned_at ? "outline" : "secondary"} className={`text-base ${item.returned_at ? 'text-muted-foreground' : ''}`}>
                           {item.quantity} {item.inventory_items?.unit_type}
                         </Badge>
                       </div>
