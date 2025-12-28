@@ -65,6 +65,7 @@ export default function BankScraperSettings() {
   
   const [loading, setLoading] = useState(true);
   const [generatingPackage, setGeneratingPackage] = useState(false);
+  const [downloadingScraperOnly, setDownloadingScraperOnly] = useState(false);
   
   // VPS Settings State
   const [vpsSettings, setVpsSettings] = useState<VPSSettings | null>(null);
@@ -478,6 +479,32 @@ export default function BankScraperSettings() {
       toast.error("Gagal generate setup package");
     } finally {
       setGeneratingPackage(false);
+    }
+  };
+
+  const handleDownloadScraperOnly = async () => {
+    setDownloadingScraperOnly(true);
+    try {
+      const response = await fetch("/vps-scraper-template/bca-scraper.js");
+      const content = await response.text();
+      const lineCount = content.split('\n').length;
+      
+      const blob = new Blob([content], { type: "application/javascript" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "bca-scraper.js";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success(`bca-scraper.js berhasil di-download! (${lineCount} lines)`);
+    } catch (error) {
+      console.error("Error downloading scraper:", error);
+      toast.error("Gagal download bca-scraper.js");
+    } finally {
+      setDownloadingScraperOnly(false);
     }
   };
 
@@ -983,18 +1010,46 @@ export default function BankScraperSettings() {
                     )}
                   </p>
                 </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleDownloadSetupPackage} 
+                    disabled={generatingPackage}
+                    className="gap-2 bg-primary hover:bg-primary/90"
+                    size="lg"
+                  >
+                    {generatingPackage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Package className="h-4 w-4" />
+                    )}
+                    Download ZIP
+                  </Button>
+                </div>
+              </div>
+
+              {/* Quick Download bca-scraper.js */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-semibold flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                    <Terminal className="h-4 w-4" />
+                    Quick Update: bca-scraper.js
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Download hanya file scraper terbaru untuk update VPS yang sudah berjalan
+                  </p>
+                </div>
                 <Button 
-                  onClick={handleDownloadSetupPackage} 
-                  disabled={generatingPackage}
-                  className="gap-2 bg-primary hover:bg-primary/90"
-                  size="lg"
+                  onClick={handleDownloadScraperOnly} 
+                  disabled={downloadingScraperOnly}
+                  variant="outline"
+                  className="gap-2 border-emerald-500/50 hover:bg-emerald-500/10 hover:border-emerald-500"
                 >
-                  {generatingPackage ? (
+                  {downloadingScraperOnly ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  Download ZIP
+                  bca-scraper.js
                 </Button>
               </div>
             </div>
