@@ -4,8 +4,12 @@
 # ============================================================
 # Script ini akan:
 # 1. Install semua dependencies (Node.js, OpenVPN, Puppeteer)
-# 2. Setup OpenVPN dengan file .ovpn yang tersedia
+# 2. Setup OpenVPN dengan file .ovpn yang tersedia (jika ada)
 # 3. Setup systemd service untuk scheduler daemon
+#
+# CATATAN: Script ini TIDAK akan prompt/tanya apapun
+# Semua berjalan otomatis. Jika ada file yang sudah ada,
+# file tersebut tidak akan di-overwrite.
 # ============================================================
 
 set -e
@@ -29,7 +33,7 @@ print_warning() { echo -e "${YELLOW}⚠ $1${NC}"; }
 print_error() { echo -e "${RED}✗ $1${NC}"; }
 
 # ============================================================
-# STEP 1: Check for .ovpn file
+# STEP 1: Check for .ovpn file (no prompt - just warning)
 # ============================================================
 echo ""
 echo "STEP 1: Checking for OpenVPN config file..."
@@ -38,24 +42,17 @@ OVPN_FILE=$(ls *.ovpn 2>/dev/null | head -1)
 
 if [ -z "$OVPN_FILE" ]; then
     print_warning "File .ovpn tidak ditemukan di folder ini"
+    print_warning "VPN sangat direkomendasikan untuk BCA (IP Indonesia)"
+    print_warning "Upload file .ovpn nanti jika diperlukan, lalu jalankan:"
+    echo "         sudo systemctl restart openvpn-client@indonesia"
     echo ""
-    echo "Untuk menggunakan VPN Indonesia:"
-    echo "1. Download file .ovpn dari VPNJantit (atau provider VPN lain)"
-    echo "2. Upload file .ovpn ke folder ini"
-    echo "3. Jalankan ulang script ini"
-    echo ""
-    echo "Atau lanjutkan tanpa VPN (tidak disarankan untuk BCA)?"
-    read -p "Lanjutkan tanpa VPN? (y/N): " SKIP_VPN
-    if [ "$SKIP_VPN" != "y" ] && [ "$SKIP_VPN" != "Y" ]; then
-        echo "Installer dibatalkan. Upload file .ovpn dan jalankan ulang."
-        exit 1
-    fi
+    echo "Melanjutkan instalasi tanpa VPN..."
 else
     print_success "Found OpenVPN config: $OVPN_FILE"
 fi
 
 # ============================================================
-# STEP 2: Check for config.env
+# STEP 2: Check for config.env (skip if exists)
 # ============================================================
 echo ""
 echo "STEP 2: Checking configuration..."
@@ -64,13 +61,13 @@ if [ ! -f "config.env" ]; then
     if [ -f "config.env.template" ]; then
         cp config.env.template config.env
         print_warning "config.env dibuat dari template"
-        echo "PENTING: Edit config.env dengan kredensial BCA Anda!"
+        echo "         PENTING: Edit config.env dengan kredensial BCA Anda!"
     else
         print_error "config.env.template tidak ditemukan!"
         exit 1
     fi
 else
-    print_success "config.env found"
+    print_success "config.env already exists (tidak di-overwrite)"
 fi
 
 # Load config
@@ -86,7 +83,7 @@ echo "STEP 3: Installing system dependencies..."
 if command -v apt &> /dev/null; then
     PKG_MANAGER="apt"
     PKG_INSTALL="apt install -y"
-    sudo apt update
+    sudo apt update -qq
 elif command -v yum &> /dev/null; then
     PKG_MANAGER="yum"
     PKG_INSTALL="yum install -y"
@@ -195,16 +192,15 @@ if [ -n "$OVPN_FILE" ]; then
     else
         # No separate credentials needed - .ovpn file will be used as-is
         print_success "Using .ovpn file directly (no separate auth needed)"
-        echo "  File .ovpn akan digunakan apa adanya"
     fi
     
     # Enable and start OpenVPN service
     sudo systemctl enable openvpn-client@indonesia 2>/dev/null || true
     
     print_success "OpenVPN configured"
+else
     echo ""
-    echo "Untuk start VPN manual: sudo systemctl start openvpn-client@indonesia"
-    echo "Untuk cek status VPN: sudo systemctl status openvpn-client@indonesia"
+    echo "STEP 5: Skipping OpenVPN setup (no .ovpn file)"
 fi
 
 # ============================================================
@@ -220,22 +216,18 @@ chmod +x install-service.sh 2>/dev/null || true
 print_success "Scripts are executable"
 
 # ============================================================
-# STEP 7: Setup systemd service for scheduler
+# STEP 7: Setup systemd service for scheduler (NO PROMPT)
 # ============================================================
 echo ""
 echo "STEP 7: Setting up systemd service..."
 
-read -p "Setup systemd service untuk scheduler daemon? (Y/n): " SETUP_SERVICE
-if [ "$SETUP_SERVICE" != "n" ] && [ "$SETUP_SERVICE" != "N" ]; then
-    # Use the new install-service.sh if available
-    if [ -f "install-service.sh" ]; then
-        echo ""
-        print_success "Using install-service.sh for advanced service setup..."
-        echo ""
-        sudo ./install-service.sh
-    else
-        # Fallback to basic service setup
-        cat > /tmp/bca-scraper.service << EOF
+# Use the install-service.sh if available
+if [ -f "install-service.sh" ]; then
+    print_success "Running install-service.sh for advanced service setup..."
+    sudo ./install-service.sh
+else
+    # Fallback to basic service setup
+    cat > /tmp/bca-scraper.service << EOF
 [Unit]
 Description=BCA Scraper Scheduler
 After=network.target openvpn-client@indonesia.service
@@ -256,25 +248,11 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 EOF
 
-        sudo mv /tmp/bca-scraper.service /etc/systemd/system/bca-scraper.service
-        sudo systemctl daemon-reload
-        sudo systemctl enable bca-scraper
-        
-        print_success "Systemd service created (basic mode)"
-        echo ""
-        echo "Service commands:"
-        echo "  Start:   sudo systemctl start bca-scraper"
-        echo "  Stop:    sudo systemctl stop bca-scraper"
-        echo "  Status:  sudo systemctl status bca-scraper"
-        echo "  Logs:    sudo journalctl -u bca-scraper -f"
-    fi
-else
-    echo ""
-    echo "Untuk menjalankan scheduler manual:"
-    echo "  ./run.sh --daemon"
-    echo ""
-    echo "Untuk setup service nanti:"
-    echo "  sudo ./install-service.sh"
+    sudo mv /tmp/bca-scraper.service /etc/systemd/system/bca-scraper.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable bca-scraper
+    
+    print_success "Systemd service created (basic mode)"
 fi
 
 # Create log files
@@ -302,6 +280,8 @@ echo "   - BCA_PIN (PIN KlikBCA)"
 echo "   - BCA_ACCOUNT_NUMBER (Nomor Rekening)"
 echo "   - SECRET_KEY (dari UI Bank Scraper Settings)"
 echo ""
+
+if [ -n "$OVPN_FILE" ]; then
 echo "2. Start VPN Indonesia:"
 echo "   sudo systemctl start openvpn-client@indonesia"
 echo ""
@@ -310,6 +290,15 @@ echo "   curl https://api.ipify.org"
 echo ""
 echo "4. Start scheduler daemon:"
 echo "   sudo systemctl start bca-scraper"
+else
+echo "2. Upload file .ovpn untuk VPN Indonesia (recommended):"
+echo "   - Upload ke /root/bca-scraper/"
+echo "   - Jalankan: sudo cp *.ovpn /etc/openvpn/client/indonesia.conf"
+echo "   - Start VPN: sudo systemctl start openvpn-client@indonesia"
+echo ""
+echo "3. Start scheduler daemon:"
+echo "   sudo systemctl start bca-scraper"
+fi
 echo ""
 echo "5. Cek log scheduler:"
 echo "   tail -f /var/log/bca-scraper.log"
