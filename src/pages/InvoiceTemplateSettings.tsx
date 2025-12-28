@@ -1,575 +1,190 @@
-import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, Palette, Eye, FileText, Settings2, Upload, Trash2, RotateCcw, Image as ImageIcon } from "lucide-react";
-import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { InvoiceTemplatePreview } from "@/components/documents/InvoiceTemplatePreview";
-import { ReceiptTemplatePreview } from "@/components/documents/ReceiptTemplatePreview";
-import { ImageCropper } from "@/components/ImageCropper";
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { ImageCropper } from '@/components/ImageCropper';
+import { InvoiceTemplatePreview } from '@/components/documents/InvoiceTemplatePreview';
+import { ReceiptTemplatePreview } from '@/components/documents/ReceiptTemplatePreview';
+import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
+import { BrandingSection } from '@/components/template-settings/BrandingSection';
+import { ColorsSection } from '@/components/template-settings/ColorsSection';
+import { TypographySection } from '@/components/template-settings/TypographySection';
+import { LayoutSection } from '@/components/template-settings/LayoutSection';
+import { ContentSection } from '@/components/template-settings/ContentSection';
+import { AdvancedSection } from '@/components/template-settings/AdvancedSection';
 
-interface TemplateSettings {
-  template_style: string;
-  header_color_primary: string;
-  header_color_secondary: string;
-  border_color: string;
-  accent_color: string;
-  show_qr_code: boolean;
-  show_terbilang: boolean;
-  footer_text: string;
-  terms_conditions: string;
-  paper_size: string;
-  logo_position: string;
-  invoice_logo_url: string | null;
-  icon_maps_url: string | null;
-  icon_whatsapp_url: string | null;
-}
-
-const defaultSettings: TemplateSettings = {
-  template_style: "modern",
-  header_color_primary: "#06b6d4",
-  header_color_secondary: "#2563eb",
-  border_color: "#bfdbfe",
-  accent_color: "#f97316",
-  show_qr_code: true,
-  show_terbilang: true,
-  footer_text: "",
-  terms_conditions: "",
-  paper_size: "A4",
-  logo_position: "left",
-  invoice_logo_url: null,
-  icon_maps_url: null,
-  icon_whatsapp_url: null,
-};
-
-type CropTarget = 'logo' | 'maps' | 'whatsapp' | null;
+type CropTarget = 'invoice_logo_url' | 'icon_maps_url' | 'icon_whatsapp_url' | 'icon_email_url' | 'icon_website_url' | 'bank_logo_url' | 'signature_url' | 'custom_stamp_url' | null;
 
 const InvoiceTemplateSettings = () => {
   const navigate = useNavigate();
-  const { user, isSuperAdmin } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState<TemplateSettings>(defaultSettings);
-  const [previewTab, setPreviewTab] = useState<"invoice" | "kwitansi">("invoice");
-  
-  // Upload states
   const [cropTarget, setCropTarget] = useState<CropTarget>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const mapsInputRef = useRef<HTMLInputElement>(null);
-  const whatsappInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isSuperAdmin) {
-      navigate("/");
-      return;
-    }
     fetchSettings();
-  }, [isSuperAdmin, user]);
+  }, []);
 
   const fetchSettings = async () => {
-    if (!user) return;
-    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("document_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        setSettings({
-          template_style: data.template_style || defaultSettings.template_style,
-          header_color_primary: data.header_color_primary || defaultSettings.header_color_primary,
-          header_color_secondary: data.header_color_secondary || defaultSettings.header_color_secondary,
-          border_color: data.border_color || defaultSettings.border_color,
-          accent_color: data.accent_color || defaultSettings.accent_color,
-          show_qr_code: data.show_qr_code ?? defaultSettings.show_qr_code,
-          show_terbilang: data.show_terbilang ?? defaultSettings.show_terbilang,
-          footer_text: data.footer_text || defaultSettings.footer_text,
-          terms_conditions: data.terms_conditions || defaultSettings.terms_conditions,
-          paper_size: data.paper_size || defaultSettings.paper_size,
-          logo_position: data.logo_position || defaultSettings.logo_position,
-          invoice_logo_url: data.invoice_logo_url || null,
-          icon_maps_url: data.icon_maps_url || null,
-          icon_whatsapp_url: data.icon_whatsapp_url || null,
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching settings:", err);
-      toast.error("Gagal memuat pengaturan");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('document_settings').select('*').eq('user_id', user.id).maybeSingle();
+      if (data) setSettings({ ...defaultSettings, ...data });
+    } catch (error) {
+      console.error('Error:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-  
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, target: CropTarget) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCropFile(file);
-      setCropTarget(target);
-    }
-    e.target.value = '';
-  };
-  
-  const handleCrop = async (blob: Blob) => {
-    if (!user || !cropTarget) return;
-    
+
+  const handleFileSelect = useCallback((file: File, target: string) => {
+    setCropFile(file);
+    setCropTarget(target as CropTarget);
+  }, []);
+
+  const handleCrop = async (croppedImageData: string) => {
+    if (!cropTarget) return;
     setUploading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      const base64Data = croppedImageData.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteArray = new Uint8Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) byteArray[i] = byteCharacters.charCodeAt(i);
+      const blob = new Blob([byteArray], { type: 'image/png' });
       const fileName = `${user.id}/${cropTarget}-${Date.now()}.png`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('brand-images')
-        .upload(fileName, blob, { 
-          contentType: 'image/png',
-          upsert: true 
-        });
-      
+      const { error: uploadError } = await supabase.storage.from('brand-images').upload(fileName, blob, { contentType: 'image/png', upsert: true });
       if (uploadError) throw uploadError;
-      
-      const { data: urlData } = supabase.storage
-        .from('brand-images')
-        .getPublicUrl(fileName);
-      
-      const urlField = cropTarget === 'logo' ? 'invoice_logo_url' 
-        : cropTarget === 'maps' ? 'icon_maps_url' 
-        : 'icon_whatsapp_url';
-      
-      updateSetting(urlField as keyof TemplateSettings, urlData.publicUrl);
+      const { data: { publicUrl } } = supabase.storage.from('brand-images').getPublicUrl(fileName);
+      updateSetting(cropTarget as keyof TemplateSettings, publicUrl);
       toast.success('Gambar berhasil diupload');
-    } catch (err) {
-      console.error('Upload error:', err);
-      toast.error('Gagal mengupload gambar');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Gagal upload gambar');
     } finally {
       setUploading(false);
       setCropFile(null);
       setCropTarget(null);
     }
   };
-  
-  const handleRemoveImage = (field: 'invoice_logo_url' | 'icon_maps_url' | 'icon_whatsapp_url') => {
-    updateSetting(field, null);
-  };
 
-  const handleSave = async () => {
-    if (!user) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("document_settings")
-        .upsert({
-          user_id: user.id,
-          ...settings,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
-
-      if (error) throw error;
-      toast.success("Pengaturan template berhasil disimpan");
-    } catch (err) {
-      console.error("Error saving settings:", err);
-      toast.error("Gagal menyimpan pengaturan");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const handleRemoveImage = useCallback((field: string) => {
+    updateSetting(field as keyof TemplateSettings, null);
+  }, []);
 
   const updateSetting = <K extends keyof TemplateSettings>(key: K, value: TemplateSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  if (!isSuperAdmin) return null;
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase.from('document_settings').upsert({ user_id: user.id, ...settings, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      if (error) throw error;
+      toast.success('Pengaturan template berhasil disimpan');
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Gagal menyimpan pengaturan');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setSettings(defaultSettings);
+    toast.info('Pengaturan dikembalikan ke default');
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   return (
-    <>
-      {/* Image Cropper Dialog */}
-      {cropFile && cropTarget && (
-        <ImageCropper
-          file={cropFile}
-          onCrop={handleCrop}
-          onCancel={() => {
-            setCropFile(null);
-            setCropTarget(null);
-          }}
-        />
-      )}
-      
-      <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="shrink-0 px-3 py-3 sm:px-4 sm:py-4 md:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/vip/settings/invoice")} className="shrink-0">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1 w-full min-w-0">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent break-words">
-              Template Invoice & Kwitansi
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Sesuaikan tampilan template dokumen sesuai branding Anda
-            </p>
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
+            <div>
+              <h1 className="text-lg font-semibold">Template Invoice & Kwitansi</h1>
+              <p className="text-xs text-muted-foreground">Kustomisasi dokumen profesional</p>
+            </div>
           </div>
-          <Button onClick={handleSave} disabled={saving} className="shrink-0">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            Simpan
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleReset}><RotateCcw className="h-4 w-4 mr-1" />Reset</Button>
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}Simpan
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden px-3 sm:px-4 md:px-6 lg:px-8 pb-4">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 min-h-[calc(100vh-65px)]">
+        <div className="border-r overflow-y-auto max-h-[calc(100vh-65px)]">
+          <div className="p-4 space-y-4">
+            <Accordion type="multiple" defaultValue={['branding', 'colors']} className="space-y-3">
+              <AccordionItem value="branding" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><ImageIcon className="h-4 w-4 text-primary" /><span className="font-medium">Branding & Media</span></div></AccordionTrigger>
+                <AccordionContent className="pb-4"><BrandingSection settings={settings} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="colors" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Palette className="h-4 w-4 text-primary" /><span className="font-medium">Warna & Tema</span></div></AccordionTrigger>
+                <AccordionContent className="pb-4"><ColorsSection settings={settings} updateSetting={updateSetting} /></AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="typography" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Type className="h-4 w-4 text-primary" /><span className="font-medium">Tipografi</span></div></AccordionTrigger>
+                <AccordionContent className="pb-4"><TypographySection settings={settings} updateSetting={updateSetting} /></AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="layout" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Layout className="h-4 w-4 text-primary" /><span className="font-medium">Layout & Tabel</span></div></AccordionTrigger>
+                <AccordionContent className="pb-4"><LayoutSection settings={settings} updateSetting={updateSetting} /></AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="content" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /><span className="font-medium">Konten & Info</span></div></AccordionTrigger>
+                <AccordionContent className="pb-4"><ContentSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="advanced" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-primary" /><span className="font-medium">Advanced</span></div></AccordionTrigger>
+                <AccordionContent className="pb-4"><AdvancedSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
-            {/* Settings Panel */}
-            <Card className="p-4 overflow-hidden flex flex-col">
-              <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                <Settings2 className="h-5 w-5 text-primary" />
-                Pengaturan
-              </h2>
-              <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-6">
-                  {/* Media & Icons Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                      <ImageIcon className="h-4 w-4" />
-                      Media & Icons
-                    </h3>
-                    
-                    {/* Logo Upload */}
-                    <div className="space-y-2 p-3 border rounded-lg">
-                      <Label className="text-sm font-medium">Logo Perusahaan</Label>
-                      <div className="flex items-center gap-3">
-                        <div className="h-16 w-16 border rounded-lg flex items-center justify-center bg-muted/50 overflow-hidden">
-                          {settings.invoice_logo_url ? (
-                            <img src={settings.invoice_logo_url} alt="Logo" className="h-full w-full object-contain" />
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Logo</span>
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <input
-                            ref={logoInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => handleFileSelect(e, 'logo')}
-                          />
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => logoInputRef.current?.click()}
-                            disabled={uploading}
-                          >
-                            <Upload className="h-3 w-3 mr-1" />
-                            Upload
-                          </Button>
-                          {settings.invoice_logo_url && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleRemoveImage('invoice_logo_url')}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3 mr-1" />
-                              Hapus
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground">PNG transparan, rekomendasi 200x200px</p>
-                    </div>
-                    
-                    {/* Icon Maps Upload */}
-                    <div className="space-y-2 p-3 border rounded-lg">
-                      <Label className="text-sm font-medium">Icon Lokasi/Maps</Label>
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 border rounded flex items-center justify-center bg-muted/50 overflow-hidden">
-                          {settings.icon_maps_url ? (
-                            <img src={settings.icon_maps_url} alt="Maps Icon" className="h-full w-full object-contain" />
-                          ) : (
-                            <span className="text-lg">📍</span>
-                          )}
-                        </div>
-                        <div className="flex gap-1">
-                          <input
-                            ref={mapsInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => handleFileSelect(e, 'maps')}
-                          />
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => mapsInputRef.current?.click()}
-                            disabled={uploading}
-                          >
-                            <Upload className="h-3 w-3 mr-1" />
-                            Upload
-                          </Button>
-                          {settings.icon_maps_url && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleRemoveImage('icon_maps_url')}
-                            >
-                              <RotateCcw className="h-3 w-3 mr-1" />
-                              Default
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground">PNG transparan, 64x64px</p>
-                    </div>
-                    
-                    {/* Icon WhatsApp Upload */}
-                    <div className="space-y-2 p-3 border rounded-lg">
-                      <Label className="text-sm font-medium">Icon WhatsApp/Telepon</Label>
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 border rounded flex items-center justify-center bg-muted/50 overflow-hidden">
-                          {settings.icon_whatsapp_url ? (
-                            <img src={settings.icon_whatsapp_url} alt="WhatsApp Icon" className="h-full w-full object-contain" />
-                          ) : (
-                            <span className="text-lg">📱</span>
-                          )}
-                        </div>
-                        <div className="flex gap-1">
-                          <input
-                            ref={whatsappInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => handleFileSelect(e, 'whatsapp')}
-                          />
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => whatsappInputRef.current?.click()}
-                            disabled={uploading}
-                          >
-                            <Upload className="h-3 w-3 mr-1" />
-                            Upload
-                          </Button>
-                          {settings.icon_whatsapp_url && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleRemoveImage('icon_whatsapp_url')}
-                            >
-                              <RotateCcw className="h-3 w-3 mr-1" />
-                              Default
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground">PNG transparan, 64x64px</p>
-                    </div>
-                  </div>
-                  
-                  {/* Color Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                      <Palette className="h-4 w-4" />
-                      Warna
-                    </h3>
-                    <div className="grid gap-3">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="header_primary" className="text-sm">Header Primary</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="header_primary"
-                            type="color"
-                            value={settings.header_color_primary}
-                            onChange={(e) => updateSetting("header_color_primary", e.target.value)}
-                            className="w-12 h-8 p-1 cursor-pointer"
-                          />
-                          <Input
-                            value={settings.header_color_primary}
-                            onChange={(e) => updateSetting("header_color_primary", e.target.value)}
-                            className="w-24 h-8 text-xs font-mono"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="header_secondary" className="text-sm">Header Secondary</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="header_secondary"
-                            type="color"
-                            value={settings.header_color_secondary}
-                            onChange={(e) => updateSetting("header_color_secondary", e.target.value)}
-                            className="w-12 h-8 p-1 cursor-pointer"
-                          />
-                          <Input
-                            value={settings.header_color_secondary}
-                            onChange={(e) => updateSetting("header_color_secondary", e.target.value)}
-                            className="w-24 h-8 text-xs font-mono"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="border_color" className="text-sm">Border</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="border_color"
-                            type="color"
-                            value={settings.border_color}
-                            onChange={(e) => updateSetting("border_color", e.target.value)}
-                            className="w-12 h-8 p-1 cursor-pointer"
-                          />
-                          <Input
-                            value={settings.border_color}
-                            onChange={(e) => updateSetting("border_color", e.target.value)}
-                            className="w-24 h-8 text-xs font-mono"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="accent_color" className="text-sm">Aksen (Total)</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="accent_color"
-                            type="color"
-                            value={settings.accent_color}
-                            onChange={(e) => updateSetting("accent_color", e.target.value)}
-                            className="w-12 h-8 p-1 cursor-pointer"
-                          />
-                          <Input
-                            value={settings.accent_color}
-                            onChange={(e) => updateSetting("accent_color", e.target.value)}
-                            className="w-24 h-8 text-xs font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        </div>
 
-                  {/* Display Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                      <Eye className="h-4 w-4" />
-                      Tampilan
-                    </h3>
-                    <div className="grid gap-3">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="show_qr" className="text-sm">Tampilkan QR Code</Label>
-                        <Switch
-                          id="show_qr"
-                          checked={settings.show_qr_code}
-                          onCheckedChange={(checked) => updateSetting("show_qr_code", checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="show_terbilang" className="text-sm">Tampilkan Terbilang</Label>
-                        <Switch
-                          id="show_terbilang"
-                          checked={settings.show_terbilang}
-                          onCheckedChange={(checked) => updateSetting("show_terbilang", checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="logo_position" className="text-sm">Posisi Logo</Label>
-                        <Select
-                          value={settings.logo_position}
-                          onValueChange={(value) => updateSetting("logo_position", value)}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="left">Kiri</SelectItem>
-                            <SelectItem value="center">Tengah</SelectItem>
-                            <SelectItem value="right">Kanan</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Footer & Terms */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                      <FileText className="h-4 w-4" />
-                      Footer & Ketentuan
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="footer_text" className="text-sm">Teks Footer</Label>
-                        <Textarea
-                          id="footer_text"
-                          value={settings.footer_text}
-                          onChange={(e) => updateSetting("footer_text", e.target.value)}
-                          placeholder="Terima kasih atas kepercayaan Anda..."
-                          rows={2}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="terms" className="text-sm">Syarat & Ketentuan</Label>
-                        <Textarea
-                          id="terms"
-                          value={settings.terms_conditions}
-                          onChange={(e) => updateSetting("terms_conditions", e.target.value)}
-                          placeholder="1. Pembayaran dilakukan dalam waktu 7 hari...&#10;2. Barang yang sudah disewa tidak dapat dikembalikan..."
-                          rows={4}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
-            </Card>
-
-            {/* Preview Panel */}
-            <Card className="p-4 overflow-hidden flex flex-col">
-              <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                <Eye className="h-5 w-5 text-primary" />
-                Preview
-              </h2>
-              <Tabs value={previewTab} onValueChange={(v) => setPreviewTab(v as "invoice" | "kwitansi")} className="flex-1 flex flex-col overflow-hidden">
-                <TabsList className="w-full grid grid-cols-2 mb-4">
-                  <TabsTrigger value="invoice">Invoice</TabsTrigger>
-                  <TabsTrigger value="kwitansi">Kwitansi</TabsTrigger>
-                </TabsList>
-                <div className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <div className="bg-muted/30 rounded-lg p-4 flex justify-center">
-                      <TabsContent value="invoice" className="m-0 w-full">
-                        <div className="transform scale-[0.5] origin-top">
-                          <InvoiceTemplatePreview settings={settings} />
-                        </div>
-                      </TabsContent>
-                      <TabsContent value="kwitansi" className="m-0 w-full">
-                        <div className="transform scale-[0.5] origin-top">
-                          <ReceiptTemplatePreview settings={settings} />
-                        </div>
-                      </TabsContent>
-                    </div>
-                  </ScrollArea>
-                </div>
-              </Tabs>
-            </Card>
+        <div className="bg-muted/30 overflow-y-auto max-h-[calc(100vh-65px)]">
+          <div className="p-4">
+            <Tabs defaultValue="invoice" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="invoice">Invoice</TabsTrigger>
+                <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
+              </TabsList>
+              <TabsContent value="invoice">
+                <Card className="shadow-lg"><CardContent className="p-0"><div className="transform scale-[0.6] origin-top-left" style={{ width: '166.67%' }}><InvoiceTemplatePreview settings={settings} /></div></CardContent></Card>
+              </TabsContent>
+              <TabsContent value="receipt">
+                <Card className="shadow-lg"><CardContent className="p-0"><div className="transform scale-[0.6] origin-top-left" style={{ width: '166.67%' }}><ReceiptTemplatePreview settings={settings} /></div></CardContent></Card>
+              </TabsContent>
+            </Tabs>
           </div>
-        )}
+        </div>
       </div>
-      </div>
-    </>
+
+      {cropFile && (
+        <ImageCropper imageFile={cropFile} onCrop={handleCrop} onClose={() => { setCropFile(null); setCropTarget(null); }} aspectRatio={cropTarget?.includes('logo') ? 1 : cropTarget?.includes('signature') ? 3 : 1} />
+      )}
+    </div>
   );
 };
 
