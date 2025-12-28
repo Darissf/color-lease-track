@@ -73,6 +73,42 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
   process.exit(1);
 }
 
+// === STARTUP BANNER - Always shows to diagnose silent failures ===
+console.log('');
+console.log('==========================================');
+console.log('  BCA SCRAPER - STARTING UP');
+console.log('==========================================');
+console.log(`  Timestamp    : ${new Date().toISOString()}`);
+console.log(`  Chromium Path: ${CONFIG.CHROMIUM_PATH || 'NOT FOUND!'}`);
+console.log(`  User ID      : ${CONFIG.BCA_USER_ID.substring(0, 3)}***`);
+console.log(`  Account      : ${CONFIG.ACCOUNT_NUMBER}`);
+console.log(`  Headless     : ${CONFIG.HEADLESS}`);
+console.log(`  Debug Mode   : ${CONFIG.DEBUG_MODE}`);
+console.log(`  Webhook URL  : ${CONFIG.WEBHOOK_URL.substring(0, 50)}...`);
+console.log('==========================================');
+console.log('');
+
+// Check Chromium existence
+if (!CONFIG.CHROMIUM_PATH) {
+  console.error('');
+  console.error('!!! CRITICAL ERROR: Chromium browser not found !!!');
+  console.error('Please install with: apt install chromium-browser');
+  console.error('Or set CHROMIUM_PATH in config.env');
+  console.error('');
+  process.exit(1);
+}
+
+if (!fs.existsSync(CONFIG.CHROMIUM_PATH)) {
+  console.error('');
+  console.error(`!!! CRITICAL ERROR: Chromium not found at: ${CONFIG.CHROMIUM_PATH} !!!`);
+  console.error('Please verify path or install with: apt install chromium-browser');
+  console.error('');
+  process.exit(1);
+}
+
+console.log(`[OK] Chromium verified at: ${CONFIG.CHROMIUM_PATH}`);
+console.log('');
+
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const log = (msg, level = 'INFO') => console.log(`[${new Date().toISOString()}] [${level}] ${msg}`);
 
@@ -455,20 +491,39 @@ async function scrapeBCA() {
   log(`Using Chromium at: ${CONFIG.CHROMIUM_PATH}`);
   log(`Headless mode: ${CONFIG.HEADLESS}`);
   
-  const browser = await puppeteer.launch({
-    headless: CONFIG.HEADLESS ? 'new' : false,
-    slowMo: CONFIG.SLOW_MO,
-    executablePath: CONFIG.CHROMIUM_PATH,
-    args: [
-      '--no-sandbox', 
-      '--disable-setuid-sandbox', 
-      '--disable-dev-shm-usage',
-      '--disable-web-security',
-      '--disable-features=VizDisplayCompositor'
-    ],
-  });
-
-  log('Browser launched successfully');
+  // Browser launch with explicit try-catch for debugging
+  let browser;
+  try {
+    log('Attempting to launch Puppeteer browser...');
+    browser = await puppeteer.launch({
+      headless: CONFIG.HEADLESS ? 'new' : false,
+      slowMo: CONFIG.SLOW_MO,
+      executablePath: CONFIG.CHROMIUM_PATH,
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox', 
+        '--disable-dev-shm-usage',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor'
+      ],
+    });
+    log('Browser launched successfully!');
+  } catch (launchError) {
+    log(`!!! BROWSER LAUNCH FAILED !!!`, 'ERROR');
+    log(`Error: ${launchError.message}`, 'ERROR');
+    log(`Stack: ${launchError.stack}`, 'ERROR');
+    console.error('');
+    console.error('=== BROWSER LAUNCH FAILURE ===');
+    console.error(`Chromium path: ${CONFIG.CHROMIUM_PATH}`);
+    console.error(`Error: ${launchError.message}`);
+    console.error('');
+    console.error('Common fixes:');
+    console.error('1. Install missing dependencies: apt install -y libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2');
+    console.error('2. Check Chromium installation: apt install chromium-browser');
+    console.error('3. Try running Chromium directly: ' + CONFIG.CHROMIUM_PATH + ' --version');
+    console.error('');
+    throw launchError;
+  }
   
   const page = await browser.newPage();
   await page.setViewport({ width: 1366, height: 768 });
