@@ -52,15 +52,56 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // Parse request body for mode
-  let mode: 'normal' | 'burst' = 'normal';
+  let mode: 'normal' | 'burst' | 'test_proxy' = 'normal';
   let burstRequestId: string | null = null;
+  let testProxyConfig: ProxyConfig | null = null;
   
   try {
     const body = await req.json();
     mode = body.mode || 'normal';
     burstRequestId = body.burst_request_id || null;
+    if (body.proxy_config) {
+      testProxyConfig = body.proxy_config as ProxyConfig;
+    }
   } catch {
     // Default to normal mode if no body
+  }
+
+  // Handle test_proxy mode separately (doesn't need DB settings)
+  if (mode === 'test_proxy') {
+    console.log('[Cloud Bank Scraper] Testing proxy connection...');
+    
+    if (!browserlessApiKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'BROWSERLESS_API_KEY not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    if (!testProxyConfig?.enabled) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Proxy not enabled in request' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    try {
+      const result = await testProxyConnection(browserlessApiKey, testProxyConfig);
+      console.log('[Cloud Bank Scraper] Proxy test result:', result);
+      
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (error: unknown) {
+      const err = error as Error;
+      console.error('[Cloud Bank Scraper] Proxy test failed:', err.message);
+      
+      return new Response(
+        JSON.stringify({ success: false, error: err.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
   }
 
   try {
@@ -394,6 +435,109 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
   }
 
   return { processedCount, matchedCount, matched };
+}
+
+// Test proxy connection by fetching IP info
+async function testProxyConnection(apiKey: string, proxyConfig: ProxyConfig): Promise<{ success: boolean; ip?: string; country?: string; latency?: number; error?: string }> {
+  console.log(`[Proxy Test] Testing proxy: ${proxyConfig.host}:${proxyConfig.port} (${proxyConfig.country})`);
+  
+  const startTime = Date.now();
+  const controller = new AbortController();
+  const fetchTimeout = setTimeout(() => controller.abort(), 30000); // 30s timeout for test
+  
+  try {
+    const proxyUsername = proxyConfig.country 
+      ? `${proxyConfig.username}-country-${proxyConfig.country}`
+      : proxyConfig.username;
+    
+    const testCode = `
+module.exports = async ({ page }) => {
+  try {
+    // Authenticate with proxy
+    await page.authenticate({
+      username: '${proxyUsername}',
+      password: '${proxyConfig.password}'
+    });
+    
+    const startTime = Date.now();
+    
+    // Navigate to IP check API
+    await page.goto('https://httpbin.org/ip', { waitUntil: 'domcontentloaded', timeout: 20000 });
+    
+    const latency = Date.now() - startTime;
+    
+    // Get page content
+    const content = await page.content();
+    const ipMatch = content.match(/"origin":\\s*"([^"]+)"/);
+    const ip = ipMatch ? ipMatch[1] : null;
+    
+    if (!ip) {
+      return { success: false, error: 'Could not detect IP address' };
+    }
+    
+    return { 
+      success: true, 
+      ip: ip,
+      latency: latency
+    };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+`;
+
+    const requestBody = {
+      code: testCode,
+      launch: {
+        args: [`--proxy-server=http://${proxyConfig.host}:${proxyConfig.port}`]
+      }
+    };
+    
+    console.log(`[Proxy Test] Sending request to Browserless...`);
+    
+    const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=25000`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+
+    clearTimeout(fetchTimeout);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Proxy Test] Browserless error:', errorText);
+      throw new Error(`Browserless error: ${errorText.substring(0, 100)}`);
+    }
+
+    const result = await response.json();
+    const totalLatency = Date.now() - startTime;
+    
+    console.log(`[Proxy Test] Result:`, result);
+    
+    if (result.success) {
+      return {
+        success: true,
+        ip: result.ip,
+        latency: result.latency || totalLatency,
+        country: proxyConfig.country
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Unknown error from proxy test'
+      };
+    }
+  } catch (error: unknown) {
+    clearTimeout(fetchTimeout);
+    const err = error as Error;
+    
+    if (err.name === 'AbortError') {
+      return { success: false, error: 'Timeout: Proxy test exceeded 30 seconds' };
+    }
+    
+    return { success: false, error: err.message };
+  }
 }
 
 // Retry wrapper for normal mode scraping

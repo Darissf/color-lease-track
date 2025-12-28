@@ -16,7 +16,7 @@ import { id as localeId } from "date-fns/locale";
 import { 
   ArrowLeft, Cloud, Eye, EyeOff,
   Loader2, Play, RefreshCw, CheckCircle, 
-  AlertCircle, Zap, Clock, Database, Rocket, Timer, Globe, Shield
+  AlertCircle, Zap, Clock, Database, Rocket, Timer, Globe, Shield, Wifi
 } from "lucide-react";
 
 interface ProxyConfig {
@@ -93,6 +93,16 @@ export default function CloudScraperSettings() {
   const [proxyCountry, setProxyCountry] = useState("ID");
   const [showProxyPassword, setShowProxyPassword] = useState(false);
   const [burstDuration, setBurstDuration] = useState("120");
+  
+  // Proxy test state
+  const [testingProxy, setTestingProxy] = useState(false);
+  const [proxyTestResult, setProxyTestResult] = useState<{
+    success: boolean;
+    ip?: string;
+    latency?: number;
+    country?: string;
+    error?: string;
+  } | null>(null);
 
   // Calculate cooldown based on last_scrape_at
   const updateCooldown = useCallback(() => {
@@ -266,6 +276,49 @@ export default function CloudScraperSettings() {
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Gagal mengubah status");
+    }
+  };
+
+  const handleTestProxy = async () => {
+    if (!proxyEnabled || !proxyHost || !proxyUsername || !proxyPassword) {
+      toast.error("Lengkapi konfigurasi proxy terlebih dahulu");
+      return;
+    }
+
+    setTestingProxy(true);
+    setProxyTestResult(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("cloud-bank-scraper", {
+        body: { 
+          mode: "test_proxy",
+          proxy_config: {
+            enabled: proxyEnabled,
+            type: "http",
+            host: proxyHost,
+            port: parseInt(proxyPort),
+            username: proxyUsername,
+            password: proxyPassword,
+            country: proxyCountry,
+          }
+        },
+      });
+
+      if (error) throw error;
+      
+      setProxyTestResult(data);
+      
+      if (data?.success) {
+        toast.success(`Proxy berhasil! IP: ${data.ip} (${data.latency}ms)`);
+      } else {
+        toast.error(`Proxy gagal: ${data?.error || "Unknown error"}`);
+      }
+    } catch (error: unknown) {
+      const err = error as Error;
+      setProxyTestResult({ success: false, error: err.message });
+      toast.error(`Test proxy gagal: ${err.message}`);
+    } finally {
+      setTestingProxy(false);
     }
   };
 
@@ -673,6 +726,35 @@ export default function CloudScraperSettings() {
                   <p className="text-xs text-muted-foreground mt-1">
                     Oxylabs akan routing koneksi melalui datacenter di {proxyCountry === "ID" ? "Indonesia" : proxyCountry}
                   </p>
+                </div>
+
+                {/* Test Proxy Button */}
+                <div className="flex items-center gap-3 pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleTestProxy}
+                    disabled={testingProxy || !proxyHost || !proxyUsername || !proxyPassword}
+                  >
+                    {testingProxy ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Wifi className="mr-2 h-4 w-4" />
+                    )}
+                    Test Proxy Connection
+                  </Button>
+                  
+                  {proxyTestResult && (
+                    <Badge 
+                      variant={proxyTestResult.success ? "default" : "destructive"}
+                      className={proxyTestResult.success ? "bg-green-500" : ""}
+                    >
+                      {proxyTestResult.success 
+                        ? `✅ IP: ${proxyTestResult.ip} (${proxyTestResult.latency}ms)`
+                        : `❌ ${proxyTestResult.error?.substring(0, 50)}`
+                      }
+                    </Badge>
+                  )}
                 </div>
               </>
             )}
