@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,17 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
+import JSZip from "jszip";
 import { 
   ArrowLeft, Cloud, Eye, EyeOff, Key, Copy,
   Loader2, Server, CheckCircle, Download, Terminal,
   AlertCircle, Database, Webhook, FileText, AlertTriangle,
-  ExternalLink, Package, FolderDown
+  ExternalLink, Package, FolderDown, BookOpen, Upload, Settings, Play, Monitor
 } from "lucide-react";
 
 interface VPSSettings {
@@ -60,6 +62,7 @@ export default function BankScraperSettings() {
   
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("vps");
+  const [generatingPackage, setGeneratingPackage] = useState(false);
   
   // VPS Settings State
   const [vpsSettings, setVpsSettings] = useState<VPSSettings | null>(null);
@@ -222,6 +225,68 @@ export default function BankScraperSettings() {
     toast.success(`${label} berhasil disalin!`);
   };
 
+  const handleDownloadSetupPackage = async () => {
+    setGeneratingPackage(true);
+    try {
+      const zip = new JSZip();
+      
+      // Fetch all template files
+      const [installRes, configRes, scraperRes, runRes, readmeRes] = await Promise.all([
+        fetch("/vps-scraper-template/install.sh"),
+        fetch("/vps-scraper-template/config.env.template"),
+        fetch("/vps-scraper-template/bca-scraper.js"),
+        fetch("/vps-scraper-template/run.sh"),
+        fetch("/vps-scraper-template/README.txt"),
+      ]);
+
+      const [installText, configText, scraperText, runText, readmeText] = await Promise.all([
+        installRes.text(),
+        configRes.text(),
+        scraperRes.text(),
+        runRes.text(),
+        readmeRes.text(),
+      ]);
+
+      // Replace placeholders in config.env with actual values
+      let configContent = configText;
+      if (vpsSettings?.webhook_secret_encrypted) {
+        configContent = configContent.replace(
+          "SECRET_KEY=your_secret_key_here",
+          `SECRET_KEY=${vpsSettings.webhook_secret_encrypted}`
+        );
+      }
+      configContent = configContent.replace(
+        "WEBHOOK_URL=https://your-project.supabase.co/functions/v1/bank-scraper-webhook",
+        `WEBHOOK_URL=${vpsWebhookUrl}`
+      );
+
+      // Add files to zip
+      zip.file("install.sh", installText);
+      zip.file("config.env", configContent);
+      zip.file("bca-scraper.js", scraperText);
+      zip.file("run.sh", runText);
+      zip.file("README.txt", readmeText);
+
+      // Generate and download
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "vps-scraper-setup.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Setup package berhasil di-download!");
+    } catch (error) {
+      console.error("Error generating package:", error);
+      toast.error("Gagal generate setup package");
+    } finally {
+      setGeneratingPackage(false);
+    }
+  };
+
   if (!isSuperAdmin) return null;
 
   if (loading) {
@@ -381,70 +446,101 @@ export default function BankScraperSettings() {
             </div>
 
             {/* Download Setup Package */}
-            <Card className="border-primary/50">
+            <Card className="border-primary/50 bg-gradient-to-br from-primary/5 to-primary/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-primary" />
                   Download Setup Package
                 </CardTitle>
                 <CardDescription>
-                  Download semua file dalam satu paket untuk setup VPS scraper
+                  Download semua file dalam satu paket ZIP untuk setup VPS scraper
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Main Download Button */}
-                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="p-4 bg-background/80 rounded-lg border border-primary/30">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-1">
-                      <h4 className="font-semibold">All-in-One Setup Package</h4>
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Download className="h-4 w-4 text-primary" />
+                        All-in-One Setup Package (ZIP)
+                      </h4>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Download semua file: install.sh, config.env, bca-scraper.js, run.sh, dan panduan setup.
+                        Berisi: install.sh, config.env, bca-scraper.js, run.sh, dan README.txt
                         {vpsSettings?.webhook_secret_encrypted && (
-                          <span className="text-green-600 dark:text-green-400"> Secret Key sudah terisi otomatis!</span>
+                          <span className="text-green-600 dark:text-green-400 font-medium"> — Secret Key & Webhook URL sudah terisi!</span>
                         )}
                       </p>
                     </div>
+                    <Button 
+                      onClick={handleDownloadSetupPackage} 
+                      disabled={generatingPackage}
+                      className="gap-2 bg-primary hover:bg-primary/90"
+                      size="lg"
+                    >
+                      {generatingPackage ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      Download ZIP
+                    </Button>
                   </div>
                 </div>
 
-                {/* Individual Files */}
-                <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">Download file individual:</Label>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
-                      <a href="/vps-scraper-template/install.sh" download>
-                        <FolderDown className="h-4 w-4" />
-                        <span>install.sh</span>
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
-                      <a href="/vps-scraper-template/config.env.template" download="config.env">
-                        <FileText className="h-4 w-4" />
-                        <span>config.env</span>
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
-                      <a href="/vps-scraper-template/bca-scraper.js" download>
-                        <Terminal className="h-4 w-4" />
-                        <span>bca-scraper.js</span>
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
-                      <a href="/vps-scraper-template/run.sh" download>
-                        <Terminal className="h-4 w-4" />
-                        <span>run.sh</span>
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
-                      <a href="/vps-scraper-template/README.txt" download>
-                        <FileText className="h-4 w-4" />
-                        <span>README.txt</span>
-                      </a>
-                    </Button>
+                {!vpsSettings?.webhook_secret_encrypted && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <p className="text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Generate Secret Key terlebih dahulu agar otomatis terisi di package!
+                    </p>
                   </div>
-                </div>
+                )}
 
                 <Separator />
+
+                {/* Individual Files */}
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="files" className="border-none">
+                    <AccordionTrigger className="text-sm text-muted-foreground hover:no-underline py-2">
+                      Download file individual (tanpa ZIP)
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 pt-2">
+                        <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                          <a href="/vps-scraper-template/install.sh" download>
+                            <FolderDown className="h-4 w-4" />
+                            <span>install.sh</span>
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                          <a href="/vps-scraper-template/config.env.template" download="config.env">
+                            <FileText className="h-4 w-4" />
+                            <span>config.env</span>
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                          <a href="/vps-scraper-template/bca-scraper.js" download>
+                            <Terminal className="h-4 w-4" />
+                            <span>bca-scraper.js</span>
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                          <a href="/vps-scraper-template/run.sh" download>
+                            <Terminal className="h-4 w-4" />
+                            <span>run.sh</span>
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" className="justify-start gap-2 h-auto py-2" asChild>
+                          <a href="/vps-scraper-template/README.txt" download>
+                            <FileText className="h-4 w-4" />
+                            <span>README.txt</span>
+                          </a>
+                        </Button>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
 
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={handleTestWebhook} disabled={testingWebhook || !vpsSettings?.webhook_secret_encrypted}>
@@ -508,64 +604,296 @@ export default function BankScraperSettings() {
               </Card>
             )}
 
-            {/* Quick Setup Steps */}
+            {/* Tutorial Panel */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Setup (4 Langkah)</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  Tutorial Setup Lengkap
+                </CardTitle>
                 <CardDescription>
-                  Panduan singkat setup VPS scraper - semua otomatis!
+                  Panduan step-by-step dari awal sampai selesai
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-4">
+                {/* Quick Overview */}
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {[
-                    { 
-                      step: 1, 
-                      title: "Persiapan", 
-                      desc: "Beli VPS Eropa (Contabo/Hetzner ~$5/bulan) & Download file .ovpn dari VPNJantit",
-                      highlight: false
-                    },
-                    { 
-                      step: 2, 
-                      title: "Upload ke VPS", 
-                      desc: "Upload semua file (install.sh, config.env, bca-scraper.js, run.sh, + file .ovpn) ke folder /root/bca-scraper di VPS",
-                      highlight: false
-                    },
-                    { 
-                      step: 3, 
-                      title: "Jalankan Installer", 
-                      desc: "chmod +x install.sh && sudo ./install.sh - Otomatis install Node.js, OpenVPN, dan setup cron!",
-                      highlight: true
-                    },
-                    { 
-                      step: 4, 
-                      title: "Edit config.env", 
-                      desc: "nano config.env → Isi BCA_USER_ID, BCA_PIN, dan VPN credentials. SECRET_KEY sudah terisi!",
-                      highlight: false
-                    },
-                  ].map((item) => (
-                    <div key={item.step} className={`flex gap-4 items-start p-3 rounded-lg ${item.highlight ? 'bg-green-500/10 border border-green-500/30' : ''}`}>
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm">
-                        {item.step}
+                    { icon: Download, label: "1. Download", desc: "File .ovpn & Setup Package" },
+                    { icon: Upload, label: "2. Upload", desc: "Ke VPS via SFTP" },
+                    { icon: Play, label: "3. Install", desc: "Jalankan install.sh" },
+                    { icon: Settings, label: "4. Config", desc: "Edit config.env" },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex flex-col items-center p-3 bg-muted/30 rounded-lg text-center">
+                      <div className="p-2 rounded-full bg-primary/10 mb-2">
+                        <item.icon className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
-                        <h4 className="font-medium">{item.title}</h4>
-                        <p className="text-sm text-muted-foreground">{item.desc}</p>
-                      </div>
+                      <p className="font-medium text-sm">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
                     </div>
                   ))}
                 </div>
 
-                {/* Terminal Example */}
-                <div className="p-4 bg-zinc-900 rounded-lg text-green-400 font-mono text-xs overflow-x-auto">
-                  <p className="text-zinc-500"># Di VPS, setelah upload semua file:</p>
-                  <p>$ cd /root/bca-scraper</p>
-                  <p>$ chmod +x install.sh && sudo ./install.sh</p>
-                  <p className="text-zinc-500"># Ikuti instruksi installer, lalu:</p>
-                  <p>$ nano config.env  <span className="text-zinc-500"># Edit credentials</span></p>
-                  <p>$ ./run.sh  <span className="text-zinc-500"># Test manual</span></p>
-                  <p className="text-green-300 mt-2"># Selesai! Scraper jalan otomatis tiap 5 menit 🎉</p>
-                </div>
+                <Separator />
+
+                {/* Detailed Tutorial Accordion */}
+                <Accordion type="single" collapsible className="w-full">
+                  {/* Step 1: Persiapan */}
+                  <AccordionItem value="step1">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">1</div>
+                        <span>Persiapan: VPS & VPN</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Beli VPS Eropa</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Rekomendasi: <strong>Contabo</strong> atau <strong>Hetzner</strong> (~$5-10/bulan). Pilih lokasi Eropa (Germany/France).
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <a href="https://contabo.com" target="_blank" rel="noopener noreferrer" className="gap-2">
+                              <ExternalLink className="h-3 w-3" /> Contabo
+                            </a>
+                          </Button>
+                          <Button variant="outline" size="sm" asChild>
+                            <a href="https://hetzner.com" target="_blank" rel="noopener noreferrer" className="gap-2">
+                              <ExternalLink className="h-3 w-3" /> Hetzner
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Download File .ovpn dari VPNJantit</h4>
+                        <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                          <li>Login ke VPNJantit</li>
+                          <li>Pilih server <strong>Indonesia</strong></li>
+                          <li>Download file <code className="bg-muted px-1 rounded">.ovpn</code></li>
+                          <li>Catat username & password VPN</li>
+                        </ol>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href="https://vpnjantit.com" target="_blank" rel="noopener noreferrer" className="gap-2">
+                            <ExternalLink className="h-3 w-3" /> VPNJantit
+                          </a>
+                        </Button>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Step 2: Download Files */}
+                  <AccordionItem value="step2">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">2</div>
+                        <span>Download Setup Package</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Klik tombol <strong>Download ZIP</strong> di atas untuk mendapatkan semua file yang dibutuhkan.
+                        Secret Key dan Webhook URL sudah otomatis terisi!
+                      </p>
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-sm font-medium mb-2">Isi package:</p>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>✓ <code>install.sh</code> - Script installer otomatis</li>
+                          <li>✓ <code>config.env</code> - File konfigurasi (SECRET_KEY sudah terisi)</li>
+                          <li>✓ <code>bca-scraper.js</code> - Script scraper BCA</li>
+                          <li>✓ <code>run.sh</code> - Script untuk menjalankan scraper</li>
+                          <li>✓ <code>README.txt</code> - Panduan singkat</li>
+                        </ul>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Step 3: Login VPS & Upload */}
+                  <AccordionItem value="step3">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">3</div>
+                        <span>Login VPS & Upload Files</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Login ke VPS via SSH</h4>
+                        <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                          <p className="text-zinc-500"># Windows (PowerShell) / Mac / Linux:</p>
+                          <p>ssh root@YOUR_VPS_IP</p>
+                          <p className="text-zinc-500"># Masukkan password VPS</p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Untuk Windows, bisa juga gunakan <strong>PuTTY</strong>.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Buat Folder di VPS</h4>
+                        <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400">
+                          <p>mkdir -p /root/bca-scraper && cd /root/bca-scraper</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Upload Files via SFTP</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Gunakan salah satu aplikasi berikut untuk upload file:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <a href="https://winscp.net/eng/download.php" target="_blank" rel="noopener noreferrer" className="gap-2">
+                              <ExternalLink className="h-3 w-3" /> WinSCP (Windows)
+                            </a>
+                          </Button>
+                          <Button variant="outline" size="sm" asChild>
+                            <a href="https://filezilla-project.org/download.php?type=client" target="_blank" rel="noopener noreferrer" className="gap-2">
+                              <ExternalLink className="h-3 w-3" /> FileZilla (All OS)
+                            </a>
+                          </Button>
+                        </div>
+                        <div className="p-3 bg-muted/30 rounded-lg text-sm">
+                          <p className="font-medium mb-1">Koneksi SFTP:</p>
+                          <ul className="text-muted-foreground space-y-1">
+                            <li>• Host: <code className="bg-muted px-1 rounded">YOUR_VPS_IP</code></li>
+                            <li>• Port: <code className="bg-muted px-1 rounded">22</code></li>
+                            <li>• Username: <code className="bg-muted px-1 rounded">root</code></li>
+                            <li>• Password: (password VPS Anda)</li>
+                          </ul>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Upload semua file dari ZIP + file <code>.ovpn</code> ke folder <code>/root/bca-scraper</code>
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Alternatif: Upload via SCP (Terminal)</h4>
+                        <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                          <p className="text-zinc-500"># Dari komputer lokal:</p>
+                          <p>scp -r ./vps-scraper-setup/* root@YOUR_VPS_IP:/root/bca-scraper/</p>
+                          <p>scp ./indonesia.ovpn root@YOUR_VPS_IP:/root/bca-scraper/</p>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Step 4: Run Installer */}
+                  <AccordionItem value="step4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">4</div>
+                        <span>Jalankan Installer</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Di VPS, jalankan perintah berikut:
+                      </p>
+                      <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                        <p>cd /root/bca-scraper</p>
+                        <p>chmod +x install.sh run.sh</p>
+                        <p>sudo ./install.sh</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Installer akan otomatis:
+                      </p>
+                      <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                        <li>Install Node.js 20</li>
+                        <li>Install OpenVPN</li>
+                        <li>Install Puppeteer & dependencies</li>
+                        <li>Setup VPN dengan file .ovpn</li>
+                        <li>Setup cron job (scrape tiap 5 menit)</li>
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Step 5: Configure */}
+                  <AccordionItem value="step5">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">5</div>
+                        <span>Edit Konfigurasi</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Edit file <code>config.env</code> untuk mengisi credentials:
+                      </p>
+                      <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400">
+                        <p>nano config.env</p>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-lg text-sm">
+                        <p className="font-medium mb-2">Isi yang perlu diubah:</p>
+                        <ul className="text-muted-foreground space-y-1">
+                          <li>• <code>VPN_USERNAME</code> - Username VPNJantit</li>
+                          <li>• <code>VPN_PASSWORD</code> - Password VPNJantit</li>
+                          <li>• <code>BCA_USER_ID</code> - User ID KlikBCA</li>
+                          <li>• <code>BCA_PIN</code> - PIN KlikBCA</li>
+                          <li>• <code>BCA_ACCOUNT_NUMBER</code> - Nomor rekening BCA</li>
+                        </ul>
+                        <p className="mt-2 text-green-600 dark:text-green-400">
+                          ✓ SECRET_KEY & WEBHOOK_URL sudah terisi otomatis!
+                        </p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Simpan dengan <code>Ctrl+X</code>, lalu <code>Y</code>, lalu <code>Enter</code>
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Step 6: Test & Monitor */}
+                  <AccordionItem value="step6">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm">6</div>
+                        <span>Test & Monitor</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Start VPN & Test</h4>
+                        <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                          <p className="text-zinc-500"># Start VPN Indonesia</p>
+                          <p>sudo systemctl start openvpn-client@indonesia</p>
+                          <p></p>
+                          <p className="text-zinc-500"># Cek IP (harus Indonesia)</p>
+                          <p>curl https://api.ipify.org</p>
+                          <p></p>
+                          <p className="text-zinc-500"># Test scraper manual</p>
+                          <p>./run.sh</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Monitor className="h-4 w-4" />
+                          Monitoring
+                        </h4>
+                        <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                          <p className="text-zinc-500"># Lihat status VPN</p>
+                          <p>sudo systemctl status openvpn-client@indonesia</p>
+                          <p></p>
+                          <p className="text-zinc-500"># Lihat log scraper</p>
+                          <p>tail -f /var/log/bca-scraper.log</p>
+                          <p></p>
+                          <p className="text-zinc-500"># Lihat cron jobs</p>
+                          <p>crontab -l</p>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                        <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+                          🎉 Selesai! Scraper akan jalan otomatis setiap 5 menit.
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Cek status di panel ini untuk melihat webhook terakhir dan mutasi yang ditemukan.
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </CardContent>
             </Card>
           </TabsContent>
