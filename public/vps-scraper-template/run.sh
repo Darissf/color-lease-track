@@ -1,11 +1,11 @@
 #!/bin/bash
 # ============================================================
 # BCA Scraper Runner
-# Script ini menjalankan scraper dengan config dari config.env
 # 
 # Usage:
 #   ./run.sh              - Normal mode (single scrape)
 #   ./run.sh --burst-check - Check for burst command and run if active
+#   ./run.sh --daemon      - Run scheduler daemon (recommended)
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -38,11 +38,17 @@ if command -v curl &> /dev/null; then
     echo "[$(date)] Current IP: $IP"
 fi
 
-# Check for burst-check mode
-if [ "$1" = "--burst-check" ]; then
+# Check mode
+if [ "$1" = "--daemon" ]; then
+    echo "[$(date)] Running in DAEMON mode (scheduler)..."
+    echo "[$(date)] Scheduler will poll server for config every 60 seconds"
+    echo "[$(date)] Press Ctrl+C to stop"
+    echo ""
+    node scheduler.js
+elif [ "$1" = "--burst-check" ]; then
     echo "[$(date)] Running in BURST CHECK mode..."
     node bca-scraper.js --burst-check
 else
-    echo "[$(date)] Running in NORMAL mode..."
+    echo "[$(date)] Running in NORMAL mode (single scrape)..."
     node bca-scraper.js
 fi
