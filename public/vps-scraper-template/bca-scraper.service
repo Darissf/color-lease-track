@@ -1,0 +1,123 @@
+[Unit]
+Description=BCA Scraper Scheduler Daemon
+Documentation=file:///root/bca-scraper/README.md
+After=network-online.target openvpn-client@indonesia.service
+Wants=network-online.target
+Requires=network-online.target
+
+# Restart rate limiting - max 5 restarts dalam 5 menit
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+# Working directory - akan di-replace oleh install-service.sh
+WorkingDirectory=/root/bca-scraper
+
+# Pre-start checks
+ExecStartPre=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] ========================================" >> /var/log/bca-scraper.log'
+ExecStartPre=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] Starting BCA Scraper Daemon..." >> /var/log/bca-scraper.log'
+ExecStartPre=/bin/bash -c 'test -f /root/bca-scraper/config.env || (echo "ERROR: config.env not found!" && exit 1)'
+ExecStartPre=/bin/bash -c 'test -f /root/bca-scraper/scheduler.js || (echo "ERROR: scheduler.js not found!" && exit 1)'
+
+# Wait for network to be fully ready
+ExecStartPre=/bin/sleep 5
+
+# Main process
+ExecStart=/usr/bin/node /root/bca-scraper/scheduler.js
+
+# Post-stop logging
+ExecStopPost=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] BCA Scraper stopped with exit code: $EXIT_STATUS" >> /var/log/bca-scraper.log'
+ExecStopPost=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] ========================================" >> /var/log/bca-scraper.log'
+
+# ============================================
+# AUTO-RESTART CONFIGURATION
+# ============================================
+# Restart on any exit (except clean exit with code 0 from ExecStop)
+Restart=always
+
+# Wait 30 seconds before restart
+RestartSec=30
+
+# Don't restart if exit code is 0 (clean shutdown)
+RestartPreventExitStatus=0
+
+# ============================================
+# WATCHDOG - Auto-restart if process hangs
+# ============================================
+# Process must call sd_notify("WATCHDOG=1") every 5 minutes
+# If not using sd-notify, this will auto-restart hanging processes
+WatchdogSec=600
+NotifyAccess=all
+
+# ============================================
+# RESOURCE LIMITS
+# ============================================
+# Memory limits
+MemoryMax=2G
+MemoryHigh=1536M
+
+# CPU limits (80% of one core)
+CPUQuota=80%
+
+# Max child processes/threads
+TasksMax=100
+
+# File descriptor limit
+LimitNOFILE=65535
+
+# ============================================
+# LOGGING CONFIGURATION
+# ============================================
+# Dual logging: file + journald
+StandardOutput=append:/var/log/bca-scraper.log
+StandardError=append:/var/log/bca-scraper-error.log
+SyslogIdentifier=bca-scraper
+
+# ============================================
+# ENVIRONMENT VARIABLES
+# ============================================
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS="--max-old-space-size=1536"
+Environment=TZ=Asia/Jakarta
+
+# Load config.env - dash prefix means "don't fail if missing"
+EnvironmentFile=-/root/bca-scraper/config.env
+
+# ============================================
+# SECURITY HARDENING
+# ============================================
+# Allow root operations (needed for Puppeteer/Chromium)
+NoNewPrivileges=false
+
+# Use private /tmp
+PrivateTmp=true
+
+# Protect system directories
+ProtectSystem=strict
+
+# Allow write to specific paths
+ReadWritePaths=/root/bca-scraper /var/log /tmp
+
+# ============================================
+# TIMEOUTS & SHUTDOWN
+# ============================================
+# Max time to wait for startup
+TimeoutStartSec=120
+
+# Max time to wait for graceful shutdown
+TimeoutStopSec=60
+
+# How to kill the process
+KillMode=mixed
+KillSignal=SIGTERM
+FinalKillSignal=SIGKILL
+
+# Send SIGTERM first, then SIGKILL after TimeoutStopSec
+SendSIGKILL=yes
+
+[Install]
+WantedBy=multi-user.target
