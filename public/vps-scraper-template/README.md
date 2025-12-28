@@ -1,12 +1,26 @@
 # VPS BCA Scraper Template
 
-Script untuk scraping mutasi BCA dari VPS sendiri dan mengirim ke webhook Lovable.
+Script untuk scraping mutasi BCA dari VPS sendiri dan mengirim ke webhook.
 
-## Requirements
+## Pilihan Setup
+
+### Opsi 1: VPS Indonesia (Recommended)
+VPS langsung di Indonesia - tidak perlu VPN/proxy.
+- Ikuti panduan di bawah
+
+### Opsi 2: VPS Eropa + OpenVPN Indonesia ⭐
+VPS Eropa dengan koneksi VPN ke Indonesia.
+- Lihat: [README-OPENVPN.md](./README-OPENVPN.md)
+- Jalankan: `sudo ./setup-openvpn.sh`
+
+---
+
+## Requirements (VPS Indonesia)
 
 - Ubuntu 20.04+ atau Debian 11+
 - Node.js 18+
 - Puppeteer dependencies
+- IP Indonesia (native atau via VPN)
 
 ## Quick Setup
 
