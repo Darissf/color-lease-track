@@ -1,5 +1,8 @@
 project_id = "uqzzpxfmwhmhiqniiyjk"
 
+[functions.sync-scraper-files]
+verify_jwt = true
+
 [functions.send-password-reset]
 verify_jwt = false
 
