@@ -17,6 +17,9 @@ interface TemplateSettings {
   terms_conditions: string;
   paper_size: string;
   logo_position: string;
+  invoice_logo_url?: string | null;
+  icon_maps_url?: string | null;
+  icon_whatsapp_url?: string | null;
 }
 
 interface InvoiceTemplatePreviewProps {
@@ -65,19 +68,35 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
       {/* Header */}
       <div className={`flex items-start justify-between pb-4 mb-6 border-b-2`} style={{ borderColor: settings.border_color }}>
         <div className={`flex items-start gap-4 ${getLogoJustify()}`}>
-          <div className="h-20 w-20 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs">
-            Logo
-          </div>
+          {settings.invoice_logo_url ? (
+            <img 
+              src={settings.invoice_logo_url} 
+              alt="Company Logo" 
+              className="h-20 w-20 object-contain rounded-lg"
+            />
+          ) : (
+            <div className="h-20 w-20 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs">
+              Logo
+            </div>
+          )}
           <div>
             <h1 className="text-2xl font-bold tracking-wide" style={{ color: settings.header_color_primary }}>
               {sampleData.companyName}
             </h1>
             <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-              <MapPin className="h-3 w-3 flex-shrink-0" style={{ color: settings.header_color_primary }} />
+              {settings.icon_maps_url ? (
+                <img src={settings.icon_maps_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+              ) : (
+                <MapPin className="h-3 w-3 flex-shrink-0" style={{ color: settings.header_color_primary }} />
+              )}
               {sampleData.companyAddress}
             </p>
             <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-              <Phone className="h-3 w-3 flex-shrink-0 text-green-500" />
+              {settings.icon_whatsapp_url ? (
+                <img src={settings.icon_whatsapp_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+              ) : (
+                <Phone className="h-3 w-3 flex-shrink-0 text-green-500" />
+              )}
               {sampleData.companyPhone}
             </p>
           </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,11 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, Palette, Eye, FileText, Settings2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Palette, Eye, FileText, Settings2, Upload, Trash2, RotateCcw, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { InvoiceTemplatePreview } from "@/components/documents/InvoiceTemplatePreview";
 import { ReceiptTemplatePreview } from "@/components/documents/ReceiptTemplatePreview";
+import { ImageCropper } from "@/components/ImageCropper";
 
 interface TemplateSettings {
   template_style: string;
@@ -28,6 +29,9 @@ interface TemplateSettings {
   terms_conditions: string;
   paper_size: string;
   logo_position: string;
+  invoice_logo_url: string | null;
+  icon_maps_url: string | null;
+  icon_whatsapp_url: string | null;
 }
 
 const defaultSettings: TemplateSettings = {
@@ -42,7 +46,12 @@ const defaultSettings: TemplateSettings = {
   terms_conditions: "",
   paper_size: "A4",
   logo_position: "left",
+  invoice_logo_url: null,
+  icon_maps_url: null,
+  icon_whatsapp_url: null,
 };
+
+type CropTarget = 'logo' | 'maps' | 'whatsapp' | null;
 
 const InvoiceTemplateSettings = () => {
   const navigate = useNavigate();
@@ -51,6 +60,15 @@ const InvoiceTemplateSettings = () => {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<TemplateSettings>(defaultSettings);
   const [previewTab, setPreviewTab] = useState<"invoice" | "kwitansi">("invoice");
+  
+  // Upload states
+  const [cropTarget, setCropTarget] = useState<CropTarget>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const mapsInputRef = useRef<HTMLInputElement>(null);
+  const whatsappInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -85,6 +103,9 @@ const InvoiceTemplateSettings = () => {
           terms_conditions: data.terms_conditions || defaultSettings.terms_conditions,
           paper_size: data.paper_size || defaultSettings.paper_size,
           logo_position: data.logo_position || defaultSettings.logo_position,
+          invoice_logo_url: data.invoice_logo_url || null,
+          icon_maps_url: data.icon_maps_url || null,
+          icon_whatsapp_url: data.icon_whatsapp_url || null,
         });
       }
     } catch (err) {
@@ -93,6 +114,55 @@ const InvoiceTemplateSettings = () => {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, target: CropTarget) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCropFile(file);
+      setCropTarget(target);
+    }
+    e.target.value = '';
+  };
+  
+  const handleCrop = async (blob: Blob) => {
+    if (!user || !cropTarget) return;
+    
+    setUploading(true);
+    try {
+      const fileName = `${user.id}/${cropTarget}-${Date.now()}.png`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('brand-images')
+        .upload(fileName, blob, { 
+          contentType: 'image/png',
+          upsert: true 
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('brand-images')
+        .getPublicUrl(fileName);
+      
+      const urlField = cropTarget === 'logo' ? 'invoice_logo_url' 
+        : cropTarget === 'maps' ? 'icon_maps_url' 
+        : 'icon_whatsapp_url';
+      
+      updateSetting(urlField as keyof TemplateSettings, urlData.publicUrl);
+      toast.success('Gambar berhasil diupload');
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('Gagal mengupload gambar');
+    } finally {
+      setUploading(false);
+      setCropFile(null);
+      setCropTarget(null);
+    }
+  };
+  
+  const handleRemoveImage = (field: 'invoice_logo_url' | 'icon_maps_url' | 'icon_whatsapp_url') => {
+    updateSetting(field, null);
   };
 
   const handleSave = async () => {
@@ -124,7 +194,20 @@ const InvoiceTemplateSettings = () => {
   if (!isSuperAdmin) return null;
 
   return (
-    <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
+    <>
+      {/* Image Cropper Dialog */}
+      {cropFile && cropTarget && (
+        <ImageCropper
+          file={cropFile}
+          onCrop={handleCrop}
+          onCancel={() => {
+            setCropFile(null);
+            setCropTarget(null);
+          }}
+        />
+      )}
+      
+      <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
       {/* Header */}
       <div className="shrink-0 px-3 py-3 sm:px-4 sm:py-4 md:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
@@ -162,6 +245,144 @@ const InvoiceTemplateSettings = () => {
               </h2>
               <ScrollArea className="flex-1 pr-4">
                 <div className="space-y-6">
+                  {/* Media & Icons Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                      <ImageIcon className="h-4 w-4" />
+                      Media & Icons
+                    </h3>
+                    
+                    {/* Logo Upload */}
+                    <div className="space-y-2 p-3 border rounded-lg">
+                      <Label className="text-sm font-medium">Logo Perusahaan</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="h-16 w-16 border rounded-lg flex items-center justify-center bg-muted/50 overflow-hidden">
+                          {settings.invoice_logo_url ? (
+                            <img src={settings.invoice_logo_url} alt="Logo" className="h-full w-full object-contain" />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Logo</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <input
+                            ref={logoInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleFileSelect(e, 'logo')}
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => logoInputRef.current?.click()}
+                            disabled={uploading}
+                          >
+                            <Upload className="h-3 w-3 mr-1" />
+                            Upload
+                          </Button>
+                          {settings.invoice_logo_url && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleRemoveImage('invoice_logo_url')}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Hapus
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">PNG transparan, rekomendasi 200x200px</p>
+                    </div>
+                    
+                    {/* Icon Maps Upload */}
+                    <div className="space-y-2 p-3 border rounded-lg">
+                      <Label className="text-sm font-medium">Icon Lokasi/Maps</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 border rounded flex items-center justify-center bg-muted/50 overflow-hidden">
+                          {settings.icon_maps_url ? (
+                            <img src={settings.icon_maps_url} alt="Maps Icon" className="h-full w-full object-contain" />
+                          ) : (
+                            <span className="text-lg">📍</span>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <input
+                            ref={mapsInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleFileSelect(e, 'maps')}
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => mapsInputRef.current?.click()}
+                            disabled={uploading}
+                          >
+                            <Upload className="h-3 w-3 mr-1" />
+                            Upload
+                          </Button>
+                          {settings.icon_maps_url && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleRemoveImage('icon_maps_url')}
+                            >
+                              <RotateCcw className="h-3 w-3 mr-1" />
+                              Default
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">PNG transparan, 64x64px</p>
+                    </div>
+                    
+                    {/* Icon WhatsApp Upload */}
+                    <div className="space-y-2 p-3 border rounded-lg">
+                      <Label className="text-sm font-medium">Icon WhatsApp/Telepon</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 border rounded flex items-center justify-center bg-muted/50 overflow-hidden">
+                          {settings.icon_whatsapp_url ? (
+                            <img src={settings.icon_whatsapp_url} alt="WhatsApp Icon" className="h-full w-full object-contain" />
+                          ) : (
+                            <span className="text-lg">📱</span>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <input
+                            ref={whatsappInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleFileSelect(e, 'whatsapp')}
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => whatsappInputRef.current?.click()}
+                            disabled={uploading}
+                          >
+                            <Upload className="h-3 w-3 mr-1" />
+                            Upload
+                          </Button>
+                          {settings.icon_whatsapp_url && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleRemoveImage('icon_whatsapp_url')}
+                            >
+                              <RotateCcw className="h-3 w-3 mr-1" />
+                              Default
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">PNG transparan, 64x64px</p>
+                    </div>
+                  </div>
+                  
                   {/* Color Settings */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
@@ -347,7 +568,8 @@ const InvoiceTemplateSettings = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
