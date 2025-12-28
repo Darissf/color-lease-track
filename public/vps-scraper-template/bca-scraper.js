@@ -753,32 +753,63 @@ async function scrapeBCA() {
           const cells = row.querySelectorAll('td');
           if (cells.length >= 3) {
             const firstCell = cells[0]?.innerText?.trim() || '';
-            const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
             
-            if (dateMatch) {
-              const day = dateMatch[1].padStart(2, '0');
-              const month = dateMatch[2].padStart(2, '0');
-              const date = `${year}-${month}-${day}`;
+            // Handle both date format (28/12) and "PEND" for pending transactions
+            const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
+            const isPending = firstCell.toUpperCase() === 'PEND';
+            
+            if (dateMatch || isPending) {
+              let date;
+              if (isPending) {
+                // Use today's date for pending transactions
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                date = `${year}-${month}-${day}`;
+                console.log(`Pending transaction, using today: ${date}`);
+              } else {
+                const day = dateMatch[1].padStart(2, '0');
+                const month = dateMatch[2].padStart(2, '0');
+                date = `${year}-${month}-${day}`;
+              }
+              
               const description = cells[1]?.innerText?.trim() || '';
               
+              // Look for amount and type in remaining columns
+              // BCA format: amount like "2,345.00" with CR/DB indicator
               let amount = 0;
               let type = 'credit';
               
               for (let i = 2; i < cells.length; i++) {
                 const cellText = cells[i]?.innerText?.trim() || '';
-                if (cellText.toUpperCase() === 'DB') type = 'debit';
-                const parsed = parseFloat(cellText.replace(/[.,]/g, ''));
-                if (parsed > 0 && !amount) amount = parsed;
+                console.log(`  Cell ${i}: "${cellText}"`);
+                
+                // Check for CR/DB type in cell text
+                if (cellText.toUpperCase().includes('DB')) type = 'debit';
+                if (cellText.toUpperCase().includes('CR')) type = 'credit';
+                
+                // Parse amount - BCA uses comma for thousands, dot for decimals
+                // Format examples: "2,345.00" or "333,000.00"
+                // Remove commas (thousand separators), keep the dot for decimals
+                const cleanedAmount = cellText.replace(/,/g, '').replace(/[^0-9.]/g, '');
+                const parsed = parseFloat(cleanedAmount);
+                
+                if (parsed > 0 && !amount) {
+                  amount = parsed;
+                  console.log(`  Parsed amount: ${amount} from "${cellText}"`);
+                }
               }
               
               if (amount > 0) {
-                console.log(`Found mutation: ${date} ${type} ${amount}`);
+                console.log(`Found mutation: ${date} ${type} ${amount} - ${description.substring(0, 40)}`);
                 results.push({ date, amount: Math.round(amount), type, description });
               }
             }
           }
         }
       }
+      
+      console.log(`Total mutations found: ${results.length}`);
       return results;
     }, currentYear);
 
