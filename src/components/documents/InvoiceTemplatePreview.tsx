@@ -56,7 +56,7 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
   };
 
   const getHeadingFontFamily = () => {
-    switch (settings.heading_font) {
+    switch (settings.heading_font_family) {
       case "inter": return "'Inter', sans-serif";
       case "roboto": return "'Roboto', sans-serif";
       case "poppins": return "'Poppins', sans-serif";
@@ -83,7 +83,7 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
       className="bg-white text-gray-900 p-8 w-[210mm] min-h-[297mm] mx-auto shadow-lg relative overflow-hidden"
       style={{ 
         fontFamily: getFontFamily(),
-        fontSize: `${settings.base_font_size || 14}px`
+        fontSize: `${settings.font_size_base || 14}px`
       }}
     >
       {/* Watermark */}
@@ -140,43 +140,65 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
               </div>
             )}
             <div>
-              <h1 
-                className="text-2xl font-bold tracking-wide" 
-                style={{ 
-                  color: settings.header_color_primary,
-                  fontFamily: getHeadingFontFamily()
-                }}
-              >
-                {sampleData.companyName}
-              </h1>
+              {/* Company Name */}
+              {settings.show_company_name !== false && (
+                <h1 
+                  className="text-2xl font-bold tracking-wide" 
+                  style={{ 
+                    color: settings.company_name_color || settings.header_color_primary,
+                    fontFamily: getHeadingFontFamily()
+                  }}
+                >
+                  {sampleData.companyName}
+                </h1>
+              )}
               
               {/* Company Tagline */}
-              {settings.show_tagline && settings.company_tagline && (
-                <p className="text-sm text-gray-500 italic mt-0.5">
+              {settings.show_company_tagline && settings.company_tagline && (
+                <p 
+                  className="text-sm italic mt-0.5"
+                  style={{ color: settings.tagline_color || '#6b7280' }}
+                >
                   {settings.company_tagline}
                 </p>
               )}
 
-              <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                {settings.icon_maps_url ? (
-                  <img src={settings.icon_maps_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
-                ) : (
-                  <MapPin className="h-3 w-3 flex-shrink-0" style={{ color: settings.header_color_primary }} />
-                )}
-                {sampleData.companyAddress}
-              </p>
-              <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                {settings.icon_whatsapp_url ? (
-                  <img src={settings.icon_whatsapp_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
-                ) : (
-                  <Phone className="h-3 w-3 flex-shrink-0 text-green-500" />
-                )}
-                {sampleData.companyPhone}
-              </p>
+              {/* Address */}
+              {settings.show_company_address !== false && (
+                <p 
+                  className="text-sm flex items-center gap-1 mt-1"
+                  style={{ color: settings.company_info_color || '#4b5563' }}
+                >
+                  {settings.icon_maps_url ? (
+                    <img src={settings.icon_maps_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                  ) : (
+                    <MapPin className="h-3 w-3 flex-shrink-0" style={{ color: settings.header_color_primary }} />
+                  )}
+                  {sampleData.companyAddress}
+                </p>
+              )}
+
+              {/* Phone */}
+              {settings.show_company_phone !== false && (
+                <p 
+                  className="text-sm flex items-center gap-1 mt-1"
+                  style={{ color: settings.company_info_color || '#4b5563' }}
+                >
+                  {settings.icon_whatsapp_url ? (
+                    <img src={settings.icon_whatsapp_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                  ) : (
+                    <Phone className="h-3 w-3 flex-shrink-0 text-green-500" />
+                  )}
+                  {sampleData.companyPhone}
+                </p>
+              )}
               
               {/* Email */}
-              {sampleData.companyEmail && (
-                <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+              {settings.show_company_email !== false && sampleData.companyEmail && (
+                <p 
+                  className="text-sm flex items-center gap-1 mt-1"
+                  style={{ color: settings.company_info_color || '#4b5563' }}
+                >
                   {settings.icon_email_url ? (
                     <img src={settings.icon_email_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
                   ) : (
@@ -187,8 +209,11 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
               )}
               
               {/* Website */}
-              {sampleData.companyWebsite && (
-                <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+              {settings.show_company_website !== false && sampleData.companyWebsite && (
+                <p 
+                  className="text-sm flex items-center gap-1 mt-1"
+                  style={{ color: settings.company_info_color || '#4b5563' }}
+                >
                   {settings.icon_website_url ? (
                     <img src={settings.icon_website_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
                   ) : (
@@ -197,70 +222,105 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
                   {sampleData.companyWebsite}
                 </p>
               )}
+
+              {/* NPWP */}
+              {settings.show_npwp && settings.company_npwp && (
+                <p 
+                  className="text-sm mt-1"
+                  style={{ color: settings.company_info_color || '#4b5563' }}
+                >
+                  NPWP: {settings.company_npwp}
+                </p>
+              )}
             </div>
           </div>
           
           {/* Document Type & Number */}
           <div className="text-right">
-            <h2 
-              className="text-xl font-bold mb-2" 
-              style={{ 
-                color: settings.header_color_primary,
-                fontFamily: getHeadingFontFamily()
-              }}
-            >
-              INVOICE
-            </h2>
-            <div 
-              className="px-4 py-1 inline-block border-2" 
-              style={{ borderColor: settings.header_color_primary }}
-            >
-              <span className="text-sm text-gray-500">NO.</span>
-              <span className="text-lg font-bold ml-2">{sampleData.documentNumber}</span>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">{formattedDate}</p>
+            {settings.show_document_number !== false && (
+              <>
+                <h2 
+                  className="text-xl font-bold mb-2" 
+                  style={{ 
+                    color: settings.document_title_color || settings.header_color_primary,
+                    fontFamily: getHeadingFontFamily()
+                  }}
+                >
+                  {settings.document_title || 'INVOICE'}
+                </h2>
+                <div 
+                  className="px-4 py-1 inline-block border-2" 
+                  style={{ borderColor: settings.header_color_primary }}
+                >
+                  <span className="text-sm text-gray-500">NO.</span>
+                  <span className="text-lg font-bold ml-2">{sampleData.documentNumber}</span>
+                </div>
+              </>
+            )}
+            {settings.show_document_date !== false && (
+              <p className="text-sm text-gray-500 mt-2">{formattedDate}</p>
+            )}
           </div>
         </div>
 
         {/* Client Info */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-500 mb-1">Kepada Yth:</p>
-          <p className="font-semibold text-lg">{sampleData.clientName}</p>
-          <p className="text-sm text-gray-600">{sampleData.clientAddress}</p>
-        </div>
+        {settings.show_client_info !== false && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <p 
+              className="text-sm mb-1"
+              style={{ color: settings.label_color || '#6b7280' }}
+            >
+              {settings.label_client || 'Kepada Yth:'}
+            </p>
+            <p 
+              className="font-semibold text-lg"
+              style={{ color: settings.value_color || '#1f2937' }}
+            >
+              {sampleData.clientName}
+            </p>
+            <p 
+              className="text-sm"
+              style={{ color: settings.company_info_color || '#4b5563' }}
+            >
+              {sampleData.clientAddress}
+            </p>
+          </div>
+        )}
 
         {/* Invoice Details Table */}
         <div className="mb-8">
           <table className="w-full border-collapse">
-            <thead>
-              <tr 
-                style={{ 
-                  backgroundColor: settings.table_header_bg || '#f3f4f6',
-                  color: settings.table_header_text || '#374151'
-                }}
-              >
-                <th 
-                  className="px-4 py-2 text-left"
+            {settings.show_table_header !== false && (
+              <thead>
+                <tr 
                   style={{ 
-                    border: settings.table_border_style === 'none' ? 'none' : '1px solid',
-                    borderColor: settings.border_color 
+                    backgroundColor: settings.table_header_bg || '#f3f4f6',
+                    color: settings.table_header_text_color || '#374151'
                   }}
                 >
-                  Keterangan
-                </th>
-                <th 
-                  className="px-4 py-2 text-right w-48"
-                  style={{ 
-                    border: settings.table_border_style === 'none' ? 'none' : '1px solid',
-                    borderColor: settings.border_color 
-                  }}
-                >
-                  Jumlah
-                </th>
-              </tr>
-            </thead>
+                  <th 
+                    className="px-4 py-2 text-left"
+                    style={{ 
+                      border: settings.table_border_style === 'none' ? 'none' : '1px solid',
+                      borderColor: settings.border_color 
+                    }}
+                  >
+                    {settings.label_description || 'Keterangan'}
+                  </th>
+                  <th 
+                    className="px-4 py-2 text-right w-48"
+                    style={{ 
+                      border: settings.table_border_style === 'none' ? 'none' : '1px solid',
+                      borderColor: settings.border_color 
+                    }}
+                  >
+                    {settings.label_amount || 'Jumlah'}
+                  </th>
+                </tr>
+              </thead>
+            )}
             <tbody>
-              <tr style={{ backgroundColor: settings.table_alt_row_bg ? `${settings.table_alt_row_bg}40` : 'transparent' }}>
+              <tr style={{ backgroundColor: settings.table_alternating_color ? `${settings.table_alternating_color}40` : 'transparent' }}>
                 <td 
                   className="px-4 py-3"
                   style={{ 
@@ -292,7 +352,7 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
                     borderColor: settings.border_color 
                   }}
                 >
-                  Total
+                  {settings.label_total || 'Total'}
                 </td>
                 <td 
                   className="px-4 py-3 text-right font-bold text-lg"
@@ -308,13 +368,30 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
           </table>
           {settings.show_terbilang && (
             <p className="mt-2 text-sm italic text-gray-600">
-              Terbilang: <span className="font-medium">{terbilang(sampleData.amount)}</span>
+              {settings.label_terbilang || 'Terbilang:'} <span className="font-medium">{terbilang(sampleData.amount)}</span>
             </p>
           )}
         </div>
 
-        {/* Bank Info Section */}
-        {settings.show_bank_info && settings.bank_name && (
+        {/* Bank Info Section OR Payment Link */}
+        {settings.use_payment_link ? (
+          <div 
+            className="mb-6 p-4 rounded-lg text-center"
+            style={{ 
+              backgroundColor: `${settings.accent_color}10`,
+              border: `1px solid ${settings.border_color}` 
+            }}
+          >
+            <p className="text-sm text-gray-600 mb-2">Untuk melakukan pembayaran, klik tombol di bawah:</p>
+            <div 
+              className="inline-block px-6 py-2 rounded-lg font-semibold text-white cursor-pointer"
+              style={{ backgroundColor: settings.accent_color }}
+            >
+              {settings.payment_link_text || 'Generate Pembayaran'}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Link pembayaran akan expired setelah invoice lunas</p>
+          </div>
+        ) : settings.show_bank_info && settings.bank_name && (
           <div 
             className="mb-6 p-4 rounded-lg"
             style={{ 
@@ -323,7 +400,7 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
             }}
           >
             <h3 className="text-sm font-semibold mb-2" style={{ color: settings.header_color_primary }}>
-              Transfer ke:
+              {settings.label_bank_transfer || 'Transfer ke:'}
             </h3>
             <div className="flex items-center gap-3">
               {settings.bank_logo_url && (
@@ -339,7 +416,7 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
         )}
 
         {/* Terms & Conditions */}
-        {settings.terms_conditions && (
+        {settings.show_terms !== false && settings.terms_conditions && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Syarat & Ketentuan:</h3>
             <p className="text-xs text-gray-600 whitespace-pre-wrap">{settings.terms_conditions}</p>
@@ -347,61 +424,63 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
         )}
 
         {/* Custom Note */}
-        {settings.custom_note && (
+        {settings.show_custom_note && settings.custom_note && (
           <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-xs text-yellow-800 whitespace-pre-wrap">{settings.custom_note}</p>
           </div>
         )}
 
         {/* Signature & Stamp Section */}
-        <div className="flex justify-between items-end mb-8">
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">Hormat Kami,</p>
-            {settings.signature_url ? (
-              <img 
-                src={settings.signature_url} 
-                alt="Signature" 
-                className="h-16 w-auto mx-auto object-contain"
-              />
-            ) : (
-              <div className="h-16 w-32 border-b border-gray-400" />
-            )}
-            <p className="font-semibold mt-2">{sampleData.ownerName}</p>
-            {sampleData.signerTitle && (
-              <p className="text-sm text-gray-500">{sampleData.signerTitle}</p>
-            )}
-          </div>
-
-          {/* Stamp */}
-          {settings.show_stamp && (
-            <div 
-              className="flex items-center justify-center"
-              style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
-            >
-              {settings.stamp_image_url ? (
+        {settings.show_signature !== false && (
+          <div className="flex justify-between items-end mb-8">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">Hormat Kami,</p>
+              {settings.signature_url ? (
                 <img 
-                  src={settings.stamp_image_url} 
-                  alt="Stamp" 
-                  className="h-24 w-24 object-contain"
+                  src={settings.signature_url} 
+                  alt="Signature" 
+                  className="h-16 w-auto mx-auto object-contain"
                 />
               ) : (
-                <div 
-                  className="w-24 h-24 border-4 rounded-full flex flex-col items-center justify-center transform rotate-[-15deg]"
-                  style={{ 
-                    borderColor: settings.stamp_color || '#22c55e',
-                    color: settings.stamp_color || '#22c55e'
-                  }}
-                >
-                  <span className="text-xs font-bold">{settings.stamp_text || 'LUNAS'}</span>
-                  <span className="text-[8px] mt-0.5">{format(new Date(), 'dd/MM/yyyy')}</span>
-                </div>
+                <div className="h-16 w-32 border-b border-gray-400" />
+              )}
+              <p className="font-semibold mt-2">{sampleData.ownerName}</p>
+              {sampleData.signerTitle && (
+                <p className="text-sm text-gray-500">{sampleData.signerTitle}</p>
               )}
             </div>
-          )}
-        </div>
+
+            {/* Stamp */}
+            {settings.show_stamp && (
+              <div 
+                className="flex items-center justify-center"
+                style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+              >
+                {settings.custom_stamp_url ? (
+                  <img 
+                    src={settings.custom_stamp_url} 
+                    alt="Stamp" 
+                    className="h-24 w-24 object-contain"
+                  />
+                ) : (
+                  <div 
+                    className="w-24 h-24 border-4 rounded-full flex flex-col items-center justify-center transform rotate-[-15deg]"
+                    style={{ 
+                      borderColor: settings.stamp_color || '#22c55e',
+                      color: settings.stamp_color || '#22c55e'
+                    }}
+                  >
+                    <span className="text-xs font-bold">{settings.stamp_text || 'LUNAS'}</span>
+                    <span className="text-[8px] mt-0.5">{format(new Date(), 'dd/MM/yyyy')}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
-        {settings.footer_text && (
+        {settings.show_footer !== false && settings.footer_text && (
           <div className="text-center text-sm text-gray-500 mb-4">
             {settings.footer_text}
           </div>

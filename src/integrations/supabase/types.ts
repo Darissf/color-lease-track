@@ -1848,7 +1848,9 @@ export type Database = {
           color_preset: string | null
           company_address: string | null
           company_email: string | null
+          company_info_color: string | null
           company_name: string | null
+          company_name_color: string | null
           company_npwp: string | null
           company_phone: string | null
           company_tagline: string | null
@@ -1859,6 +1861,8 @@ export type Database = {
           custom_note: string | null
           custom_stamp_url: string | null
           default_due_days: number | null
+          document_title: string | null
+          document_title_color: string | null
           font_family: string | null
           font_size_base: number | null
           footer_text: string | null
@@ -1875,38 +1879,67 @@ export type Database = {
           id: string
           invoice_logo_url: string | null
           invoice_prefix: string | null
+          label_amount: string | null
+          label_bank_transfer: string | null
+          label_client: string | null
+          label_color: string | null
+          label_description: string | null
+          label_terbilang: string | null
+          label_total: string | null
           late_fee_text: string | null
           logo_position: string | null
           number_format: string | null
           owner_name: string | null
           paper_size: string | null
+          payment_link_text: string | null
           qr_include_amount: boolean | null
           qr_position: string | null
           qr_size: number | null
           receipt_prefix: string | null
+          receipt_title: string | null
           show_bank_info: boolean | null
+          show_client_info: boolean | null
+          show_company_address: boolean | null
+          show_company_email: boolean | null
+          show_company_name: boolean | null
+          show_company_phone: boolean | null
           show_company_tagline: boolean | null
+          show_company_website: boolean | null
+          show_custom_note: boolean | null
+          show_document_date: boolean | null
+          show_document_number: boolean | null
           show_due_date: boolean | null
+          show_footer: boolean | null
+          show_header_stripe: boolean | null
+          show_npwp: boolean | null
           show_qr_code: boolean | null
+          show_signature: boolean | null
           show_stamp: boolean | null
+          show_table_header: boolean | null
           show_terbilang: boolean | null
+          show_terms: boolean | null
           show_watermark: boolean | null
           signature_image_url: string | null
           signature_url: string | null
           signer_name: string | null
           signer_title: string | null
+          stamp_color: string | null
           stamp_color_belum_lunas: string | null
           stamp_color_lunas: string | null
           stamp_opacity: number | null
+          stamp_text: string | null
           table_alternating_color: string | null
           table_alternating_rows: boolean | null
           table_border_style: string | null
           table_header_bg: string | null
           table_header_text_color: string | null
+          tagline_color: string | null
           template_style: string | null
           terms_conditions: string | null
           updated_at: string
+          use_payment_link: boolean | null
           user_id: string
+          value_color: string | null
           watermark_opacity: number | null
           watermark_text: string | null
           watermark_type: string | null
@@ -1921,7 +1954,9 @@ export type Database = {
           color_preset?: string | null
           company_address?: string | null
           company_email?: string | null
+          company_info_color?: string | null
           company_name?: string | null
+          company_name_color?: string | null
           company_npwp?: string | null
           company_phone?: string | null
           company_tagline?: string | null
@@ -1932,6 +1967,8 @@ export type Database = {
           custom_note?: string | null
           custom_stamp_url?: string | null
           default_due_days?: number | null
+          document_title?: string | null
+          document_title_color?: string | null
           font_family?: string | null
           font_size_base?: number | null
           footer_text?: string | null
@@ -1948,38 +1985,67 @@ export type Database = {
           id?: string
           invoice_logo_url?: string | null
           invoice_prefix?: string | null
+          label_amount?: string | null
+          label_bank_transfer?: string | null
+          label_client?: string | null
+          label_color?: string | null
+          label_description?: string | null
+          label_terbilang?: string | null
+          label_total?: string | null
           late_fee_text?: string | null
           logo_position?: string | null
           number_format?: string | null
           owner_name?: string | null
           paper_size?: string | null
+          payment_link_text?: string | null
           qr_include_amount?: boolean | null
           qr_position?: string | null
           qr_size?: number | null
           receipt_prefix?: string | null
+          receipt_title?: string | null
           show_bank_info?: boolean | null
+          show_client_info?: boolean | null
+          show_company_address?: boolean | null
+          show_company_email?: boolean | null
+          show_company_name?: boolean | null
+          show_company_phone?: boolean | null
           show_company_tagline?: boolean | null
+          show_company_website?: boolean | null
+          show_custom_note?: boolean | null
+          show_document_date?: boolean | null
+          show_document_number?: boolean | null
           show_due_date?: boolean | null
+          show_footer?: boolean | null
+          show_header_stripe?: boolean | null
+          show_npwp?: boolean | null
           show_qr_code?: boolean | null
+          show_signature?: boolean | null
           show_stamp?: boolean | null
+          show_table_header?: boolean | null
           show_terbilang?: boolean | null
+          show_terms?: boolean | null
           show_watermark?: boolean | null
           signature_image_url?: string | null
           signature_url?: string | null
           signer_name?: string | null
           signer_title?: string | null
+          stamp_color?: string | null
           stamp_color_belum_lunas?: string | null
           stamp_color_lunas?: string | null
           stamp_opacity?: number | null
+          stamp_text?: string | null
           table_alternating_color?: string | null
           table_alternating_rows?: boolean | null
           table_border_style?: string | null
           table_header_bg?: string | null
           table_header_text_color?: string | null
+          tagline_color?: string | null
           template_style?: string | null
           terms_conditions?: string | null
           updated_at?: string
+          use_payment_link?: boolean | null
           user_id: string
+          value_color?: string | null
           watermark_opacity?: number | null
           watermark_text?: string | null
           watermark_type?: string | null
@@ -1994,7 +2060,9 @@ export type Database = {
           color_preset?: string | null
           company_address?: string | null
           company_email?: string | null
+          company_info_color?: string | null
           company_name?: string | null
+          company_name_color?: string | null
           company_npwp?: string | null
           company_phone?: string | null
           company_tagline?: string | null
@@ -2005,6 +2073,8 @@ export type Database = {
           custom_note?: string | null
           custom_stamp_url?: string | null
           default_due_days?: number | null
+          document_title?: string | null
+          document_title_color?: string | null
           font_family?: string | null
           font_size_base?: number | null
           footer_text?: string | null
@@ -2021,38 +2091,67 @@ export type Database = {
           id?: string
           invoice_logo_url?: string | null
           invoice_prefix?: string | null
+          label_amount?: string | null
+          label_bank_transfer?: string | null
+          label_client?: string | null
+          label_color?: string | null
+          label_description?: string | null
+          label_terbilang?: string | null
+          label_total?: string | null
           late_fee_text?: string | null
           logo_position?: string | null
           number_format?: string | null
           owner_name?: string | null
           paper_size?: string | null
+          payment_link_text?: string | null
           qr_include_amount?: boolean | null
           qr_position?: string | null
           qr_size?: number | null
           receipt_prefix?: string | null
+          receipt_title?: string | null
           show_bank_info?: boolean | null
+          show_client_info?: boolean | null
+          show_company_address?: boolean | null
+          show_company_email?: boolean | null
+          show_company_name?: boolean | null
+          show_company_phone?: boolean | null
           show_company_tagline?: boolean | null
+          show_company_website?: boolean | null
+          show_custom_note?: boolean | null
+          show_document_date?: boolean | null
+          show_document_number?: boolean | null
           show_due_date?: boolean | null
+          show_footer?: boolean | null
+          show_header_stripe?: boolean | null
+          show_npwp?: boolean | null
           show_qr_code?: boolean | null
+          show_signature?: boolean | null
           show_stamp?: boolean | null
+          show_table_header?: boolean | null
           show_terbilang?: boolean | null
+          show_terms?: boolean | null
           show_watermark?: boolean | null
           signature_image_url?: string | null
           signature_url?: string | null
           signer_name?: string | null
           signer_title?: string | null
+          stamp_color?: string | null
           stamp_color_belum_lunas?: string | null
           stamp_color_lunas?: string | null
           stamp_opacity?: number | null
+          stamp_text?: string | null
           table_alternating_color?: string | null
           table_alternating_rows?: boolean | null
           table_border_style?: string | null
           table_header_bg?: string | null
           table_header_text_color?: string | null
+          tagline_color?: string | null
           template_style?: string | null
           terms_conditions?: string | null
           updated_at?: string
+          use_payment_link?: boolean | null
           user_id?: string
+          value_color?: string | null
           watermark_opacity?: number | null
           watermark_text?: string | null
           watermark_type?: string | null
