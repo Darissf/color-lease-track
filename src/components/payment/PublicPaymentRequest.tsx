@@ -15,7 +15,8 @@ import {
   Copy, 
   CheckCircle, 
   X,
-  Wallet
+  Wallet,
+  Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
@@ -30,11 +31,18 @@ interface PendingRequest {
   status: string;
 }
 
+interface BankInfo {
+  bank_name: string;
+  account_number: string;
+  account_holder_name?: string;
+}
+
 interface PublicPaymentRequestProps {
   accessCode: string;
   remainingAmount: number;
   pendingRequest: PendingRequest | null;
   onPaymentVerified?: () => void;
+  bankInfo?: BankInfo;
 }
 
 export function PublicPaymentRequest({
@@ -42,12 +50,14 @@ export function PublicPaymentRequest({
   remainingAmount,
   pendingRequest: initialPendingRequest,
   onPaymentVerified,
+  bankInfo,
 }: PublicPaymentRequestProps) {
   const [pendingRequest, setPendingRequest] = useState<PendingRequest | null>(initialPendingRequest);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedAccount, setCopiedAccount] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -137,6 +147,18 @@ export function PublicPaymentRequest({
       setCopied(true);
       toast.success("Nominal disalin!");
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Gagal menyalin");
+    }
+  };
+
+  const copyAccountNumber = async () => {
+    if (!bankInfo) return;
+    try {
+      await navigator.clipboard.writeText(bankInfo.account_number);
+      setCopiedAccount(true);
+      toast.success("No. rekening disalin!");
+      setTimeout(() => setCopiedAccount(false), 2000);
     } catch {
       toast.error("Gagal menyalin");
     }
@@ -286,6 +308,46 @@ export function PublicPaymentRequest({
               Batalkan
             </Button>
           </div>
+
+          {/* Bank Info - Only shown when pending request is active */}
+          {bankInfo && (
+            <div className="p-3 sm:p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2.5 sm:space-y-3">
+              <div className="text-xs sm:text-sm font-medium flex items-center gap-2">
+                <CreditCard className="w-4 h-4 flex-shrink-0" />
+                Transfer ke Rekening:
+              </div>
+              <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
+                  <span className="text-muted-foreground text-xs sm:text-sm">Bank</span>
+                  <span className="font-medium text-sm">{bankInfo.bank_name}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
+                  <span className="text-muted-foreground text-xs sm:text-sm">No. Rekening</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-medium text-sm break-all">{bankInfo.account_number}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 sm:h-7 sm:w-7 flex-shrink-0"
+                      onClick={copyAccountNumber}
+                    >
+                      {copiedAccount ? (
+                        <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-green-500" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                {bankInfo.account_holder_name && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
+                    <span className="text-muted-foreground text-xs sm:text-sm">Atas Nama</span>
+                    <span className="font-medium text-sm">{bankInfo.account_holder_name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="p-2.5 sm:p-3 bg-muted/50 rounded-lg">
             <p className="text-[10px] sm:text-xs text-muted-foreground">

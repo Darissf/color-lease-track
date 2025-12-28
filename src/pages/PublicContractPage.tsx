@@ -271,45 +271,7 @@ const getStatusColor = (status: string) => {
               </div>
             </div>
 
-            {/* Bank Info for Payment */}
-            {!isFullyPaid && contract.bank && (
-              <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2.5 sm:space-y-3">
-                <div className="text-xs sm:text-sm font-medium flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 flex-shrink-0" />
-                  Transfer ke Rekening:
-                </div>
-                <div className="space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
-                    <span className="text-muted-foreground text-xs sm:text-sm">Bank</span>
-                    <span className="font-medium text-sm">{contract.bank.bank_name}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
-                    <span className="text-muted-foreground text-xs sm:text-sm">No. Rekening</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-medium text-sm break-all">{contract.bank.account_number}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 sm:h-7 sm:w-7 flex-shrink-0"
-                        onClick={() => copyToClipboard(contract.bank!.account_number, 'account')}
-                      >
-                        {copiedField === 'account' ? (
-                          <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-green-500" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  {contract.bank.account_holder_name && (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
-                      <span className="text-muted-foreground text-xs sm:text-sm">Atas Nama</span>
-                      <span className="font-medium text-sm">{contract.bank.account_holder_name}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Bank Info moved to PublicPaymentRequest component */}
           </CardContent>
         </Card>
 
@@ -320,6 +282,7 @@ const getStatusColor = (status: string) => {
             remainingAmount={contract.tagihan_belum_bayar}
             pendingRequest={pending_request}
             onPaymentVerified={() => refetch()}
+            bankInfo={contract.bank}
           />
         )}
 
