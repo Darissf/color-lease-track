@@ -571,79 +571,156 @@ async function scrapeBCA() {
     log('Login successful!');
     await saveDebug(page, '07-logged-in');
     
-    // Navigate to account statement
-    log('Navigating to account statement...');
+    // === FRAME-BASED NAVIGATION (preserves session) ===
+    log('Navigating to account statement via FRAME...');
     await delay(2000);
     
-    // Try direct URL navigation
-    try {
-      await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acct_stmt', {
-        waitUntil: 'networkidle2', 
-        timeout: CONFIG.TIMEOUT
-      });
-    } catch (e) {
-      log(`Direct navigation failed: ${e.message}`, 'WARN');
-      
-      // Try clicking menu links
-      await page.evaluate(() => {
-        const links = document.querySelectorAll('a');
-        for (const link of links) {
-          const text = (link.textContent || '').toLowerCase();
-          if (text.includes('informasi rekening') || 
-              text.includes('account information')) {
-            link.click();
-            return true;
-          }
-        }
-        return false;
-      });
-      await delay(3000);
+    // Log all frames after login
+    const allFrames = page.frames();
+    log(`Total frames after login: ${allFrames.length}`);
+    allFrames.forEach((f, i) => {
+      log(`Frame ${i}: name="${f.name() || 'unnamed'}", url=${f.url().substring(0, 60)}...`);
+    });
+    
+    // Find the menu frame (left sidebar)
+    const menuFrame = page.frames().find(f => f.name() === 'menu');
+    let atmFrame = page.frames().find(f => f.name() === 'atm');
+    
+    if (!menuFrame) {
+      log('Menu frame not found, trying fallback navigation...', 'WARN');
+      throw new Error('Menu frame not found after login');
     }
     
-    await saveDebug(page, '08-account-page');
-
-    // Set today's date and submit
+    log(`Found menu frame: ${menuFrame.url()}`);
+    if (atmFrame) log(`Found atm frame: ${atmFrame.url()}`);
+    
+    // Step 1: Click "Informasi Rekening" in menu frame
+    log('Clicking Informasi Rekening in menu...');
+    const menuClicked = await menuFrame.evaluate(() => {
+      const links = document.querySelectorAll('a');
+      for (const link of links) {
+        const text = (link.textContent || '').toLowerCase();
+        const href = (link.href || '').toLowerCase();
+        console.log(`Menu link: "${text}" -> ${href}`);
+        if (text.includes('informasi rekening') || 
+            text.includes('account information') ||
+            href.includes('account_information')) {
+          console.log(`Clicking: ${text}`);
+          link.click();
+          return { success: true, text };
+        }
+      }
+      return { success: false };
+    });
+    
+    log(`Menu click result: ${JSON.stringify(menuClicked)}`);
+    await delay(3000);
+    await saveDebug(page, '08-after-menu-click');
+    
+    // Re-find atm frame (content may have changed)
+    atmFrame = page.frames().find(f => f.name() === 'atm');
+    if (!atmFrame) {
+      throw new Error('ATM frame not found after menu click');
+    }
+    
+    log(`ATM frame URL: ${atmFrame.url()}`);
+    await saveDebug(page, '08b-atm-frame');
+    
+    // Step 2: Click "Mutasi Rekening" or "Account Statement" in atm frame
+    log('Looking for Mutasi Rekening / Account Statement link...');
+    const stmtClicked = await atmFrame.evaluate(() => {
+      const links = document.querySelectorAll('a');
+      for (const link of links) {
+        const text = (link.textContent || '').toLowerCase();
+        const href = (link.href || '').toLowerCase();
+        console.log(`ATM link: "${text}" -> ${href}`);
+        if (text.includes('mutasi rekening') || 
+            text.includes('account statement') ||
+            href.includes('accountstmt') ||
+            href.includes('acct_stmt')) {
+          console.log(`Clicking: ${text}`);
+          link.click();
+          return { success: true, text };
+        }
+      }
+      return { success: false };
+    });
+    
+    log(`Statement click result: ${JSON.stringify(stmtClicked)}`);
+    await delay(3000);
+    
+    // Re-find atm frame again
+    atmFrame = page.frames().find(f => f.name() === 'atm');
+    await saveDebug(page, '09-account-page');
+    
+    // Step 3: Set date range in ATM frame
     const today = new Date();
     const day = String(today.getDate());
     const month = String(today.getMonth() + 1);
     
+    log(`Setting date: ${day}/${month}`);
+    
     try {
-      // Try different date selector patterns
-      const dateSelectors = [
-        { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' },
-        { start: 'select[name="startDt"]', startMt: 'select[name="startMt"]', end: 'select[name="endDt"]', endMt: 'select[name="endMt"]' }
-      ];
-      
-      for (const sel of dateSelectors) {
-        try {
-          await page.select(sel.start, day);
-          await page.select(sel.startMt, month);
-          await page.select(sel.end, day);
-          await page.select(sel.endMt, month);
-          log('Date range set successfully');
-          break;
-        } catch (e) {
-          // Try next pattern
+      // Try to set dates in ATM frame
+      const dateSet = await atmFrame.evaluate((day, month) => {
+        const selectors = [
+          { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' },
+          { start: 'select[name="startDt"]', startMt: 'select[name="startMt"]', end: 'select[name="endDt"]', endMt: 'select[name="endMt"]' }
+        ];
+        
+        for (const sel of selectors) {
+          const startDt = document.querySelector(sel.start);
+          const startMt = document.querySelector(sel.startMt);
+          const endDt = document.querySelector(sel.end);
+          const endMt = document.querySelector(sel.endMt);
+          
+          if (startDt && startMt && endDt && endMt) {
+            console.log('Found date selectors');
+            startDt.value = day;
+            startMt.value = month;
+            endDt.value = day;
+            endMt.value = month;
+            return { success: true, pattern: sel.start };
+          }
         }
-      }
+        return { success: false };
+      }, day, month);
       
-      // Click view button
-      const viewBtn = await page.$('input[type="submit"], input[value*="Lihat"], input[value*="View"]');
-      if (viewBtn) {
-        await viewBtn.click();
-        await delay(3000);
-      }
+      log(`Date set result: ${JSON.stringify(dateSet)}`);
+      
+      // Click view button in ATM frame
+      const viewClicked = await atmFrame.evaluate(() => {
+        const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"], input[name*="Submit"]');
+        for (const btn of buttons) {
+          console.log(`Button: value="${btn.value}" name="${btn.name}"`);
+          if (btn.value.toLowerCase().includes('lihat') || 
+              btn.value.toLowerCase().includes('view') ||
+              btn.type === 'submit') {
+            btn.click();
+            return { success: true, value: btn.value };
+          }
+        }
+        return { success: false };
+      });
+      
+      log(`View button result: ${JSON.stringify(viewClicked)}`);
+      await delay(3000);
     } catch (e) {
       log(`Date selection failed: ${e.message}`, 'WARN');
     }
     
-    await saveDebug(page, '09-mutations-result');
+    // Re-find atm frame for parsing
+    atmFrame = page.frames().find(f => f.name() === 'atm');
+    await saveDebug(page, '10-mutations-result');
 
-    // Parse mutations from table
+    // Step 4: Parse mutations from ATM frame
     const currentYear = today.getFullYear();
-    mutations = await page.evaluate((year) => {
+    log('Parsing mutations from ATM frame...');
+    
+    mutations = await atmFrame.evaluate((year) => {
       const results = [];
       const tables = document.querySelectorAll('table');
+      console.log(`Found ${tables.length} tables`);
       
       for (const table of tables) {
         const rows = table.querySelectorAll('tr');
@@ -670,6 +747,7 @@ async function scrapeBCA() {
               }
               
               if (amount > 0) {
+                console.log(`Found mutation: ${date} ${type} ${amount}`);
                 results.push({ date, amount: Math.round(amount), type, description });
               }
             }
