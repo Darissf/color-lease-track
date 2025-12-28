@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Upload, Check, X, Loader2, FileCode, RefreshCw } from "lucide-react";
+import { Upload, Check, X, Loader2, FileCode, RefreshCw, CloudDownload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 // List of files that should be in the scraper-files bucket
@@ -43,6 +43,7 @@ export function ScraperFileUploader() {
   const [fileStatuses, setFileStatuses] = useState<FileStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const checkFileStatuses = async () => {
     setLoading(true);
@@ -157,6 +158,30 @@ export function ScraperFileUploader() {
     return SCRAPER_FILES.find(f => f.name === fileName);
   };
 
+  const handleSyncFromRepository = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-scraper-files');
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        toast.success(`${data.successCount} file berhasil di-sync dari repository!`);
+        if (data.errorCount > 0) {
+          toast.warning(`${data.errorCount} file gagal di-sync`);
+        }
+        checkFileStatuses();
+      } else {
+        throw new Error(data?.error || 'Sync failed');
+      }
+    } catch (err) {
+      console.error('Sync error:', err);
+      toast.error('Gagal sync file dari repository');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
       setOpen(isOpen);
@@ -181,8 +206,8 @@ export function ScraperFileUploader() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
+        <div className="flex justify-between items-center flex-wrap gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
@@ -195,7 +220,22 @@ export function ScraperFileUploader() {
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              Refresh Status
+              Refresh
+            </Button>
+            
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSyncFromRepository}
+              disabled={syncing}
+              className="gap-2 bg-green-600 hover:bg-green-700"
+            >
+              {syncing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CloudDownload className="h-4 w-4" />
+              )}
+              Sync dari Repository
             </Button>
             
             <label>
@@ -207,14 +247,14 @@ export function ScraperFileUploader() {
                 className="hidden"
               />
               <Button
-                variant="default"
+                variant="outline"
                 size="sm"
                 asChild
                 className="gap-2 cursor-pointer"
               >
                 <span>
                   <Upload className="h-4 w-4" />
-                  Upload Multiple Files
+                  Upload Manual
                 </span>
               </Button>
             </label>
