@@ -411,7 +411,7 @@ async function scrapeBCAMutationsBurstMode(
 
 function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolean): string {
   return `
-    module.exports = async ({ page }) => {
+    export default async ({ page }) => {
       const CONFIG = ${JSON.stringify(credentials)};
       const mutations = [];
       
@@ -566,7 +566,7 @@ function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolea
 
 function generateBurstModeCode(credentials: BankCredentials, intervalSeconds: number, maxChecks: number): string {
   return `
-    module.exports = async ({ page }) => {
+    export default async ({ page }) => {
       const CONFIG = ${JSON.stringify(credentials)};
       const INTERVAL_SECONDS = ${intervalSeconds};
       const MAX_CHECKS = ${maxChecks};
