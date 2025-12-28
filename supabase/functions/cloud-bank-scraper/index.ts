@@ -342,15 +342,15 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
 }
 
 async function scrapeBCAMutations(apiKey: string, credentials: BankCredentials): Promise<MutationData[]> {
-  // Browserless timeout must be less than Supabase Edge Function timeout (~150s)
-  // Use 120 seconds for Browserless, leaving buffer for Supabase
-  console.log('[Browserless] Starting scrape request...');
+  // Browserless REST API timeout is in MILLISECONDS, not seconds!
+  // Plan limit appears to be 60000ms (60 seconds) maximum
+  console.log('[Browserless] Starting scrape request with 60s timeout...');
   
   const controller = new AbortController();
-  const fetchTimeout = setTimeout(() => controller.abort(), 140000); // 140s fetch timeout
+  const fetchTimeout = setTimeout(() => controller.abort(), 90000); // 90s fetch timeout (buffer)
   
   try {
-    const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=120`, {
+    const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=60000`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -389,9 +389,13 @@ async function scrapeBCAMutationsBurstMode(
   
   console.log(`[Burst Mode] Starting with ${intervalSeconds}s interval, max ${maxChecks} checks`);
   
-  // Use Browserless with session persistence for burst mode (timeout in SECONDS, capped at plan limit)
-  const burstTimeoutSeconds = Math.min(300, Math.max(180, intervalSeconds * maxChecks + 120));
-  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=${burstTimeoutSeconds}`, {
+  // Browserless REST API timeout is in MILLISECONDS!
+  // Plan limit is 60000ms (60 seconds) - burst mode needs higher plan
+  // For now, cap at 60000ms
+  const burstTimeoutMs = 60000;
+  console.log(`[Burst Mode] Using timeout: ${burstTimeoutMs}ms`);
+  
+  const response = await fetch(`https://production-sfo.browserless.io/function?token=${apiKey}&timeout=${burstTimeoutMs}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -437,31 +441,32 @@ function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolea
       const mutations = [];
       
       try {
-        // Set aggressive timeouts - total operation should complete in ~90 seconds
-        page.setDefaultTimeout(20000);
-        page.setDefaultNavigationTimeout(25000);
+        // Set aggressive timeouts - total operation must complete in ~50 seconds
+        // to fit within Browserless 60s limit
+        page.setDefaultTimeout(12000);
+        page.setDefaultNavigationTimeout(15000);
         
         console.log('[BCA] Navigating to login page...');
         
         // Navigate to KlikBCA with minimal wait
         await page.goto('https://ibank.klikbca.com/', { 
           waitUntil: 'load',
-          timeout: 20000 
+          timeout: 12000 
         });
         
         // Wait for login form
         console.log('[BCA] Waiting for login form...');
-        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 15000 });
+        await page.waitForSelector('input[name="value(user_id)"]', { timeout: 8000 });
         
         // Fill login form quickly
         console.log('[BCA] Filling credentials...');
-        await page.type('input[name="value(user_id)"]', CONFIG.user_id, { delay: 30 });
-        await page.type('input[name="value(pswd)"]', CONFIG.pin, { delay: 30 });
+        await page.type('input[name="value(user_id)"]', CONFIG.user_id, { delay: 20 });
+        await page.type('input[name="value(pswd)"]', CONFIG.pin, { delay: 20 });
         
         // Submit login
         console.log('[BCA] Submitting login...');
         await Promise.all([
-          page.waitForNavigation({ waitUntil: 'load', timeout: 25000 }),
+          page.waitForNavigation({ waitUntil: 'load', timeout: 15000 }),
           page.click('input[name="value(Submit)"]')
         ]);
         
@@ -477,7 +482,7 @@ function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolea
         // Navigate to Account Statement (Mutasi Rekening)
         await page.goto('https://ibank.klikbca.com/accountstmt.do?value(actions)=acctstmtview', {
           waitUntil: 'load',
-          timeout: 20000
+          timeout: 12000
         });
         
         // Set date range (today)
@@ -510,7 +515,7 @@ function generateBrowserlessCode(credentials: BankCredentials, burstMode: boolea
         const submitBtn = await page.$('input[type="submit"]');
         if (submitBtn) {
           await Promise.all([
-            page.waitForNavigation({ waitUntil: 'load', timeout: 20000 }),
+            page.waitForNavigation({ waitUntil: 'load', timeout: 12000 }),
             submitBtn.click()
           ]);
         }
