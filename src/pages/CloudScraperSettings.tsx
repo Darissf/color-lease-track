@@ -1907,11 +1907,258 @@ LANGKAH UPDATE:
               </CardContent>
             </Card>
 
-            {/* Windows Benefits */}
+            {/* Windows Tutorial Panel */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5" />
+                  Tutorial Setup Windows RDP
+                </CardTitle>
+                <CardDescription>
+                  Panduan step-by-step dari awal sampai selesai
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Step Overview */}
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                  {[
+                    { icon: Server, label: "1. Persiapan", desc: "RDP & VPN" },
+                    { icon: Download, label: "2. Download", desc: "Via PowerShell" },
+                    { icon: Settings, label: "3. Install", desc: "Dependencies" },
+                    { icon: FileText, label: "4. Config", desc: "Edit credentials" },
+                    { icon: Play, label: "5. Test", desc: "Run & Auto-start" },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex flex-col items-center p-3 bg-muted/30 rounded-lg text-center">
+                      <div className="p-2 rounded-full bg-blue-500/10 mb-2">
+                        <item.icon className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <p className="font-medium text-sm">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="win-step1">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">1</div>
+                        <span>Persiapan: Windows RDP & VPN</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Requirements</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>✓ Windows 10/11 atau Windows Server</li>
+                          <li>✓ Node.js 18+ (<a href="https://nodejs.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Download</a>)</li>
+                          <li>✓ Google Chrome atau Microsoft Edge</li>
+                          <li>✓ VPN Indonesia (OpenVPN)</li>
+                        </ul>
+                      </div>
+                      <Separator />
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Setup VPN Indonesia</h4>
+                        <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                          <li>Download <a href="https://openvpn.net/client/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">OpenVPN GUI</a></li>
+                          <li>Download file .ovpn dari VPN provider (VPNJantit, Surfshark, dll)</li>
+                          <li>Pilih server Indonesia</li>
+                          <li>Connect VPN <strong>sebelum</strong> menjalankan scraper</li>
+                        </ol>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="win-step2">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">2</div>
+                        <span>Download Files via PowerShell</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Cara Download</h4>
+                        <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                          <li>Buka <strong>PowerShell</strong> sebagai Administrator</li>
+                          <li>Klik tombol <strong>"PowerShell Script"</strong> di atas</li>
+                          <li>Copy-paste script ke PowerShell</li>
+                          <li>Tekan Enter</li>
+                        </ol>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-sm font-medium mb-2">Files yang di-download:</p>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>✓ <code className="bg-zinc-800 text-green-400 px-1 rounded">bca-scraper-windows.js</code> - Main script</li>
+                          <li>✓ <code className="bg-zinc-800 text-green-400 px-1 rounded">install-windows.bat</code> - Installer</li>
+                          <li>✓ <code className="bg-zinc-800 text-green-400 px-1 rounded">run-windows.bat</code> - Runner</li>
+                          <li>✓ <code className="bg-zinc-800 text-green-400 px-1 rounded">setup-autostart.bat</code> - Auto-start</li>
+                          <li>✓ <code className="bg-zinc-800 text-green-400 px-1 rounded">config.env</code> - Konfigurasi</li>
+                        </ul>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        <strong>Lokasi:</strong> <code>C:\Users\[username]\bca-scraper\</code>
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="win-step3">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">3</div>
+                        <span>Install Dependencies</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Jalankan Installer</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Double-click <code className="bg-zinc-800 text-green-400 px-1 rounded">install-windows.bat</code>
+                        </p>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-sm font-medium mb-2">Installer akan:</p>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>✓ Cek Node.js installation</li>
+                          <li>✓ Install Puppeteer (browser automation)</li>
+                          <li>✓ Buat file config.env</li>
+                        </ul>
+                      </div>
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                        <p className="text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                          <span>
+                            Jika error <strong>"Node.js not found"</strong>: Install dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer" className="underline">nodejs.org</a>, 
+                            lalu restart Command Prompt dan coba lagi.
+                          </span>
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="win-step4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">4</div>
+                        <span>Edit Konfigurasi</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Buka config.env</h4>
+                        <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-blue-400">
+                          <p>notepad config.env</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Isi Kredensial BCA</h4>
+                        <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-green-400 overflow-x-auto">
+                          <p>BCA_USER_ID=your_klikbca_user_id</p>
+                          <p>BCA_PIN=your_klikbca_pin</p>
+                          <p>BCA_ACCOUNT_NUMBER=1234567890</p>
+                          <p className="text-zinc-500"># Secret key sudah otomatis terisi</p>
+                          <p>SECRET_KEY={vpsSettings?.webhook_secret_encrypted || 'vps_xxxxxxxxxxxxx'}</p>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                        <p className="text-sm text-blue-700 dark:text-blue-400 flex items-start gap-2">
+                          <Monitor className="h-4 w-4 mt-0.5 shrink-0" />
+                          <span>
+                            <strong>Visual Debugging:</strong> Set <code className="bg-zinc-800 text-green-400 px-1 rounded">HEADLESS=false</code> untuk lihat browser Chrome saat scraping.
+                          </span>
+                        </p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="win-step5">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">5</div>
+                        <span>Test & Auto-Start</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Test Scraper</h4>
+                        <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                          <li><strong>Connect VPN Indonesia</strong> terlebih dahulu</li>
+                          <li>Double-click <code className="bg-zinc-800 text-green-400 px-1 rounded">run-windows.bat</code></li>
+                          <li>Browser Chrome akan terbuka dan mulai scraping</li>
+                          <li>Cek halaman ini untuk melihat webhook data</li>
+                        </ol>
+                      </div>
+                      <Separator />
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Setup Auto-Start (Opsional)</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Untuk menjalankan scraper otomatis saat login Windows:
+                        </p>
+                        <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-blue-400">
+                          <p className="text-zinc-500"># Jalankan script ini (akan register ke Task Scheduler)</p>
+                          <p>.\setup-autostart.bat</p>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="win-troubleshoot">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-sm">?</div>
+                        <span>Troubleshooting</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-11 space-y-3">
+                      <div className="space-y-3">
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <h4 className="font-medium text-sm mb-1">Node.js not found</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Download & install dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">nodejs.org</a>, 
+                            lalu restart Command Prompt.
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <h4 className="font-medium text-sm mb-1">Puppeteer gagal install</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Pastikan internet stabil, jalankan: <code className="bg-zinc-800 text-green-400 px-1 rounded">npm install puppeteer</code>
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <h4 className="font-medium text-sm mb-1">Chrome not found</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Install Google Chrome, atau set path di config.env:<br />
+                            <code className="bg-zinc-800 text-green-400 px-1 rounded">CHROMIUM_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe</code>
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <h4 className="font-medium text-sm mb-1">Login BCA gagal</h4>
+                          <p className="text-xs text-muted-foreground">
+                            1. Cek VPN Indonesia aktif<br />
+                            2. Cek User ID & PIN di config.env<br />
+                            3. Coba akses manual ke <a href="https://ibank.klikbca.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">ibank.klikbca.com</a>
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <h4 className="font-medium text-sm mb-1">Lihat Debug Screenshot</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Buka folder <code className="bg-zinc-800 text-green-400 px-1 rounded">debug\</code> untuk melihat screenshot error.
+                          </p>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+
+            {/* Windows Benefits */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Monitor className="h-5 w-5" />
                   Keuntungan Windows RDP
                 </CardTitle>
               </CardHeader>
