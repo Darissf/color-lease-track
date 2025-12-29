@@ -5,15 +5,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Embedded scraper files content - v4.1.2 Session Reuse Mode (Fixed Cooldown)
+// Embedded scraper files content - v4.1.3 Burst Fix Mode
 const SCRAPER_FILES: Record<string, string> = {
   'bca-scraper.js': `/**
- * BCA iBanking Scraper - SESSION REUSE MODE v4.1.2
+ * BCA iBanking Scraper - SESSION REUSE MODE v4.1.3
  * 
  * Features:
  * - Browser standby 24/7, siap dipakai kapan saja
  * - LOGIN COOLDOWN: Respects BCA 5-minute login limit (skipped if logout successful)
  * - SESSION REUSE: Burst mode reuses active session (no re-login)
+ * - NO LOGOUT DURING BURST: Session kept active between burst iterations
+ * - POST-BURST COOLDOWN: 10s delay after burst ends to prevent restart loops
+ * - BURST TIMING RESET: VPS gets full duration from first fetch
  * - Global scrape timeout (max 2 menit per scrape)
  * - Safe frame operations dengan timeout protection
  * - Session expired detection & auto-recovery
@@ -28,8 +31,9 @@ const SCRAPER_FILES: Record<string, string> = {
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.2";
+const SCRAPER_VERSION = "4.1.3";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v4.1.3: Burst Fix - no logout during burst, post-burst cooldown, timing reset
 // v4.1.2: Fix cooldown - skip 5-min wait if previous logout was successful
 // v4.1.1: Fixed logout - uses correct BCA selector #gotohome and goToPage()
 // v4.1.0: Login Cooldown & Session Reuse - respect BCA 5-minute login limit
@@ -1593,8 +1597,9 @@ async function executeBurstScrape() {
     
     log(\`=== BURST LOOP ENDED (\${checkCount} iterations, match=\${matchFound}) ===\`);
     
-    await safeLogout();
-    isLoggedIn = false;
+    // v4.1.3: Keep session active during burst - don't logout between iterations
+    // Session will be reused for next burst iteration or normal scrape
+    log('Session kept active for potential next iteration (v4.1.3)');
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     log(\`=== BURST COMPLETED in \${duration}s ===\`);
@@ -1731,6 +1736,10 @@ async function mainLoop() {
           log('=== BURST MODE ENDED ===');
           isBurstMode = false;
           await sendHeartbeat('running');
+          
+          // v4.1.3: Post-burst cooldown to prevent restart loops
+          log('Post-burst cooldown: waiting 10s before next poll');
+          await delay(10000);
         }
         continue;
       } else {
@@ -1738,6 +1747,10 @@ async function mainLoop() {
           log('=== BURST MODE ENDED ===');
           isBurstMode = false;
           await sendHeartbeat('running');
+          
+          // v4.1.3: Post-burst cooldown
+          log('Post-burst cooldown: waiting 10s before next poll');
+          await delay(10000);
         }
       }
       
@@ -2092,8 +2105,8 @@ Deno.serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: errorCount === 0,
-      message: `Synced ${successCount}/${results.length} files (v4.1.0 Session Reuse Mode)`,
-      version: '4.1.0',
+      message: `Synced ${successCount}/${results.length} files (v4.1.3 Burst Fix Mode)`,
+      version: '4.1.3',
       results,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

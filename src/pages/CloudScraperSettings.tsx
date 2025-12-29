@@ -582,8 +582,14 @@ export default function BankScraperSettings() {
       // Add update instructions
       const updateInstructions = `
 ================================================================================
-VPS Bank Scraper - Update v4.1.2 (Session Reuse + Fixed Cooldown)
+VPS Bank Scraper - Update v4.1.3 (Burst Fix Mode)
 ================================================================================
+
+PERUBAHAN v4.1.3:
+- NO LOGOUT DURING BURST: Session tetap aktif antar iterasi burst
+- POST-BURST COOLDOWN: Delay 10 detik setelah burst selesai
+- BURST TIMING RESET: VPS mendapat full duration dari saat fetch pertama
+- Lebih efisien: Tidak perlu re-login dalam satu burst session
 
 PERUBAHAN v4.1.2:
 - Fixed Cooldown Logic: Skip 5-min wait jika logout sebelumnya berhasil
@@ -592,11 +598,6 @@ PERUBAHAN v4.1.2:
 
 PERUBAHAN v4.1.1:
 - Fixed Logout: Menggunakan selector #gotohome yang benar
-
-PERUBAHAN v4.1.0:
-- Login Cooldown: Respects BCA 5-minute login limit
-- Session Reuse: Burst mode reuses active session (no re-login)
-- No Burst Restart: Browser tidak restart saat burst mode aktif
 
 FITUR ULTRA-ROBUST (sejak v4.0.0):
 - Global Scrape Timeout: Max 2 menit per scrape, auto-abort jika lewat
