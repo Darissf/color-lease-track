@@ -17,11 +17,12 @@ export function WindowsScriptDownloadDialog({ webhookUrl, secretKey }: WindowsSc
   // Direct download from public folder (bypasses edge function)
   const baseUrl = "https://132e95d2-c3e7-435a-8b4e-be3ead18be0b.lovableproject.com/windows-scraper-template";
 
-  // PowerShell download script - direct from public folder
+  // PowerShell download script - direct from public folder (Desktop location)
   const downloadScript = `# BCA Scraper Windows - Download Script v4.1.5
 # Download langsung dari repository (selalu versi terbaru)
+# Folder akan dibuat di Desktop agar mudah ditemukan
 
-$scraperDir = "$env:USERPROFILE\\bca-scraper"
+$scraperDir = "$env:USERPROFILE\\Desktop\\bca-scraper"
 New-Item -ItemType Directory -Force -Path $scraperDir | Out-Null
 Set-Location $scraperDir
 
@@ -46,10 +47,10 @@ Write-Host "1. Edit config.env dengan BCA credentials"
 Write-Host "2. Jalankan install-windows.bat"
 Write-Host "3. Jalankan run-windows.bat"`;
 
-  // Quick update script - only main scraper file
+  // Quick update script - only main scraper file (Desktop location)
   const quickUpdateScript = `# Quick Update bca-scraper-windows.js ke v4.1.5
 $v = Get-Date -UFormat %s
-cd $env:USERPROFILE\\bca-scraper
+cd "$env:USERPROFILE\\Desktop\\bca-scraper"
 Invoke-WebRequest -Uri "${baseUrl}/bca-scraper-windows.js?v=$v" -OutFile "bca-scraper-windows.js"
 Write-Host "[OK] Updated bca-scraper-windows.js to latest version!"`;
 
