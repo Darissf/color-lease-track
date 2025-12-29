@@ -426,35 +426,22 @@ export function PaymentVerificationStatus({
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Menunggu transfer masuk...</span>
-                  </div>
-                  
                   <div className="flex items-center gap-2">
                     {effectiveCooldown > 0 ? (
                       <div className={cn(
                         "flex-1 flex flex-col gap-1 px-3 py-2 rounded-md text-sm border",
                         isGlobalLocked 
                           ? globalLock.isOwner
-                            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                            ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
                             : "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
                           : "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
                       )}>
                         <div className="flex items-center gap-1.5">
-                          {isGlobalLocked ? (
-                            globalLock.isOwner ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <AlertTriangle className="h-3 w-3" />
-                            )
-                          ) : (
-                            <Clock className="h-3 w-3" />
-                          )}
+                          <AlertTriangle className="h-3 w-3" />
                           <span className="font-medium">
                             {isGlobalLocked 
                               ? globalLock.isOwner
-                                ? "Pengecekan sedang dilakukan..."
+                                ? "Transfer dulu sebelum klik!"
                                 : "JANGAN TRANSFER DULU!"
                               : `Tunggu ${formatCooldown(effectiveCooldown)}`
                             }
@@ -463,8 +450,8 @@ export function PaymentVerificationStatus({
                         {isGlobalLocked && (
                           <span className="text-xs opacity-80">
                             {globalLock.isOwner 
-                              ? `Mohon tunggu, sistem memverifikasi pembayaran Anda. (${formatCooldown(effectiveCooldown)})`
-                              : `Tunggu hingga tombol "Saya Sudah Transfer" tersedia. (${formatCooldown(effectiveCooldown)})`
+                              ? `Pastikan Anda sudah transfer SEBELUM klik tombol ini. Jika belum transfer, tunggu ${formatCooldown(effectiveCooldown)} lagi.`
+                              : `Ada proses pengecekan dari user lain. Jangan transfer sampai tombol tersedia lagi dalam ${formatCooldown(effectiveCooldown)}.`
                             }
                           </span>
                         )}
