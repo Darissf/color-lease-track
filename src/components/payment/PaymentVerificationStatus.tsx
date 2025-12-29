@@ -38,6 +38,7 @@ export function PaymentVerificationStatus({
   const [burstTriggeredAt, setBurstTriggeredAt] = useState<string | null>(initialBurstTriggeredAt || null);
   const [createdAt, setCreatedAt] = useState<string | null>(initialCreatedAt || null);
   const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
+  const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
 
   const triggerConfetti = useCallback(() => {
     confetti({
@@ -169,7 +170,8 @@ export function PaymentVerificationStatus({
           const newStatus = payload.new.status as VerificationStatus;
           setStatus(newStatus);
           
-          if (newStatus === "matched") {
+          if (newStatus === "matched" && !hasTriggeredConfetti) {
+            setHasTriggeredConfetti(true);
             triggerConfetti();
             toast.success("Pembayaran terverifikasi!");
             onVerified?.();
@@ -212,7 +214,7 @@ export function PaymentVerificationStatus({
     const fetchStatus = async () => {
       const { data } = await supabase
         .from("payment_confirmation_requests")
-        .select("status, expires_at, unique_amount, burst_triggered_at, created_at")
+        .select("status, expires_at, unique_amount, burst_triggered_at, created_at, updated_at")
         .eq("id", requestId)
         .single();
       
@@ -224,6 +226,20 @@ export function PaymentVerificationStatus({
         if (data.created_at) {
           setCreatedAt(data.created_at);
         }
+        
+        // Trigger confetti if status is matched and recently updated (within 30 seconds)
+        if (data.status === "matched" && data.updated_at && !hasTriggeredConfetti) {
+          const updatedAt = new Date(data.updated_at).getTime();
+          const now = Date.now();
+          const isRecentMatch = (now - updatedAt) < 30 * 1000; // 30 seconds
+          
+          if (isRecentMatch) {
+            setHasTriggeredConfetti(true);
+            triggerConfetti();
+            toast.success("Pembayaran terverifikasi!");
+            onVerified?.();
+          }
+        }
       }
     };
     fetchStatus();
@@ -232,7 +248,7 @@ export function PaymentVerificationStatus({
       supabase.removeChannel(channel);
       clearInterval(timer);
     };
-  }, [requestId, expiresAt, status, onVerified, triggerConfetti]);
+  }, [requestId, expiresAt, status, onVerified, triggerConfetti, hasTriggeredConfetti]);
 
   return (
     <Card className={cn(

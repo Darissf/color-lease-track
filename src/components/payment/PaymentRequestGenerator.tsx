@@ -78,6 +78,7 @@ export function PaymentRequestGenerator({
   const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [cancelCooldownRemaining, setCancelCooldownRemaining] = useState(0);
+  const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
 
   const minimumAmount = Math.ceil(remainingAmount * 0.5);
   const isPublicMode = !!accessCode;
@@ -98,7 +99,8 @@ export function PaymentRequestGenerator({
         },
         (payload) => {
           const newStatus = payload.new.status;
-          if (newStatus === "matched") {
+          if (newStatus === "matched" && !hasTriggeredConfetti) {
+            setHasTriggeredConfetti(true);
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             toast.success("Pembayaran terverifikasi!");
             onPaymentVerified?.();
@@ -110,10 +112,19 @@ export function PaymentRequestGenerator({
       )
       .subscribe();
 
+    // Check if initial pendingRequest status is already matched (for page refresh scenario)
+    if (initialPendingRequest?.status === "matched" && !hasTriggeredConfetti) {
+      setHasTriggeredConfetti(true);
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      toast.success("Pembayaran terverifikasi!");
+      onPaymentVerified?.();
+      setPendingRequest(null);
+    }
+
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [pendingRequest?.id, onPaymentVerified]);
+  }, [pendingRequest?.id, onPaymentVerified, hasTriggeredConfetti, initialPendingRequest?.status]);
 
   // Calculate time remaining for expiry
   useEffect(() => {
