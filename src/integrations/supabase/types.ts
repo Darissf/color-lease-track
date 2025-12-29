@@ -5493,6 +5493,74 @@ export type Database = {
           },
         ]
       }
+      windows_balance_check_sessions: {
+        Row: {
+          check_count: number | null
+          command_data: Json | null
+          created_at: string | null
+          current_balance: number | null
+          ended_at: string | null
+          error_message: string | null
+          expected_amount: number | null
+          id: string
+          initial_balance: number | null
+          last_command: string | null
+          matched_at: string | null
+          max_checks: number | null
+          payment_request_id: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          check_count?: number | null
+          command_data?: Json | null
+          created_at?: string | null
+          current_balance?: number | null
+          ended_at?: string | null
+          error_message?: string | null
+          expected_amount?: number | null
+          id?: string
+          initial_balance?: number | null
+          last_command?: string | null
+          matched_at?: string | null
+          max_checks?: number | null
+          payment_request_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          check_count?: number | null
+          command_data?: Json | null
+          created_at?: string | null
+          current_balance?: number | null
+          ended_at?: string | null
+          error_message?: string | null
+          expected_amount?: number | null
+          id?: string
+          initial_balance?: number | null
+          last_command?: string | null
+          matched_at?: string | null
+          max_checks?: number | null
+          payment_request_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "windows_balance_check_sessions_payment_request_id_fkey"
+            columns: ["payment_request_id"]
+            isOneToOne: false
+            referencedRelation: "payment_confirmation_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       content_render_latest: {
