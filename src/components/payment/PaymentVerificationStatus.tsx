@@ -425,36 +425,36 @@ export function PaymentVerificationStatus({
                   </div>
                 </div>
 
+                {/* Warning - SELALU muncul */}
+                <div className="flex items-start gap-2 px-3 py-2 rounded-md text-sm border bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="font-medium">Transfer dulu sebelum klik!</span>
+                    <p className="text-xs opacity-80 mt-0.5">
+                      Pastikan Anda sudah transfer SEBELUM klik tombol ini agar pengecekan bisa dilakukan otomatis, terimakasih.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Warning untuk non-owner saat global lock */}
+                {isGlobalLocked && !globalLock.isOwner && (
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-md text-sm border bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="font-medium">JANGAN TRANSFER DULU!</span>
+                      <p className="text-xs opacity-80 mt-0.5">
+                        Ada proses pengecekan dari user lain. Jangan transfer sampai tombol tersedia lagi dalam {formatCooldown(effectiveCooldown)}.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     {effectiveCooldown > 0 ? (
-                      <div className={cn(
-                        "flex-1 flex flex-col gap-1 px-3 py-2 rounded-md text-sm border",
-                        isGlobalLocked 
-                          ? globalLock.isOwner
-                            ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                            : "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
-                          : "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                      )}>
-                        <div className="flex items-center gap-1.5">
-                          <AlertTriangle className="h-3 w-3" />
-                          <span className="font-medium">
-                            {isGlobalLocked 
-                              ? globalLock.isOwner
-                                ? "Transfer dulu sebelum klik!"
-                                : "JANGAN TRANSFER DULU!"
-                              : `Tunggu ${formatCooldown(effectiveCooldown)}`
-                            }
-                          </span>
-                        </div>
-                        {isGlobalLocked && (
-                          <span className="text-xs opacity-80">
-                            {globalLock.isOwner 
-                              ? `Pastikan Anda sudah transfer SEBELUM klik tombol ini. Jika belum transfer, tunggu ${formatCooldown(effectiveCooldown)} lagi.`
-                              : `Ada proses pengecekan dari user lain. Jangan transfer sampai tombol tersedia lagi dalam ${formatCooldown(effectiveCooldown)}.`
-                            }
-                          </span>
-                        )}
+                      <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-md text-sm border bg-muted/50 text-muted-foreground border-muted">
+                        <Clock className="h-3 w-3" />
+                        <span>Tunggu {formatCooldown(effectiveCooldown)} untuk cek ulang</span>
                       </div>
                     ) : burstTriggeredAt ? (
                       <Button 
