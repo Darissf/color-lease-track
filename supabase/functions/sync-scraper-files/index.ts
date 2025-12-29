@@ -2094,6 +2094,1021 @@ Pastikan muncul banner:
 `,
 };
 
+// Windows files are fetched directly from public folder by get-scraper-file edge function
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const results: { file: string; status: string; error?: string }[] = [];
+    
+    for (const [filename, content] of Object.entries(SCRAPER_FILES)) {
+      try {
+        const { error } = await supabase.storage
+          .from('scraper-files')
+          .upload(filename, new Blob([content], { type: 'text/plain' }), {
+            upsert: true,
+            contentType: filename.endsWith('.js') ? 'application/javascript' : 'text/plain',
+          });
+        
+        if (error) throw error;
+        
+        results.push({ file: filename, status: 'success' });
+        console.log(\`[SYNC] Uploaded: \${filename}\`);
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        results.push({ file: filename, status: 'error', error: errorMsg });
+        console.error(\`[SYNC] Failed: \${filename} - \${errorMsg}\`);
+      }
+    }
+    
+    const successCount = results.filter(r => r.status === 'success').length;
+    const errorCount = results.filter(r => r.status === 'error').length;
+    
+    return new Response(JSON.stringify({
+      success: errorCount === 0,
+      message: \`Synced \${successCount}/\${results.length} files (v4.1.5)\`,
+      version: '4.1.5',
+      results,
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+    
+  } catch (error: unknown) {
+    console.error('[SYNC] Error:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: errorMsg,
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
+ * BCA iBanking Scraper - WINDOWS RDP VERSION v4.1.5
+ * 
+ * Versi Windows dari BCA Scraper untuk dijalankan di Windows RDP.
+ * Fitur sama dengan versi Linux, dengan penyesuaian untuk Windows.
+ * 
+ * Features:
+ * - Browser standby 24/7, siap dipakai kapan saja
+ * - LOGIN COOLDOWN: Respects BCA 5-minute login limit (skipped if logout successful)
+ * - SESSION REUSE: Burst mode reuses active session (no re-login)
+ * - FULL NAVIGATION LOOP: Step 5-6-7 per burst iteration for reliable data
+ * - STOP ON MATCH: Immediately exits loop when payment matched
+ * - POST-BURST COOLDOWN: 10s delay after burst ends to prevent restart loops
+ * - BURST TIMING RESET: VPS gets full duration from first fetch
+ * - Global scrape timeout (max 2 menit per scrape)
+ * - Safe frame operations dengan timeout protection
+ * - Session expired detection & auto-recovery
+ * - Periodic browser restart (memory leak prevention)
+ * - Retry with exponential backoff (3x retry)
+ * - Force kill & restart jika browser unresponsive
+ * - Page health check sebelum scrape
+ * - Server heartbeat reporting with login status
+ * - Error categorization
+ * 
+ * Usage: node bca-scraper-windows.js
+ */
+
+// ============ SCRAPER VERSION ============
+const SCRAPER_VERSION = "4.1.5-windows";
+const SCRAPER_BUILD_DATE = "2025-12-29";
+const SCRAPER_PLATFORM = "windows";
+// v4.1.5-windows: Windows RDP version with detailed logging
+// =========================================
+
+const puppeteer = require('puppeteer');
+const path = require('path');
+const fs = require('fs');
+
+// ============ JAKARTA TIMEZONE HELPER ============
+function getJakartaDate() {
+  const now = new Date();
+  const jakartaOffset = 7 * 60;
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const jakartaTime = new Date(utcTime + (jakartaOffset * 60000));
+  return jakartaTime;
+}
+
+function getJakartaDateString() {
+  const jakarta = getJakartaDate();
+  const day = String(jakarta.getDate()).padStart(2, '0');
+  const month = String(jakarta.getMonth() + 1).padStart(2, '0');
+  const year = jakarta.getFullYear();
+  const hours = String(jakarta.getHours()).padStart(2, '0');
+  const minutes = String(jakarta.getMinutes()).padStart(2, '0');
+  return \\\`\\\${year}-\\\${month}-\\\${day} \\\${hours}:\\\${minutes} WIB\\\`;
+}
+// =================================================
+
+// Load config from config.env (Windows path)
+const configPath = path.join(__dirname, 'config.env');
+if (fs.existsSync(configPath)) {
+  const envConfig = fs.readFileSync(configPath, 'utf-8');
+  envConfig.split('\\\\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex > 0) {
+        const key = trimmed.substring(0, eqIndex).trim();
+        let value = trimmed.substring(eqIndex + 1).trim();
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        process.env[key] = value;
+      }
+    }
+  });
+  
+  const configKeys = ['BCA_USER_ID', 'BCA_PIN', 'SECRET_KEY', 'WEBHOOK_URL', 'ACCOUNT_NUMBER', 'HEADLESS', 'DEBUG_MODE'];
+  console.log('[SCHEDULER] Loaded config.env:');
+  configKeys.forEach(k => {
+    if (process.env[k]) {
+      const val = k.includes('PIN') || k.includes('SECRET') ? '***' : process.env[k].substring(0, 30);
+      console.log(\\\`  \\\${k}=\\\${val}\\\${process.env[k].length > 30 ? '...' : ''}\\\`);
+    }
+  });
+}
+
+// Find Chrome/Chromium path for Windows
+function findChromiumPath() {
+  const windowsPaths = [
+    'C:\\\\\\\\Program Files\\\\\\\\Google\\\\\\\\Chrome\\\\\\\\Application\\\\\\\\chrome.exe',
+    'C:\\\\\\\\Program Files (x86)\\\\\\\\Google\\\\\\\\Chrome\\\\\\\\Application\\\\\\\\chrome.exe',
+    process.env.LOCALAPPDATA + '\\\\\\\\Google\\\\\\\\Chrome\\\\\\\\Application\\\\\\\\chrome.exe',
+    'C:\\\\\\\\Program Files\\\\\\\\Chromium\\\\\\\\Application\\\\\\\\chrome.exe',
+    'C:\\\\\\\\Program Files (x86)\\\\\\\\Chromium\\\\\\\\Application\\\\\\\\chrome.exe',
+    process.env.LOCALAPPDATA + '\\\\\\\\Chromium\\\\\\\\Application\\\\\\\\chrome.exe',
+    'C:\\\\\\\\Program Files (x86)\\\\\\\\Microsoft\\\\\\\\Edge\\\\\\\\Application\\\\\\\\msedge.exe',
+    'C:\\\\\\\\Program Files\\\\\\\\Microsoft\\\\\\\\Edge\\\\\\\\Application\\\\\\\\msedge.exe',
+  ];
+  
+  for (const p of windowsPaths) {
+    if (p && fs.existsSync(p)) {
+      console.log(\\\`[CHROMIUM] Found browser: \\\${p}\\\`);
+      return p;
+    }
+  }
+  
+  try {
+    const puppeteerPath = require('puppeteer').executablePath();
+    if (puppeteerPath && fs.existsSync(puppeteerPath)) {
+      console.log(\\\`[CHROMIUM] Found Puppeteer bundled: \\\${puppeteerPath}\\\`);
+      return puppeteerPath;
+    }
+  } catch (e) {}
+  
+  return null;
+}
+
+async function launchBrowserWithFallback() {
+  const chromiumPath = CONFIG.CHROMIUM_PATH;
+  
+  const browserArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--disable-extensions',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding',
+    '--window-size=1366,768',
+    '--disable-software-rasterizer',
+    '--disable-features=TranslateUI',
+    '--disable-ipc-flooding-protection'
+  ];
+  
+  if (chromiumPath && fs.existsSync(chromiumPath)) {
+    try {
+      log(\\\`Launching browser with: \\\${chromiumPath}\\\`);
+      const browser = await puppeteer.launch({
+        headless: CONFIG.HEADLESS,
+        executablePath: chromiumPath,
+        args: browserArgs,
+        timeout: 60000,
+        protocolTimeout: 120000
+      });
+      log('Browser launched successfully');
+      return browser;
+    } catch (err) {
+      log(\\\`Chrome launch failed: \\\${err.message}\\\`, 'WARN');
+      log('Trying Puppeteer bundled Chromium as fallback...', 'WARN');
+    }
+  }
+  
+  try {
+    log('Launching browser with Puppeteer bundled Chromium...');
+    const browser = await puppeteer.launch({
+      headless: CONFIG.HEADLESS,
+      args: browserArgs,
+      timeout: 60000,
+      protocolTimeout: 120000
+    });
+    log('Browser launched successfully with Puppeteer bundled Chromium');
+    return browser;
+  } catch (err) {
+    log(\\\`Puppeteer bundled Chromium also failed: \\\${err.message}\\\`, 'ERROR');
+    throw new Error(\\\`All Chromium launch attempts failed. Last error: \\\${err.message}\\\`);
+  }
+}
+
+const CONFIG = {
+  BCA_USER_ID: process.env.BCA_USER_ID || 'YOUR_KLIKBCA_USER_ID',
+  BCA_PIN: process.env.BCA_PIN || 'YOUR_KLIKBCA_PIN',
+  WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook',
+  SECRET_KEY: process.env.SECRET_KEY || 'YOUR_SECRET_KEY_HERE',
+  ACCOUNT_NUMBER: process.env.BCA_ACCOUNT_NUMBER || '1234567890',
+  HEADLESS: process.env.HEADLESS !== 'false',
+  SLOW_MO: parseInt(process.env.SLOW_MO) || 0,
+  TIMEOUT: parseInt(process.env.TIMEOUT) || 90000,
+  LOGIN_TIMEOUT: parseInt(process.env.LOGIN_TIMEOUT) || 30000,
+  SCRAPE_TIMEOUT: parseInt(process.env.SCRAPE_TIMEOUT) || 120000,
+  MAX_RETRIES: parseInt(process.env.MAX_RETRIES) || 3,
+  RETRY_DELAY: parseInt(process.env.RETRY_DELAY) || 15000,
+  CHROMIUM_PATH: process.env.CHROMIUM_PATH || findChromiumPath(),
+  DEBUG_MODE: process.env.DEBUG_MODE !== 'false',
+  CONFIG_POLL_INTERVAL: 60000,
+  WATCHDOG_INTERVAL: 300000,
+  BURST_CHECK_URL: process.env.BURST_CHECK_URL || (process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/bank-scraper-webhook', '/check-burst-command') : ''),
+  GLOBAL_SCRAPE_TIMEOUT: parseInt(process.env.GLOBAL_SCRAPE_TIMEOUT) || 120000,
+  MAX_SCRAPES_BEFORE_RESTART: parseInt(process.env.MAX_SCRAPES_BEFORE_RESTART) || 10,
+  MAX_UPTIME_MS: parseInt(process.env.MAX_UPTIME_MS) || 7200000,
+  FRAME_OPERATION_TIMEOUT: parseInt(process.env.FRAME_OPERATION_TIMEOUT) || 10000,
+  HEARTBEAT_INTERVAL: parseInt(process.env.HEARTBEAT_INTERVAL) || 300000,
+};
+
+const CONFIG_URL = CONFIG.WEBHOOK_URL.replace('/bank-scraper-webhook', '/get-scraper-config');
+const HEARTBEAT_URL = CONFIG.WEBHOOK_URL.replace('/bank-scraper-webhook', '/update-scraper-status');
+
+if (CONFIG.BCA_USER_ID === 'YOUR_KLIKBCA_USER_ID' || CONFIG.BCA_USER_ID === 'your_bca_user_id') {
+  console.error('ERROR: BCA_USER_ID belum dikonfigurasi!');
+  console.error('Edit file config.env dan masukkan User ID KlikBCA Anda.');
+  process.exit(1);
+}
+
+if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
+  console.error('ERROR: SECRET_KEY belum dikonfigurasi!');
+  console.error('Generate secret key di Bank Scraper Settings, lalu masukkan ke config.env');
+  process.exit(1);
+}
+
+console.log('');
+console.log('==========================================');
+console.log('  BCA SCRAPER - WINDOWS RDP v4.1.5');
+console.log('==========================================');
+console.log(\\\`  Version      : \\\${SCRAPER_VERSION} (\\\${SCRAPER_BUILD_DATE})\\\`);
+console.log(\\\`  Platform     : \\\${SCRAPER_PLATFORM}\\\`);
+console.log(\\\`  Timestamp    : \\\${new Date().toISOString()} (UTC)\\\`);
+console.log(\\\`  Jakarta Time : \\\${getJakartaDateString()}\\\`);
+console.log(\\\`  Chrome Path  : \\\${CONFIG.CHROMIUM_PATH || 'NOT FOUND!'}\\\`);
+console.log(\\\`  User ID      : \\\${CONFIG.BCA_USER_ID.substring(0, 3)}***\\\`);
+console.log(\\\`  Account      : \\\${CONFIG.ACCOUNT_NUMBER}\\\`);
+console.log(\\\`  Headless     : \\\${CONFIG.HEADLESS}\\\`);
+console.log(\\\`  Debug Mode   : \\\${CONFIG.DEBUG_MODE}\\\`);
+console.log(\\\`  Webhook URL  : \\\${CONFIG.WEBHOOK_URL.substring(0, 50)}...\\\`);
+console.log(\\\`  Config URL   : \\\${CONFIG_URL.substring(0, 50)}...\\\`);
+console.log('==========================================');
+console.log('  WINDOWS RDP FEATURES:');
+console.log('  - Native Windows paths');
+console.log('  - Chrome/Edge detection');
+console.log('  - No systemd (use Task Scheduler)');
+console.log('  ULTRA-ROBUST FEATURES:');
+console.log(\\\`  - Global Timeout    : \\\${CONFIG.GLOBAL_SCRAPE_TIMEOUT / 1000}s\\\`);
+console.log(\\\`  - Browser Restart   : Every 50 logins or \\\${CONFIG.MAX_UPTIME_MS / 3600000}h\\\`);
+console.log(\\\`  - Frame Timeout     : \\\${CONFIG.FRAME_OPERATION_TIMEOUT / 1000}s\\\`);
+console.log(\\\`  - Heartbeat         : Every \\\${CONFIG.HEARTBEAT_INTERVAL / 60000}m\\\`);
+console.log('==========================================');
+console.log('');
+
+if (!CONFIG.CHROMIUM_PATH) {
+  console.log('[WARN] Chrome/Chromium not found - will try Puppeteer bundled at runtime');
+  console.log('[INFO] To install Chrome: Download from https://www.google.com/chrome/');
+} else if (!fs.existsSync(CONFIG.CHROMIUM_PATH)) {
+  console.log(\\\`[WARN] Chrome path invalid: \\\${CONFIG.CHROMIUM_PATH} - will try fallback\\\`);
+} else {
+  console.log(\\\`[OK] Primary Chrome: \\\${CONFIG.CHROMIUM_PATH}\\\`);
+}
+console.log('[OK] Fallback: Puppeteer bundled Chromium available');
+console.log('');
+
+let browser = null;
+let page = null;
+let isIdle = true;
+let lastScrapeTime = 0;
+let currentIntervalMs = 600000;
+let isBurstMode = false;
+let burstEndTime = 0;
+let browserStartTime = null;
+let scrapeCount = 0;
+let lastError = null;
+let errorCount = 0;
+let successCount = 0;
+let heartbeatInterval = null;
+
+let lastLoginTime = 0;
+let isLoggedIn = false;
+const LOGIN_COOLDOWN_MS = 300000;
+let lastLogoutSuccess = false;
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const randomDelay = (min, max) => delay(Math.floor(Math.random() * (max - min + 1)) + min);
+const log = (msg, level = 'INFO') => console.log(\\\`[\\\${new Date().toISOString()}] [\\\${level}] \\\${msg}\\\`);
+
+const ERROR_TYPES = {
+  LOGIN_FAILED: 'LOGIN_FAILED',
+  SESSION_EXPIRED: 'SESSION_EXPIRED',
+  FRAME_NOT_FOUND: 'FRAME_NOT_FOUND',
+  NAVIGATION_TIMEOUT: 'NAVIGATION_TIMEOUT',
+  OPERATION_TIMEOUT: 'OPERATION_TIMEOUT',
+  BROWSER_CRASHED: 'BROWSER_CRASHED',
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  UNKNOWN: 'UNKNOWN',
+};
+
+function categorizeError(error) {
+  const msg = (error.message || '').toLowerCase();
+  if (msg.includes('login') || msg.includes('credential') || msg.includes('still on login')) return ERROR_TYPES.LOGIN_FAILED;
+  if (msg.includes('session') || msg.includes('expired') || msg.includes('timeout')) return ERROR_TYPES.SESSION_EXPIRED;
+  if (msg.includes('frame') || msg.includes('not found')) return ERROR_TYPES.FRAME_NOT_FOUND;
+  if (msg.includes('navigation') || msg.includes('goto')) return ERROR_TYPES.NAVIGATION_TIMEOUT;
+  if (msg.includes('timeout')) return ERROR_TYPES.OPERATION_TIMEOUT;
+  if (msg.includes('browser') || msg.includes('crash') || msg.includes('target closed')) return ERROR_TYPES.BROWSER_CRASHED;
+  if (msg.includes('network') || msg.includes('fetch') || msg.includes('econnrefused')) return ERROR_TYPES.NETWORK_ERROR;
+  return ERROR_TYPES.UNKNOWN;
+}
+
+async function saveDebug(page, name, type = 'png') {
+  if (!CONFIG.DEBUG_MODE) return;
+  try {
+    const debugDir = path.join(__dirname, 'debug');
+    if (!fs.existsSync(debugDir)) fs.mkdirSync(debugDir, { recursive: true });
+    if (type === 'png') {
+      const filePath = path.join(debugDir, \\\`debug-\\\${name}.png\\\`);
+      await page.screenshot({ path: filePath, fullPage: true });
+      log(\\\`Screenshot: \\\${filePath}\\\`);
+    } else {
+      const html = await page.content();
+      const filePath = path.join(debugDir, \\\`debug-\\\${name}.html\\\`);
+      fs.writeFileSync(filePath, html);
+      log(\\\`HTML saved: \\\${filePath}\\\`);
+    }
+  } catch (e) { log(\\\`Debug save failed: \\\${e.message}\\\`, 'WARN'); }
+}
+
+async function safeFrameOperation(operation, timeoutMs = CONFIG.FRAME_OPERATION_TIMEOUT, operationName = 'operation') {
+  try {
+    const opPromise = operation();
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error(\\\`\\\${operationName}_TIMEOUT\\\`)), timeoutMs));
+    return await Promise.race([opPromise, timeoutPromise]);
+  } catch (e) {
+    log(\\\`\\\${operationName} failed: \\\${e.message}\\\`, 'WARN');
+    throw e;
+  }
+}
+
+async function retryWithBackoff(fn, maxRetries = 3, operationName = 'operation') {
+  const delays = [5000, 15000, 45000];
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try { return await fn(); } 
+    catch (e) {
+      log(\\\`\\\${operationName} failed (attempt \\\${attempt}/\\\${maxRetries}): \\\${e.message}\\\`, 'WARN');
+      if (attempt < maxRetries) {
+        const delayMs = delays[attempt - 1] || 30000;
+        log(\\\`Retrying \\\${operationName} in \\\${delayMs / 1000}s...\\\`);
+        await delay(delayMs);
+      } else throw e;
+    }
+  }
+}
+
+async function isPageHealthy() {
+  if (!page) return false;
+  try {
+    const result = await Promise.race([
+      page.evaluate(() => document.readyState),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('health_check_timeout')), 5000))
+    ]);
+    return result === 'complete' || result === 'interactive';
+  } catch (e) {
+    log(\\\`Page health check failed: \\\${e.message}\\\`, 'WARN');
+    return false;
+  }
+}
+
+async function waitForFrames(targetCount, maxWait = 15000) {
+  const startTime = Date.now();
+  while (Date.now() - startTime < maxWait) {
+    const frames = page.frames();
+    if (frames.length >= targetCount) { log(\\\`Frames ready: \\\${frames.length}/\\\${targetCount}\\\`); return true; }
+    await delay(500);
+  }
+  log(\\\`Timeout waiting for \\\${targetCount} frames, got \\\${page.frames().length}\\\`, 'WARN');
+  return false;
+}
+
+async function checkSessionExpired() {
+  if (!page) return true;
+  try {
+    const content = await safeFrameOperation(() => page.content(), 5000, 'GET_PAGE_CONTENT');
+    const expiredIndicators = ['session expired', 'sesi berakhir', 'login again', 'silakan login', 'waktu habis', 'session timeout', 'your session has expired', 'please login again'];
+    const contentLower = content.toLowerCase();
+    for (const indicator of expiredIndicators) {
+      if (contentLower.includes(indicator)) { log(\\\`Session expired detected: "\\\${indicator}"\\\`, 'WARN'); return true; }
+    }
+    return false;
+  } catch (e) { log(\\\`Session check failed: \\\${e.message}\\\`, 'WARN'); return true; }
+}
+
+async function sendHeartbeat(status = 'running', extraData = {}) {
+  try {
+    const payload = {
+      secret_key: CONFIG.SECRET_KEY, status, version: SCRAPER_VERSION, platform: SCRAPER_PLATFORM,
+      uptime_ms: browserStartTime ? Date.now() - browserStartTime : 0,
+      scrape_count: scrapeCount, error_count: errorCount, success_count: successCount,
+      is_logged_in: isLoggedIn, is_burst_mode: isBurstMode, last_error: lastError,
+      timestamp: new Date().toISOString(), jakarta_time: getJakartaDateString(), ...extraData
+    };
+    const response = await fetch(HEARTBEAT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    if (response.ok) log(\\\`Heartbeat sent: \\\${status}\\\`);
+    else log(\\\`Heartbeat failed: \\\${response.status}\\\`, 'WARN');
+  } catch (e) { log(\\\`Heartbeat error: \\\${e.message}\\\`, 'WARN'); }
+}
+
+function startHeartbeat() {
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  heartbeatInterval = setInterval(() => sendHeartbeat('running'), CONFIG.HEARTBEAT_INTERVAL);
+  log(\\\`Heartbeat started (every \\\${CONFIG.HEARTBEAT_INTERVAL / 60000}m)\\\`);
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; log('Heartbeat stopped'); }
+}
+
+async function fetchServerConfig() {
+  try {
+    const url = \\\`\\\${CONFIG_URL}?secret_key=\\\${encodeURIComponent(CONFIG.SECRET_KEY)}\\\`;
+    const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) { log(\\\`Config fetch failed: \\\${response.status}\\\`, 'WARN'); return null; }
+    return await response.json();
+  } catch (e) { log(\\\`Config fetch error: \\\${e.message}\\\`, 'WARN'); return null; }
+}
+
+async function checkBurstCommand() {
+  if (!CONFIG.BURST_CHECK_URL) return null;
+  try {
+    const url = \\\`\\\${CONFIG.BURST_CHECK_URL}?secret_key=\\\${encodeURIComponent(CONFIG.SECRET_KEY)}\\\`;
+    const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (e) { log(\\\`Burst check error: \\\${e.message}\\\`, 'WARN'); return null; }
+}
+
+async function initBrowser() {
+  log('Initializing browser...');
+  try {
+    browser = await launchBrowserWithFallback();
+    page = await browser.newPage();
+    await page.setViewport({ width: 1366, height: 768 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    page.on('dialog', async dialog => { log(\\\`Dialog: \\\${dialog.type()} - \\\${dialog.message()}\\\`); await dialog.accept(); });
+    browserStartTime = Date.now(); scrapeCount = 0;
+    log('Browser initialized successfully');
+    startHeartbeat();
+    return true;
+  } catch (e) { log(\\\`Browser init failed: \\\${e.message}\\\`, 'ERROR'); lastError = e.message; errorCount++; return false; }
+}
+
+async function closeBrowser() {
+  stopHeartbeat();
+  if (browser) { try { await browser.close(); log('Browser closed'); } catch (e) { log(\\\`Browser close error: \\\${e.message}\\\`, 'WARN'); } browser = null; page = null; }
+  isLoggedIn = false;
+}
+
+async function restartBrowser() { log('Restarting browser...'); await closeBrowser(); await delay(2000); return await initBrowser(); }
+
+async function bcaLogin() {
+  const now = Date.now();
+  const timeSinceLastLogin = now - lastLoginTime;
+  if (!lastLogoutSuccess && timeSinceLastLogin < LOGIN_COOLDOWN_MS) {
+    const waitTime = Math.ceil((LOGIN_COOLDOWN_MS - timeSinceLastLogin) / 1000);
+    log(\\\`Login cooldown active. Waiting \\\${waitTime}s...\\\`);
+    await delay(LOGIN_COOLDOWN_MS - timeSinceLastLogin);
+  }
+  log('Starting BCA login...'); lastLogoutSuccess = false;
+  try {
+    await page.goto('https://ibank.klikbca.com/', { waitUntil: 'networkidle2', timeout: CONFIG.LOGIN_TIMEOUT });
+    await delay(2000); await saveDebug(page, 'login-page');
+    await page.type('input[name="value(user_id)"]', CONFIG.BCA_USER_ID, { delay: 100 });
+    await page.type('input[name="value(pswd)"]', CONFIG.BCA_PIN, { delay: 100 });
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.LOGIN_TIMEOUT }),
+      page.click('input[type="submit"], input[name="value(Submit)"]')
+    ]);
+    await delay(3000);
+    const frameCount = page.frames().length;
+    log(\\\`Post-login frame count: \\\${frameCount}\\\`);
+    if (frameCount < 3) { await saveDebug(page, 'login-failed'); throw new Error('Login failed - still on login page or insufficient frames'); }
+    lastLoginTime = Date.now(); isLoggedIn = true;
+    log('BCA login successful!'); await saveDebug(page, 'login-success');
+    return true;
+  } catch (e) { log(\\\`BCA login failed: \\\${e.message}\\\`, 'ERROR'); lastError = e.message; errorCount++; isLoggedIn = false; await saveDebug(page, 'login-error'); throw e; }
+}
+
+async function safeLogout() {
+  if (!isLoggedIn || !page) { log('Not logged in, skipping logout'); return; }
+  log('Performing safe logout...');
+  try {
+    const frames = page.frames(); let menuFrame = null;
+    for (const frame of frames) { try { const hasLogout = await frame.$('#gotohome'); if (hasLogout) { menuFrame = frame; break; } } catch (e) { continue; } }
+    if (menuFrame) { await menuFrame.click('#gotohome'); await delay(2000); log('Logout successful via #gotohome'); lastLogoutSuccess = true; }
+    else {
+      for (const frame of frames) {
+        try { await frame.evaluate(() => { if (typeof goToPage === 'function') goToPage('logout'); }); await delay(2000); log('Logout successful via goToPage'); lastLogoutSuccess = true; break; } catch (e) { continue; }
+      }
+    }
+    isLoggedIn = false;
+  } catch (e) { log(\\\`Logout error (non-fatal): \\\${e.message}\\\`, 'WARN'); isLoggedIn = false; }
+}
+
+async function scrapeMutations() {
+  log('Starting mutation scrape...');
+  try {
+    const frames = page.frames();
+    log(\\\`[Step 5] Available frames: \\\${frames.length}\\\`);
+    frames.forEach((f, i) => { log(\\\`  Frame \\\${i}: \\\${f.name() || '(no name)'} - \\\${f.url().substring(0, 50)}\\\`); });
+    
+    let menuFrame = null;
+    for (const frame of frames) { const frameName = frame.name(); if (frameName === 'menu' || frameName.includes('menu')) { menuFrame = frame; log(\\\`[Step 5] Found menu frame: \\\${frameName}\\\`); break; } }
+    if (!menuFrame) {
+      for (const frame of frames) { try { const hasAccountInfo = await frame.$('a[href*="accountstmt"]') || await frame.$('a:contains("Informasi Rekening")') || await frame.evaluate(() => document.body.textContent.includes('Informasi Rekening')); if (hasAccountInfo) { menuFrame = frame; log('[Step 5] Found menu frame by content'); break; } } catch (e) { continue; } }
+    }
+    if (!menuFrame) throw new Error('FRAME_NOT_FOUND: Menu frame not found');
+    
+    log('[Step 5] Clicking Informasi Rekening...');
+    try {
+      await menuFrame.evaluate(() => { const links = Array.from(document.querySelectorAll('a')); for (const link of links) { if (link.textContent.includes('Informasi Rekening')) { link.click(); return true; } } if (typeof goToPage === 'function') { goToPage('accountstmt.do'); return true; } return false; });
+      log('[Step 5] Informasi Rekening click: SUCCESS');
+    } catch (e) { log(\\\`[Step 5] Informasi Rekening click: FAILED - \\\${e.message}\\\`, 'ERROR'); throw new Error('CLICK_FAILED: Informasi Rekening'); }
+    
+    await delay(2000);
+    
+    log('[Step 5] Clicking Mutasi Rekening...');
+    try {
+      await menuFrame.evaluate(() => { const links = Array.from(document.querySelectorAll('a')); for (const link of links) { if (link.textContent.includes('Mutasi Rekening')) { link.click(); return true; } } if (typeof goToPage === 'function') { goToPage('balanceinquiry.do'); return true; } return false; });
+      log('[Step 5] Mutasi Rekening click: SUCCESS');
+    } catch (e) { log(\\\`[Step 5] Mutasi Rekening click: FAILED - \\\${e.message}\\\`, 'ERROR'); throw new Error('CLICK_FAILED: Mutasi Rekening'); }
+    
+    await delay(3000);
+    log('[Step 6] Setting date range and clicking Lihat...');
+    
+    const updatedFrames = page.frames(); let atmFrame = null;
+    for (const frame of updatedFrames) { const frameName = frame.name(); if (frameName === 'atm' || frameName.includes('atm')) { atmFrame = frame; log(\\\`[Step 6] Found atm frame: \\\${frameName}\\\`); break; } }
+    if (!atmFrame) { for (const frame of updatedFrames) { try { const hasDateInput = await frame.$('input[name*="date"]') || await frame.$('select[name*="date"]'); if (hasDateInput) { atmFrame = frame; log('[Step 6] Found atm frame by date input'); break; } } catch (e) { continue; } } }
+    if (!atmFrame) throw new Error('FRAME_NOT_FOUND: ATM frame not found');
+    
+    const today = getJakartaDate();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    log(\\\`[Step 6] Setting date: \\\${day}/\\\${month}/\\\${year}\\\`);
+    
+    try {
+      await atmFrame.select('select[name="value(startDt)"]', day);
+      await atmFrame.select('select[name="value(startMt)"]', month);
+      await atmFrame.select('select[name="value(startYr)"]', String(year));
+      await atmFrame.select('select[name="value(endDt)"]', day);
+      await atmFrame.select('select[name="value(endMt)"]', month);
+      await atmFrame.select('select[name="value(endYr)"]', String(year));
+    } catch (e) { log(\\\`Date selection warning: \\\${e.message}\\\`, 'WARN'); }
+    
+    await atmFrame.click('input[name="value(submit1)"], input[type="submit"]');
+    await delay(3000);
+    
+    log('[Step 7] Parsing mutation results...');
+    const finalFrames = page.frames(); let resultFrame = null;
+    for (const frame of finalFrames) { const frameName = frame.name(); if (frameName === 'atm' || frameName.includes('atm')) { resultFrame = frame; break; } }
+    if (!resultFrame) resultFrame = atmFrame;
+    
+    const mutations = await resultFrame.evaluate(() => {
+      const results = [];
+      const rows = document.querySelectorAll('table tr');
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 3) {
+          const dateCell = cells[0]?.textContent?.trim();
+          const descCell = cells[1]?.textContent?.trim();
+          const amountCell = cells[2]?.textContent?.trim();
+          if (dateCell && descCell && amountCell) {
+            const amountStr = amountCell.replace(/[^\\\\d.-]/g, '');
+            const amount = parseFloat(amountStr) || 0;
+            if (amount !== 0) { results.push({ date: dateCell, description: descCell, amount: Math.abs(amount), type: amountCell.includes('CR') || amount > 0 ? 'credit' : 'debit' }); }
+          }
+        }
+      });
+      return results;
+    });
+    
+    log(\\\`[Step 7] Found \\\${mutations.length} mutations\\\`);
+    scrapeCount++; successCount++;
+    return mutations;
+  } catch (e) { log(\\\`Scrape failed: \\\${e.message}\\\`, 'ERROR'); lastError = e.message; errorCount++; await saveDebug(page, 'scrape-error'); throw e; }
+}
+
+async function sendToWebhook(mutations) {
+  try {
+    const payload = { secret_key: CONFIG.SECRET_KEY, mutations, version: SCRAPER_VERSION, platform: SCRAPER_PLATFORM, timestamp: new Date().toISOString(), jakarta_time: getJakartaDateString() };
+    const response = await fetch(CONFIG.WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const result = await response.json();
+    if (result.success) { log(\\\`Webhook success: \\\${mutations.length} mutations sent, \\\${result.matched || 0} matched\\\`); return result; }
+    else { log(\\\`Webhook error: \\\${result.error}\\\`, 'WARN'); return result; }
+  } catch (e) { log(\\\`Webhook send failed: \\\${e.message}\\\`, 'ERROR'); return { success: false, error: e.message }; }
+}
+
+async function runScrapeCycle(isBurst = false) {
+  if (!isIdle) { log('Scrape already in progress, skipping'); return; }
+  isIdle = false;
+  log(\\\`Starting scrape cycle (burst: \\\${isBurst})\\\`);
+  try {
+    const healthy = await isPageHealthy();
+    if (!healthy) { log('Page unhealthy, restarting browser...'); await restartBrowser(); }
+    const uptime = browserStartTime ? Date.now() - browserStartTime : 0;
+    if (scrapeCount >= CONFIG.MAX_SCRAPES_BEFORE_RESTART || uptime >= CONFIG.MAX_UPTIME_MS) { log(\\\`Browser restart needed (scrapes: \\\${scrapeCount}, uptime: \\\${Math.round(uptime/60000)}m)\\\`); await restartBrowser(); }
+    if (!isLoggedIn) await bcaLogin();
+    const mutations = await scrapeMutations();
+    const result = await sendToWebhook(mutations);
+    if (isBurst && result.matched > 0) { log('Payment matched! Stopping burst mode.'); isBurstMode = false; }
+    lastScrapeTime = Date.now();
+  } catch (e) {
+    log(\\\`Scrape cycle failed: \\\${e.message}\\\`, 'ERROR');
+    const errorType = categorizeError(e);
+    log(\\\`Error type: \\\${errorType}\\\`);
+    if (errorType === ERROR_TYPES.SESSION_EXPIRED || errorType === ERROR_TYPES.BROWSER_CRASHED) await restartBrowser();
+    else if (errorType === ERROR_TYPES.LOGIN_FAILED) isLoggedIn = false;
+  } finally { isIdle = true; }
+}
+
+async function runBurstMode(config) {
+  log(\\\`Starting burst mode: \\\${config.duration_seconds}s @ \\\${config.interval_seconds}s interval\\\`);
+  isBurstMode = true; burstEndTime = Date.now() + (config.duration_seconds * 1000);
+  let iteration = 0; const maxIterations = Math.ceil(config.duration_seconds / config.interval_seconds);
+  while (isBurstMode && Date.now() < burstEndTime && iteration < maxIterations) {
+    iteration++; log(\\\`Burst iteration \\\${iteration}/\\\${maxIterations}\\\`);
+    await runScrapeCycle(true);
+    if (!isBurstMode) { log('Burst stopped (match found or manual stop)'); break; }
+    if (Date.now() < burstEndTime) await delay(config.interval_seconds * 1000);
+  }
+  log('Burst mode ended'); isBurstMode = false;
+  await safeLogout();
+  log('Post-burst cooldown: 10s'); await delay(10000);
+}
+
+async function main() {
+  log('Starting BCA Scraper (Windows RDP)...');
+  const success = await initBrowser();
+  if (!success) { log('Failed to initialize browser. Exiting.', 'ERROR'); process.exit(1); }
+  await sendHeartbeat('started');
+  while (true) {
+    try {
+      const serverConfig = await fetchServerConfig();
+      if (serverConfig) {
+        if (serverConfig.scrape_interval_minutes) currentIntervalMs = serverConfig.scrape_interval_minutes * 60 * 1000;
+        if (!serverConfig.is_active) { log('Scraper disabled on server. Waiting...'); await delay(60000); continue; }
+      }
+      const burstCommand = await checkBurstCommand();
+      if (burstCommand && burstCommand.burst_in_progress) {
+        await runBurstMode({ interval_seconds: burstCommand.burst_interval_seconds || 10, duration_seconds: burstCommand.burst_duration_seconds || 120 });
+      } else {
+        const timeSinceLastScrape = Date.now() - lastScrapeTime;
+        if (timeSinceLastScrape >= currentIntervalMs) { await runScrapeCycle(false); await safeLogout(); }
+        else { const waitTime = Math.min(currentIntervalMs - timeSinceLastScrape, 60000); await delay(waitTime); }
+      }
+    } catch (e) { log(\\\`Main loop error: \\\${e.message}\\\`, 'ERROR'); await delay(30000); }
+  }
+}
+
+process.on('SIGINT', async () => { log('Received SIGINT, shutting down...'); await sendHeartbeat('stopped'); await safeLogout(); await closeBrowser(); process.exit(0); });
+process.on('SIGTERM', async () => { log('Received SIGTERM, shutting down...'); await sendHeartbeat('stopped'); await safeLogout(); await closeBrowser(); process.exit(0); });
+
+main().catch(e => { console.error('Fatal error:', e); process.exit(1); });
+\`,
+
+  'install-windows.bat': \`@echo off
+REM ============================================
+REM BCA Scraper Windows - Installer v4.1.5
+REM ============================================
+
+echo.
+echo ============================================
+echo    BCA Scraper Windows - Installer v4.1.5
+echo ============================================
+echo.
+
+REM Check Node.js installation
+echo [1/4] Checking Node.js installation...
+where node >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo.
+    echo [ERROR] Node.js is NOT installed!
+    echo.
+    echo Please download and install Node.js from:
+    echo https://nodejs.org/
+    echo.
+    echo After installation, restart Command Prompt and run this script again.
+    echo.
+    pause
+    exit /b 1
+)
+
+for /f "tokens=*" %%i in ('node -v') do set NODE_VERSION=%%i
+echo [OK] Node.js found: %NODE_VERSION%
+
+REM Check npm
+echo.
+echo [2/4] Checking npm...
+where npm >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] npm is NOT installed!
+    echo Please reinstall Node.js from https://nodejs.org/
+    pause
+    exit /b 1
+)
+
+for /f "tokens=*" %%i in ('npm -v') do set NPM_VERSION=%%i
+echo [OK] npm found: v%NPM_VERSION%
+
+REM Install Puppeteer
+echo.
+echo [3/4] Installing Puppeteer (this may take a few minutes)...
+npm install puppeteer
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Failed to install Puppeteer!
+    echo Please check your internet connection and try again.
+    pause
+    exit /b 1
+)
+echo [OK] Puppeteer installed successfully!
+
+REM Create config.env from template
+echo.
+echo [4/4] Setting up configuration...
+if not exist config.env (
+    if exist config.env.template (
+        copy config.env.template config.env >nul
+        echo [OK] config.env created from template
+        echo.
+        echo ============================================
+        echo IMPORTANT: Edit config.env with your BCA credentials!
+        echo ============================================
+    ) else (
+        echo [WARN] config.env.template not found
+        echo Please create config.env manually
+    )
+) else (
+    echo [OK] config.env already exists
+)
+
+REM Create debug folder
+if not exist debug (
+    mkdir debug
+    echo [OK] Created debug folder
+)
+
+echo.
+echo ============================================
+echo    Installation Complete!
+echo ============================================
+echo.
+echo NEXT STEPS:
+echo.
+echo 1. Edit config.env with Notepad:
+echo    notepad config.env
+echo.
+echo 2. Fill in these values:
+echo    - BCA_USER_ID     : Your KlikBCA User ID
+echo    - BCA_PIN         : Your KlikBCA PIN
+echo    - BCA_ACCOUNT_NUMBER : Your BCA account number
+echo    - SECRET_KEY      : Get from Bank Scraper Settings
+echo    - WEBHOOK_URL     : Already filled (don't change)
+echo.
+echo 3. Test the scraper:
+echo    run-windows.bat
+echo.
+echo 4. For auto-start on login:
+echo    setup-autostart.bat
+echo.
+echo ============================================
+echo.
+pause
+\`,
+
+  'run-windows.bat': \`@echo off
+REM ============================================
+REM BCA Scraper Windows - Run Script
+REM ============================================
+
+echo.
+echo ============================================
+echo    BCA Scraper Windows v4.1.5
+echo ============================================
+echo.
+echo Starting scraper...
+echo Press Ctrl+C to stop.
+echo.
+
+cd /d "%~dp0"
+node bca-scraper-windows.js
+
+echo.
+echo Scraper stopped.
+pause
+\`,
+
+  'setup-autostart.bat': \`@echo off
+REM ============================================
+REM BCA Scraper Windows - Setup Auto-Start
+REM ============================================
+
+echo.
+echo ============================================
+echo    Setup Auto-Start (Task Scheduler)
+echo ============================================
+echo.
+
+set SCRAPER_DIR=%~dp0
+set SCRAPER_DIR=%SCRAPER_DIR:~0,-1%
+
+if not exist "%SCRAPER_DIR%\\config.env" (
+    echo [ERROR] config.env not found!
+    echo Please run install-windows.bat first and configure config.env
+    pause
+    exit /b 1
+)
+
+echo This will create a Windows Task Scheduler task that:
+echo - Runs the scraper automatically when you log in
+echo - Restarts the scraper if it crashes
+echo.
+echo Scraper location: %SCRAPER_DIR%
+echo.
+
+set /p CONFIRM="Do you want to continue? (Y/N): "
+if /i not "%CONFIRM%"=="Y" (
+    echo Cancelled.
+    pause
+    exit /b 0
+)
+
+echo.
+echo Creating scheduled task...
+
+schtasks /delete /tn "BCA-Scraper" /f >nul 2>&1
+schtasks /create /tn "BCA-Scraper" /tr "cmd /c cd /d \\"%SCRAPER_DIR%\\" && node bca-scraper-windows.js" /sc onlogon /rl highest /f
+
+if %ERRORLEVEL% neq 0 (
+    echo.
+    echo [ERROR] Failed to create scheduled task!
+    echo You may need to run this script as Administrator.
+    echo.
+    echo Manual alternative:
+    echo 1. Press Win+R, type: shell:startup
+    echo 2. Create a shortcut to run-windows.bat in that folder
+    pause
+    exit /b 1
+)
+
+echo.
+echo ============================================
+echo    Auto-Start Setup Complete!
+echo ============================================
+echo.
+echo Task "BCA-Scraper" created successfully.
+echo.
+echo The scraper will now start automatically when you log in.
+echo.
+echo To manage the task:
+echo - Open Task Scheduler (taskschd.msc)
+echo - Find "BCA-Scraper" in the task list
+echo.
+echo To remove auto-start:
+echo   schtasks /delete /tn "BCA-Scraper" /f
+echo.
+pause
+\`,
+
+  'config.env.template-windows': \`# ============================================================
+# BCA Windows RDP Scraper Configuration
+# ============================================================
+# Isi file ini dengan kredensial Anda, lalu rename ke config.env
+# ============================================================
+
+# ------ BCA Credentials (WAJIB) ------
+BCA_USER_ID=your_bca_user_id
+BCA_PIN=your_bca_pin
+BCA_ACCOUNT_NUMBER=your_account_number
+
+# ------ Webhook Configuration (auto-filled dari UI) ------
+WEBHOOK_URL=https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook
+SECRET_KEY=YOUR_SECRET_KEY_HERE
+
+# ------ Optional Settings ------
+SCRAPE_INTERVAL=5
+HEADLESS=false
+DEBUG_MODE=true
+\`,
+
+  'README-WINDOWS.md': \`# BCA Scraper - Windows RDP Version v4.1.5
+
+Versi Windows dari BCA Bank Scraper untuk dijalankan di Windows RDP (Remote Desktop).
+
+## Keunggulan Windows RDP
+
+1. **Visual Debugging** - Bisa lihat browser langsung (HEADLESS=false)
+2. **Lebih Mudah Debug** - Tidak perlu SSH, langsung RDP
+3. **Parallel Testing** - Cross-check dengan VPS Linux
+4. **Backup** - Jika VPS Linux down, Windows tetap jalan
+
+## Requirements
+
+- Windows 10/11 atau Windows Server
+- Node.js 18+ (Download: https://nodejs.org)
+- Google Chrome atau Microsoft Edge
+
+## Instalasi Cepat
+
+### 1. Download & Extract
+
+Download file ZIP dari Bank Scraper Settings, extract ke folder (contoh: C:\\\\bca-scraper\\\\)
+
+### 2. Jalankan Installer
+
+Double-click install-windows.bat
+
+### 3. Edit Konfigurasi
+
+Edit file config.env dengan Notepad:
+- BCA_USER_ID=your_klikbca_user_id
+- BCA_PIN=your_klikbca_pin
+- BCA_ACCOUNT_NUMBER=1234567890
+- SECRET_KEY=vps_xxxxxxxxxxxxx  <- Dari Bank Scraper Settings
+
+### 4. Test Scraper
+
+Double-click run-windows.bat
+
+### 5. Setup Auto-Start (Opsional)
+
+Jalankan setup-autostart.bat untuk auto-start saat login Windows.
+
+## VPN Setup (Indonesia IP)
+
+Karena BCA harus diakses dari IP Indonesia:
+1. Install OpenVPN GUI: https://openvpn.net/client/
+2. Download file .ovpn dari VPN provider
+3. Pilih server Indonesia
+4. Connect VPN sebelum menjalankan scraper
+
+## Troubleshooting
+
+### Error: Node.js not found
+- Download & install dari https://nodejs.org
+- Restart Command Prompt setelah install
+
+### Browser tidak muncul
+- Set HEADLESS=false di config.env
+- Restart scraper
+
+### Login BCA gagal
+- Cek User ID dan PIN di config.env
+- Pastikan VPN Indonesia aktif
+
+## File Structure
+
+C:\\\\bca-scraper\\\\
+├── bca-scraper-windows.js  <- Main scraper script
+├── config.env              <- Konfigurasi (WAJIB edit!)
+├── install-windows.bat     <- Installer
+├── run-windows.bat         <- Runner script
+├── setup-autostart.bat     <- Auto-start setup
+├── debug\\\\                  <- Folder screenshot debug
+└── node_modules\\\\           <- Dependencies
+
+---
+Version: 4.1.5-windows
+Build Date: 2025-12-29
+\`,
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
