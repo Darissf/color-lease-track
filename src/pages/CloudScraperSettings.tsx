@@ -582,14 +582,20 @@ export default function BankScraperSettings() {
       // Add update instructions
       const updateInstructions = `
 ================================================================================
-VPS Bank Scraper - Update v3.0.0 (Persistent Browser Mode - 24 Jam)
+VPS Bank Scraper - Update v4.0.0 (Ultra-Robust Mode)
 ================================================================================
 
 PERUBAHAN UTAMA:
-- Persistent Browser Mode: Browser tetap hidup 24/7, tidak restart setiap scrape
-- Tidak ada resource limits: VPS dengan spek tinggi bisa maksimal
-- Node.js heap dinaikkan ke 4GB
-- scheduler.js DIHAPUS, diganti bca-scraper.js sebagai daemon utama
+- Ultra-Robust Mode: Script TIDAK PERNAH STUCK & SELALU PULIH OTOMATIS
+- Global Scrape Timeout: Max 2 menit per scrape, auto-abort jika lewat
+- Safe Frame Operations: Semua operasi frame dengan timeout protection
+- Session Expired Detection: Auto-detect & restart browser
+- Periodic Browser Restart: Setiap 2 jam atau 10 scrapes (prevent memory leak)
+- Retry with Exponential Backoff: 3x retry (5s → 15s → 45s)
+- Force Kill & Restart: Nuclear option jika browser unresponsive
+- Page Health Check: Verify page sebelum scrape
+- Server Heartbeat: Report status, uptime, errors ke server
+- Error Categorization: LOGIN_FAILED, TIMEOUT, NETWORK, SESSION_EXPIRED, etc
 
 ================================================================================
 LANGKAH UPDATE:
@@ -603,7 +609,7 @@ LANGKAH UPDATE:
 
 3. UPLOAD FILE BARU:
    Upload semua file dari ZIP ini ke /root/bca-scraper/:
-   - bca-scraper.js (daemon utama)
+   - bca-scraper.js (daemon utama v4.0.0)
    - bca-scraper.service (systemd service)
    - install.sh (installer)
    - install-service.sh (service installer)
@@ -626,11 +632,19 @@ LANGKAH UPDATE:
    sudo journalctl -u bca-scraper -f
 
 ================================================================================
-FITUR v3.0.0:
+FITUR v4.0.0 ULTRA-ROBUST:
 ================================================================================
+✓ Global Scrape Timeout (2 menit max per scrape)
+✓ Safe Frame Operations (semua dengan timeout)
+✓ Session Expired Detection & auto-recovery
+✓ Periodic Browser Restart (2 jam / 10 scrapes)
+✓ Retry Exponential Backoff (3x: 5s→15s→45s)
+✓ Force Kill & Restart (nuclear option)
+✓ Page Health Check sebelum scrape
+✓ Server Heartbeat reporting
+✓ Error Categorization
 ✓ Persistent Browser Mode (24/7 standby)
 ✓ Auto-restart on crash (30s delay)
-✓ Auto-start on system boot
 ✓ No resource limits (high-spec VPS)
 ✓ Node.js heap: 4GB max
 ✓ Log rotation: daily, 7 days retention
@@ -644,13 +658,13 @@ FITUR v3.0.0:
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Update-24-Jam-v3.0.0.zip";
+      a.download = "Update-Ultra-Robust-v4.0.0.zip";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success("Update package v3.0.0 berhasil di-download!");
+      toast.success("Update package v4.0.0 Ultra-Robust berhasil di-download!");
     } catch (error) {
       console.error("Error generating update package:", error);
       toast.error("Gagal generate update package");
