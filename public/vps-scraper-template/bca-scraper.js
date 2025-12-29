@@ -13,8 +13,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "2.1.1";
+const SCRAPER_VERSION = "2.1.2";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v2.1.2: Added forceLogout on error/stuck - session always cleaned up
 // v2.1.1: Fixed button click stuck - using Promise.race with timeout
 // v2.1.0: Fixed timezone bug - now uses WIB (Asia/Jakarta) instead of UTC
 // v2.0.0: Optimized burst mode - login 1x, loop Kembali+Lihat
@@ -190,6 +191,107 @@ async function forceCleanup() {
     log('Force killed all Chromium processes');
   } catch (e) {
     // Ignore
+  }
+}
+
+/**
+ * Force logout - attempts to logout from BCA session even when in error state
+ * This ensures the session is properly closed on the server side
+ * @param {Page} page - Puppeteer page object
+ * @returns {boolean} - true if logout was attempted
+ */
+async function forceLogout(page) {
+  if (!page) {
+    log('forceLogout: No page object, skipping', 'WARN');
+    return false;
+  }
+  
+  log('Attempting forced logout...', 'WARN');
+  
+  try {
+    // Method 1: Try to find and click logout link in main page
+    const logoutClickPromise = page.evaluate(() => {
+      // Check main page
+      const links = document.querySelectorAll('a');
+      for (const link of links) {
+        const text = (link.textContent || '').toLowerCase();
+        const href = (link.getAttribute('href') || '').toLowerCase();
+        if (text.includes('logout') || text.includes('keluar') || href.includes('logout')) {
+          link.click();
+          return { success: true, method: 'link_click' };
+        }
+      }
+      
+      // Check all iframes
+      const frames = document.querySelectorAll('iframe');
+      for (const frame of frames) {
+        try {
+          const frameDoc = frame.contentDocument || frame.contentWindow?.document;
+          if (frameDoc) {
+            const frameLinks = frameDoc.querySelectorAll('a');
+            for (const link of frameLinks) {
+              const text = (link.textContent || '').toLowerCase();
+              if (text.includes('logout') || text.includes('keluar')) {
+                link.click();
+                return { success: true, method: 'iframe_link_click' };
+              }
+            }
+          }
+        } catch (e) {
+          // Cross-origin frame, skip
+        }
+      }
+      
+      return { success: false };
+    });
+    
+    // Race with timeout - don't wait too long for logout
+    const timeoutPromise = new Promise(resolve => 
+      setTimeout(() => resolve({ success: false, timeout: true }), 5000)
+    );
+    
+    const logoutResult = await Promise.race([logoutClickPromise, timeoutPromise]);
+    
+    if (logoutResult.success) {
+      await delay(2000);
+      log(`Forced logout successful via ${logoutResult.method}`);
+      return true;
+    }
+    
+    // Method 2: Navigate directly to logout URL
+    log('Logout link not found, navigating to logout URL directly...', 'WARN');
+    try {
+      await page.goto('https://ibank.klikbca.com/logout.do', { 
+        timeout: 10000,
+        waitUntil: 'domcontentloaded' 
+      });
+      await delay(2000);
+      log('Forced logout via URL navigation successful');
+      return true;
+    } catch (navError) {
+      log(`Logout URL navigation failed: ${navError.message}`, 'WARN');
+    }
+    
+    // Method 3: Try alternative logout URLs
+    const alternativeUrls = [
+      'https://ibank.klikbca.com/authentication.do?action=logout',
+      'https://ibank.klikbca.com/nav_logout.htm'
+    ];
+    
+    for (const url of alternativeUrls) {
+      try {
+        await page.goto(url, { timeout: 5000, waitUntil: 'domcontentloaded' });
+        await delay(1000);
+        log(`Tried alternative logout URL: ${url}`);
+      } catch (e) {
+        // Continue trying
+      }
+    }
+    
+    return true;
+  } catch (e) {
+    log(`forceLogout error: ${e.message}`, 'WARN');
+    return false;
   }
 }
 
@@ -1092,6 +1194,10 @@ async function scrapeBCA() {
     if (page) {
       await saveDebug(page, 'error-state');
       await saveDebug(page, 'error-state', 'html');
+      
+      // CRITICAL: Force logout before throwing error
+      log('Error occurred, attempting force logout to clean session...', 'WARN');
+      await forceLogout(page);
     }
     throw error;
   } finally {
@@ -1517,6 +1623,10 @@ async function scrapeBCABurstMode() {
     log(`Stack: ${error.stack}`, 'DEBUG');
     if (page) {
       await saveDebug(page, 'burst-error-state');
+      
+      // CRITICAL: Force logout before throwing error
+      log('Burst mode error, attempting force logout to clean session...', 'WARN');
+      await forceLogout(page);
     }
     throw error;
   } finally {
