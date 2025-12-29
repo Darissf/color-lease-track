@@ -582,15 +582,19 @@ export default function BankScraperSettings() {
       // Add update instructions
       const updateInstructions = `
 ================================================================================
-VPS Bank Scraper - Update v4.1.4 (Full Navigation Burst Mode)
+VPS Bank Scraper - Update v4.1.5 (Step 5 Navigation Logging)
 ================================================================================
+
+PERUBAHAN v4.1.5:
+- DETAILED LOGGING: Step 5 navigation dengan logging lengkap
+- FRAME DEBUG: Log semua frame yang tersedia
+- CLICK TRACKING: Hasil click Informasi Rekening & Mutasi Rekening
+- ERROR HANDLING: Throw error jika click gagal (tidak silent fail)
 
 PERUBAHAN v4.1.4:
 - FULL NAVIGATION LOOP: Step 5-6-7 dijalankan setiap iterasi burst
 - STOP ON MATCH: Loop berhenti segera jika pembayaran cocok
 - RE-GRAB ATM FRAME: Frame di-refresh setelah setiap klik Lihat
-- Lebih reliable: Tidak bergantung pada button Kembali yang kadang error
-- Max 3 menit burst duration (naik dari 2.5 menit)
 
 PERUBAHAN v4.1.3:
 - NO LOGOUT DURING BURST: Session tetap aktif antar iterasi burst
@@ -600,10 +604,6 @@ PERUBAHAN v4.1.3:
 PERUBAHAN v4.1.2:
 - Fixed Cooldown Logic: Skip 5-min wait jika logout sebelumnya berhasil
 - Burst Mode Beruntun: Tidak perlu menunggu 5 menit antar burst
-- Track Logout Success: lastLogoutSuccess flag untuk smart cooldown
-
-PERUBAHAN v4.1.1:
-- Fixed Logout: Menggunakan selector #gotohome yang benar
 
 FITUR ULTRA-ROBUST (sejak v4.0.0):
 - Global Scrape Timeout: Max 2 menit per scrape, auto-abort jika lewat
@@ -612,8 +612,6 @@ FITUR ULTRA-ROBUST (sejak v4.0.0):
 - Periodic Browser Restart: Setiap 2 jam atau 50 scrapes
 - Retry with Exponential Backoff: 3x retry (5s → 15s → 45s)
 - Force Kill & Restart: Nuclear option jika browser unresponsive
-- Page Health Check: Verify page sebelum scrape
-- Server Heartbeat: Report status, uptime, errors ke server
 
 ================================================================================
 LANGKAH UPDATE:
@@ -624,7 +622,7 @@ LANGKAH UPDATE:
 
 2. UPLOAD FILE BARU:
    Upload semua file dari ZIP ini ke /opt/bca-scraper/:
-   - bca-scraper.js (daemon utama v4.1.2)
+   - bca-scraper.js (daemon utama v4.1.5)
    - bca-scraper.service (systemd service)
    - install.sh (installer)
    - install-service.sh (service installer)
@@ -649,13 +647,13 @@ LANGKAH UPDATE:
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Update-Session-Reuse-v4.1.2.zip";
+      a.download = "Update-Navigation-Logging-v4.1.5.zip";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success("Update package v4.1.2 Session-Reuse berhasil di-download!");
+      toast.success("Update package v4.1.5 Navigation Logging berhasil di-download!");
     } catch (error) {
       console.error("Error generating update package:", error);
       toast.error("Gagal generate update package");
@@ -1261,7 +1259,7 @@ LANGKAH UPDATE:
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  Update Session-Reuse v4.1.2
+                  Update Navigation-Logging v4.1.5
                 </Button>
               </div>
 

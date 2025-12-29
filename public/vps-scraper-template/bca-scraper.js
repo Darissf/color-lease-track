@@ -23,8 +23,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.4";
+const SCRAPER_VERSION = "4.1.5";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v4.1.5: Add detailed logging for Step 5 navigation in normal mode
 // v4.1.4: Full navigation per burst iteration (Step 5-6-7 loop), stop on match
 // v4.1.3: Burst Fix - no logout during burst, post-burst cooldown, timing reset
 // v4.1.2: Fix cooldown - skip 5-min wait if previous logout was successful
@@ -1240,15 +1241,22 @@ async function executeScrape() {
     await saveDebug(page, '03-logged-in');
     
     // Step 5: Navigate to Mutasi Rekening with safe operations
+    log('Step 5: Navigating to Mutasi Rekening...');
     await delay(2000);
     
+    // List all available frames for debugging
+    const allFrames = page.frames();
+    log(`Available frames: ${allFrames.map(f => f.name() || 'unnamed').join(', ')}`);
+    
     const menuFrame = page.frames().find(f => f.name() === 'menu');
+    log(`Menu frame found: ${menuFrame ? 'YES' : 'NO'}`);
     if (!menuFrame) {
       throw new Error('FRAME_NOT_FOUND - Menu frame');
     }
     
     // Click Informasi Rekening with timeout protection
-    await safeFrameOperation(
+    log('Clicking: Informasi Rekening...');
+    const clickInfoResult = await safeFrameOperation(
       () => menuFrame.evaluate(() => {
         const links = document.querySelectorAll('a');
         for (const link of links) {
@@ -1263,11 +1271,17 @@ async function executeScrape() {
       CONFIG.FRAME_OPERATION_TIMEOUT,
       'CLICK_INFORMASI_REKENING'
     );
+    log(`Clicked Informasi Rekening: ${clickInfoResult ? 'SUCCESS' : 'FAILED'}`);
+    if (!clickInfoResult) {
+      throw new Error('CLICK_FAILED - Informasi Rekening not found in menu');
+    }
     await delay(3000);
     
     // Click Mutasi Rekening with timeout protection
+    log('Clicking: Mutasi Rekening...');
     const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
-    await safeFrameOperation(
+    log(`Updated menu frame found: ${updatedMenuFrame ? 'YES' : 'NO'}`);
+    const clickMutasiResult = await safeFrameOperation(
       () => updatedMenuFrame.evaluate(() => {
         const links = document.querySelectorAll('a');
         for (const link of links) {
@@ -1282,10 +1296,16 @@ async function executeScrape() {
       CONFIG.FRAME_OPERATION_TIMEOUT,
       'CLICK_MUTASI_REKENING'
     );
+    log(`Clicked Mutasi Rekening: ${clickMutasiResult ? 'SUCCESS' : 'FAILED'}`);
+    if (!clickMutasiResult) {
+      throw new Error('CLICK_FAILED - Mutasi Rekening not found in menu');
+    }
     await delay(3000);
     
     // Step 6: Set date and view
+    log('Step 6: Setting date filter...');
     let atmFrame = page.frames().find(f => f.name() === 'atm');
+    log(`ATM frame found: ${atmFrame ? 'YES' : 'NO'}`);
     if (!atmFrame) {
       throw new Error('FRAME_NOT_FOUND - ATM frame');
     }
