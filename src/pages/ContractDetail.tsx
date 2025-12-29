@@ -1534,10 +1534,16 @@ export default function ContractDetail() {
                         requestId={pendingPaymentRequest.id}
                         uniqueAmount={pendingPaymentRequest.unique_amount}
                         expiresAt={pendingPaymentRequest.expires_at}
+                        createdAt={pendingPaymentRequest.created_at}
+                        burstTriggeredAt={pendingPaymentRequest.burst_triggered_at}
                         onClose={() => {
                           setPendingPaymentRequest(null);
                           fetchPendingPaymentRequest();
                           fetchContractDetail();
+                        }}
+                        onVerified={() => {
+                          fetchContractDetail();
+                          fetchPendingPaymentRequest();
                         }}
                       />
                     ) : (
