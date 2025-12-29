@@ -158,3 +158,9 @@ verify_jwt = false
 
 [functions.get-scraper-file]
 verify_jwt = false
+
+[functions.windows-balance-command]
+verify_jwt = false
+
+[functions.windows-balance-webhook]
+verify_jwt = false

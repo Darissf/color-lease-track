@@ -19,7 +19,7 @@ import {
   Loader2, Server, CheckCircle, Download, Terminal,
   AlertCircle, Webhook, FileText, AlertTriangle,
   ExternalLink, Package, FolderDown, BookOpen, Upload, Settings, Play, Monitor,
-  Zap, Clock, Timer, History, RefreshCw, Code, Calendar
+  Zap, Clock, Timer, History, RefreshCw, Code, Calendar, Wallet
 } from "lucide-react";
 import { VersionHistoryPanel } from "@/components/scraper/VersionHistoryPanel";
 import { VPSScriptDownloadDialog } from "@/components/scraper/VPSScriptDownloadDialog";
@@ -859,7 +859,7 @@ dan set HEADLESS=false untuk debug visual.
       <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-4 space-y-4">
         {/* Platform Tabs */}
         <Tabs defaultValue="linux" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="linux" className="gap-2">
               <Terminal className="h-4 w-4" />
               Linux VPS
@@ -867,6 +867,10 @@ dan set HEADLESS=false untuk debug visual.
             <TabsTrigger value="windows" className="gap-2">
               <Monitor className="h-4 w-4" />
               Windows RDP
+            </TabsTrigger>
+            <TabsTrigger value="balance-check" className="gap-2">
+              <Wallet className="h-4 w-4" />
+              Cek Saldo
             </TabsTrigger>
           </TabsList>
 
@@ -2421,6 +2425,76 @@ dan set HEADLESS=false untuk debug visual.
                       Test burst mode di kedua environment
                     </p>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Windows Balance Check Tab Content */}
+          <TabsContent value="balance-check" className="space-y-4 mt-0">
+            <Card className="bg-emerald-500/10 border-emerald-500/30">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-emerald-500/20">
+                    <Wallet className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-emerald-700 dark:text-emerald-400">Windows RDP - Cek Saldo</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Metode verifikasi pembayaran berbasis perubahan saldo (bukan mutasi). 
+                      Lebih cepat (~15 detik) dan lebih aman dari rate limit BCA.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Download Balance Checker
+                </CardTitle>
+                <CardDescription>
+                  Script khusus untuk cek saldo BCA - optimized untuk payment verification
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-muted/30 rounded-lg space-y-3">
+                  <h4 className="font-medium">Cara Kerja:</h4>
+                  <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                    <li>User klik <strong>"Generate"</strong> → Script login, grab saldo awal (~15 detik)</li>
+                    <li>Angka unik muncul → User transfer ke BCA</li>
+                    <li>User klik <strong>"Saya Sudah Transfer"</strong> → Script loop 30x cek saldo</li>
+                    <li>Jika saldo bertambah sesuai angka unik → <strong>SUKSES!</strong></li>
+                  </ol>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <h4 className="font-medium text-sm text-green-700 dark:text-green-400 mb-1">✓ Keuntungan</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• ~15 detik untuk generate angka unik</li>
+                      <li>• Lebih aman (tidak parse tabel mutasi)</li>
+                      <li>• Lower rate limit risk</li>
+                    </ul>
+                  </div>
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <h4 className="font-medium text-sm text-amber-700 dark:text-amber-400 mb-1">⚠️ Requirement</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• Windows RDP dengan VPN Indonesia</li>
+                      <li>• Node.js & Chrome terinstall</li>
+                      <li>• Script harus running saat Generate</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
+                    <strong>Files:</strong> Download dari folder <code className="bg-zinc-800 text-green-400 px-1 rounded">windows-scraper-template/</code>
+                    <br />
+                    <code className="text-xs">bca-balance-checker.js</code>, <code className="text-xs">run-balance-checker.bat</code>, <code className="text-xs">install-balance-checker.bat</code>
+                  </p>
                 </div>
               </CardContent>
             </Card>
