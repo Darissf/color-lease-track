@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # BCA VPS Scraper - All-in-One Installer
-# PERSISTENT BROWSER MODE v3.0.0
+# ULTRA-ROBUST MODE v4.0.0
 # ============================================================
 # Script ini akan:
 # 1. Install semua dependencies (Node.js, OpenVPN, Puppeteer)
@@ -16,7 +16,7 @@
 set -e
 
 echo "============================================================"
-echo "    BCA VPS Scraper - PERSISTENT BROWSER MODE v3.0.0"
+echo "    BCA VPS Scraper - ULTRA-ROBUST MODE v4.0.0"
 echo "============================================================"
 echo ""
 
@@ -151,6 +151,58 @@ fi
 print_success "Chromium dependencies installed"
 
 # ============================================================
+# Install Chromium via apt (more reliable than snap for systemd)
+# ============================================================
+echo ""
+echo "STEP 3b: Installing Chromium browser..."
+
+CHROMIUM_INSTALLED=false
+
+# Try to install chromium-browser via apt (priority 1)
+if [ "$PKG_MANAGER" = "apt" ]; then
+    # Check if snap chromium exists and remove it (it causes issues with systemd)
+    if [ -f "/snap/bin/chromium" ]; then
+        print_warning "Snap Chromium detected - may cause issues with systemd"
+        echo "         Consider removing with: sudo snap remove chromium"
+    fi
+    
+    # Try apt install
+    if sudo apt install -y chromium-browser 2>/dev/null; then
+        print_success "Chromium installed via apt (chromium-browser)"
+        CHROMIUM_INSTALLED=true
+    elif sudo apt install -y chromium 2>/dev/null; then
+        print_success "Chromium installed via apt (chromium)"
+        CHROMIUM_INSTALLED=true
+    fi
+fi
+
+# Fallback: Install Puppeteer bundled Chromium
+if [ "$CHROMIUM_INSTALLED" = false ]; then
+    print_warning "System Chromium not available, will use Puppeteer bundled"
+    echo "         Installing Puppeteer with bundled Chromium..."
+    npm install puppeteer
+    npx puppeteer browsers install chrome
+    print_success "Puppeteer bundled Chromium installed"
+    CHROMIUM_INSTALLED=true
+fi
+
+# Verify Chromium installation
+echo ""
+echo "Verifying Chromium installation..."
+if command -v chromium-browser &> /dev/null; then
+    CHROMIUM_PATH=$(which chromium-browser)
+    print_success "Chromium found at: $CHROMIUM_PATH"
+elif command -v chromium &> /dev/null; then
+    CHROMIUM_PATH=$(which chromium)
+    print_success "Chromium found at: $CHROMIUM_PATH"
+elif [ -f "/snap/bin/chromium" ]; then
+    CHROMIUM_PATH="/snap/bin/chromium"
+    print_warning "Using snap Chromium: $CHROMIUM_PATH (may need --no-sandbox)"
+else
+    print_warning "System Chromium not in PATH - Puppeteer bundled will be used"
+fi
+
+# ============================================================
 # STEP 4: Install npm dependencies
 # ============================================================
 echo ""
@@ -268,7 +320,7 @@ sudo chmod 644 /var/log/bca-scraper-error.log 2>/dev/null || true
 # ============================================================
 echo ""
 echo "============================================================"
-echo -e "${GREEN}    INSTALASI SELESAI! (v3.0.0 - Persistent Browser Mode)${NC}"
+echo -e "${GREEN}    INSTALASI SELESAI! (v4.0.0 - Ultra-Robust Mode)${NC}"
 echo "============================================================"
 echo ""
 echo "LANGKAH SELANJUTNYA:"
@@ -309,22 +361,22 @@ echo "   sudo journalctl -u bca-scraper -f"
 echo ""
 echo "============================================================"
 echo ""
-echo "PERSISTENT BROWSER MODE v3.0.0:"
+echo "ULTRA-ROBUST MODE v4.0.0:"
 echo ""
 echo "Daemon akan:"
 echo "- Browser di-launch saat startup, standby 24/7"
-echo "- Setiap scrape dimulai dengan PAGE REFRESH (clear session)"
-echo "- Tidak ada lagi issue session stuck!"
-echo "- Watchdog: restart browser jika unresponsive"
-echo "- Poll server setiap 60 detik untuk konfigurasi"
-echo "- Otomatis switch ke burst mode jika di-trigger"
+echo "- Smart Chromium fallback (apt -> snap -> puppeteer bundled)"
+echo "- Global timeout 2 menit per scrape"
+echo "- Session expired detection & auto-recovery"
+echo "- Browser restart setiap 10 scrape atau 2 jam"
+echo "- Heartbeat reporting setiap 5 menit"
+echo "- Retry with exponential backoff (3x)"
 echo ""
 echo "SERVICE FEATURES:"
 echo "- Auto-restart jika crash (30 detik delay)"
 echo "- Auto-start saat server reboot"
-echo "- Memory limit: 600MB max"
-echo "- CPU limit: 80%"
-echo "- Watchdog: restart browser jika hang > 5 menit"
+echo "- Full system access untuk Chromium"
+echo "- No resource limits (high-spec VPS)"
 echo ""
 echo "SERVICE MANAGEMENT:"
 echo "  Status:    sudo systemctl status bca-scraper"
