@@ -1,43 +1,43 @@
 /**
- * BCA iBanking Scraper with Enhanced Frame/Iframe Handling
+ * BCA iBanking Scraper - PERSISTENT BROWSER MODE
  * 
  * Features:
- * - Proper iframe detection and handling
- * - Multiple fallback strategies for login
- * - Debug screenshots at each step
- * - Burst mode support
+ * - Browser standby 24/7, siap dipakai kapan saja
+ * - Page refresh untuk clear session sebelum setiap scrape
+ * - Watchdog mechanism untuk restart jika browser crash
+ * - Single daemon yang handle normal + burst mode
  * 
- * Usage:
- * - Normal mode: node bca-scraper.js
- * - Burst check: node bca-scraper.js --burst-check
+ * Usage: node bca-scraper.js
+ * 
+ * Arsitektur Baru:
+ * - Browser di-launch saat startup, tidak ditutup
+ * - Setiap scrape dimulai dengan page refresh (clear session)
+ * - Watchdog check setiap 5 menit untuk ensure browser responsive
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "2.1.2";
+const SCRAPER_VERSION = "3.0.0";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v3.0.0: Persistent Browser Mode - browser standby 24/7, page refresh untuk clear session
 // v2.1.2: Added forceLogout on error/stuck - session always cleaned up
 // v2.1.1: Fixed button click stuck - using Promise.race with timeout
 // v2.1.0: Fixed timezone bug - now uses WIB (Asia/Jakarta) instead of UTC
 // v2.0.0: Optimized burst mode - login 1x, loop Kembali+Lihat
 // =========================================
 
+const puppeteer = require('puppeteer');
+const path = require('path');
+const fs = require('fs');
+
 // ============ JAKARTA TIMEZONE HELPER ============
-/**
- * Get current date/time in Jakarta timezone (WIB = UTC+7)
- * This is critical because VPS servers often run in UTC
- */
 function getJakartaDate() {
   const now = new Date();
-  // Jakarta is UTC+7 (420 minutes ahead of UTC)
-  const jakartaOffset = 7 * 60; // 7 hours in minutes
+  const jakartaOffset = 7 * 60;
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
   const jakartaTime = new Date(utcTime + (jakartaOffset * 60000));
   return jakartaTime;
 }
 
-/**
- * Format Jakarta date for logging
- */
 function getJakartaDateString() {
   const jakarta = getJakartaDate();
   const day = String(jakarta.getDate()).padStart(2, '0');
@@ -49,10 +49,6 @@ function getJakartaDateString() {
 }
 // =================================================
 
-const puppeteer = require('puppeteer');
-const path = require('path');
-const fs = require('fs');
-
 // Load config from config.env
 const configPath = path.join(__dirname, 'config.env');
 if (fs.existsSync(configPath)) {
@@ -60,10 +56,25 @@ if (fs.existsSync(configPath)) {
   envConfig.split('\n').forEach(line => {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith('#')) {
-      const [key, ...valueParts] = trimmed.split('=');
-      if (key && valueParts.length > 0) {
-        process.env[key.trim()] = valueParts.join('=').trim();
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex > 0) {
+        const key = trimmed.substring(0, eqIndex).trim();
+        let value = trimmed.substring(eqIndex + 1).trim();
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        process.env[key] = value;
       }
+    }
+  });
+  
+  const configKeys = ['BCA_USER_ID', 'BCA_PIN', 'SECRET_KEY', 'WEBHOOK_URL', 'ACCOUNT_NUMBER', 'HEADLESS', 'DEBUG_MODE'];
+  console.log('[SCHEDULER] Loaded config.env:');
+  configKeys.forEach(k => {
+    if (process.env[k]) {
+      const val = k.includes('PIN') || k.includes('SECRET') ? '***' : process.env[k].substring(0, 30);
+      console.log(`  ${k}=${val}${process.env[k].length > 30 ? '...' : ''}`);
     }
   });
 }
@@ -91,16 +102,20 @@ const CONFIG = {
   ACCOUNT_NUMBER: process.env.BCA_ACCOUNT_NUMBER || '1234567890',
   HEADLESS: process.env.HEADLESS !== 'false',
   SLOW_MO: parseInt(process.env.SLOW_MO) || 0,
-  TIMEOUT: parseInt(process.env.TIMEOUT) || 90000,       // Increased from 60s to 90s
-  LOGIN_TIMEOUT: parseInt(process.env.LOGIN_TIMEOUT) || 30000,  // 30s timeout for login navigation
-  SCRAPE_TIMEOUT: parseInt(process.env.SCRAPE_TIMEOUT) || 120000, // 2 minutes max for entire scrape
+  TIMEOUT: parseInt(process.env.TIMEOUT) || 90000,
+  LOGIN_TIMEOUT: parseInt(process.env.LOGIN_TIMEOUT) || 30000,
+  SCRAPE_TIMEOUT: parseInt(process.env.SCRAPE_TIMEOUT) || 120000,
   MAX_RETRIES: parseInt(process.env.MAX_RETRIES) || 3,
-  RETRY_DELAY: parseInt(process.env.RETRY_DELAY) || 15000,  // Increased from 5s to 15s
-  STUCK_TIMEOUT: parseInt(process.env.STUCK_TIMEOUT) || 180000, // 3 minutes = stuck
+  RETRY_DELAY: parseInt(process.env.RETRY_DELAY) || 15000,
   CHROMIUM_PATH: process.env.CHROMIUM_PATH || findChromiumPath(),
   DEBUG_MODE: process.env.DEBUG_MODE !== 'false',
+  CONFIG_POLL_INTERVAL: 60000,
+  WATCHDOG_INTERVAL: 300000, // 5 minutes
   BURST_CHECK_URL: process.env.BURST_CHECK_URL || (process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/bank-scraper-webhook', '/check-burst-command') : ''),
 };
+
+// Derive config URL from webhook URL
+const CONFIG_URL = CONFIG.WEBHOOK_URL.replace('/bank-scraper-webhook', '/get-scraper-config');
 
 // Validate config
 if (CONFIG.BCA_USER_ID === 'YOUR_KLIKBCA_USER_ID' || CONFIG.BCA_USER_ID === 'your_bca_user_id') {
@@ -113,11 +128,12 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
   process.exit(1);
 }
 
-// === STARTUP BANNER - Always shows to diagnose silent failures ===
+// === STARTUP BANNER ===
 console.log('');
 console.log('==========================================');
-console.log('  BCA SCRAPER - STARTING UP');
+console.log('  BCA SCRAPER - PERSISTENT BROWSER MODE');
 console.log('==========================================');
+console.log(`  Version      : ${SCRAPER_VERSION} (${SCRAPER_BUILD_DATE})`);
 console.log(`  Timestamp    : ${new Date().toISOString()} (UTC)`);
 console.log(`  Jakarta Time : ${getJakartaDateString()}`);
 console.log(`  Chromium Path: ${CONFIG.CHROMIUM_PATH || 'NOT FOUND!'}`);
@@ -126,174 +142,39 @@ console.log(`  Account      : ${CONFIG.ACCOUNT_NUMBER}`);
 console.log(`  Headless     : ${CONFIG.HEADLESS}`);
 console.log(`  Debug Mode   : ${CONFIG.DEBUG_MODE}`);
 console.log(`  Webhook URL  : ${CONFIG.WEBHOOK_URL.substring(0, 50)}...`);
+console.log(`  Config URL   : ${CONFIG_URL.substring(0, 50)}...`);
 console.log('==========================================');
 console.log('');
 
 // Check Chromium existence
 if (!CONFIG.CHROMIUM_PATH) {
-  console.error('');
   console.error('!!! CRITICAL ERROR: Chromium browser not found !!!');
   console.error('Please install with: apt install chromium-browser');
-  console.error('Or set CHROMIUM_PATH in config.env');
-  console.error('');
   process.exit(1);
 }
 
 if (!fs.existsSync(CONFIG.CHROMIUM_PATH)) {
-  console.error('');
   console.error(`!!! CRITICAL ERROR: Chromium not found at: ${CONFIG.CHROMIUM_PATH} !!!`);
-  console.error('Please verify path or install with: apt install chromium-browser');
-  console.error('');
   process.exit(1);
 }
 
 console.log(`[OK] Chromium verified at: ${CONFIG.CHROMIUM_PATH}`);
 console.log('');
 
-// === STARTUP CLEANUP - Kill any orphan chromium from previous runs ===
-try {
-  const { execSync } = require('child_process');
-  execSync('pkill -f "chromium.*puppeteer" 2>/dev/null || true', { stdio: 'ignore' });
-  console.log('[OK] Cleaned up orphan Chromium processes');
-} catch (e) {
-  // Ignore - process might not exist
-}
-console.log('');
+// === GLOBAL STATE ===
+let browser = null;
+let page = null;
+let isIdle = true;
+let lastScrapeTime = 0;
+let currentIntervalMs = 600000; // Default 10 minutes
+let isBurstMode = false;
+let burstEndTime = 0;
+let browserStartTime = null;
+let scrapeCount = 0;
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-// Add random delay to avoid detection
 const randomDelay = (min, max) => delay(Math.floor(Math.random() * (max - min + 1)) + min);
 const log = (msg, level = 'INFO') => console.log(`[${new Date().toISOString()}] [${level}] ${msg}`);
-
-// Stuck detection - track scrape start time
-let scrapeStartTime = null;
-let isScrapingActive = false;
-
-function checkStuckStatus() {
-  if (!isScrapingActive || !scrapeStartTime) return false;
-  const elapsed = Date.now() - scrapeStartTime;
-  if (elapsed > CONFIG.STUCK_TIMEOUT) {
-    log(`STUCK DETECTED! Scrape running for ${Math.round(elapsed/1000)}s (limit: ${CONFIG.STUCK_TIMEOUT/1000}s)`, 'ERROR');
-    return true;
-  }
-  return false;
-}
-
-// Cleanup function for stuck scraper
-async function forceCleanup() {
-  log('Force cleanup initiated...', 'WARN');
-  isScrapingActive = false;
-  scrapeStartTime = null;
-  
-  try {
-    const { execSync } = require('child_process');
-    execSync('pkill -9 -f "chromium.*puppeteer" 2>/dev/null || true', { stdio: 'ignore' });
-    log('Force killed all Chromium processes');
-  } catch (e) {
-    // Ignore
-  }
-}
-
-/**
- * Force logout - attempts to logout from BCA session even when in error state
- * This ensures the session is properly closed on the server side
- * @param {Page} page - Puppeteer page object
- * @returns {boolean} - true if logout was attempted
- */
-async function forceLogout(page) {
-  if (!page) {
-    log('forceLogout: No page object, skipping', 'WARN');
-    return false;
-  }
-  
-  log('Attempting forced logout...', 'WARN');
-  
-  try {
-    // Method 1: Try to find and click logout link in main page
-    const logoutClickPromise = page.evaluate(() => {
-      // Check main page
-      const links = document.querySelectorAll('a');
-      for (const link of links) {
-        const text = (link.textContent || '').toLowerCase();
-        const href = (link.getAttribute('href') || '').toLowerCase();
-        if (text.includes('logout') || text.includes('keluar') || href.includes('logout')) {
-          link.click();
-          return { success: true, method: 'link_click' };
-        }
-      }
-      
-      // Check all iframes
-      const frames = document.querySelectorAll('iframe');
-      for (const frame of frames) {
-        try {
-          const frameDoc = frame.contentDocument || frame.contentWindow?.document;
-          if (frameDoc) {
-            const frameLinks = frameDoc.querySelectorAll('a');
-            for (const link of frameLinks) {
-              const text = (link.textContent || '').toLowerCase();
-              if (text.includes('logout') || text.includes('keluar')) {
-                link.click();
-                return { success: true, method: 'iframe_link_click' };
-              }
-            }
-          }
-        } catch (e) {
-          // Cross-origin frame, skip
-        }
-      }
-      
-      return { success: false };
-    });
-    
-    // Race with timeout - don't wait too long for logout
-    const timeoutPromise = new Promise(resolve => 
-      setTimeout(() => resolve({ success: false, timeout: true }), 5000)
-    );
-    
-    const logoutResult = await Promise.race([logoutClickPromise, timeoutPromise]);
-    
-    if (logoutResult.success) {
-      await delay(2000);
-      log(`Forced logout successful via ${logoutResult.method}`);
-      return true;
-    }
-    
-    // Method 2: Navigate directly to logout URL
-    log('Logout link not found, navigating to logout URL directly...', 'WARN');
-    try {
-      await page.goto('https://ibank.klikbca.com/logout.do', { 
-        timeout: 10000,
-        waitUntil: 'domcontentloaded' 
-      });
-      await delay(2000);
-      log('Forced logout via URL navigation successful');
-      return true;
-    } catch (navError) {
-      log(`Logout URL navigation failed: ${navError.message}`, 'WARN');
-    }
-    
-    // Method 3: Try alternative logout URLs
-    const alternativeUrls = [
-      'https://ibank.klikbca.com/authentication.do?action=logout',
-      'https://ibank.klikbca.com/nav_logout.htm'
-    ];
-    
-    for (const url of alternativeUrls) {
-      try {
-        await page.goto(url, { timeout: 5000, waitUntil: 'domcontentloaded' });
-        await delay(1000);
-        log(`Tried alternative logout URL: ${url}`);
-      } catch (e) {
-        // Continue trying
-      }
-    }
-    
-    return true;
-  } catch (e) {
-    log(`forceLogout error: ${e.message}`, 'WARN');
-    return false;
-  }
-}
 
 // Save debug screenshot
 async function saveDebug(page, name, type = 'png') {
@@ -312,70 +193,210 @@ async function saveDebug(page, name, type = 'png') {
   }
 }
 
-// Check burst command from server
-async function checkBurstCommand() {
-  if (!CONFIG.BURST_CHECK_URL) return { burst_active: false };
+// === BROWSER MANAGEMENT ===
+
+/**
+ * Initialize or restart browser
+ */
+async function initBrowser() {
+  log('Initializing browser...');
   
-  try {
-    const response = await fetch(CONFIG.BURST_CHECK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret_key: CONFIG.SECRET_KEY }),
-    });
-    return await response.json();
-  } catch (e) {
-    log(`Burst check failed: ${e.message}`, 'ERROR');
-    return { burst_active: false };
+  // Close existing browser if any
+  if (browser) {
+    try {
+      await browser.close();
+      log('Previous browser closed');
+    } catch (e) {
+      log(`Error closing previous browser: ${e.message}`, 'WARN');
+    }
   }
+  
+  // Kill any orphan chromium processes
+  try {
+    const { execSync } = require('child_process');
+    execSync('pkill -f "chromium.*puppeteer" 2>/dev/null || true', { stdio: 'ignore' });
+    log('Cleaned up orphan Chromium processes');
+  } catch (e) {}
+  
+  await delay(2000);
+  
+  // Launch new browser
+  browser = await puppeteer.launch({
+    headless: CONFIG.HEADLESS ? 'new' : false,
+    slowMo: CONFIG.SLOW_MO,
+    executablePath: CONFIG.CHROMIUM_PATH,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process'
+    ],
+  });
+  
+  page = await browser.newPage();
+  await page.setViewport({ width: 1366, height: 768 });
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+  page.setDefaultTimeout(CONFIG.TIMEOUT);
+  page.setDefaultNavigationTimeout(CONFIG.TIMEOUT);
+  
+  // Navigate to blank page (idle state)
+  await page.goto('about:blank');
+  
+  browserStartTime = Date.now();
+  isIdle = true;
+  
+  log('Browser initialized and ready (standby mode)');
+  return true;
 }
 
-// Send mutations to webhook
-async function sendToWebhook(mutations) {
+/**
+ * Watchdog - check if browser is responsive
+ */
+async function watchdog() {
+  if (!browser || !page) {
+    log('Watchdog: Browser not initialized, restarting...', 'WARN');
+    await initBrowser();
+    return;
+  }
+  
   try {
-    const response = await fetch(CONFIG.WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secret_key: CONFIG.SECRET_KEY,
-        mutations,
-        bank_name: 'BCA',
-        account_number: CONFIG.ACCOUNT_NUMBER,
-        scraped_at: new Date().toISOString(),
-      }),
-    });
-    return await response.json();
+    // Simple health check - try to evaluate something
+    const result = await Promise.race([
+      page.evaluate(() => true),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
+    ]);
+    
+    if (result === true) {
+      const uptime = Math.round((Date.now() - browserStartTime) / 60000);
+      log(`Watchdog: Browser healthy (uptime: ${uptime}m, scrapes: ${scrapeCount})`);
+    }
   } catch (e) {
-    log(`Webhook error: ${e.message}`, 'ERROR');
-    return { error: e.message };
+    log(`Watchdog: Browser unresponsive (${e.message}), restarting...`, 'WARN');
+    await initBrowser();
   }
 }
 
 /**
- * Find the frame containing the login form
- * KlikBCA uses iframes, so we need to search all frames
+ * Safe logout with timeout protection
  */
-async function findLoginFrame(page) {
+async function safeLogout() {
+  if (!page) return;
+  
+  log('Attempting safe logout...');
+  
+  try {
+    const logoutPromise = page.evaluate(() => {
+      // Try to find and click logout link
+      const links = document.querySelectorAll('a');
+      for (const link of links) {
+        const text = (link.textContent || '').toLowerCase();
+        const href = (link.getAttribute('href') || '').toLowerCase();
+        if (text.includes('logout') || text.includes('keluar') || href.includes('logout')) {
+          link.click();
+          return { success: true, method: 'link_click' };
+        }
+      }
+      
+      // Check iframes
+      const frames = document.querySelectorAll('iframe');
+      for (const frame of frames) {
+        try {
+          const frameDoc = frame.contentDocument || frame.contentWindow?.document;
+          if (frameDoc) {
+            const frameLinks = frameDoc.querySelectorAll('a');
+            for (const link of frameLinks) {
+              const text = (link.textContent || '').toLowerCase();
+              if (text.includes('logout') || text.includes('keluar')) {
+                link.click();
+                return { success: true, method: 'iframe_link_click' };
+              }
+            }
+          }
+        } catch (e) {}
+      }
+      
+      return { success: false };
+    });
+    
+    const timeoutPromise = new Promise(resolve => 
+      setTimeout(() => resolve({ success: false, timeout: true }), 5000)
+    );
+    
+    const result = await Promise.race([logoutPromise, timeoutPromise]);
+    
+    if (result.success) {
+      await delay(2000);
+      log(`Safe logout successful via ${result.method}`);
+    } else if (result.timeout) {
+      log('Logout timeout - will be cleared on next page refresh');
+    }
+    
+    // Try direct URL navigation as backup
+    try {
+      await page.goto('https://ibank.klikbca.com/logout.do', { 
+        timeout: 5000,
+        waitUntil: 'domcontentloaded' 
+      });
+      await delay(1000);
+    } catch (e) {}
+    
+  } catch (e) {
+    log(`Safe logout error: ${e.message}`, 'WARN');
+  }
+}
+
+/**
+ * Refresh page to clear any stuck session
+ * This is the KEY feature of persistent mode
+ */
+async function refreshToCleanState() {
+  log('Refreshing page to clear session...');
+  
+  try {
+    // First try to logout if we're logged in
+    await safeLogout();
+    
+    // Navigate to login page (fresh start)
+    await page.goto('https://ibank.klikbca.com/', { 
+      waitUntil: 'networkidle2', 
+      timeout: CONFIG.TIMEOUT 
+    });
+    
+    await delay(2000);
+    log('Page refreshed - clean state ready');
+    return true;
+  } catch (e) {
+    log(`Refresh failed: ${e.message}`, 'ERROR');
+    // If refresh fails, restart browser
+    await initBrowser();
+    await page.goto('https://ibank.klikbca.com/', { 
+      waitUntil: 'networkidle2', 
+      timeout: CONFIG.TIMEOUT 
+    });
+    return true;
+  }
+}
+
+// === LOGIN HELPERS ===
+
+async function findLoginFrame() {
   const frames = page.frames();
   log(`Total frames on page: ${frames.length}`);
   
-  // Log all frames for debugging
-  for (let i = 0; i < frames.length; i++) {
-    const f = frames[i];
-    const url = f.url();
-    const name = f.name() || 'unnamed';
-    log(`Frame ${i}: name="${name}", url=${url.substring(0, 80)}...`);
-  }
-  
-  // Priority selectors - VISIBLE input fields first, then hidden
   const loginSelectors = [
-    'input#txt_user_id',           // Visible User ID field (priority)
-    'input[name="txt_user_id"]',   // Visible User ID field alt
-    'input[name="value(user_id)"]', // Hidden field fallback
+    'input#txt_user_id',
+    'input[name="txt_user_id"]',
+    'input[name="value(user_id)"]',
     'input[name="user_id"]',
     'input#user_id'
   ];
   
-  // First, check main page
+  // Check main page first
   for (const selector of loginSelectors) {
     try {
       const mainInput = await page.$(selector);
@@ -395,951 +416,142 @@ async function findLoginFrame(page) {
           log(`Login form found with "${selector}" in FRAME: ${frame.url()}`);
           return { frame, isMainPage: false };
         }
-      } catch (e) {
-        // Frame might be inaccessible
-      }
+      } catch (e) {}
     }
   }
   
   return null;
 }
 
-/**
- * Enter credentials using multiple strategies
- */
 async function enterCredentials(frame, userId, pin) {
   log('Entering credentials...');
   
-  // Strategy 1: Use VISIBLE input fields (txt_user_id, txt_pswd) - CORRECT APPROACH
   try {
-    log('Strategy 1: Using VISIBLE input fields (txt_user_id, txt_pswd)...');
-    
-    // Priority: VISIBLE fields first (txt_user_id, txt_pswd)
     const userIdInput = await frame.$('input#txt_user_id') || 
                         await frame.$('input[name="txt_user_id"]') ||
-                        await frame.$('input[name="value(user_id)"]'); // hidden fallback
+                        await frame.$('input[name="value(user_id)"]');
     
     const pinInput = await frame.$('input#txt_pswd') || 
                      await frame.$('input[name="txt_pswd"]') ||
                      await frame.$('input[type="password"]') ||
-                     await frame.$('input[name="value(pswd)"]'); // hidden fallback
+                     await frame.$('input[name="value(pswd)"]');
     
     if (userIdInput && pinInput) {
-      // Log which selectors were found
-      const userIdSelector = await frame.evaluate(el => {
-        return `id="${el.id}" name="${el.name}" type="${el.type}"`;
-      }, userIdInput);
-      log(`Found User ID input: ${userIdSelector}`);
-      
-      const pinSelector = await frame.evaluate(el => {
-        return `id="${el.id}" name="${el.name}" type="${el.type}"`;
-      }, pinInput);
-      log(`Found PIN input: ${pinSelector}`);
-      
-      // Focus, clear and type into User ID with slower typing
       await userIdInput.focus();
       await randomDelay(200, 400);
       await frame.evaluate(el => { el.value = ''; }, userIdInput);
-      await userIdInput.type(userId, { delay: 80 }); // Slower typing
-      log('User ID entered via type()');
+      await userIdInput.type(userId, { delay: 80 });
+      log('User ID entered');
       
-      // Focus, clear and type into PIN with slower typing
       await randomDelay(300, 500);
       await pinInput.focus();
       await randomDelay(200, 400);
       await frame.evaluate(el => { el.value = ''; }, pinInput);
-      await pinInput.type(pin, { delay: 80 }); // Slower typing
-      log('PIN entered via type()');
-      
-      return true;
-    } else {
-      log(`User ID input found: ${!!userIdInput}, PIN input found: ${!!pinInput}`, 'WARN');
-    }
-  } catch (e) {
-    log(`Strategy 1 failed: ${e.message}`, 'WARN');
-  }
-  
-  // Strategy 2: Use frame.evaluate() for direct DOM manipulation with VISIBLE fields
-  try {
-    log('Strategy 2: Using frame.evaluate() with VISIBLE fields...');
-    
-    const success = await frame.evaluate((userId, pin) => {
-      const findInput = (selectors) => {
-        for (const sel of selectors) {
-          const el = document.querySelector(sel);
-          if (el) {
-            console.log(`Found input with selector: ${sel}`);
-            return el;
-          }
-        }
-        return null;
-      };
-      
-      // Priority: VISIBLE fields first
-      const userIdInput = findInput([
-        'input#txt_user_id',           // Visible - priority
-        'input[name="txt_user_id"]',   // Visible - alt
-        'input[name="value(user_id)"]', // Hidden - fallback
-        'input[name="user_id"]',
-        'input#user_id'
-      ]);
-      
-      const pinInput = findInput([
-        'input#txt_pswd',              // Visible - priority
-        'input[name="txt_pswd"]',      // Visible - alt
-        'input[type="password"]',      // Generic password
-        'input[name="value(pswd)"]',   // Hidden - fallback
-        'input[name="pswd"]',
-        'input#pswd'
-      ]);
-      
-      console.log(`UserID input found: ${!!userIdInput}, PIN input found: ${!!pinInput}`);
-      
-      if (userIdInput && pinInput) {
-        // Set value and trigger events
-        userIdInput.value = userId;
-        userIdInput.dispatchEvent(new Event('input', { bubbles: true }));
-        userIdInput.dispatchEvent(new Event('change', { bubbles: true }));
-        userIdInput.dispatchEvent(new Event('keyup', { bubbles: true }));
-        
-        pinInput.value = pin;
-        pinInput.dispatchEvent(new Event('input', { bubbles: true }));
-        pinInput.dispatchEvent(new Event('change', { bubbles: true }));
-        pinInput.dispatchEvent(new Event('keyup', { bubbles: true }));
-        
-        console.log(`Credentials set: userID=${userId.substring(0,3)}***, pinLength=${pin.length}`);
-        return true;
-      }
-      return false;
-    }, userId, pin);
-    
-    if (success) {
-      log('Credentials entered via evaluate()');
-      return true;
-    }
-  } catch (e) {
-    log(`Strategy 2 failed: ${e.message}`, 'WARN');
-  }
-  
-  // Strategy 3: Click on input first, then type (simulates real user)
-  try {
-    log('Strategy 3: Click + type simulation...');
-    
-    const userIdInput = await frame.$('input#txt_user_id') || 
-                        await frame.$('input[name="txt_user_id"]');
-    const pinInput = await frame.$('input#txt_pswd') || 
-                     await frame.$('input[name="txt_pswd"]') ||
-                     await frame.$('input[type="password"]');
-    
-    if (userIdInput && pinInput) {
-      // Click on User ID field with random delay
-      await userIdInput.click({ clickCount: 3 }); // Triple click to select all
-      await randomDelay(100, 200);
-      await frame.keyboard.type(userId, { delay: 80 }); // Slower typing
-      log('User ID entered via click+type');
-      
-      // Click on PIN field with random delay
-      await randomDelay(300, 600);
-      await pinInput.click({ clickCount: 3 });
-      await randomDelay(100, 200);
-      await frame.keyboard.type(pin, { delay: 80 }); // Slower typing
-      log('PIN entered via click+type');
+      await pinInput.type(pin, { delay: 80 });
+      log('PIN entered');
       
       return true;
     }
   } catch (e) {
-    log(`Strategy 3 failed: ${e.message}`, 'WARN');
+    log(`Enter credentials failed: ${e.message}`, 'WARN');
   }
   
   return false;
 }
 
-/**
- * Submit login form using multiple strategies
- * IMPORTANT: Must CLICK the LOGIN button to trigger Login_Form_Validator() JavaScript
- */
-async function submitLogin(frame, page) {
-  log('Attempting to submit login form...');
+async function submitLogin(frame) {
+  log('Submitting login...');
   
-  // Strategy 1: Click LOGIN button (PREFERRED - triggers JavaScript validator)
   try {
-    log('Submit Strategy 1: Click LOGIN button (triggers validator)...');
-    
-    // Find LOGIN button - various selectors
     const submitBtn = await frame.$('input[value="LOGIN"]') ||
                       await frame.$('input[type="submit"]') ||
-                      await frame.$('input[name="value(Submit)"]') ||
-                      await frame.$('input[name="value(actions)"]') ||
-                      await frame.$('input.btn') ||
-                      await frame.$('input[onclick*="Login_Form_Validator"]');
+                      await frame.$('input[name="value(Submit)"]');
     
     if (submitBtn) {
-      // Log button info
-      const btnInfo = await frame.evaluate(el => {
-        return `value="${el.value}" name="${el.name}" onclick="${el.getAttribute('onclick') || 'none'}"`;
-      }, submitBtn);
-      log(`Found submit button: ${btnInfo}`);
-      
       await submitBtn.click();
       log('LOGIN button clicked');
       await delay(3000);
       return true;
     }
   } catch (e) {
-    log(`Submit Strategy 1 failed: ${e.message}`, 'WARN');
-  }
-  
-  // Strategy 2: JavaScript click with validator trigger
-  try {
-    log('Submit Strategy 2: JavaScript click with validator...');
-    const clicked = await frame.evaluate(() => {
-      // First, try to call validator directly if it exists
-      if (typeof Login_Form_Validator === 'function') {
-        console.log('Calling Login_Form_Validator directly');
-        Login_Form_Validator(document.forms[0]);
-        return true;
-      }
-      
-      // Otherwise, click the button
-      const buttons = document.querySelectorAll('input[value="LOGIN"], input[type="submit"]');
-      for (const btn of buttons) {
-        console.log(`Clicking button: ${btn.value}`);
-        btn.click();
-        return true;
-      }
-      return false;
-    });
-    
-    if (clicked) {
-      log('Submit via JavaScript click/validator');
-      await delay(3000);
-      return true;
-    }
-  } catch (e) {
-    log(`Submit Strategy 2 failed: ${e.message}`, 'WARN');
-  }
-  
-  // Strategy 3: form.submit() - BACKUP ONLY (may skip JavaScript validation)
-  try {
-    log('Submit Strategy 3: form.submit() (backup)...');
-    const submitted = await frame.evaluate(() => {
-      const form = document.querySelector('form');
-      if (form) {
-        // Try to trigger onsubmit handler first
-        if (form.onsubmit) {
-          const result = form.onsubmit();
-          if (result === false) {
-            console.log('onsubmit returned false, not submitting');
-            return false;
-          }
-        }
-        form.submit();
-        return true;
-      }
-      return false;
-    });
-    
-    if (submitted) {
-      log('Form submitted via form.submit()');
-      await delay(3000);
-      return true;
-    }
-  } catch (e) {
-    log(`Submit Strategy 3 failed: ${e.message}`, 'WARN');
-  }
-  
-  // Strategy 4: Keyboard Enter on password field
-  try {
-    log('Submit Strategy 4: Keyboard Enter...');
-    const pinInput = await frame.$('input#txt_pswd') || 
-                     await frame.$('input[name="txt_pswd"]') ||
-                     await frame.$('input[type="password"]');
-    if (pinInput) {
-      await pinInput.focus();
-      await delay(100);
-      await frame.keyboard.press('Enter');
-      log('Enter key pressed');
-      await delay(3000);
-      return true;
-    }
-  } catch (e) {
-    log(`Submit Strategy 4 failed: ${e.message}`, 'WARN');
+    log(`Submit failed: ${e.message}`, 'WARN');
   }
   
   return false;
 }
 
-// Main scrape function with enhanced frame handling
-async function scrapeBCA() {
-  log('=== BCA SCRAPER STARTED ===');
-  log(`Config: USER_ID=${CONFIG.BCA_USER_ID.substring(0, 3)}***, ACCOUNT=${CONFIG.ACCOUNT_NUMBER}`);
-  log(`Using Chromium at: ${CONFIG.CHROMIUM_PATH}`);
-  log(`Headless mode: ${CONFIG.HEADLESS}`);
-  
-  // Track scrape start for stuck detection
-  scrapeStartTime = Date.now();
-  isScrapingActive = true;
-  
-  // Create timeout promise for global scrape timeout
-  let scrapeTimeoutId;
-  const scrapeTimeoutPromise = new Promise((_, reject) => {
-    scrapeTimeoutId = setTimeout(() => {
-      reject(new Error(`Scrape timeout exceeded (${CONFIG.SCRAPE_TIMEOUT/1000}s)`));
-    }, CONFIG.SCRAPE_TIMEOUT);
-  });
-  
-  // Initialize parsedMutations outside try block to fix the bug
-  let parsedMutations = [];
-  
-  // Browser launch with explicit try-catch for debugging
-  let browser;
-  let page;
-  
-  try {
-    log('Attempting to launch Puppeteer browser...');
-    browser = await puppeteer.launch({
-      headless: CONFIG.HEADLESS ? 'new' : false,
-      slowMo: CONFIG.SLOW_MO,
-      executablePath: CONFIG.CHROMIUM_PATH,
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox', 
-        '--disable-dev-shm-usage',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
-      ],
-    });
-    log('Browser launched successfully!');
-  } catch (launchError) {
-    log(`!!! BROWSER LAUNCH FAILED !!!`, 'ERROR');
-    log(`Error: ${launchError.message}`, 'ERROR');
-    log(`Stack: ${launchError.stack}`, 'ERROR');
-    console.error('');
-    console.error('=== BROWSER LAUNCH FAILURE ===');
-    console.error(`Chromium path: ${CONFIG.CHROMIUM_PATH}`);
-    console.error(`Error: ${launchError.message}`);
-    console.error('');
-    console.error('Common fixes:');
-    console.error('1. Install missing dependencies: apt install -y libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2');
-    console.error('2. Check Chromium installation: apt install chromium-browser');
-    console.error('3. Try running Chromium directly: ' + CONFIG.CHROMIUM_PATH + ' --version');
-    console.error('');
-    clearTimeout(scrapeTimeoutId);
-    isScrapingActive = false;
-    throw launchError;
-  }
-  
-  page = await browser.newPage();
-  await page.setViewport({ width: 1366, height: 768 });
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-  
-  // Set page-level timeouts
-  page.setDefaultTimeout(CONFIG.TIMEOUT);
-  page.setDefaultNavigationTimeout(CONFIG.TIMEOUT);
-
-  // Enable console logging
-  page.on('console', msg => {
-    if (CONFIG.DEBUG_MODE) log(`[BROWSER] ${msg.text()}`, 'DEBUG');
-  });
-  
-  page.on('requestfailed', req => {
-    const url = req.url();
-    if (!url.includes('favicon') && !url.includes('analytics')) {
-      log(`[REQUEST FAILED] ${url} - ${req.failure()?.errorText}`, 'ERROR');
-    }
-  });
-
-  let mutations = [];
-
-  try {
-    // Navigate to KlikBCA
-    log('Navigating to KlikBCA...');
-    await page.goto('https://ibank.klikbca.com/', { 
-      waitUntil: 'networkidle2', 
-      timeout: CONFIG.TIMEOUT 
-    });
-    
-    await delay(2000);
-    await saveDebug(page, '01-login-page');
-    await saveDebug(page, '01-login-page', 'html');
-    log(`Page title: ${await page.title()}`);
-    
-    // === FIND LOGIN FRAME ===
-    log('Searching for login form in frames...');
-    const frameResult = await findLoginFrame(page);
-    
-    if (!frameResult) {
-      throw new Error('Could not find login form in any frame');
-    }
-    
-    const { frame, isMainPage } = frameResult;
-    log(`Using ${isMainPage ? 'main page' : 'iframe'} for login`);
-    
-    // === ENTER CREDENTIALS ===
-    const credentialsEntered = await enterCredentials(frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
-    if (!credentialsEntered) {
-      throw new Error('Failed to enter credentials');
-    }
-    
-    await delay(500);
-    await saveDebug(page, '02-credentials-entered');
-    
-    // === SUBMIT LOGIN ===
-    await saveDebug(page, '03-before-submit');
-    const submitted = await submitLogin(frame, page);
-    
-    if (!submitted) {
-      log('All submit strategies failed, trying additional methods...', 'WARN');
-    }
-    
-    await delay(3000);
-    await saveDebug(page, '04-after-submit');
-    
-    // Check if still on login page - try re-submit if needed
-    let loginFrame = await findLoginFrame(page);
-    if (loginFrame) {
-      log('Still on login page, re-entering credentials and trying again...');
-      
-      await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
-      await delay(500);
-      await submitLogin(loginFrame.frame, page);
-      await delay(3000);
-      
-      await saveDebug(page, '05-second-attempt');
-    }
-    
-    // Final login check
-    await delay(2000);
-    await saveDebug(page, '06-final-login-state');
-    await saveDebug(page, '06-final-login-state', 'html');
-    
-    const pageContent = await page.content();
-    const currentUrl = page.url();
-    log(`Current URL: ${currentUrl}`);
-    
-    // Check for error messages
-    if (pageContent.includes('Password atau User ID salah') || 
-        pageContent.includes('incorrect') ||
-        pageContent.includes('invalid') ||
-        pageContent.includes('Kesalahan')) {
-      throw new Error('Login failed - incorrect credentials');
-    }
-    
-    // Check if still on login page
-    const finalLoginCheck = await findLoginFrame(page);
-    if (finalLoginCheck) {
-      throw new Error('Login failed - still on login page after all attempts');
-    }
-    
-    log('Login successful!');
-    await saveDebug(page, '07-logged-in');
-    
-    // === FRAME-BASED NAVIGATION (preserves session) ===
-    log('Navigating to account statement via FRAME...');
-    await delay(2000);
-    
-    // Log all frames after login
-    const allFrames = page.frames();
-    log(`Total frames after login: ${allFrames.length}`);
-    allFrames.forEach((f, i) => {
-      log(`Frame ${i}: name="${f.name() || 'unnamed'}", url=${f.url().substring(0, 60)}...`);
-    });
-    
-    // Find the menu frame (left sidebar)
-    const menuFrame = page.frames().find(f => f.name() === 'menu');
-    let atmFrame = page.frames().find(f => f.name() === 'atm');
-    
-    if (!menuFrame) {
-      log('Menu frame not found, trying fallback navigation...', 'WARN');
-      throw new Error('Menu frame not found after login');
-    }
-    
-    log(`Found menu frame: ${menuFrame.url()}`);
-    if (atmFrame) log(`Found atm frame: ${atmFrame.url()}`);
-    
-    // Step 1: Click "Informasi Rekening" in menu frame
-    log('Clicking Informasi Rekening in menu...');
-    const menuClicked = await menuFrame.evaluate(() => {
-      const links = document.querySelectorAll('a');
-      for (const link of links) {
-        const text = (link.textContent || '').toLowerCase();
-        const href = (link.href || '').toLowerCase();
-        console.log(`Menu link: "${text}" -> ${href}`);
-        if (text.includes('informasi rekening') || 
-            text.includes('account information') ||
-            href.includes('account_information')) {
-          console.log(`Clicking: ${text}`);
-          link.click();
-          return { success: true, text };
-        }
-      }
-      return { success: false };
-    });
-    
-    log(`Menu click result: ${JSON.stringify(menuClicked)}`);
-    await delay(3000);
-    await saveDebug(page, '08-after-menu-click');
-    
-    // Re-find atm frame (content may have changed)
-    atmFrame = page.frames().find(f => f.name() === 'atm');
-    if (!atmFrame) {
-      throw new Error('ATM frame not found after menu click');
-    }
-    
-    log(`ATM frame URL: ${atmFrame.url()}`);
-    await saveDebug(page, '08b-atm-frame');
-    
-    // Step 2: Click "Mutasi Rekening" in MENU frame (submenu)
-    // After clicking "Informasi Rekening", the menu frame updates to show submenu
-    log('Looking for Mutasi Rekening in MENU frame (submenu)...');
-    
-    // Wait for menu frame to update with submenu
-    await delay(1500);
-    
-    // Re-get the menu frame (it should now show submenu)
-    const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
-    if (!updatedMenuFrame) {
-      throw new Error('Menu frame not found after menu click');
-    }
-    log(`Updated menu frame URL: ${updatedMenuFrame.url()}`);
-    
-    // List all links in updated menu frame for debugging
-    await updatedMenuFrame.evaluate(() => {
-      const links = document.querySelectorAll('a');
-      links.forEach(link => {
-        console.log(`Submenu link: "${link.textContent?.trim()}" -> ${link.href}`);
-      });
-    });
-    
-    // Click "Mutasi Rekening" in the submenu
-    const stmtClicked = await updatedMenuFrame.evaluate(() => {
-      const links = document.querySelectorAll('a');
-      for (const link of links) {
-        const text = (link.textContent || '').toLowerCase().trim();
-        const href = (link.href || '').toLowerCase();
-        if (text.includes('mutasi rekening') || 
-            text.includes('account statement') ||
-            href.includes('accountstmt') ||
-            href.includes('acct_stmt') ||
-            href.includes('balanceinquiry')) {
-          console.log(`Clicking submenu: ${text} -> ${href}`);
-          link.click();
-          return { success: true, text, href };
-        }
-      }
-      return { success: false };
-    });
-    
-    log(`Submenu click result: ${JSON.stringify(stmtClicked)}`);
-    await delay(3000);
-    
-    // Now ATM frame should have the account statement form
-    atmFrame = page.frames().find(f => f.name() === 'atm');
-    if (!atmFrame) {
-      throw new Error('ATM frame not found after submenu click');
-    }
-    log(`ATM frame URL after submenu click: ${atmFrame.url()}`);
-    await saveDebug(page, '09-account-page');
-    
-    // Step 3: Set date range in ATM frame (using Jakarta timezone!)
-    const today = getJakartaDate();
-    const day = String(today.getDate());
-    const month = String(today.getMonth() + 1);
-    
-    log(`Setting date: ${day}/${month} (Jakarta time: ${getJakartaDateString()})`);
-    
-    try {
-      // Try to set dates in ATM frame
-      const dateSet = await atmFrame.evaluate((day, month) => {
-        const selectors = [
-          { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' },
-          { start: 'select[name="startDt"]', startMt: 'select[name="startMt"]', end: 'select[name="endDt"]', endMt: 'select[name="endMt"]' }
-        ];
-        
-        for (const sel of selectors) {
-          const startDt = document.querySelector(sel.start);
-          const startMt = document.querySelector(sel.startMt);
-          const endDt = document.querySelector(sel.end);
-          const endMt = document.querySelector(sel.endMt);
-          
-          if (startDt && startMt && endDt && endMt) {
-            console.log('Found date selectors');
-            startDt.value = day;
-            startMt.value = month;
-            endDt.value = day;
-            endMt.value = month;
-            return { success: true, pattern: sel.start };
-          }
-        }
-        return { success: false };
-      }, day, month);
-      
-      log(`Date set result: ${JSON.stringify(dateSet)}`);
-      
-      // Click view button in ATM frame with timeout protection
-      // The button click triggers a page navigation, so evaluate() might never return
-      // We use Promise.race to handle this gracefully
-      log('Attempting to click Lihat Mutasi button...');
-      
-      const clickPromise = atmFrame.evaluate(() => {
-        const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"], input[name*="Submit"]');
-        for (const btn of buttons) {
-          console.log(`Button: value="${btn.value}" name="${btn.name}"`);
-          if (btn.value.toLowerCase().includes('lihat') || 
-              btn.value.toLowerCase().includes('view') ||
-              btn.type === 'submit') {
-            // Click the button - this will trigger navigation
-            btn.click();
-            return { success: true, value: btn.value };
-          }
-        }
-        return { success: false };
-      });
-      
-      // Race between evaluate completing and a 5 second timeout
-      // If page navigates, evaluate() will hang, so timeout wins and we continue
-      const timeoutPromise = new Promise(resolve => 
-        setTimeout(() => resolve({ success: true, timeout: true, message: 'Button click assumed successful (navigation detected)' }), 5000)
-      );
-      
-      const viewClicked = await Promise.race([clickPromise, timeoutPromise]);
-      
-      if (viewClicked.timeout) {
-        log(`View button: Click triggered navigation (timeout expected behavior)`);
-      } else {
-        log(`View button result: ${JSON.stringify(viewClicked)}`);
-      }
-      
-      // Wait for page to load after navigation
-      await delay(3000);
-    } catch (e) {
-      log(`Date selection failed: ${e.message}`, 'WARN');
-    }
-    
-    // Re-find atm frame for parsing
-    atmFrame = page.frames().find(f => f.name() === 'atm');
-    await saveDebug(page, '10-mutations-result');
-
-    // Step 4: Parse mutations from ATM frame
-    const currentYear = today.getFullYear();
-    log('Parsing mutations from ATM frame...');
-    
-    mutations = await atmFrame.evaluate((year) => {
-      const results = [];
-      const seen = new Set(); // For deduplication
-      const tables = document.querySelectorAll('table');
-      console.log(`[PARSE] Found ${tables.length} tables total`);
-      
-      for (let tableIdx = 0; tableIdx < tables.length; tableIdx++) {
-        const table = tables[tableIdx];
-        const rows = table.querySelectorAll('tr');
-        console.log(`[TABLE ${tableIdx}] ${rows.length} rows`);
-        
-        for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-          const row = rows[rowIdx];
-          const cells = row.querySelectorAll('td');
-          
-          // FIX 3: Skip rows with too many cells (header rows with merged cells)
-          if (cells.length > 10) {
-            console.log(`[ROW ${rowIdx}] Skipping - too many cells (${cells.length})`);
-            continue;
-          }
-          
-          // Need at least 4 columns: Date, Description, Branch, Mutation
-          if (cells.length >= 4) {
-            const firstCellRaw = cells[0]?.innerText || '';
-            const firstCell = firstCellRaw.trim();
-            const firstCellUpper = firstCell.toUpperCase();
-            
-            // Log first few chars of each row for debugging
-            console.log(`[ROW ${rowIdx}] ${cells.length} cells, first="${firstCell.substring(0, 10)}"`);
-            
-            // Handle both date format (28/12) and "PEND" for pending transactions
-            // Use includes() for PEND to handle whitespace/hidden chars
-            const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
-            const isPending = firstCellUpper.includes('PEND');
-            
-            if (dateMatch || isPending) {
-              let date;
-              if (isPending) {
-                // Use today's date for pending transactions
-                const now = new Date();
-                const day = String(now.getDate()).padStart(2, '0');
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                date = `${year}-${month}-${day}`;
-                console.log(`[PEND] Using today's date: ${date}`);
-              } else {
-                const day = dateMatch[1].padStart(2, '0');
-                const month = dateMatch[2].padStart(2, '0');
-                date = `${year}-${month}-${day}`;
-              }
-              
-              const description = cells[1]?.innerText?.trim() || '';
-              
-              // BCA Table Structure:
-              // Col 0: Date (DD/MM or PEND)
-              // Col 1: Description (Keterangan)
-              // Col 2: Branch (Cab.) - skip this
-              // Col 3: Mutation (Mutasi) - contains amount + CR/DB
-              // Col 4: Balance (Saldo) - skip this
-              
-              // Get mutation directly from column index 3
-              const mutasiCell = cells[3]?.innerText?.trim() || '';
-              console.log(`[MUTASI] Col3: "${mutasiCell}"`);
-              
-              // FIX 2: Determine type from description (more reliable than mutasi cell)
-              // Look for DB indicator in description
-              let type = 'credit';
-              const descUpper = description.toUpperCase();
-              if (descUpper.includes(' DB') || descUpper.includes('/DB') || descUpper.includes('DB\n') || descUpper.includes('DB ')) {
-                type = 'debit';
-              }
-              // Also check mutasi cell as fallback
-              if (mutasiCell.toUpperCase().includes('DB')) {
-                type = 'debit';
-              }
-              
-              // Parse amount - BCA uses comma for thousands, dot for decimals
-              // Format examples: "2,345.00 CR" or "333,000.00 DB"
-              // Remove commas and non-numeric chars except dot
-              const cleanedAmount = mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, '');
-              const amount = parseFloat(cleanedAmount);
-              
-              console.log(`[AMOUNT] Cleaned: "${cleanedAmount}" -> ${amount}`);
-              console.log(`[TYPE] Detected: ${type} (desc="${descUpper.substring(0, 30)}")`);
-              
-              // FILTER: Skip debit transactions - only process credits (incoming payments)
-              if (type === 'debit') {
-                window.__debitCount = (window.__debitCount || 0) + 1;
-                console.log(`[SKIP-DEBIT #${window.__debitCount}] Rp${amount.toLocaleString()} - ${description.substring(0, 40)}...`);
-                continue;
-              }
-              
-              if (amount > 0) {
-                // FIX 1: Deduplicate using unique key
-                const dedupKey = `${date}-${Math.round(amount)}-${description.substring(0, 30)}`;
-                
-                if (seen.has(dedupKey)) {
-                  window.__dupCount = (window.__dupCount || 0) + 1;
-                  console.log(`[SKIP-DUP #${window.__dupCount}] ${dedupKey}`);
-                  continue;
-                }
-                seen.add(dedupKey);
-                
-                console.log(`[FOUND] ${date} ${type} Rp${amount} - ${description.substring(0, 30)}...`);
-                results.push({ 
-                  date, 
-                  amount: Math.round(amount), 
-                  type, 
-                  description 
-                });
-              }
-            }
-          }
-        }
-      }
-      
-      // Summary logging
-      const debitCount = window.__debitCount || 0;
-      const dupCount = window.__dupCount || 0;
-      console.log('');
-      console.log('============ TRANSACTION SUMMARY ============');
-      console.log(`  Credits (incoming):     ${results.length}`);
-      console.log(`  Debits skipped:         ${debitCount}`);
-      console.log(`  Duplicates skipped:     ${dupCount}`);
-      console.log(`  Total rows processed:   ${results.length + debitCount + dupCount}`);
-      console.log('=============================================');
-      console.log('');
-      
-      return { mutations: results, debitCount, dupCount };
-    }, currentYear);
-
-    // FIX: Validate mutations object before destructuring
-    if (mutations && typeof mutations === 'object' && Array.isArray(mutations.mutations)) {
-      const { mutations: parsed, debitCount = 0, dupCount = 0 } = mutations;
-      parsedMutations = parsed;
-      log(`Found ${parsedMutations.length} credit mutations (skipped ${debitCount} debits, ${dupCount} duplicates)`);
-    } else {
-      log('Invalid mutations result, using empty array', 'WARN');
-      parsedMutations = [];
-    }
-
-    // Logout
-    try {
-      log('Logging out...');
-      const logoutClicked = await page.evaluate(() => {
-        const links = document.querySelectorAll('a');
-        for (const link of links) {
-          const text = (link.textContent || '').toLowerCase();
-          if (text.includes('logout') || text.includes('keluar')) {
-            link.click();
-            return true;
-          }
-        }
-        return false;
-      });
-      if (logoutClicked) {
-        await delay(2000);
-        log('Logged out successfully');
-      }
-    } catch (e) {
-      log(`Logout error: ${e.message}`, 'WARN');
-    }
-    
-    await saveDebug(page, '10-final');
-
-  } catch (error) {
-    log(`Scrape error: ${error.message}`, 'ERROR');
-    log(`Stack: ${error.stack}`, 'DEBUG');
-    if (page) {
-      await saveDebug(page, 'error-state');
-      await saveDebug(page, 'error-state', 'html');
-      
-      // CRITICAL: Force logout before throwing error
-      log('Error occurred, attempting force logout to clean session...', 'WARN');
-      await forceLogout(page);
-    }
-    throw error;
-  } finally {
-    // Clear the timeout
-    clearTimeout(scrapeTimeoutId);
-    isScrapingActive = false;
-    scrapeStartTime = null;
-    
-    // Close browser gracefully
-    if (browser) {
-      try {
-        await browser.close();
-        log('Browser closed');
-      } catch (closeErr) {
-        log(`Browser close error: ${closeErr.message}`, 'WARN');
-      }
-    }
-    
-    // Force cleanup orphan chromium processes
-    try {
-      const { execSync } = require('child_process');
-      execSync('pkill -f "chromium.*puppeteer_dev" 2>/dev/null || true', { stdio: 'ignore' });
-      log('Orphan processes cleaned up');
-    } catch (e) {
-      // Ignore
-    }
-  }
-
-  return parsedMutations;
-}
+// === SCRAPE FUNCTIONS ===
 
 /**
- * OPTIMIZED BURST MODE: Login 1x, then loop "Kembali" + "Lihat" tanpa logout
- * Flow: Login → Navigasi ke Mutasi → Set Tanggal → Lihat → [Loop: Grab → Kembali → Lihat] → Logout
+ * Execute a single scrape (normal mode)
+ * Uses the persistent browser, starts with page refresh
  */
-async function scrapeBCABurstMode() {
-  log('=== BCA BURST MODE SCRAPER STARTED ===');
-  log(`Config: USER_ID=${CONFIG.BCA_USER_ID.substring(0, 3)}***, ACCOUNT=${CONFIG.ACCOUNT_NUMBER}`);
+async function executeScrape() {
+  if (!isIdle) {
+    log('Scraper busy, skipping...', 'WARN');
+    return { success: false, reason: 'busy' };
+  }
   
-  const maxIterations = 24;
-  const maxDuration = 150000; // 2.5 minutes
-  const burstStart = Date.now();
-  let checkCount = 0;
-  let matchFound = false;
+  isIdle = false;
+  scrapeCount++;
+  const startTime = Date.now();
+  let mutations = [];
   
-  // Track scrape start for stuck detection
-  scrapeStartTime = Date.now();
-  isScrapingActive = true;
-  
-  let browser;
-  let page;
+  log(`=== STARTING SCRAPE #${scrapeCount} (NORMAL MODE) ===`);
   
   try {
-    // === STEP 1: LAUNCH BROWSER & LOGIN (ONLY ONCE) ===
-    log('Step 1: Launching browser...');
-    browser = await puppeteer.launch({
-      headless: CONFIG.HEADLESS ? 'new' : false,
-      slowMo: CONFIG.SLOW_MO,
-      executablePath: CONFIG.CHROMIUM_PATH,
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox', 
-        '--disable-dev-shm-usage',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
-      ],
-    });
-    log('Browser launched successfully!');
+    // Step 1: Refresh page to clear any stuck session
+    await refreshToCleanState();
+    await saveDebug(page, '01-login-page');
     
-    page = await browser.newPage();
-    await page.setViewport({ width: 1366, height: 768 });
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    page.setDefaultTimeout(CONFIG.TIMEOUT);
-    page.setDefaultNavigationTimeout(CONFIG.TIMEOUT);
-    
-    // Navigate to KlikBCA
-    log('Navigating to KlikBCA...');
-    await page.goto('https://ibank.klikbca.com/', { 
-      waitUntil: 'networkidle2', 
-      timeout: CONFIG.TIMEOUT 
-    });
-    
-    await delay(2000);
-    await saveDebug(page, 'burst-01-login-page');
-    
-    // Find login frame
-    const frameResult = await findLoginFrame(page);
+    // Step 2: Find login frame
+    const frameResult = await findLoginFrame();
     if (!frameResult) {
-      throw new Error('Could not find login form in any frame');
+      throw new Error('Could not find login form');
     }
     
     const { frame, isMainPage } = frameResult;
     log(`Using ${isMainPage ? 'main page' : 'iframe'} for login`);
     
-    // Enter credentials
+    // Step 3: Enter credentials
     const credentialsEntered = await enterCredentials(frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
     if (!credentialsEntered) {
       throw new Error('Failed to enter credentials');
     }
     
-    await delay(500);
-    await saveDebug(page, 'burst-02-credentials-entered');
+    await saveDebug(page, '02-credentials-entered');
     
-    // Submit login
-    const submitted = await submitLogin(frame, page);
-    if (!submitted) {
-      log('Submit strategies failed', 'WARN');
-    }
-    
+    // Step 4: Submit login
+    const submitted = await submitLogin(frame);
     await delay(3000);
     
     // Check if still on login page
-    let loginFrame = await findLoginFrame(page);
+    let loginFrame = await findLoginFrame();
     if (loginFrame) {
-      log('Still on login page, re-entering credentials...');
+      log('Still on login page, trying again...');
       await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
-      await delay(500);
-      await submitLogin(loginFrame.frame, page);
+      await submitLogin(loginFrame.frame);
       await delay(3000);
     }
     
     // Final login check
-    const finalLoginCheck = await findLoginFrame(page);
+    const finalLoginCheck = await findLoginFrame();
     if (finalLoginCheck) {
       throw new Error('Login failed - still on login page');
     }
     
     log('LOGIN SUCCESSFUL!');
-    await saveDebug(page, 'burst-03-logged-in');
+    await saveDebug(page, '03-logged-in');
     
-    // === STEP 2: NAVIGATE TO MUTASI REKENING (ONLY ONCE) ===
-    log('Step 2: Navigating to Mutasi Rekening...');
+    // Step 5: Navigate to Mutasi Rekening
     await delay(2000);
     
-    // Find menu frame
     const menuFrame = page.frames().find(f => f.name() === 'menu');
     if (!menuFrame) {
-      throw new Error('Menu frame not found after login');
+      throw new Error('Menu frame not found');
     }
     
-    // Click "Informasi Rekening"
-    log('Clicking Informasi Rekening...');
+    // Click Informasi Rekening
     await menuFrame.evaluate(() => {
       const links = document.querySelectorAll('a');
       for (const link of links) {
@@ -1353,9 +565,8 @@ async function scrapeBCABurstMode() {
     });
     await delay(3000);
     
-    // Re-get menu frame and click "Mutasi Rekening"
+    // Click Mutasi Rekening
     const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
-    log('Clicking Mutasi Rekening...');
     await updatedMenuFrame.evaluate(() => {
       const links = document.querySelectorAll('a');
       for (const link of links) {
@@ -1369,8 +580,7 @@ async function scrapeBCABurstMode() {
     });
     await delay(3000);
     
-    // === STEP 3: SET DATE (ONLY ONCE) - Using Jakarta timezone! ===
-    log(`Step 3: Setting date range (Jakarta time: ${getJakartaDateString()})...`);
+    // Step 6: Set date and view
     let atmFrame = page.frames().find(f => f.name() === 'atm');
     if (!atmFrame) {
       throw new Error('ATM frame not found');
@@ -1380,6 +590,8 @@ async function scrapeBCABurstMode() {
     const day = String(today.getDate());
     const month = String(today.getMonth() + 1);
     const currentYear = today.getFullYear();
+    
+    log(`Setting date: ${day}/${month}/${currentYear} (Jakarta: ${getJakartaDateString()})`);
     
     await atmFrame.evaluate((day, month) => {
       const selectors = [
@@ -1404,39 +616,237 @@ async function scrapeBCABurstMode() {
       return false;
     }, day, month);
     
-    log(`Date set: ${day}/${month}/${currentYear}`);
-    await saveDebug(page, 'burst-04-date-set');
-    
-    // === STEP 4: FIRST CLICK "LIHAT" ===
-    log('Step 4: First click Lihat...');
-    await atmFrame.evaluate(() => {
+    // Click Lihat with timeout protection
+    const clickPromise = atmFrame.evaluate(() => {
       const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"]');
       for (const btn of buttons) {
         if (btn.value.toLowerCase().includes('lihat') || btn.value.toLowerCase().includes('view') || btn.type === 'submit') {
           btn.click();
-          return true;
+          return { success: true };
         }
       }
-      return false;
+      return { success: false };
+    });
+    
+    const timeoutPromise = new Promise(resolve => 
+      setTimeout(() => resolve({ success: true, timeout: true }), 5000)
+    );
+    
+    await Promise.race([clickPromise, timeoutPromise]);
+    await delay(3000);
+    
+    // Step 7: Parse mutations
+    atmFrame = page.frames().find(f => f.name() === 'atm');
+    await saveDebug(page, '04-mutations-result');
+    
+    const parseResult = await atmFrame.evaluate((year) => {
+      const results = [];
+      const seen = new Set();
+      const tables = document.querySelectorAll('table');
+      
+      for (const table of tables) {
+        const rows = table.querySelectorAll('tr');
+        for (const row of rows) {
+          const cells = row.querySelectorAll('td');
+          if (cells.length > 10) continue;
+          
+          if (cells.length >= 4) {
+            const firstCell = (cells[0]?.innerText || '').trim();
+            const firstCellUpper = firstCell.toUpperCase();
+            
+            const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
+            const isPending = firstCellUpper.includes('PEND');
+            
+            if (dateMatch || isPending) {
+              let date;
+              if (isPending) {
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                date = `${year}-${month}-${day}`;
+              } else {
+                const day = dateMatch[1].padStart(2, '0');
+                const month = dateMatch[2].padStart(2, '0');
+                date = `${year}-${month}-${day}`;
+              }
+              
+              const description = cells[1]?.innerText?.trim() || '';
+              const mutasiCell = cells[3]?.innerText?.trim() || '';
+              
+              let type = 'credit';
+              const descUpper = description.toUpperCase();
+              if (descUpper.includes(' DB') || descUpper.includes('/DB') || mutasiCell.toUpperCase().includes('DB')) {
+                type = 'debit';
+              }
+              
+              // Skip debits
+              if (type === 'debit') continue;
+              
+              const cleanedAmount = mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, '');
+              const amount = parseFloat(cleanedAmount);
+              
+              if (amount > 0) {
+                const dedupKey = `${date}-${Math.round(amount)}-${description.substring(0, 30)}`;
+                if (seen.has(dedupKey)) continue;
+                seen.add(dedupKey);
+                
+                results.push({ date, amount: Math.round(amount), type, description });
+              }
+            }
+          }
+        }
+      }
+      
+      return results;
+    }, currentYear);
+    
+    mutations = parseResult || [];
+    log(`Found ${mutations.length} credit mutations`);
+    
+    // Step 8: Logout
+    await safeLogout();
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    log(`=== SCRAPE COMPLETED in ${duration}s ===`);
+    
+    return { success: true, mutations, duration };
+    
+  } catch (error) {
+    log(`Scrape error: ${error.message}`, 'ERROR');
+    await saveDebug(page, 'error-state');
+    await safeLogout();
+    
+    // Restart browser on error
+    await initBrowser();
+    
+    return { success: false, error: error.message };
+  } finally {
+    isIdle = true;
+    lastScrapeTime = Date.now();
+  }
+}
+
+/**
+ * Execute burst mode scrape
+ * Login once, then loop Kembali + Lihat
+ */
+async function executeBurstScrape() {
+  if (!isIdle) {
+    log('Scraper busy, skipping burst...', 'WARN');
+    return { success: false, reason: 'busy' };
+  }
+  
+  isIdle = false;
+  scrapeCount++;
+  const startTime = Date.now();
+  
+  const maxIterations = 24;
+  const maxDuration = 150000; // 2.5 minutes
+  let checkCount = 0;
+  let matchFound = false;
+  
+  log(`=== STARTING BURST MODE SCRAPE #${scrapeCount} ===`);
+  
+  try {
+    // Step 1: Refresh and login
+    await refreshToCleanState();
+    
+    const frameResult = await findLoginFrame();
+    if (!frameResult) {
+      throw new Error('Could not find login form');
+    }
+    
+    await enterCredentials(frameResult.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+    await submitLogin(frameResult.frame);
+    await delay(3000);
+    
+    let loginFrame = await findLoginFrame();
+    if (loginFrame) {
+      await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+      await submitLogin(loginFrame.frame);
+      await delay(3000);
+    }
+    
+    const finalLoginCheck = await findLoginFrame();
+    if (finalLoginCheck) {
+      throw new Error('Login failed');
+    }
+    
+    log('LOGIN SUCCESSFUL!');
+    
+    // Step 2: Navigate to Mutasi Rekening
+    await delay(2000);
+    
+    const menuFrame = page.frames().find(f => f.name() === 'menu');
+    if (!menuFrame) throw new Error('Menu frame not found');
+    
+    await menuFrame.evaluate(() => {
+      const links = document.querySelectorAll('a');
+      for (const link of links) {
+        const text = (link.textContent || '').toLowerCase();
+        if (text.includes('informasi rekening')) { link.click(); return; }
+      }
     });
     await delay(3000);
-    await saveDebug(page, 'burst-05-first-result');
     
-    // === STEP 5: BURST LOOP - GRAB → KEMBALI → LIHAT ===
+    const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
+    await updatedMenuFrame.evaluate(() => {
+      const links = document.querySelectorAll('a');
+      for (const link of links) {
+        const text = (link.textContent || '').toLowerCase();
+        if (text.includes('mutasi rekening')) { link.click(); return; }
+      }
+    });
+    await delay(3000);
+    
+    // Step 3: Set date
+    let atmFrame = page.frames().find(f => f.name() === 'atm');
+    if (!atmFrame) throw new Error('ATM frame not found');
+    
+    const today = getJakartaDate();
+    const day = String(today.getDate());
+    const month = String(today.getMonth() + 1);
+    const currentYear = today.getFullYear();
+    
+    await atmFrame.evaluate((day, month) => {
+      const selectors = [
+        { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' }
+      ];
+      for (const sel of selectors) {
+        const startDt = document.querySelector(sel.start);
+        const startMt = document.querySelector(sel.startMt);
+        const endDt = document.querySelector(sel.end);
+        const endMt = document.querySelector(sel.endMt);
+        if (startDt && startMt && endDt && endMt) {
+          startDt.value = day; startMt.value = month;
+          endDt.value = day; endMt.value = month;
+          return;
+        }
+      }
+    }, day, month);
+    
+    // Step 4: First click Lihat
+    await atmFrame.evaluate(() => {
+      const buttons = document.querySelectorAll('input[type="submit"]');
+      for (const btn of buttons) {
+        if (btn.value.toLowerCase().includes('lihat') || btn.type === 'submit') {
+          btn.click(); return;
+        }
+      }
+    });
+    await delay(3000);
+    
+    // Step 5: Burst loop
     log('=== ENTERING BURST LOOP ===');
     
-    while (checkCount < maxIterations && (Date.now() - burstStart < maxDuration)) {
+    while (checkCount < maxIterations && (Date.now() - startTime < maxDuration)) {
       checkCount++;
       log(`--- Burst iteration #${checkCount} ---`);
       
-      // Re-find ATM frame (content may have changed)
       atmFrame = page.frames().find(f => f.name() === 'atm');
-      if (!atmFrame) {
-        log('ATM frame lost, breaking loop', 'ERROR');
-        break;
-      }
+      if (!atmFrame) break;
       
-      // 5a. GRAB DATA from table
+      // Grab data
       const mutations = await atmFrame.evaluate((year) => {
         const results = [];
         const seen = new Set();
@@ -1446,45 +856,32 @@ async function scrapeBCABurstMode() {
           const rows = table.querySelectorAll('tr');
           for (const row of rows) {
             const cells = row.querySelectorAll('td');
-            if (cells.length > 10) continue;
+            if (cells.length > 10 || cells.length < 4) continue;
             
-            if (cells.length >= 4) {
-              const firstCell = (cells[0]?.innerText || '').trim();
-              const firstCellUpper = firstCell.toUpperCase();
+            const firstCell = (cells[0]?.innerText || '').trim();
+            const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
+            const isPending = firstCell.toUpperCase().includes('PEND');
+            
+            if (dateMatch || isPending) {
+              let date;
+              if (isPending) {
+                const now = new Date();
+                date = `${year}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+              } else {
+                date = `${year}-${dateMatch[2].padStart(2,'0')}-${dateMatch[1].padStart(2,'0')}`;
+              }
               
-              const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
-              const isPending = firstCellUpper.includes('PEND');
+              const description = cells[1]?.innerText?.trim() || '';
+              const mutasiCell = cells[3]?.innerText?.trim() || '';
               
-              if (dateMatch || isPending) {
-                let date;
-                if (isPending) {
-                  const now = new Date();
-                  date = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                } else {
-                  date = `${year}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
-                }
-                
-                const description = cells[1]?.innerText?.trim() || '';
-                const mutasiCell = cells[3]?.innerText?.trim() || '';
-                
-                let type = 'credit';
-                const descUpper = description.toUpperCase();
-                if (descUpper.includes(' DB') || descUpper.includes('/DB') || mutasiCell.toUpperCase().includes('DB')) {
-                  type = 'debit';
-                }
-                
-                // Skip debit transactions
-                if (type === 'debit') continue;
-                
-                const cleanedAmount = mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, '');
-                const amount = parseFloat(cleanedAmount);
-                
-                if (amount > 0) {
-                  const dedupKey = `${date}-${Math.round(amount)}-${description.substring(0, 30)}`;
-                  if (!seen.has(dedupKey)) {
-                    seen.add(dedupKey);
-                    results.push({ date, amount: Math.round(amount), type, description });
-                  }
+              if (description.toUpperCase().includes('DB') || mutasiCell.toUpperCase().includes('DB')) continue;
+              
+              const amount = parseFloat(mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, ''));
+              if (amount > 0) {
+                const key = `${date}-${Math.round(amount)}-${description.substring(0,30)}`;
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  results.push({ date, amount: Math.round(amount), type: 'credit', description });
                 }
               }
             }
@@ -1493,254 +890,242 @@ async function scrapeBCABurstMode() {
         return results;
       }, currentYear);
       
-      log(`Found ${mutations.length} credit mutations`);
+      log(`Found ${mutations.length} mutations`);
       
-      // 5b. SEND TO WEBHOOK if mutations found
-      if (mutations && mutations.length > 0) {
+      // Send to webhook if found
+      if (mutations.length > 0) {
         const result = await sendToWebhook(mutations);
         log(`Webhook result: ${JSON.stringify(result)}`);
         
         if (result.matched && result.matched > 0) {
-          log(`MATCH FOUND! Payment verified.`);
+          log('MATCH FOUND! Payment verified.');
           matchFound = true;
           break;
         }
       }
       
-      // 5c. CHECK SERVER STATUS
+      // Check server status
       const status = await checkBurstCommand();
       if (!status.burst_active) {
         log('Burst stopped by server');
         break;
       }
       
-      // Check if max duration exceeded
-      if (Date.now() - burstStart >= maxDuration) {
-        log('Max burst duration reached');
-        break;
-      }
-      
-      // 5d. CLICK "KEMBALI" to go back to form
-      log('Clicking Kembali...');
+      // Click Kembali
       const kembaliClicked = await atmFrame.evaluate(() => {
-        // Try button first
         const buttons = document.querySelectorAll('input[type="button"], input[type="submit"]');
         for (const btn of buttons) {
-          const value = (btn.value || '').toLowerCase();
-          if (value.includes('kembali') || value.includes('back')) {
-            btn.click();
-            console.log(`Clicked button: ${btn.value}`);
-            return { success: true, method: 'button', value: btn.value };
-          }
-        }
-        
-        // Try link
-        const links = document.querySelectorAll('a');
-        for (const link of links) {
-          const text = (link.textContent || '').toLowerCase();
-          if (text.includes('kembali') || text.includes('back')) {
-            link.click();
-            console.log(`Clicked link: ${link.textContent}`);
-            return { success: true, method: 'link', text: link.textContent };
-          }
-        }
-        
-        return { success: false };
-      });
-      
-      log(`Kembali result: ${JSON.stringify(kembaliClicked)}`);
-      
-      if (!kembaliClicked.success) {
-        log('Could not find Kembali button, breaking loop', 'WARN');
-        break;
-      }
-      
-      await delay(2000);
-      
-      // 5e. Re-find ATM frame and CLICK "LIHAT" again (date still preserved)
-      atmFrame = page.frames().find(f => f.name() === 'atm');
-      if (!atmFrame) {
-        log('ATM frame lost after Kembali', 'ERROR');
-        break;
-      }
-      
-      log('Clicking Lihat...');
-      const lihatClicked = await atmFrame.evaluate(() => {
-        const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"]');
-        for (const btn of buttons) {
-          const value = (btn.value || '').toLowerCase();
-          if (value.includes('lihat') || value.includes('view') || btn.type === 'submit') {
-            btn.click();
-            console.log(`Clicked: ${btn.value}`);
-            return { success: true, value: btn.value };
-          }
-        }
-        return { success: false };
-      });
-      
-      log(`Lihat result: ${JSON.stringify(lihatClicked)}`);
-      
-      if (!lihatClicked.success) {
-        log('Could not find Lihat button, breaking loop', 'WARN');
-        break;
-      }
-      
-      // 5f. Wait for results to load
-      await delay(3000);
-      
-      // Small additional delay between iterations
-      await delay(2000);
-    }
-    
-    log(`=== BURST LOOP ENDED (${checkCount} iterations, match=${matchFound}) ===`);
-    
-    // === STEP 6: LOGOUT ===
-    log('Step 6: Logging out...');
-    try {
-      await page.evaluate(() => {
-        const links = document.querySelectorAll('a');
-        for (const link of links) {
-          const text = (link.textContent || '').toLowerCase();
-          if (text.includes('logout') || text.includes('keluar')) {
-            link.click();
-            return true;
+          if (btn.value.toLowerCase().includes('kembali') || btn.value.toLowerCase().includes('back')) {
+            btn.click(); return true;
           }
         }
         return false;
       });
+      
+      if (!kembaliClicked) break;
       await delay(2000);
-      log('Logged out successfully');
-    } catch (e) {
-      log(`Logout error: ${e.message}`, 'WARN');
+      
+      // Click Lihat again
+      atmFrame = page.frames().find(f => f.name() === 'atm');
+      if (!atmFrame) break;
+      
+      await atmFrame.evaluate(() => {
+        const buttons = document.querySelectorAll('input[type="submit"]');
+        for (const btn of buttons) {
+          if (btn.value.toLowerCase().includes('lihat') || btn.type === 'submit') {
+            btn.click(); return;
+          }
+        }
+      });
+      await delay(3000);
     }
     
-    await saveDebug(page, 'burst-99-final');
+    log(`=== BURST LOOP ENDED (${checkCount} iterations, match=${matchFound}) ===`);
     
-    return { iterations: checkCount, matchFound };
+    // Logout
+    await safeLogout();
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    log(`=== BURST COMPLETED in ${duration}s ===`);
+    
+    return { success: true, iterations: checkCount, matchFound, duration };
     
   } catch (error) {
-    log(`Burst mode error: ${error.message}`, 'ERROR');
-    log(`Stack: ${error.stack}`, 'DEBUG');
-    if (page) {
-      await saveDebug(page, 'burst-error-state');
-      
-      // CRITICAL: Force logout before throwing error
-      log('Burst mode error, attempting force logout to clean session...', 'WARN');
-      await forceLogout(page);
-    }
-    throw error;
+    log(`Burst error: ${error.message}`, 'ERROR');
+    await safeLogout();
+    await initBrowser();
+    return { success: false, error: error.message };
   } finally {
-    isScrapingActive = false;
-    scrapeStartTime = null;
-    
-    if (browser) {
-      try {
-        await browser.close();
-        log('Browser closed');
-      } catch (closeErr) {
-        log(`Browser close error: ${closeErr.message}`, 'WARN');
-      }
-    }
-    
-    // Force cleanup orphan processes
-    try {
-      const { execSync } = require('child_process');
-      execSync('pkill -f "chromium.*puppeteer_dev" 2>/dev/null || true', { stdio: 'ignore' });
-    } catch (e) {}
+    isIdle = true;
+    lastScrapeTime = Date.now();
   }
 }
 
-// Burst mode entry point - calls the optimized scrapeBCABurstMode()
-async function runBurstMode(initialCommand) {
-  log('=== ENTERING BURST MODE ===');
-  
-  // Check if stuck before starting
-  if (checkStuckStatus()) {
-    log('Stuck detected before burst mode, forcing cleanup...', 'ERROR');
-    await forceCleanup();
-    await delay(5000);
+// === API FUNCTIONS ===
+
+async function fetchServerConfig() {
+  try {
+    const response = await fetch(CONFIG_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret_key: CONFIG.SECRET_KEY }),
+    });
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    log(`Failed to fetch config: ${error.message}`, 'ERROR');
+    return null;
   }
+}
+
+async function checkBurstCommand() {
+  if (!CONFIG.BURST_CHECK_URL) return { burst_active: false };
   
   try {
-    const result = await scrapeBCABurstMode();
-    log(`Burst mode completed: ${result.iterations} iterations, match=${result.matchFound}`);
+    const response = await fetch(CONFIG.BURST_CHECK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret_key: CONFIG.SECRET_KEY }),
+    });
+    return await response.json();
   } catch (e) {
-    log(`Burst mode failed: ${e.message}`, 'ERROR');
-    await forceCleanup();
-  }
-  
-  log('=== BURST MODE ENDED ===');
-}
-
-// Main entry
-async function main() {
-  log(`========================================`);
-  log(`  BCA iBanking Scraper`);
-  log(`  Version: ${SCRAPER_VERSION} (${SCRAPER_BUILD_DATE})`);
-  log(`========================================`);
-  
-  const isBurstCheck = process.argv.includes('--burst-check');
-
-  // Check stuck status before any operation
-  if (checkStuckStatus()) {
-    log('Previous scrape detected as stuck, forcing cleanup...', 'WARN');
-    await forceCleanup();
-    await delay(3000);
-  }
-
-  if (isBurstCheck) {
-    log('Checking for burst command...');
-    const cmd = await checkBurstCommand();
-    if (cmd.burst_active) {
-      await runBurstMode(cmd);
-    } else {
-      log(`Burst inactive: ${cmd.reason || 'No burst'}`);
-    }
-  } else {
-    // Normal mode
-    const mutations = await scrapeBCA();
-    if (mutations && mutations.length > 0) {
-      const result = await sendToWebhook(mutations);
-      log(`Result: ${JSON.stringify(result)}`);
-    } else {
-      log('No mutations found');
-    }
+    return { burst_active: false };
   }
 }
 
-// Run with retry - improved with stuck detection
-async function runWithRetry() {
-  const isBurstCheck = process.argv.includes('--burst-check');
-  if (isBurstCheck) return main();
+async function sendToWebhook(mutations) {
+  try {
+    const response = await fetch(CONFIG.WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret_key: CONFIG.SECRET_KEY,
+        mutations,
+        bank_name: 'BCA',
+        account_number: CONFIG.ACCOUNT_NUMBER,
+        scraped_at: new Date().toISOString(),
+      }),
+    });
+    return await response.json();
+  } catch (e) {
+    log(`Webhook error: ${e.message}`, 'ERROR');
+    return { error: e.message };
+  }
+}
 
-  for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
+// === MAIN LOOP ===
+
+async function mainLoop() {
+  log('=== PERSISTENT BROWSER SCHEDULER STARTED ===');
+  log(`Config URL: ${CONFIG_URL}`);
+  log(`Poll interval: ${CONFIG.CONFIG_POLL_INTERVAL / 1000}s`);
+  log(`Watchdog interval: ${CONFIG.WATCHDOG_INTERVAL / 1000}s`);
+  
+  // Initialize browser
+  await initBrowser();
+  
+  // Start watchdog
+  setInterval(watchdog, CONFIG.WATCHDOG_INTERVAL);
+  
+  while (true) {
     try {
-      // Check for stuck status before each attempt
-      if (checkStuckStatus()) {
-        log(`Attempt ${attempt}: Stuck detected, forcing cleanup...`, 'WARN');
-        await forceCleanup();
-        await delay(5000);
+      // Fetch config from server
+      const config = await fetchServerConfig();
+      
+      if (!config || !config.success) {
+        log(`Config fetch failed or inactive: ${config?.error || 'Unknown'}`, 'WARN');
+        await delay(CONFIG.CONFIG_POLL_INTERVAL);
+        continue;
       }
       
-      await main();
-      return;
-    } catch (e) {
-      log(`Attempt ${attempt} failed: ${e.message}`, 'ERROR');
-      
-      // Force cleanup after failure
-      await forceCleanup();
-      
-      if (attempt < CONFIG.MAX_RETRIES) {
-        // Add random delay to avoid detection patterns
-        const retryDelay = CONFIG.RETRY_DELAY + Math.floor(Math.random() * 5000);
-        log(`Waiting ${retryDelay/1000}s before retry...`);
-        await delay(retryDelay);
+      // Update interval
+      const serverIntervalMs = (config.scrape_interval_minutes || 10) * 60 * 1000;
+      if (serverIntervalMs !== currentIntervalMs) {
+        log(`Interval changed: ${currentIntervalMs / 60000}m -> ${serverIntervalMs / 60000}m`);
+        currentIntervalMs = serverIntervalMs;
       }
+      
+      // Check burst mode
+      if (config.burst_in_progress && config.burst_enabled) {
+        if (!isBurstMode) {
+          log('=== ENTERING BURST MODE ===');
+          isBurstMode = true;
+          burstEndTime = Date.now() + (config.burst_remaining_seconds * 1000);
+        }
+        
+        // Execute burst scrape
+        await executeBurstScrape();
+        
+        // Check if burst ended
+        const updatedConfig = await fetchServerConfig();
+        if (!updatedConfig?.burst_in_progress) {
+          log('=== BURST MODE ENDED ===');
+          isBurstMode = false;
+        }
+        continue;
+      } else {
+        if (isBurstMode) {
+          log('=== BURST MODE ENDED ===');
+          isBurstMode = false;
+        }
+      }
+      
+      // Normal mode - check if should scrape
+      if (config.is_active) {
+        const timeSinceLastScrape = Date.now() - lastScrapeTime;
+        
+        if (timeSinceLastScrape >= currentIntervalMs) {
+          log(`Time to scrape (${(timeSinceLastScrape / 60000).toFixed(1)}m since last)`);
+          
+          const result = await executeScrape();
+          
+          if (result.success && result.mutations && result.mutations.length > 0) {
+            const webhookResult = await sendToWebhook(result.mutations);
+            log(`Webhook result: ${JSON.stringify(webhookResult)}`);
+          } else if (result.success) {
+            log('No mutations found');
+          }
+        } else {
+          const nextScrapeIn = ((currentIntervalMs - timeSinceLastScrape) / 60000).toFixed(1);
+          log(`Next scrape in ${nextScrapeIn}m`);
+        }
+      } else {
+        log('Scraper inactive (disabled in settings)');
+      }
+      
+    } catch (error) {
+      log(`Loop error: ${error.message}`, 'ERROR');
     }
+    
+    // Wait before next config poll
+    await delay(CONFIG.CONFIG_POLL_INTERVAL);
   }
-  
-  log('All retry attempts exhausted', 'ERROR');
-  process.exit(1);
 }
 
-runWithRetry();
+// === GRACEFUL SHUTDOWN ===
+
+process.on('SIGINT', async () => {
+  log('Received SIGINT, shutting down...');
+  if (browser) {
+    await safeLogout();
+    await browser.close();
+  }
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  log('Received SIGTERM, shutting down...');
+  if (browser) {
+    await safeLogout();
+    await browser.close();
+  }
+  process.exit(0);
+});
+
+// === START ===
+
+mainLoop().catch(err => {
+  log(`Fatal error: ${err.message}`, 'ERROR');
+  process.exit(1);
+});

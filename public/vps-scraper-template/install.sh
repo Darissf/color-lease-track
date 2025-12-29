@@ -1,11 +1,12 @@
 #!/bin/bash
 # ============================================================
 # BCA VPS Scraper - All-in-One Installer
+# PERSISTENT BROWSER MODE v3.0.0
 # ============================================================
 # Script ini akan:
 # 1. Install semua dependencies (Node.js, OpenVPN, Puppeteer)
 # 2. Setup OpenVPN dengan file .ovpn yang tersedia (jika ada)
-# 3. Setup systemd service untuk scheduler daemon
+# 3. Setup systemd service untuk persistent browser daemon
 #
 # CATATAN: Script ini TIDAK akan prompt/tanya apapun
 # Semua berjalan otomatis. Jika ada file yang sudah ada,
@@ -15,7 +16,7 @@
 set -e
 
 echo "============================================================"
-echo "    BCA VPS Scraper - All-in-One Installer"
+echo "    BCA VPS Scraper - PERSISTENT BROWSER MODE v3.0.0"
 echo "============================================================"
 echo ""
 
@@ -211,25 +212,24 @@ echo "STEP 6: Setting permissions..."
 
 chmod +x run.sh 2>/dev/null || true
 chmod +x bca-scraper.js 2>/dev/null || true
-chmod +x scheduler.js 2>/dev/null || true
 chmod +x install-service.sh 2>/dev/null || true
 print_success "Scripts are executable"
 
 # ============================================================
-# STEP 7: Setup systemd service for scheduler (NO PROMPT)
+# STEP 7: Setup systemd service for PERSISTENT BROWSER
 # ============================================================
 echo ""
-echo "STEP 7: Setting up systemd service..."
+echo "STEP 7: Setting up systemd service (Persistent Browser Mode)..."
 
 # Use the install-service.sh if available
 if [ -f "install-service.sh" ]; then
     print_success "Running install-service.sh for advanced service setup..."
     sudo ./install-service.sh
 else
-    # Fallback to basic service setup
+    # Fallback to basic service setup - PERSISTENT BROWSER MODE
     cat > /tmp/bca-scraper.service << EOF
 [Unit]
-Description=BCA Scraper Scheduler
+Description=BCA Scraper Daemon - Persistent Browser Mode
 After=network.target openvpn-client@indonesia.service
 Wants=openvpn-client@indonesia.service
 
@@ -237,12 +237,14 @@ Wants=openvpn-client@indonesia.service
 Type=simple
 User=root
 WorkingDirectory=$SCRIPT_DIR
-ExecStart=/usr/bin/node $SCRIPT_DIR/scheduler.js
+ExecStart=/usr/bin/node $SCRIPT_DIR/bca-scraper.js
 Restart=always
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
+RestartSec=30
+StandardOutput=append:/var/log/bca-scraper.log
+StandardError=append:/var/log/bca-scraper-error.log
 Environment=NODE_ENV=production
+Environment=TZ=Asia/Jakarta
+MemoryMax=600M
 
 [Install]
 WantedBy=multi-user.target
@@ -252,7 +254,7 @@ EOF
     sudo systemctl daemon-reload
     sudo systemctl enable bca-scraper
     
-    print_success "Systemd service created (basic mode)"
+    print_success "Systemd service created (Persistent Browser Mode)"
 fi
 
 # Create log files
@@ -266,7 +268,7 @@ sudo chmod 644 /var/log/bca-scraper-error.log 2>/dev/null || true
 # ============================================================
 echo ""
 echo "============================================================"
-echo -e "${GREEN}    INSTALASI SELESAI!${NC}"
+echo -e "${GREEN}    INSTALASI SELESAI! (v3.0.0 - Persistent Browser Mode)${NC}"
 echo "============================================================"
 echo ""
 echo "LANGKAH SELANJUTNYA:"
@@ -288,7 +290,7 @@ echo ""
 echo "3. Cek IP (harus Indonesia):"
 echo "   curl https://api.ipify.org"
 echo ""
-echo "4. Start scheduler daemon:"
+echo "4. Start scraper daemon:"
 echo "   sudo systemctl start bca-scraper"
 else
 echo "2. Upload file .ovpn untuk VPN Indonesia (recommended):"
@@ -296,31 +298,33 @@ echo "   - Upload ke /root/bca-scraper/"
 echo "   - Jalankan: sudo cp *.ovpn /etc/openvpn/client/indonesia.conf"
 echo "   - Start VPN: sudo systemctl start openvpn-client@indonesia"
 echo ""
-echo "3. Start scheduler daemon:"
+echo "3. Start scraper daemon:"
 echo "   sudo systemctl start bca-scraper"
 fi
 echo ""
-echo "5. Cek log scheduler:"
+echo "5. Cek log:"
 echo "   tail -f /var/log/bca-scraper.log"
 echo "   # atau"
 echo "   sudo journalctl -u bca-scraper -f"
 echo ""
 echo "============================================================"
 echo ""
-echo "MODE OPERASI:"
+echo "PERSISTENT BROWSER MODE v3.0.0:"
 echo ""
-echo "Scheduler daemon akan:"
-echo "- Poll server setiap 60 detik untuk mengambil konfigurasi"
-echo "- Scrape sesuai interval yang diset di website (5m, 10m, dst)"
-echo "- Otomatis switch ke burst mode jika di-trigger dari website"
+echo "Daemon akan:"
+echo "- Browser di-launch saat startup, standby 24/7"
+echo "- Setiap scrape dimulai dengan PAGE REFRESH (clear session)"
+echo "- Tidak ada lagi issue session stuck!"
+echo "- Watchdog: restart browser jika unresponsive"
+echo "- Poll server setiap 60 detik untuk konfigurasi"
+echo "- Otomatis switch ke burst mode jika di-trigger"
 echo ""
 echo "SERVICE FEATURES:"
 echo "- Auto-restart jika crash (30 detik delay)"
 echo "- Auto-start saat server reboot"
-echo "- Memory limit: 2GB max"
+echo "- Memory limit: 600MB max"
 echo "- CPU limit: 80%"
-echo "- Log rotation: daily, 7 hari retention"
-echo "- Watchdog: restart jika hang > 10 menit"
+echo "- Watchdog: restart browser jika hang > 5 menit"
 echo ""
 echo "SERVICE MANAGEMENT:"
 echo "  Status:    sudo systemctl status bca-scraper"
