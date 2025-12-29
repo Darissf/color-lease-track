@@ -92,9 +92,68 @@ export function PaymentRequestGenerator({
     }
   }, [pendingRequest?.id]);
 
-  // Subscribe to realtime updates for pending request
+  // Handle status change (matched/cancelled/expired)
+  const handleStatusChange = useCallback((newStatus: string) => {
+    if (newStatus === "matched" && !hasTriggeredConfettiRef.current) {
+      console.log("[Payment] Status matched! Triggering confetti!");
+      hasTriggeredConfettiRef.current = true;
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      toast.success("Pembayaran terverifikasi!");
+      onPaymentVerified?.();
+      setPendingRequest(null);
+    } else if (newStatus === "cancelled" || newStatus === "expired") {
+      setPendingRequest(null);
+    }
+  }, [onPaymentVerified]);
+
+  // Polling for public mode (RLS blocks realtime for anonymous users)
   useEffect(() => {
-    if (!pendingRequest?.id) return;
+    if (!pendingRequest?.id || !isPublicMode) return;
+
+    console.log("[Polling] Starting polling for public mode, request:", pendingRequest.id);
+
+    const pollStatus = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("public-payment-request", {
+          body: {
+            access_code: accessCode,
+            action: "check_status",
+            request_id: pendingRequest.id,
+          },
+        });
+
+        if (error) {
+          console.error("[Polling] Error:", error);
+          return;
+        }
+
+        console.log("[Polling] Status response:", data);
+
+        if (data?.success && data?.status) {
+          handleStatusChange(data.status);
+        }
+      } catch (err) {
+        console.error("[Polling] Exception:", err);
+      }
+    };
+
+    // Initial check
+    pollStatus();
+
+    // Poll every 3 seconds
+    const pollInterval = setInterval(pollStatus, 3000);
+
+    return () => {
+      console.log("[Polling] Cleaning up polling interval");
+      clearInterval(pollInterval);
+    };
+  }, [pendingRequest?.id, isPublicMode, accessCode, handleStatusChange]);
+
+  // Subscribe to realtime updates for pending request (only for authenticated/internal mode)
+  useEffect(() => {
+    if (!pendingRequest?.id || isPublicMode) return;
+
+    console.log("[Realtime] Setting up subscription for internal mode, request:", pendingRequest.id);
 
     const channel = supabase
       .channel(`payment-request-${pendingRequest.id}`)
@@ -107,33 +166,22 @@ export function PaymentRequestGenerator({
           filter: `id=eq.${pendingRequest.id}`,
         },
         async (payload) => {
-          console.log("[Realtime] Payment request updated - raw payload:", payload);
+          console.log("[Realtime] Payment request updated:", payload);
           
           let newStatus = payload.new?.status;
-          console.log("[Realtime] Status from payload:", newStatus);
           
-          // Fallback: refetch if status is missing from payload
+          // Fallback: refetch if status is missing
           if (!newStatus && payload.new?.id) {
-            console.log("[Realtime] Status missing, refetching from database...");
             const { data } = await supabase
               .from("payment_confirmation_requests")
               .select("status")
               .eq("id", payload.new.id)
               .single();
             newStatus = data?.status;
-            console.log("[Realtime] Refetched status:", newStatus);
           }
           
-          // Use ref to check confetti state (avoids stale closure)
-          if (newStatus === "matched" && !hasTriggeredConfettiRef.current) {
-            console.log("[Realtime] Status matched! Triggering confetti NOW!");
-            hasTriggeredConfettiRef.current = true;
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-            toast.success("Pembayaran terverifikasi!");
-            onPaymentVerified?.();
-            setPendingRequest(null);
-          } else if (newStatus === "cancelled" || newStatus === "expired") {
-            setPendingRequest(null);
+          if (newStatus) {
+            handleStatusChange(newStatus);
           }
         }
       )
@@ -141,19 +189,15 @@ export function PaymentRequestGenerator({
         console.log("[Realtime] Subscription status:", status);
       });
 
-    // Check if initial pendingRequest status is already matched (for page refresh scenario)
+    // Check if initial pendingRequest status is already matched
     if (initialPendingRequest?.status === "matched" && !hasTriggeredConfettiRef.current) {
-      hasTriggeredConfettiRef.current = true;
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      toast.success("Pembayaran terverifikasi!");
-      onPaymentVerified?.();
-      setPendingRequest(null);
+      handleStatusChange("matched");
     }
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [pendingRequest?.id, onPaymentVerified, initialPendingRequest?.status]); // Removed hasTriggeredConfetti from deps
+  }, [pendingRequest?.id, isPublicMode, handleStatusChange, initialPendingRequest?.status]);
 
   // Calculate time remaining for expiry
   useEffect(() => {

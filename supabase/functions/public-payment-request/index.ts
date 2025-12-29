@@ -7,9 +7,9 @@ const corsHeaders = {
 
 interface RequestBody {
   access_code: string;
-  amount_expected: number;
-  action: 'create' | 'cancel';
-  request_id?: string; // For cancel action
+  amount_expected?: number;
+  action: 'create' | 'cancel' | 'check_status';
+  request_id?: string; // For cancel and check_status actions
 }
 
 // Generate unique code (100-300) that's not currently in use
@@ -134,6 +134,41 @@ Deno.serve(async (req: Request) => {
       console.log(`[Public Payment Request] Cancelled request: ${request_id}`);
       return new Response(
         JSON.stringify({ success: true, message: "Request cancelled" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // Handle CHECK_STATUS action (for polling on public pages)
+    if (action === "check_status") {
+      if (!request_id) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Request ID is required" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+
+      const { data: statusData, error: statusError } = await supabase
+        .from("payment_confirmation_requests")
+        .select("id, status, updated_at")
+        .eq("id", request_id)
+        .eq("contract_id", linkData.contract_id)
+        .single();
+
+      if (statusError || !statusData) {
+        console.log("[Public Payment Request] Status check error:", statusError);
+        return new Response(
+          JSON.stringify({ success: false, error: "Request not found" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+        );
+      }
+
+      console.log(`[Public Payment Request] Status check for ${request_id}: ${statusData.status}`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          status: statusData.status,
+          updated_at: statusData.updated_at
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
