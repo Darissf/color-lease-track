@@ -82,19 +82,123 @@ if (fs.existsSync(configPath)) {
   });
 }
 
-// Find Chromium path
+// Find Chromium path with smart priority
+// Priority: apt chromium > snap chromium > puppeteer bundled
 function findChromiumPath() {
-  const paths = [
-    '/snap/bin/chromium',
+  // Priority 1: apt-installed chromium (most reliable)
+  const aptPaths = [
     '/usr/bin/chromium-browser',
     '/usr/bin/chromium',
     '/usr/bin/google-chrome',
     '/usr/bin/google-chrome-stable'
   ];
-  for (const p of paths) {
-    if (fs.existsSync(p)) return p;
+  for (const p of aptPaths) {
+    if (fs.existsSync(p)) {
+      console.log(`[CHROMIUM] Found apt-installed: ${p}`);
+      return p;
+    }
   }
+  
+  // Priority 2: snap-installed chromium (less reliable in systemd)
+  const snapPaths = ['/snap/bin/chromium'];
+  for (const p of snapPaths) {
+    if (fs.existsSync(p)) {
+      console.log(`[CHROMIUM] Found snap-installed: ${p} (may have issues in systemd)`);
+      return p;
+    }
+  }
+  
+  // Priority 3: Puppeteer bundled chromium
+  try {
+    const puppeteerPath = require('puppeteer').executablePath();
+    if (puppeteerPath && fs.existsSync(puppeteerPath)) {
+      console.log(`[CHROMIUM] Found Puppeteer bundled: ${puppeteerPath}`);
+      return puppeteerPath;
+    }
+  } catch (e) {
+    // Puppeteer not installed or no bundled browser
+  }
+  
+  // Priority 4: Check common puppeteer cache locations
+  const puppeteerCachePaths = [
+    `${process.env.HOME}/.cache/puppeteer/chrome`,
+    '/root/.cache/puppeteer/chrome'
+  ];
+  for (const basePath of puppeteerCachePaths) {
+    if (fs.existsSync(basePath)) {
+      // Find the latest version directory
+      try {
+        const versions = fs.readdirSync(basePath);
+        for (const version of versions.reverse()) {
+          const chromePath = `${basePath}/${version}/chrome-linux64/chrome`;
+          if (fs.existsSync(chromePath)) {
+            console.log(`[CHROMIUM] Found Puppeteer cache: ${chromePath}`);
+            return chromePath;
+          }
+        }
+      } catch (e) {
+        // Ignore read errors
+      }
+    }
+  }
+  
   return null;
+}
+
+// Fallback browser launch - try puppeteer bundled if system chromium fails
+async function launchBrowserWithFallback() {
+  const chromiumPath = CONFIG.CHROMIUM_PATH;
+  
+  const browserArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--disable-extensions',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding',
+    '--window-size=1366,768',
+    '--disable-software-rasterizer',
+    '--disable-features=TranslateUI',
+    '--disable-ipc-flooding-protection',
+    '--single-process'
+  ];
+  
+  // Try system Chromium first
+  if (chromiumPath && fs.existsSync(chromiumPath)) {
+    try {
+      log(`Launching browser with system Chromium: ${chromiumPath}`);
+      const browser = await puppeteer.launch({
+        headless: CONFIG.HEADLESS,
+        executablePath: chromiumPath,
+        args: browserArgs,
+        timeout: 60000,
+        protocolTimeout: 120000
+      });
+      log('Browser launched successfully with system Chromium');
+      return browser;
+    } catch (err) {
+      log(`System Chromium failed: ${err.message}`, 'WARN');
+      log('Trying Puppeteer bundled Chromium as fallback...', 'WARN');
+    }
+  }
+  
+  // Fallback: Let Puppeteer use its bundled browser
+  try {
+    log('Launching browser with Puppeteer bundled Chromium...');
+    const browser = await puppeteer.launch({
+      headless: CONFIG.HEADLESS,
+      args: browserArgs,
+      timeout: 60000,
+      protocolTimeout: 120000
+    });
+    log('Browser launched successfully with Puppeteer bundled Chromium');
+    return browser;
+  } catch (err) {
+    log(`Puppeteer bundled Chromium also failed: ${err.message}`, 'ERROR');
+    throw new Error(`All Chromium launch attempts failed. Last error: ${err.message}`);
+  }
 }
 
 const CONFIG = {
@@ -163,19 +267,16 @@ console.log(`  - Retry with Backoff: 3x (5s, 15s, 45s)`);
 console.log('==========================================');
 console.log('');
 
-// Check Chromium existence
+// Check Chromium existence (warning only, will fallback at runtime)
 if (!CONFIG.CHROMIUM_PATH) {
-  console.error('!!! CRITICAL ERROR: Chromium browser not found !!!');
-  console.error('Please install with: apt install chromium-browser');
-  process.exit(1);
+  console.log('[WARN] System Chromium not found - will try Puppeteer bundled at runtime');
+  console.log('[INFO] To install system Chromium: apt install chromium-browser');
+} else if (!fs.existsSync(CONFIG.CHROMIUM_PATH)) {
+  console.log(`[WARN] Chromium path invalid: ${CONFIG.CHROMIUM_PATH} - will try fallback`);
+} else {
+  console.log(`[OK] Primary Chromium: ${CONFIG.CHROMIUM_PATH}`);
 }
-
-if (!fs.existsSync(CONFIG.CHROMIUM_PATH)) {
-  console.error(`!!! CRITICAL ERROR: Chromium not found at: ${CONFIG.CHROMIUM_PATH} !!!`);
-  process.exit(1);
-}
-
-console.log(`[OK] Chromium verified at: ${CONFIG.CHROMIUM_PATH}`);
+console.log('[OK] Fallback: Puppeteer bundled Chromium available');
 console.log('');
 
 // === GLOBAL STATE ===
@@ -470,23 +571,8 @@ async function initBrowser() {
   
   await delay(2000);
   
-  // Launch new browser
-  browser = await puppeteer.launch({
-    headless: CONFIG.HEADLESS ? 'new' : false,
-    slowMo: CONFIG.SLOW_MO,
-    executablePath: CONFIG.CHROMIUM_PATH,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-web-security',
-      '--disable-features=VizDisplayCompositor',
-      '--disable-gpu',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process'
-    ],
-  });
+  // Launch browser with smart fallback
+  browser = await launchBrowserWithFallback();
   
   page = await browser.newPage();
   await page.setViewport({ width: 1366, height: 768 });
