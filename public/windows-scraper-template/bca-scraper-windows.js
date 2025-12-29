@@ -27,9 +27,10 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.7-windows";
+const SCRAPER_VERSION = "4.1.8-windows";
 const SCRAPER_BUILD_DATE = "2025-12-29";
 const SCRAPER_PLATFORM = "windows";
+// v4.1.8-windows: Fixed "Node not clickable" - use focus() instead of click()
 // v4.1.7-windows: Fixed PIN entry - use evaluate+events hybrid approach
 // v4.1.6-windows: Fixed login - sync with Linux version (findLoginFrame, enterCredentials)
 // =========================================
@@ -650,17 +651,17 @@ async function findLoginFrame() {
 async function enterCredentials(frame, userId, pin) {
   log('[enterCredentials] Finding input fields...');
   
-  // Multiple selector fallbacks for User ID
-  const userIdInput = await frame.$('input[name="value(user_id)"]') || 
-                      await frame.$('input#txt_user_id') ||
+  // Multiple selector fallbacks for User ID (same order as Linux)
+  const userIdInput = await frame.$('input#txt_user_id') || 
                       await frame.$('input[name="txt_user_id"]') ||
+                      await frame.$('input[name="value(user_id)"]') ||
                       await frame.$('input[name="user_id"]');
   
-  // Multiple selector fallbacks for PIN
-  const pinInput = await frame.$('input[name="value(pswd)"]') ||
-                   await frame.$('input#txt_pswd') || 
+  // Multiple selector fallbacks for PIN (same order as Linux)
+  const pinInput = await frame.$('input#txt_pswd') || 
                    await frame.$('input[name="txt_pswd"]') ||
-                   await frame.$('input[type="password"]');
+                   await frame.$('input[type="password"]') ||
+                   await frame.$('input[name="value(pswd)"]');
   
   if (!userIdInput) {
     throw new Error('Could not find User ID input field');
@@ -670,80 +671,48 @@ async function enterCredentials(frame, userId, pin) {
     throw new Error('Could not find PIN input field');
   }
   
-  log(`[enterCredentials] Found both input fields`);
+  log('[enterCredentials] Found both input fields');
   
-  // === USER ID: Standard typing works ===
-  await userIdInput.click();
-  await delay(200);
+  // === USER ID: Use focus() NOT click() - fixes "Node not clickable" error ===
   await userIdInput.focus();
+  await delay(300);
+  await frame.evaluate(el => { el.value = ''; }, userIdInput);
   await delay(100);
-  await frame.evaluate(el => { el.value = ''; el.select(); }, userIdInput);
-  await delay(100);
-  
-  // Type User ID character by character for reliability
-  for (const char of userId) {
-    await userIdInput.type(char, { delay: 50 });
-  }
+  await userIdInput.type(userId, { delay: 80 });
   log(`[enterCredentials] User ID entered (${userId.length} chars)`);
   
   await delay(500);
   
-  // === PIN: Use hybrid approach to bypass JS protection ===
-  await pinInput.click();
-  await delay(200);
+  // === PIN: Use focus() + hybrid approach ===
   await pinInput.focus();
+  await delay(300);
+  await frame.evaluate(el => { el.value = ''; }, pinInput);
   await delay(100);
   
-  // Method 1: Try direct value assignment with event dispatch
-  const pinEntered = await frame.evaluate((el, pinValue) => {
-    // Clear first
-    el.value = '';
-    
-    // Set value directly
-    el.value = pinValue;
-    
-    // Dispatch all necessary events to trigger form validation
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
-    el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
-    
-    return el.value.length;
-  }, pinInput, pin);
+  // Method 1: Standard type()
+  await pinInput.type(pin, { delay: 80 });
   
-  log(`[enterCredentials] PIN via evaluate: ${pinEntered} chars`);
-  
-  // Method 2: If evaluate didn't work, try character-by-character keyboard
-  if (pinEntered !== pin.length) {
-    log('[enterCredentials] Fallback: typing PIN char by char with keyboard...');
-    await frame.evaluate(el => { el.value = ''; }, pinInput);
-    await pinInput.focus();
-    await delay(100);
-    
-    for (const char of pin) {
-      await page.keyboard.type(char, { delay: 100 });
-      await delay(50);
-    }
-  }
-  
-  // Final verification
+  // Verify
   await delay(300);
-  const finalLength = await frame.evaluate(el => el.value.length, pinInput);
-  log(`[enterCredentials] Final PIN verification: ${finalLength} chars`);
+  const pinLength = await frame.evaluate(el => el.value.length, pinInput);
+  log(`[enterCredentials] PIN entered: ${pinLength} chars`);
   
-  if (finalLength === 0) {
-    // Last resort: use keyboard.type on focused element
-    log('[enterCredentials] Last resort: direct keyboard typing...');
-    await pinInput.focus();
-    await delay(100);
-    await page.keyboard.type(pin, { delay: 80 });
+  // Method 2: If type() failed, use evaluate with events
+  if (pinLength !== pin.length) {
+    log('[enterCredentials] Fallback: using evaluate + events...');
     
-    await delay(200);
-    const lastCheck = await frame.evaluate(el => el.value.length, pinInput);
-    log(`[enterCredentials] After keyboard.type: ${lastCheck} chars`);
+    await frame.evaluate((el, pinValue) => {
+      el.value = '';
+      el.value = pinValue;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, pinInput, pin);
     
-    if (lastCheck === 0) {
-      throw new Error('PIN_ENTRY_FAILED: Could not enter PIN into field after all attempts');
+    const retryLength = await frame.evaluate(el => el.value.length, pinInput);
+    log(`[enterCredentials] After fallback: ${retryLength} chars`);
+    
+    if (retryLength === 0) {
+      throw new Error('PIN_ENTRY_FAILED');
     }
   }
   
