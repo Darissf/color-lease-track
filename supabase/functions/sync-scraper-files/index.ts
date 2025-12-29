@@ -5,13 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Embedded scraper files content - v4.0.0 Ultra-Robust Mode
+// Embedded scraper files content - v4.1.0 Session Reuse Mode
 const SCRAPER_FILES: Record<string, string> = {
   'bca-scraper.js': `/**
- * BCA iBanking Scraper - ULTRA-ROBUST MODE v4.0.0
+ * BCA iBanking Scraper - SESSION REUSE MODE v4.1.0
  * 
  * Features:
  * - Browser standby 24/7, siap dipakai kapan saja
+ * - LOGIN COOLDOWN: Respects BCA 5-minute login limit
+ * - SESSION REUSE: Burst mode reuses active session (no re-login)
  * - Global scrape timeout (max 2 menit per scrape)
  * - Safe frame operations dengan timeout protection
  * - Session expired detection & auto-recovery
@@ -19,15 +21,16 @@ const SCRAPER_FILES: Record<string, string> = {
  * - Retry with exponential backoff (3x retry)
  * - Force kill & restart jika browser unresponsive
  * - Page health check sebelum scrape
- * - Server heartbeat reporting
+ * - Server heartbeat reporting with login status
  * - Error categorization
  * 
  * Usage: node bca-scraper.js
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.0.0";
+const SCRAPER_VERSION = "4.1.0";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v4.1.0: Login Cooldown & Session Reuse - respect BCA 5-minute login limit
 // v4.0.0: Ultra-Robust Mode - comprehensive error handling, auto-recovery
 // v3.0.0: Persistent Browser Mode - browser standby 24/7
 // v2.1.2: Added forceLogout on error/stuck
@@ -236,9 +239,10 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
   process.exit(1);
 }
 
+// === STARTUP BANNER ===
 console.log('');
 console.log('==========================================');
-console.log('  BCA SCRAPER - ULTRA-ROBUST MODE v4.0.0');
+console.log('  BCA SCRAPER - SESSION REUSE v4.1.0');
 console.log('==========================================');
 console.log(\`  Version      : \${SCRAPER_VERSION} (\${SCRAPER_BUILD_DATE})\`);
 console.log(\`  Timestamp    : \${new Date().toISOString()} (UTC)\`);
@@ -251,12 +255,15 @@ console.log(\`  Debug Mode   : \${CONFIG.DEBUG_MODE}\`);
 console.log(\`  Webhook URL  : \${CONFIG.WEBHOOK_URL.substring(0, 50)}...\`);
 console.log(\`  Config URL   : \${CONFIG_URL.substring(0, 50)}...\`);
 console.log('==========================================');
+console.log('  v4.1.0 FEATURES:');
+console.log(\`  - Login Cooldown    : 5 minutes (BCA limit)\`);
+console.log(\`  - Session Reuse     : Burst mode reuses active session\`);
+console.log(\`  - No Burst Restart  : Browser won't restart during burst\`);
 console.log('  ULTRA-ROBUST FEATURES:');
 console.log(\`  - Global Timeout    : \${CONFIG.GLOBAL_SCRAPE_TIMEOUT / 1000}s\`);
-console.log(\`  - Browser Restart   : Every \${CONFIG.MAX_SCRAPES_BEFORE_RESTART} scrapes or \${CONFIG.MAX_UPTIME_MS / 3600000}h\`);
+console.log(\`  - Browser Restart   : Every 50 logins or \${CONFIG.MAX_UPTIME_MS / 3600000}h\`);
 console.log(\`  - Frame Timeout     : \${CONFIG.FRAME_OPERATION_TIMEOUT / 1000}s\`);
 console.log(\`  - Heartbeat         : Every \${CONFIG.HEARTBEAT_INTERVAL / 60000}m\`);
-console.log(\`  - Retry with Backoff: 3x (5s, 15s, 45s)\`);
 console.log('==========================================');
 console.log('');
 
@@ -271,6 +278,7 @@ if (!CONFIG.CHROMIUM_PATH) {
 console.log('[OK] Fallback: Puppeteer bundled Chromium available');
 console.log('');
 
+// === GLOBAL STATE ===
 let browser = null;
 let page = null;
 let isIdle = true;
@@ -285,10 +293,17 @@ let errorCount = 0;
 let successCount = 0;
 let heartbeatInterval = null;
 
+// v4.1.0: Login cooldown tracking - BCA limits login to once per 5 minutes
+let lastLoginTime = 0;
+let isLoggedIn = false;
+const LOGIN_COOLDOWN_MS = 300000; // 5 minutes in milliseconds
+
+// === HELPERS ===
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const randomDelay = (min, max) => delay(Math.floor(Math.random() * (max - min + 1)) + min);
 const log = (msg, level = 'INFO') => console.log(\`[\${new Date().toISOString()}] [\${level}] \${msg}\`);
 
+// === ERROR CATEGORIES ===
 const ERROR_TYPES = {
   LOGIN_FAILED: 'LOGIN_FAILED',
   SESSION_EXPIRED: 'SESSION_EXPIRED',
@@ -343,6 +358,8 @@ async function saveDebug(page, name, type = 'png') {
     log(\`Debug save failed: \${e.message}\`, 'WARN');
   }
 }
+
+// ============ ULTRA-ROBUST HELPERS ============
 
 async function safeFrameOperation(operation, timeoutMs = CONFIG.FRAME_OPERATION_TIMEOUT, operationName = 'operation') {
   try {
@@ -438,13 +455,22 @@ async function checkSessionExpired() {
   }
 }
 
+// v4.1.0: Skip restart during burst mode
 function shouldRestartBrowser() {
   if (!browserStartTime) return true;
   
+  // v4.1.0: NEVER restart during burst mode
+  if (isBurstMode) {
+    log('Skipping browser restart check - burst mode active');
+    return false;
+  }
+  
   const uptime = Date.now() - browserStartTime;
   
-  if (scrapeCount >= CONFIG.MAX_SCRAPES_BEFORE_RESTART) {
-    log(\`Browser restart needed: \${scrapeCount} scrapes reached limit (\${CONFIG.MAX_SCRAPES_BEFORE_RESTART})\`);
+  // v4.1.0: Increase limit to 50 for burst-heavy usage
+  const effectiveLimit = 50;
+  if (scrapeCount >= effectiveLimit) {
+    log(\`Browser restart needed: \${scrapeCount} scrapes reached limit (\${effectiveLimit})\`);
     return true;
   }
   
@@ -485,6 +511,7 @@ async function forceKillAndRestart() {
   
   await initBrowser();
   scrapeCount = 0;
+  isLoggedIn = false; // Reset login state after restart
   
   log('=== FORCE KILL COMPLETE, BROWSER RESTARTED ===');
 }
@@ -492,6 +519,7 @@ async function forceKillAndRestart() {
 async function sendHeartbeat(status = 'running') {
   try {
     const uptimeMinutes = browserStartTime ? Math.round((Date.now() - browserStartTime) / 60000) : 0;
+    const loginCooldownRemaining = Math.round(getLoginCooldownRemaining() / 1000);
     
     const payload = {
       secret_key: CONFIG.SECRET_KEY,
@@ -504,6 +532,9 @@ async function sendHeartbeat(status = 'running') {
       last_error: lastError,
       is_idle: isIdle,
       is_burst_mode: isBurstMode,
+      is_logged_in: isLoggedIn,
+      login_cooldown_remaining: loginCooldownRemaining,
+      last_login_at: lastLoginTime > 0 ? new Date(lastLoginTime).toISOString() : null,
       timestamp: new Date().toISOString(),
     };
     
@@ -513,11 +544,13 @@ async function sendHeartbeat(status = 'running') {
       body: JSON.stringify(payload),
     });
     
-    log(\`Heartbeat sent: status=\${status}, uptime=\${uptimeMinutes}m, scrapes=\${scrapeCount}\`);
+    log(\`Heartbeat sent: status=\${status}, uptime=\${uptimeMinutes}m, logins=\${scrapeCount}, cooldown=\${loginCooldownRemaining}s\`);
   } catch (e) {
     log(\`Heartbeat failed: \${e.message}\`, 'WARN');
   }
 }
+
+// === BROWSER MANAGEMENT ===
 
 async function initBrowser() {
   log('Initializing browser...');
@@ -587,6 +620,7 @@ async function safeLogout() {
   if (!page) return;
   
   log('Attempting safe logout...');
+  isLoggedIn = false; // Mark as logged out
   
   try {
     const logoutPromise = safeFrameOperation(
@@ -681,6 +715,8 @@ async function refreshToCleanState() {
   }
 }
 
+// === LOGIN HELPERS ===
+
 async function findLoginFrame() {
   const frames = page.frames();
   log(\`Total frames on page: \${frames.length}\`);
@@ -773,6 +809,122 @@ async function submitLogin(frame) {
   }
   
   return false;
+}
+
+// === v4.1.0: SESSION REUSE WITH LOGIN COOLDOWN ===
+
+async function isCurrentlyLoggedIn() {
+  if (!page) return false;
+  
+  try {
+    const frameCount = page.frames().length;
+    if (frameCount < 5) {
+      log(\`Not logged in: only \${frameCount} frames (need 5)\`);
+      return false;
+    }
+    
+    const loginFrame = await findLoginFrame();
+    if (loginFrame) {
+      log('Not logged in: login form visible');
+      return false;
+    }
+    
+    if (await checkSessionExpired()) {
+      log('Not logged in: session expired');
+      return false;
+    }
+    
+    log(\`Session active: \${frameCount} frames, no login form visible\`);
+    return true;
+  } catch (e) {
+    log(\`Login check failed: \${e.message}\`, 'WARN');
+    return false;
+  }
+}
+
+function getLoginCooldownRemaining() {
+  const timeSinceLastLogin = Date.now() - lastLoginTime;
+  const remaining = LOGIN_COOLDOWN_MS - timeSinceLastLogin;
+  return remaining > 0 ? remaining : 0;
+}
+
+async function ensureLoggedIn() {
+  if (await isCurrentlyLoggedIn()) {
+    log('Session still active, reusing existing session');
+    isLoggedIn = true;
+    return true;
+  }
+  
+  const cooldownRemaining = getLoginCooldownRemaining();
+  if (cooldownRemaining > 0) {
+    log(\`Login cooldown active: waiting \${(cooldownRemaining / 1000).toFixed(0)}s (BCA 5-min limit)\`, 'WARN');
+    await delay(cooldownRemaining);
+  }
+  
+  log('Performing fresh login...');
+  
+  try {
+    await page.goto('https://ibank.klikbca.com/', { 
+      waitUntil: 'networkidle2', 
+      timeout: CONFIG.TIMEOUT 
+    });
+    await delay(2000);
+  } catch (e) {
+    log(\`Navigation to login failed: \${e.message}\`, 'ERROR');
+    return false;
+  }
+  
+  const frameResult = await retryWithBackoff(
+    () => findLoginFrame(),
+    3,
+    'FIND_LOGIN_FRAME_ENSURE'
+  );
+  
+  if (!frameResult) {
+    if (await isCurrentlyLoggedIn()) {
+      log('Already logged in after navigation');
+      lastLoginTime = Date.now();
+      isLoggedIn = true;
+      scrapeCount++;
+      return true;
+    }
+    throw new Error('Could not find login form');
+  }
+  
+  await enterCredentials(frameResult.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+  await submitLogin(frameResult.frame);
+  
+  log('Waiting for page to fully load after login...');
+  let framesLoaded = await waitForFrames(5, 15000);
+  
+  if (!framesLoaded) {
+    const loginFrame = await findLoginFrame();
+    if (loginFrame) {
+      log('Still on login page, one more attempt...');
+      await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+      await submitLogin(loginFrame.frame);
+      framesLoaded = await waitForFrames(5, 15000);
+    }
+  }
+  
+  const finalFrameCount = page.frames().length;
+  if (finalFrameCount < 5) {
+    const finalLoginCheck = await findLoginFrame();
+    if (finalLoginCheck) {
+      throw new Error('LOGIN_FAILED - still on login page after retry');
+    }
+  }
+  
+  if (await checkSessionExpired()) {
+    throw new Error('SESSION_EXPIRED - detected after login');
+  }
+  
+  lastLoginTime = Date.now();
+  isLoggedIn = true;
+  scrapeCount++;
+  
+  log(\`LOGIN SUCCESSFUL! (\${finalFrameCount} frames loaded, cooldown reset)\`);
+  return true;
 }
 
 async function executeScrapeWithTimeout() {
@@ -1081,7 +1233,6 @@ async function executeBurstScrape() {
   }
   
   isIdle = false;
-  scrapeCount++;
   const startTime = Date.now();
   
   const maxIterations = 24;
@@ -1089,90 +1240,75 @@ async function executeBurstScrape() {
   let checkCount = 0;
   let matchFound = false;
   
-  log(\`=== STARTING BURST MODE SCRAPE #\${scrapeCount} ===\`);
+  log(\`=== STARTING BURST MODE ===\`);
+  log(\`Session reuse: \${isLoggedIn ? 'checking...' : 'need login'}\`);
+  log(\`Last login: \${lastLoginTime > 0 ? ((Date.now() - lastLoginTime) / 1000).toFixed(0) + 's ago' : 'never'}\`);
+  log(\`Cooldown remaining: \${(getLoginCooldownRemaining() / 1000).toFixed(0)}s\`);
   
   try {
     if (!await isPageHealthy()) {
       log('Page unhealthy before burst, restarting browser...', 'WARN');
       await forceKillAndRestart();
+      isLoggedIn = false;
     }
     
-    await refreshToCleanState();
-    
-    const frameResult = await retryWithBackoff(
-      () => findLoginFrame(),
-      3,
-      'FIND_LOGIN_FRAME_BURST'
-    );
-    
-    if (!frameResult) {
-      throw new Error('Could not find login form');
+    const loginSuccess = await ensureLoggedIn();
+    if (!loginSuccess) {
+      throw new Error('Failed to ensure login state');
     }
     
-    await enterCredentials(frameResult.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
-    await submitLogin(frameResult.frame);
-    
-    log('Waiting for page to fully load after login...');
-    let framesLoaded = await waitForFrames(5, 15000);
-    
-    if (!framesLoaded) {
-      log('Frames not loaded, checking if still on login page...');
-      const loginFrame = await findLoginFrame();
-      if (loginFrame) {
-        log('Still on login page, retrying login...');
-        await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
-        await submitLogin(loginFrame.frame);
-        framesLoaded = await waitForFrames(5, 15000);
-      }
-    }
-    
-    const finalFrameCount = page.frames().length;
-    if (finalFrameCount < 5) {
-      const finalLoginCheck = await findLoginFrame();
-      if (finalLoginCheck) {
-        throw new Error('LOGIN_FAILED - still on login page');
-      }
-    }
-    
-    if (await checkSessionExpired()) {
-      throw new Error('SESSION_EXPIRED');
-    }
-    
-    log(\`LOGIN SUCCESSFUL! (\${finalFrameCount} frames loaded)\`);
-    
-    await delay(2000);
-    
-    const menuFrame = page.frames().find(f => f.name() === 'menu');
-    if (!menuFrame) throw new Error('FRAME_NOT_FOUND - Menu frame');
-    
-    await safeFrameOperation(
-      () => menuFrame.evaluate(() => {
-        const links = document.querySelectorAll('a');
-        for (const link of links) {
-          const text = (link.textContent || '').toLowerCase();
-          if (text.includes('informasi rekening')) { link.click(); return; }
-        }
-      }),
-      CONFIG.FRAME_OPERATION_TIMEOUT,
-      'CLICK_INFORMASI_REKENING_BURST'
-    );
-    await delay(3000);
-    
-    const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
-    await safeFrameOperation(
-      () => updatedMenuFrame.evaluate(() => {
-        const links = document.querySelectorAll('a');
-        for (const link of links) {
-          const text = (link.textContent || '').toLowerCase();
-          if (text.includes('mutasi rekening')) { link.click(); return; }
-        }
-      }),
-      CONFIG.FRAME_OPERATION_TIMEOUT,
-      'CLICK_MUTASI_REKENING_BURST'
-    );
-    await delay(3000);
+    await delay(1000);
     
     let atmFrame = page.frames().find(f => f.name() === 'atm');
+    const alreadyOnMutasi = atmFrame && await safeFrameOperation(
+      () => atmFrame.evaluate(() => {
+        const buttons = document.querySelectorAll('input[type="submit"]');
+        for (const btn of buttons) {
+          if (btn.value.toLowerCase().includes('lihat')) return true;
+        }
+        return false;
+      }),
+      3000,
+      'CHECK_MUTASI_PAGE'
+    ).catch(() => false);
+    
+    if (!alreadyOnMutasi) {
+      log('Navigating to Mutasi Rekening...');
+      
+      const menuFrame = page.frames().find(f => f.name() === 'menu');
+      if (!menuFrame) throw new Error('FRAME_NOT_FOUND - Menu frame');
+      
+      await safeFrameOperation(
+        () => menuFrame.evaluate(() => {
+          const links = document.querySelectorAll('a');
+          for (const link of links) {
+            const text = (link.textContent || '').toLowerCase();
+            if (text.includes('informasi rekening')) { link.click(); return; }
+          }
+        }),
+        CONFIG.FRAME_OPERATION_TIMEOUT,
+        'CLICK_INFORMASI_REKENING_BURST'
+      );
+      await delay(3000);
+      
+      const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
+      await safeFrameOperation(
+        () => updatedMenuFrame.evaluate(() => {
+          const links = document.querySelectorAll('a');
+          for (const link of links) {
+            const text = (link.textContent || '').toLowerCase();
+            if (text.includes('mutasi rekening')) { link.click(); return; }
+          }
+        }),
+        CONFIG.FRAME_OPERATION_TIMEOUT,
+        'CLICK_MUTASI_REKENING_BURST'
+      );
+      await delay(3000);
+    } else {
+      log('Already on Mutasi page, reusing navigation');
+    }
+    
+    atmFrame = page.frames().find(f => f.name() === 'atm');
     if (!atmFrame) throw new Error('FRAME_NOT_FOUND - ATM frame');
     
     const today = getJakartaDate();
@@ -1215,7 +1351,6 @@ async function executeBurstScrape() {
     );
     await delay(3000);
     
-    log('=== ENTERING BURST LOOP ===');
     
     while (checkCount < maxIterations && (Date.now() - startTime < maxDuration)) {
       checkCount++;
@@ -1339,6 +1474,7 @@ async function executeBurstScrape() {
     log(\`=== BURST LOOP ENDED (\${checkCount} iterations, match=\${matchFound}) ===\`);
     
     await safeLogout();
+    isLoggedIn = false;
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     log(\`=== BURST COMPLETED in \${duration}s ===\`);
@@ -1355,6 +1491,7 @@ async function executeBurstScrape() {
     errorCount++;
     
     await safeLogout();
+    isLoggedIn = false;
     await forceKillAndRestart();
     return { success: false, error: error.message, errorType };
   } finally {
@@ -1362,6 +1499,8 @@ async function executeBurstScrape() {
     lastScrapeTime = Date.now();
   }
 }
+
+// === API FUNCTIONS ===
 
 async function fetchServerConfig() {
   try {
@@ -1414,6 +1553,8 @@ async function sendToWebhook(mutations) {
     return { error: e.message };
   }
 }
+
+// === MAIN LOOP ===
 
 async function mainLoop() {
   log('=== ULTRA-ROBUST SCHEDULER STARTED ===');
@@ -1516,6 +1657,8 @@ async function mainLoop() {
   }
 }
 
+// === GRACEFUL SHUTDOWN ===
+
 process.on('SIGINT', async () => {
   log('Received SIGINT, shutting down...');
   await sendHeartbeat('shutdown');
@@ -1552,6 +1695,8 @@ process.on('unhandledRejection', async (reason, promise) => {
   await forceKillAndRestart();
 });
 
+// === START ===
+
 mainLoop().catch(async (err) => {
   log(\`Fatal error: \${err.message}\`, 'ERROR');
   await sendHeartbeat('fatal');
@@ -1559,656 +1704,290 @@ mainLoop().catch(async (err) => {
 });
 `,
 
-  'scheduler.js': `/**
- * BCA Scraper Scheduler
- * 
- * Daemon script yang:
- * 1. Poll server setiap 60 detik untuk mengambil konfigurasi
- * 2. Jalankan scrape sesuai interval dari server
- * 3. Otomatis switch ke burst mode jika aktif
- * 
- * Usage: node scheduler.js
- */
+  'config.env.template': `# BCA Scraper Configuration - v4.1.0
+# Copy this file to config.env and fill in your credentials
 
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+# === BCA CREDENTIALS (REQUIRED) ===
+BCA_USER_ID=your_klikbca_user_id
+BCA_PIN=your_klikbca_pin
+BCA_ACCOUNT_NUMBER=1234567890
 
-// Load config from config.env with improved parsing
-const configPath = path.join(__dirname, 'config.env');
-if (fs.existsSync(configPath)) {
-  const envConfig = fs.readFileSync(configPath, 'utf-8');
-  envConfig.split('\\n').forEach(line => {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith('#')) {
-      const eqIndex = trimmed.indexOf('=');
-      if (eqIndex > 0) {
-        const key = trimmed.substring(0, eqIndex).trim();
-        let value = trimmed.substring(eqIndex + 1).trim();
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
-          value = value.slice(1, -1);
-        }
-        process.env[key] = value;
-      }
-    }
-  });
-  
-  const configKeys = ['BCA_USER_ID', 'BCA_PIN', 'SECRET_KEY', 'WEBHOOK_URL', 'ACCOUNT_NUMBER', 'HEADLESS', 'DEBUG_MODE'];
-  console.log('[SCHEDULER] Loaded config.env:');
-  configKeys.forEach(k => {
-    if (process.env[k]) {
-      const val = k.includes('PIN') || k.includes('SECRET') ? '***' : process.env[k].substring(0, 30);
-      console.log(\`  \${k}=\${val}\${process.env[k].length > 30 ? '...' : ''}\`);
-    }
-  });
-}
-
-const CONFIG = {
-  SECRET_KEY: process.env.SECRET_KEY || 'YOUR_SECRET_KEY_HERE',
-  WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook',
-  CONFIG_POLL_INTERVAL: 60000,
-};
-
-const CONFIG_URL = CONFIG.WEBHOOK_URL.replace('/bank-scraper-webhook', '/get-scraper-config');
-
-let lastScrapeTime = 0;
-let currentIntervalMs = 600000;
-let isScraperRunning = false;
-let isBurstMode = false;
-let burstEndTime = 0;
-
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-const log = (msg, level = 'INFO') => console.log(\`[\${new Date().toISOString()}] [SCHEDULER] [\${level}] \${msg}\`);
-
-async function fetchServerConfig() {
-  try {
-    const response = await fetch(CONFIG_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret_key: CONFIG.SECRET_KEY }),
-    });
-    if (!response.ok) throw new Error(\`HTTP \${response.status}\`);
-    return await response.json();
-  } catch (error) {
-    log(\`Failed to fetch config: \${error.message}\`, 'ERROR');
-    return null;
-  }
-}
-
-function runScraper(mode = 'normal') {
-  return new Promise((resolve, reject) => {
-    if (isScraperRunning) {
-      log('Scraper already running, skipping...', 'WARN');
-      resolve(false);
-      return;
-    }
-    isScraperRunning = true;
-    const startTime = Date.now();
-    log(\`Starting scraper (\${mode} mode)...\`);
-    const args = ['bca-scraper.js'];
-    const child = spawn('node', args, {
-      cwd: __dirname,
-      stdio: ['inherit', 'pipe', 'pipe'],
-      env: process.env,
-    });
-    if (child.stdout) {
-      child.stdout.setEncoding('utf8');
-      child.stdout.on('data', (data) => process.stdout.write(data));
-    }
-    if (child.stderr) {
-      child.stderr.setEncoding('utf8');
-      child.stderr.on('data', (data) => process.stderr.write(data));
-    }
-    child.on('close', (code) => {
-      isScraperRunning = false;
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      if (code === 0) {
-        log(\`Scraper completed in \${duration}s\`);
-        lastScrapeTime = Date.now();
-        resolve(true);
-      } else {
-        log(\`Scraper exited with code \${code} after \${duration}s\`, 'ERROR');
-        resolve(false);
-      }
-    });
-    child.on('error', (err) => {
-      isScraperRunning = false;
-      log(\`Scraper spawn error: \${err.message}\`, 'ERROR');
-      reject(err);
-    });
-  });
-}
-
-async function mainLoop() {
-  log('=== SCHEDULER STARTED ===');
-  log(\`Config URL: \${CONFIG_URL}\`);
-  log(\`Poll interval: \${CONFIG.CONFIG_POLL_INTERVAL / 1000}s\`);
-  if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
-    log('ERROR: SECRET_KEY belum dikonfigurasi!', 'ERROR');
-    process.exit(1);
-  }
-  while (true) {
-    try {
-      const config = await fetchServerConfig();
-      if (!config || !config.success) {
-        log(\`Config fetch failed or inactive: \${config?.error || 'Unknown'}\`, 'WARN');
-        await delay(CONFIG.CONFIG_POLL_INTERVAL);
-        continue;
-      }
-      const serverIntervalMs = (config.scrape_interval_minutes || 10) * 60 * 1000;
-      if (serverIntervalMs !== currentIntervalMs) {
-        log(\`Interval changed: \${currentIntervalMs / 60000}m -> \${serverIntervalMs / 60000}m\`);
-        currentIntervalMs = serverIntervalMs;
-      }
-      if (config.burst_in_progress && config.burst_enabled) {
-        if (!isBurstMode) {
-          log('=== ENTERING BURST MODE ===');
-          isBurstMode = true;
-          burstEndTime = Date.now() + (config.burst_remaining_seconds * 1000);
-        }
-        await runBurstLoop(config);
-        const updatedConfig = await fetchServerConfig();
-        if (!updatedConfig?.burst_in_progress) {
-          log('=== BURST MODE ENDED ===');
-          isBurstMode = false;
-        }
-        continue;
-      } else {
-        if (isBurstMode) {
-          log('=== BURST MODE ENDED ===');
-          isBurstMode = false;
-        }
-      }
-      if (config.is_active) {
-        const timeSinceLastScrape = Date.now() - lastScrapeTime;
-        if (timeSinceLastScrape >= currentIntervalMs) {
-          log(\`Time to scrape (\${(timeSinceLastScrape / 60000).toFixed(1)}m since last)\`);
-          await runScraper('normal');
-        } else {
-          const nextScrapeIn = ((currentIntervalMs - timeSinceLastScrape) / 60000).toFixed(1);
-          log(\`Next scrape in \${nextScrapeIn}m\`);
-        }
-      } else {
-        log('Scraper inactive (disabled in settings)');
-      }
-    } catch (error) {
-      log(\`Loop error: \${error.message}\`, 'ERROR');
-    }
-    await delay(CONFIG.CONFIG_POLL_INTERVAL);
-  }
-}
-
-async function runBurstLoop(config) {
-  const burstIntervalMs = (config.burst_interval_seconds || 10) * 1000;
-  let burstScrapeCount = 0;
-  log(\`Burst mode: interval=\${burstIntervalMs / 1000}s, remaining=\${config.burst_remaining_seconds}s\`);
-  while (Date.now() < burstEndTime) {
-    burstScrapeCount++;
-    log(\`--- Burst scrape #\${burstScrapeCount} ---\`);
-    await runScraper('burst');
-    const checkConfig = await fetchServerConfig();
-    if (!checkConfig?.burst_in_progress) {
-      log('Burst stopped by server');
-      break;
-    }
-    if (checkConfig.burst_remaining_seconds) {
-      burstEndTime = Date.now() + (checkConfig.burst_remaining_seconds * 1000);
-    }
-    log(\`Waiting \${burstIntervalMs / 1000}s...\`);
-    await delay(burstIntervalMs);
-  }
-  log(\`Burst completed: \${burstScrapeCount} scrapes\`);
-}
-
-process.on('SIGINT', () => { log('Received SIGINT, shutting down...'); process.exit(0); });
-process.on('SIGTERM', () => { log('Received SIGTERM, shutting down...'); process.exit(0); });
-
-mainLoop().catch(err => { log(\`Fatal error: \${err.message}\`, 'ERROR'); process.exit(1); });
-`,
-
-  'config.env.template': `# ============================================================
-# BCA VPS Scraper Configuration
-# ============================================================
-# Isi file ini dengan kredensial Anda, lalu rename ke config.env
-# ============================================================
-
-# ------ VPN Credentials (OPSIONAL) ------
-# Hanya isi jika file .ovpn Anda memerlukan username/password TERPISAH
-# Kebanyakan provider (VPNJantit, dll) sudah embed credentials di .ovpn
-# Jika tidak yakin, biarkan kosong dan coba dulu dengan .ovpn saja
-# VPN_USERNAME=
-# VPN_PASSWORD=
-
-# ------ BCA Credentials (WAJIB) ------
-BCA_USER_ID=your_bca_user_id
-BCA_PIN=your_bca_pin
-BCA_ACCOUNT_NUMBER=your_account_number
-
-# ------ Webhook Configuration (auto-filled dari UI) ------
+# === WEBHOOK SETTINGS (REQUIRED) ===
 WEBHOOK_URL=https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook
-SECRET_KEY=YOUR_SECRET_KEY_HERE
+SECRET_KEY=your_secret_key_from_admin
 
-# ------ Optional Settings ------
-# Interval scraping dalam menit (default: 5)
-SCRAPE_INTERVAL=5
-
-# Mode headless browser (true = tanpa GUI, false = dengan GUI untuk debug)
+# === BROWSER SETTINGS ===
 HEADLESS=true
+DEBUG_MODE=false
+TIMEOUT=90000
+
+# === PERFORMANCE SETTINGS ===
+# Chromium path (auto-detected if not set)
+# CHROMIUM_PATH=/usr/bin/chromium-browser
 `,
 
   'run.sh': `#!/bin/bash
-# ============================================================
-# BCA Scraper Runner
-# 
-# Usage:
-#   ./run.sh              - Normal mode (single scrape)
-#   ./run.sh --burst-check - Check for burst command and run if active
-#   ./run.sh --daemon      - Run scheduler daemon (recommended)
-# ============================================================
+# BCA Scraper Runner - v4.1.0
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "$(dirname "$0")"
 
-# Load config
-if [ -f "config.env" ]; then
-    export $(grep -v '^#' config.env | xargs)
-else
-    echo "ERROR: config.env tidak ditemukan!"
-    echo "Copy config.env.template ke config.env dan isi dengan kredensial Anda"
-    exit 1
-fi
-
-# Validate required config
-if [ -z "$BCA_USER_ID" ] || [ "$BCA_USER_ID" = "your_bca_user_id" ]; then
-    echo "ERROR: BCA_USER_ID belum dikonfigurasi di config.env"
-    exit 1
-fi
-
-if [ -z "$SECRET_KEY" ] || [ "$SECRET_KEY" = "YOUR_SECRET_KEY_HERE" ]; then
-    echo "ERROR: SECRET_KEY belum dikonfigurasi di config.env"
-    exit 1
-fi
-
-# Check if VPN is connected (optional)
-if command -v curl &> /dev/null; then
-    echo "[$(date)] Checking IP address..."
-    IP=$(curl -s https://api.ipify.org 2>/dev/null || echo "unknown")
-    echo "[$(date)] Current IP: $IP"
-fi
-
-# Check mode
-if [ "$1" = "--daemon" ]; then
-    echo "[$(date)] Running in DAEMON mode (scheduler)..."
-    echo "[$(date)] Scheduler will poll server for config every 60 seconds"
-    echo "[$(date)] Press Ctrl+C to stop"
-    echo ""
-    node scheduler.js
-elif [ "$1" = "--burst-check" ]; then
-    echo "[$(date)] Running in BURST CHECK mode..."
-    node bca-scraper.js --burst-check
-else
-    echo "[$(date)] Running in NORMAL mode (single scrape)..."
+case "\${1:-normal}" in
+  normal)
+    echo "Starting BCA Scraper v4.1.0 (Session Reuse Mode)..."
     node bca-scraper.js
-fi
+    ;;
+  burst-check)
+    echo "Checking burst status..."
+    node -e "
+      const config = require('dotenv').config({ path: './config.env' });
+      fetch(process.env.WEBHOOK_URL.replace('/bank-scraper-webhook', '/check-burst-command'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret_key: process.env.SECRET_KEY })
+      }).then(r => r.json()).then(console.log);
+    "
+    ;;
+  daemon)
+    echo "Starting as daemon..."
+    nohup node bca-scraper.js > scraper.log 2>&1 &
+    echo "PID: \$!"
+    ;;
+  *)
+    echo "Usage: ./run.sh [normal|burst-check|daemon]"
+    ;;
+esac
 `,
 
   'install.sh': `#!/bin/bash
-# BCA VPS Scraper - All-in-One Installer
+# BCA Scraper Installer - v4.1.0
+
 set -e
 
-echo "============================================================"
-echo "    BCA VPS Scraper - All-in-One Installer"
-echo "============================================================"
-echo ""
+echo "==================================="
+echo "  BCA Scraper Installer v4.1.0"
+echo "  Session Reuse Mode"
+echo "==================================="
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
-
-RED='\\033[0;31m'
-GREEN='\\033[0;32m'
-YELLOW='\\033[1;33m'
-NC='\\033[0m'
-
-print_success() { echo -e "\${GREEN}✓ $1\${NC}"; }
-print_warning() { echo -e "\${YELLOW}⚠ $1\${NC}"; }
-print_error() { echo -e "\${RED}✗ $1\${NC}"; }
-
-echo ""
-echo "STEP 1: Checking for OpenVPN config file..."
-OVPN_FILE=$(ls *.ovpn 2>/dev/null | head -1)
-if [ -z "$OVPN_FILE" ]; then
-    print_warning "File .ovpn tidak ditemukan di folder ini"
-else
-    print_success "Found OpenVPN config: $OVPN_FILE"
+# Check if running as root
+if [ "\$(id -u)" != "0" ]; then
+   echo "Please run as root (sudo ./install.sh)"
+   exit 1
 fi
 
-echo ""
-echo "STEP 2: Checking configuration..."
-if [ ! -f "config.env" ]; then
-    if [ -f "config.env.template" ]; then
-        cp config.env.template config.env
-        print_warning "config.env dibuat dari template"
-    else
-        print_error "config.env.template tidak ditemukan!"
-        exit 1
-    fi
-else
-    print_success "config.env already exists"
-fi
-source config.env 2>/dev/null || true
+# Update system
+echo "[1/5] Updating system..."
+apt-get update -y
 
-echo ""
-echo "STEP 3: Installing system dependencies..."
-if command -v apt &> /dev/null; then
-    sudo apt update -qq
-    sudo apt install -y openvpn chromium-browser || sudo apt install -y openvpn chromium
-fi
+# Install Node.js if not present
 if ! command -v node &> /dev/null; then
-    echo "Installing Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-    sudo apt install -y nodejs
-fi
-print_success "Dependencies installed"
-
-echo ""
-echo "STEP 4: Installing npm packages..."
-if [ ! -f "package.json" ]; then
-    npm init -y
-fi
-npm install puppeteer dotenv
-print_success "npm packages installed"
-
-echo ""
-echo "STEP 5: Setting permissions..."
-chmod +x run.sh 2>/dev/null || true
-chmod +x install-service.sh 2>/dev/null || true
-print_success "Scripts are executable"
-
-echo ""
-echo "STEP 6: Setting up systemd service..."
-if [ -f "install-service.sh" ]; then
-    sudo ./install-service.sh
+    echo "[2/5] Installing Node.js..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+else
+    echo "[2/5] Node.js already installed: \$(node -v)"
 fi
 
+# Install Chromium
+echo "[3/5] Installing Chromium..."
+apt-get install -y chromium-browser || apt-get install -y chromium
+
+# Install dependencies
+echo "[4/5] Installing npm dependencies..."
+npm install puppeteer
+
+# Set permissions
+echo "[5/5] Setting permissions..."
+chmod +x run.sh install-service.sh 2>/dev/null || true
+
 echo ""
-echo "============================================================"
-echo -e "\${GREEN}    INSTALASI SELESAI!\${NC}"
-echo "============================================================"
+echo "==================================="
+echo "  Installation Complete!"
+echo "==================================="
 echo ""
-echo "LANGKAH SELANJUTNYA:"
-echo "1. Edit config.env dengan kredensial BCA Anda"
-echo "2. Start VPN: sudo systemctl start openvpn-client@indonesia"
-echo "3. Start scraper: sudo systemctl start bca-scraper"
+echo "Next steps:"
+echo "1. Copy config.env.template to config.env"
+echo "2. Fill in your BCA credentials and secret key"
+echo "3. Run: ./run.sh"
+echo "   Or install as service: ./install-service.sh"
 echo ""
 `,
 
   'install-service.sh': `#!/bin/bash
-# BCA Scraper - Systemd Service Installer v4.0.0
+# BCA Scraper Service Installer - v4.1.0
+
 set -e
 
 SERVICE_NAME="bca-scraper"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-LOG_FILE="/var/log/bca-scraper.log"
-ERROR_LOG_FILE="/var/log/bca-scraper-error.log"
-SERVICE_FILE="/etc/systemd/system/\${SERVICE_NAME}.service"
+SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
+USER="\$(whoami)"
 
-if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root (sudo)"
-    exit 1
-fi
+echo "Installing \$SERVICE_NAME as systemd service..."
+echo "Directory: \$SCRIPT_DIR"
+echo "User: \$USER"
 
-if [ "$1" == "--uninstall" ]; then
-    systemctl stop \${SERVICE_NAME} 2>/dev/null || true
-    systemctl disable \${SERVICE_NAME} 2>/dev/null || true
-    rm -f "\${SERVICE_FILE}"
-    systemctl daemon-reload
-    echo "Service uninstalled"
-    exit 0
-fi
-
-touch "\${LOG_FILE}" "\${ERROR_LOG_FILE}"
-chmod 644 "\${LOG_FILE}" "\${ERROR_LOG_FILE}"
-
-cat > "\${SERVICE_FILE}" << EOF
+# Create service file
+cat > /etc/systemd/system/\$SERVICE_NAME.service << EOF
 [Unit]
-Description=BCA Scraper v4.0.0 - Ultra-Robust Mode
-After=network-online.target
-Wants=network-online.target
+Description=BCA iBanking Scraper v4.1.0 - Session Reuse Mode
+After=network.target
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=\${SCRIPT_DIR}
-ExecStart=/usr/bin/node --max-old-space-size=4096 \${SCRIPT_DIR}/bca-scraper.js
+User=\$USER
+WorkingDirectory=\$SCRIPT_DIR
+Environment=NODE_ENV=production
+ExecStartPre=-/usr/bin/pkill -9 -f "node.*bca-scraper" || true
+ExecStart=/usr/bin/node --max-old-space-size=4096 \$SCRIPT_DIR/bca-scraper.js
+ExecStopPost=-/usr/bin/pkill -9 -f chromium || true
 Restart=always
 RestartSec=30
-StandardOutput=append:\${LOG_FILE}
-StandardError=append:\${ERROR_LOG_FILE}
-Environment=NODE_ENV=production
-EnvironmentFile=-\${SCRIPT_DIR}/config.env
-
-# Memory and process limits
-MemoryMax=4G
-TasksMax=100
-
-# Security (relaxed for Chromium compatibility)
-ProtectSystem=false
-PrivateTmp=true
-NoNewPrivileges=false
+StandardOutput=append:/var/log/\$SERVICE_NAME.log
+StandardError=append:/var/log/\$SERVICE_NAME.log
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
+# Setup log rotation
+cat > /etc/logrotate.d/\$SERVICE_NAME << EOF
+/var/log/\$SERVICE_NAME.log {
+    daily
+    rotate 7
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+EOF
+
+# Reload and enable service
 systemctl daemon-reload
-systemctl enable \${SERVICE_NAME}
-echo "Service installed and enabled"
-echo "Start with: sudo systemctl start \${SERVICE_NAME}"
+systemctl enable \$SERVICE_NAME
+systemctl start \$SERVICE_NAME
+
+echo ""
+echo "Service installed successfully!"
+echo ""
+echo "Commands:"
+echo "  Status: sudo systemctl status \$SERVICE_NAME"
+echo "  Logs:   sudo tail -f /var/log/\$SERVICE_NAME.log"
+echo "  Stop:   sudo systemctl stop \$SERVICE_NAME"
+echo "  Start:  sudo systemctl start \$SERVICE_NAME"
 `,
 
-  'vpn-up.sh': `#!/bin/bash
-# VPN Up Script - Split Tunneling for BCA Scraper
-set -e
+  'README.md': `# BCA iBanking Scraper v4.1.0 - Session Reuse Mode
 
-LOG_FILE="/var/log/vpn-split-tunnel.log"
-STATE_DIR="/var/run/vpn-state"
+## Fitur Baru v4.1.0
 
-log() {
-    echo "[\$(date '+%Y-%m-%d %H:%M:%S')] \$1" | tee -a "\$LOG_FILE"
-}
+### Login Cooldown (5 menit)
+- Menghormati limit login BCA (max 1x login per 5 menit)
+- Mencegah "Found 0 mutations" karena terlalu sering login
+- Cooldown tracking via \`lastLoginTime\` dan \`LOGIN_COOLDOWN_MS\`
 
-mkdir -p "\$STATE_DIR"
-log "VPN UP Script Starting"
+### Session Reuse
+- Burst mode menggunakan session yang sudah ada (tidak login ulang)
+- \`ensureLoggedIn()\` akan reuse session jika masih valid
+- Lebih cepat dan hemat resource
 
-ORIGINAL_GW=\$(cat /tmp/original_gateway 2>/dev/null || ip route show default | head -1 | awk '{print \$3}')
-ORIGINAL_DEV=\$(cat /tmp/original_device 2>/dev/null || ip route show default | head -1 | awk '{print \$5}')
+### No Burst Restart
+- Browser tidak akan restart di tengah burst mode
+- \`shouldRestartBrowser()\` skip check saat \`isBurstMode = true\`
+- Mencegah kehilangan session saat burst
 
-if [ -z "\$ORIGINAL_GW" ]; then
-    log "ERROR: Could not determine original gateway"
-    exit 1
-fi
+### Enhanced Heartbeat
+- Mengirim \`is_logged_in\`, \`login_cooldown_remaining\`, \`last_login_at\`
+- Monitoring status login dari dashboard
 
-log "Original Gateway: \$ORIGINAL_GW via \$ORIGINAL_DEV"
+## Quick Install
 
-echo "\$ORIGINAL_GW" > "\$STATE_DIR/original_gateway"
-echo "\$ORIGINAL_DEV" > "\$STATE_DIR/original_device"
+\`\`\`bash
+cd ~/bca-scraper
+curl -sL "https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/get-scraper-file?file=bca-scraper.js" -o bca-scraper.js
+sudo systemctl restart bca-scraper
+\`\`\`
 
-if ! grep -q "100 direct" /etc/iproute2/rt_tables 2>/dev/null; then
-    echo "100 direct" >> /etc/iproute2/rt_tables
-fi
+## Update dari v4.0.0
 
-ip route add default via "\$ORIGINAL_GW" dev "\$ORIGINAL_DEV" table direct 2>/dev/null || \\
-    ip route replace default via "\$ORIGINAL_GW" dev "\$ORIGINAL_DEV" table direct
+Hanya perlu download \`bca-scraper.js\` terbaru:
 
-iptables -t mangle -C OUTPUT -p tcp --sport 22 -j MARK --set-mark 0x100 2>/dev/null || \\
-    iptables -t mangle -A OUTPUT -p tcp --sport 22 -j MARK --set-mark 0x100
+\`\`\`bash
+curl -sL "https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/get-scraper-file?file=bca-scraper.js" -o bca-scraper.js
+sudo systemctl restart bca-scraper
+\`\`\`
 
-ip rule add fwmark 0x100 table direct priority 100 2>/dev/null || true
+## Verifikasi
 
-log "VPN UP Script Completed"
-exit 0
-`,
+\`\`\`bash
+sudo tail -f /var/log/bca-scraper.log
+\`\`\`
 
-  'vpn-down.sh': `#!/bin/bash
-# VPN Down Script - Cleanup Split Tunneling Rules
-set -e
-
-LOG_FILE="/var/log/vpn-split-tunnel.log"
-
-log() {
-    echo "[\$(date '+%Y-%m-%d %H:%M:%S')] \$1" | tee -a "\$LOG_FILE"
-}
-
-log "VPN DOWN Script Starting"
-
-iptables -t mangle -D OUTPUT -p tcp --sport 22 -j MARK --set-mark 0x100 2>/dev/null || true
-ip rule del fwmark 0x100 table direct 2>/dev/null || true
-ip route flush table direct 2>/dev/null || true
-
-log "VPN DOWN Script Completed"
-exit 0
-`,
-
-  'README.md': `# VPS BCA Scraper Template v4.0.0 - Ultra-Robust Mode
-
-Script untuk scraping mutasi BCA dari VPS sendiri dan mengirim ke webhook.
-
-## Features v4.0.0
-- Ultra-Robust Mode dengan comprehensive error handling
-- Browser standby 24/7, siap dipakai kapan saja
-- Global scrape timeout (max 2 menit per scrape)
-- Safe frame operations dengan timeout protection
-- Session expired detection & auto-recovery
-- Periodic browser restart (memory leak prevention)
-- Retry with exponential backoff (3x retry)
-- Force kill & restart jika browser unresponsive
-- Page health check sebelum scrape
-- Server heartbeat reporting
-- Error categorization
-
-## Quick Setup
-
-1. Upload semua file ke VPS
-2. Jalankan: \`chmod +x install.sh && sudo ./install.sh\`
-3. Edit config.env dengan kredensial BCA Anda
-4. Start service: \`sudo systemctl start bca-scraper\`
-
-## Files
-
-- \`bca-scraper.js\` - Main scraper script v4.0.0
-- \`scheduler.js\` - Scheduler daemon
-- \`config.env.template\` - Configuration template
-- \`install.sh\` - All-in-one installer
-- \`install-service.sh\` - Systemd service installer
-- \`run.sh\` - Manual run script
-
-## Support
-
-Jika ada masalah, hubungi admin atau buka issue di GitHub.
-`,
-
-  'README.txt': `============================================================
-    BCA VPS Scraper v4.0.0 - Quick Start Guide
-============================================================
-
-CARA SETUP:
-
-1. Upload semua file ke VPS (contoh: /root/bca-scraper/)
-2. Jalankan installer:
-   cd /root/bca-scraper
-   chmod +x install.sh
-   sudo ./install.sh
-
-3. Edit config.env dengan kredensial BCA Anda:
-   nano config.env
-
-4. Start service:
-   sudo systemctl start bca-scraper
-
-5. Cek log:
-   tail -f /var/log/bca-scraper.log
-
-============================================================
+Pastikan muncul banner:
+\`\`\`
+==========================================
+  BCA SCRAPER - SESSION REUSE v4.1.0
+==========================================
+  v4.1.0 FEATURES:
+  - Login Cooldown    : 5 minutes (BCA limit)
+  - Session Reuse     : Burst mode reuses active session
+  - No Burst Restart  : Browser won't restart during burst
+\`\`\`
 `,
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get Supabase credentials
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const results: { file: string; status: 'success' | 'error'; message?: string }[] = [];
-
-    // Upload each file to storage
-    for (const [fileName, content] of Object.entries(SCRAPER_FILES)) {
+    
+    const results: { file: string; status: string; error?: string }[] = [];
+    
+    for (const [filename, content] of Object.entries(SCRAPER_FILES)) {
       try {
-        // Convert string content to Uint8Array
-        const encoder = new TextEncoder();
-        const data = encoder.encode(content);
-
-        // Delete existing file first (upsert)
-        await supabase.storage
-          .from('scraper-files')
-          .remove([fileName]);
-
-        // Upload new file
         const { error } = await supabase.storage
           .from('scraper-files')
-          .upload(fileName, data, {
-            contentType: fileName.endsWith('.js') ? 'application/javascript' :
-                        fileName.endsWith('.sh') ? 'application/x-sh' :
-                        fileName.endsWith('.md') ? 'text/markdown' :
-                        'text/plain',
-            cacheControl: '300',
+          .upload(filename, new Blob([content], { type: 'text/plain' }), {
             upsert: true,
+            contentType: filename.endsWith('.js') ? 'application/javascript' : 'text/plain',
           });
-
-        if (error) {
-          results.push({ file: fileName, status: 'error', message: error.message });
-        } else {
-          results.push({ file: fileName, status: 'success' });
-        }
-      } catch (err) {
-        results.push({ file: fileName, status: 'error', message: String(err) });
+        
+        if (error) throw error;
+        
+        results.push({ file: filename, status: 'success' });
+        console.log(`[SYNC] Uploaded: ${filename}`);
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        results.push({ file: filename, status: 'error', error: errorMsg });
+        console.error(`[SYNC] Failed: ${filename} - ${errorMsg}`);
       }
     }
-
+    
     const successCount = results.filter(r => r.status === 'success').length;
     const errorCount = results.filter(r => r.status === 'error').length;
-
-    console.log(`[Sync Scraper Files] Synced ${successCount} files (v4.0.0), ${errorCount} errors`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Synced ${successCount} files successfully (v4.0.0 Ultra-Robust)`,
-        version: '4.0.0',
-        total: Object.keys(SCRAPER_FILES).length,
-        successCount,
-        errorCount,
-        results,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  } catch (error) {
-    console.error('[Sync Scraper Files] Error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: String(error) }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    
+    return new Response(JSON.stringify({
+      success: errorCount === 0,
+      message: `Synced ${successCount}/${results.length} files (v4.1.0 Session Reuse Mode)`,
+      version: '4.1.0',
+      results,
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+    
+  } catch (error: unknown) {
+    console.error('[SYNC] Error:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: errorMsg,
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
