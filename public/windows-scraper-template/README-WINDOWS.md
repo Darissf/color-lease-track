@@ -1,4 +1,4 @@
-# BCA Scraper - Windows RDP Version v4.1.8
+# BCA Scraper - Windows RDP Version v4.1.9
 
 Versi Windows dari BCA Bank Scraper untuk dijalankan di Windows RDP (Remote Desktop).
 
@@ -147,6 +147,7 @@ Download ulang ZIP package dari Bank Scraper Settings dan replace semua file.
 
 | Version | Tanggal | Perubahan |
 |---------|---------|-----------|
+| v4.1.9 | 2025-12-29 | Fixed config/burst fetch 401 - use POST instead of GET |
 | v4.1.8 | 2025-12-29 | Fixed "Node not clickable" - use focus() instead of click() |
 | v4.1.7 | 2025-12-29 | Fixed PIN entry - hybrid evaluate+events approach |
 | v4.1.6 | 2025-12-29 | Sync login dengan Linux version |
@@ -159,5 +160,5 @@ Download ulang ZIP package dari Bank Scraper Settings dan replace semua file.
 - Hubungi admin jika ada masalah
 
 ---
-Version: 4.1.8-windows
+Version: 4.1.9-windows
 Build Date: 2025-12-29
