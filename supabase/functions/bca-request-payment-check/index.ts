@@ -195,6 +195,56 @@ Deno.serve(async (req: Request) => {
 
     console.log(`[BCA Request Payment Check] Created request ${request.id}, unique amount: ${uniqueAmount}, expires: ${expiresAt.toISOString()}`);
 
+    // Get the contract owner's user_id to create balance checker session
+    const { data: contractOwner } = await supabase
+      .from("rental_contracts")
+      .select("user_id")
+      .eq("id", contract_id)
+      .single();
+
+    if (contractOwner) {
+      // Cancel any existing active balance check sessions for this user
+      const { error: cancelSessionError } = await supabase
+        .from("windows_balance_check_sessions")
+        .update({ 
+          status: "cancelled",
+          ended_at: new Date().toISOString()
+        })
+        .eq("user_id", contractOwner.user_id)
+        .in("status", ["grab_initial", "checking_loop", "ready"]);
+
+      if (cancelSessionError) {
+        console.log("[BCA Request Payment Check] Warning: Failed to cancel old sessions:", cancelSessionError);
+      }
+
+      // Create new balance check session with GRAB_INITIAL command
+      const { data: session, error: sessionError } = await supabase
+        .from("windows_balance_check_sessions")
+        .insert({
+          user_id: contractOwner.user_id,
+          payment_request_id: request.id,
+          expected_amount: uniqueAmount,
+          status: "grab_initial",
+          last_command: "GRAB_INITIAL",
+          max_checks: 30,
+          command_data: {
+            contract_id,
+            customer_name: customer_name || clientGroup.nama,
+            unique_code: uniqueCode.toString(),
+            amount_expected: amount_expected,
+            unique_amount: uniqueAmount
+          }
+        })
+        .select("id")
+        .single();
+
+      if (sessionError) {
+        console.log("[BCA Request Payment Check] Warning: Failed to create balance check session:", sessionError);
+      } else {
+        console.log(`[BCA Request Payment Check] Created balance check session: ${session.id} with GRAB_INITIAL command`);
+      }
+    }
+
     // Return success with request details for frontend
     return new Response(
       JSON.stringify({ 
