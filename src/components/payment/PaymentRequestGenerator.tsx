@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,15 +78,17 @@ export function PaymentRequestGenerator({
   const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [cancelCooldownRemaining, setCancelCooldownRemaining] = useState(0);
-  const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
+  
+  // Use ref to track confetti state to avoid stale closure and dependency issues
+  const hasTriggeredConfettiRef = useRef(false);
 
   const minimumAmount = Math.ceil(remainingAmount * 0.5);
   const isPublicMode = !!accessCode;
 
-  // Reset hasTriggeredConfetti when pendingRequest changes
+  // Reset hasTriggeredConfettiRef when pendingRequest changes
   useEffect(() => {
     if (!pendingRequest?.id) {
-      setHasTriggeredConfetti(false);
+      hasTriggeredConfettiRef.current = false;
     }
   }, [pendingRequest?.id]);
 
@@ -122,9 +124,10 @@ export function PaymentRequestGenerator({
             console.log("[Realtime] Refetched status:", newStatus);
           }
           
-          if (newStatus === "matched" && !hasTriggeredConfetti) {
-            console.log("[Realtime] Status matched! Triggering confetti...");
-            setHasTriggeredConfetti(true);
+          // Use ref to check confetti state (avoids stale closure)
+          if (newStatus === "matched" && !hasTriggeredConfettiRef.current) {
+            console.log("[Realtime] Status matched! Triggering confetti NOW!");
+            hasTriggeredConfettiRef.current = true;
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             toast.success("Pembayaran terverifikasi!");
             onPaymentVerified?.();
@@ -139,8 +142,8 @@ export function PaymentRequestGenerator({
       });
 
     // Check if initial pendingRequest status is already matched (for page refresh scenario)
-    if (initialPendingRequest?.status === "matched" && !hasTriggeredConfetti) {
-      setHasTriggeredConfetti(true);
+    if (initialPendingRequest?.status === "matched" && !hasTriggeredConfettiRef.current) {
+      hasTriggeredConfettiRef.current = true;
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       toast.success("Pembayaran terverifikasi!");
       onPaymentVerified?.();
@@ -150,7 +153,7 @@ export function PaymentRequestGenerator({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [pendingRequest?.id, onPaymentVerified, hasTriggeredConfetti, initialPendingRequest?.status]);
+  }, [pendingRequest?.id, onPaymentVerified, initialPendingRequest?.status]); // Removed hasTriggeredConfetti from deps
 
   // Calculate time remaining for expiry
   useEffect(() => {
