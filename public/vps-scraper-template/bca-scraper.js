@@ -1,7 +1,10 @@
 /**
- * BCA iBanking Scraper - SESSION REUSE MODE v4.1.4
+ * BCA iBanking Scraper - STEALTH MODE v4.2.0
  * 
  * Features:
+ * - STEALTH MODE: Anti-detection with puppeteer-extra-plugin-stealth
+ * - HUMAN BEHAVIOR: Mouse movement with Bezier curves, realistic typing
+ * - RANDOM DELAYS: Gaussian distribution delays, not fixed timing
  * - Browser standby 24/7, siap dipakai kapan saja
  * - LOGIN COOLDOWN: Respects BCA 5-minute login limit (skipped if logout successful)
  * - SESSION REUSE: Burst mode reuses active session (no re-login)
@@ -23,8 +26,10 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.5";
+const SCRAPER_VERSION = "4.2.0";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+const SCRAPER_PLATFORM = "linux";
+// v4.2.0: Advanced stealth mode + human-like behavior + anti-detection
 // v4.1.5: Add detailed logging for Step 5 navigation in normal mode
 // v4.1.4: Full navigation per burst iteration (Step 5-6-7 loop), stop on match
 // v4.1.3: Burst Fix - no logout during burst, post-burst cooldown, timing reset
@@ -33,13 +38,26 @@ const SCRAPER_BUILD_DATE = "2025-12-29";
 // v4.1.0: Login Cooldown & Session Reuse - respect BCA 5-minute login limit
 // v4.0.0: Ultra-Robust Mode - comprehensive error handling, auto-recovery
 // v3.0.0: Persistent Browser Mode - browser standby 24/7
-// v2.1.2: Added forceLogout on error/stuck
-// v2.1.1: Fixed button click stuck - using Promise.race
-// v2.1.0: Fixed timezone bug - uses WIB (Asia/Jakarta)
-// v2.0.0: Optimized burst mode - login 1x, loop Kembali+Lihat
 // =========================================
 
-const puppeteer = require('puppeteer');
+// Use puppeteer-extra with stealth plugin for anti-detection
+let puppeteer;
+let StealthPlugin;
+try {
+  puppeteer = require('puppeteer-extra');
+  StealthPlugin = require('puppeteer-extra-plugin-stealth');
+  
+  // Enable stealth with all evasions
+  const stealth = StealthPlugin();
+  puppeteer.use(stealth);
+  console.log('[STEALTH] puppeteer-extra-plugin-stealth loaded with all evasions');
+} catch (e) {
+  // Fallback to regular puppeteer if stealth not installed
+  console.log('[STEALTH] Stealth plugin not found, using regular puppeteer');
+  console.log('[STEALTH] Run: npm install puppeteer-extra puppeteer-extra-plugin-stealth');
+  puppeteer = require('puppeteer');
+}
+
 const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
@@ -95,7 +113,6 @@ if (fs.existsSync(configPath)) {
 }
 
 // Find Chromium path with smart priority
-// Priority: apt chromium > snap chromium > puppeteer bundled
 function findChromiumPath() {
   // Priority 1: apt-installed chromium (most reliable)
   const aptPaths = [
@@ -138,7 +155,6 @@ function findChromiumPath() {
   ];
   for (const basePath of puppeteerCachePaths) {
     if (fs.existsSync(basePath)) {
-      // Find the latest version directory
       try {
         const versions = fs.readdirSync(basePath);
         for (const version of versions.reverse()) {
@@ -157,10 +173,201 @@ function findChromiumPath() {
   return null;
 }
 
-// Fallback browser launch - try puppeteer bundled if system chromium fails
+// ============ HUMAN-LIKE BEHAVIOR HELPERS ============
+
+// Gaussian random for more natural distribution
+function gaussianRandom(mean, stdev) {
+  const u = 1 - Math.random();
+  const v = Math.random();
+  const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  return z * stdev + mean;
+}
+
+// Human-like delay with gaussian distribution
+async function humanDelay(minMs, maxMs) {
+  const mean = (minMs + maxMs) / 2;
+  const stdev = (maxMs - minMs) / 4;
+  let delayTime = Math.round(gaussianRandom(mean, stdev));
+  delayTime = Math.max(minMs, Math.min(maxMs, delayTime));
+  log(`[Human] Waiting ${delayTime}ms...`);
+  return new Promise(r => setTimeout(r, delayTime));
+}
+
+// Cubic Bezier interpolation for smooth mouse movement
+function cubicBezier(t, p0, p1, p2, p3) {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+}
+
+// Human-like mouse movement with Bezier curves
+async function humanMouseMove(targetPage, targetX, targetY) {
+  const mouse = targetPage.mouse;
+  const viewport = targetPage.viewport();
+  
+  // Start from approximate current position (center as default)
+  let currentX = viewport.width / 2;
+  let currentY = viewport.height / 2;
+  
+  // Calculate distance
+  const distance = Math.sqrt(Math.pow(targetX - currentX, 2) + Math.pow(targetY - currentY, 2));
+  
+  // More steps for longer distance (minimum 20, max 80)
+  const steps = Math.min(80, Math.max(20, Math.floor(distance / 8)));
+  
+  // Generate random control points for Bezier curve (not straight line)
+  const cp1x = currentX + (targetX - currentX) * 0.25 + (Math.random() - 0.5) * 80;
+  const cp1y = currentY + (targetY - currentY) * 0.25 + (Math.random() - 0.5) * 80;
+  const cp2x = currentX + (targetX - currentX) * 0.75 + (Math.random() - 0.5) * 80;
+  const cp2y = currentY + (targetY - currentY) * 0.75 + (Math.random() - 0.5) * 80;
+  
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    
+    // Cubic Bezier interpolation
+    const x = cubicBezier(t, currentX, cp1x, cp2x, targetX);
+    const y = cubicBezier(t, currentY, cp1y, cp2y, targetY);
+    
+    // Add micro-jitter (human hand shake)
+    const jitterX = (Math.random() - 0.5) * 2;
+    const jitterY = (Math.random() - 0.5) * 2;
+    
+    await mouse.move(x + jitterX, y + jitterY);
+    
+    // Variable delay - slower at start/end, faster in middle (easing)
+    const speedFactor = Math.sin(t * Math.PI);
+    const stepDelay = 3 + Math.random() * 12 * (1 - speedFactor * 0.5);
+    await new Promise(r => setTimeout(r, stepDelay));
+  }
+  
+  // Final position exact
+  await mouse.move(targetX, targetY);
+}
+
+// Human-like click with mouse movement
+async function humanClick(targetPage, element) {
+  if (!element) return false;
+  
+  try {
+    const box = await element.boundingBox();
+    if (!box) return false;
+    
+    // Random position within element (not always center)
+    const targetX = box.x + box.width * (0.25 + Math.random() * 0.5);
+    const targetY = box.y + box.height * (0.25 + Math.random() * 0.5);
+    
+    log(`[Human] Moving mouse to (${Math.round(targetX)}, ${Math.round(targetY)})...`);
+    
+    // Move mouse like human with Bezier curve
+    await humanMouseMove(targetPage, targetX, targetY);
+    
+    // Small pause before click (thinking time)
+    await new Promise(r => setTimeout(r, 50 + Math.random() * 150));
+    
+    // Click with realistic timing (press and release)
+    await targetPage.mouse.down();
+    await new Promise(r => setTimeout(r, 30 + Math.random() * 70));
+    await targetPage.mouse.up();
+    
+    return true;
+  } catch (e) {
+    log(`[Human] Click failed: ${e.message}`, 'WARN');
+    return false;
+  }
+}
+
+// Human-like typing with variable speed
+async function humanType(element, text) {
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    
+    // Base delay varies by character type
+    let charDelay = 50 + Math.random() * 80;
+    
+    // Slower for uncommon characters
+    if (!'aeioutnsr'.includes(char.toLowerCase())) {
+      charDelay *= 1.2;
+    }
+    
+    await element.type(char, { delay: 0 });
+    await new Promise(r => setTimeout(r, charDelay));
+    
+    // Occasionally longer pause (thinking)
+    if (Math.random() < 0.03) {
+      await new Promise(r => setTimeout(r, 150 + Math.random() * 250));
+    }
+  }
+}
+
+// ============ STEALTH PAGE SETUP ============
+
+async function setupStealthPage(targetPage) {
+  // Random viewport (not always same size)
+  const width = 1280 + Math.floor(Math.random() * 200);
+  const height = 720 + Math.floor(Math.random() * 100);
+  await targetPage.setViewport({ width, height });
+  
+  // Set timezone Indonesia
+  await targetPage.emulateTimezone('Asia/Jakarta');
+  
+  // Additional stealth overrides (beyond stealth plugin)
+  await targetPage.evaluateOnNewDocument(() => {
+    // Override WebGL vendor/renderer to look like real hardware
+    const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+      // UNMASKED_VENDOR_WEBGL
+      if (parameter === 37445) return 'Intel Inc.';
+      // UNMASKED_RENDERER_WEBGL
+      if (parameter === 37446) return 'Intel Iris OpenGL Engine';
+      return getParameter.call(this, parameter);
+    };
+    
+    // Fake battery API
+    if (navigator.getBattery) {
+      navigator.getBattery = () => Promise.resolve({
+        charging: true,
+        chargingTime: 0,
+        dischargingTime: Infinity,
+        level: 0.85 + Math.random() * 0.15,
+        addEventListener: () => {},
+        removeEventListener: () => {}
+      });
+    }
+    
+    // Override connection info
+    Object.defineProperty(navigator, 'connection', {
+      get: () => ({
+        effectiveType: '4g',
+        rtt: 50 + Math.floor(Math.random() * 50),
+        downlink: 10 + Math.random() * 5,
+        saveData: false
+      })
+    });
+    
+    // Override hardware concurrency (CPU cores)
+    Object.defineProperty(navigator, 'hardwareConcurrency', {
+      get: () => 4 + Math.floor(Math.random() * 4)
+    });
+    
+    // Override device memory
+    Object.defineProperty(navigator, 'deviceMemory', {
+      get: () => 8
+    });
+    
+    // Override max touch points
+    Object.defineProperty(navigator, 'maxTouchPoints', {
+      get: () => 0 // Desktop
+    });
+  });
+  
+  log(`[Stealth] Page configured: ${width}x${height}, timezone: Asia/Jakarta`);
+}
+
+// ============ BROWSER LAUNCH WITH STEALTH ============
+
 async function launchBrowserWithFallback() {
   const chromiumPath = CONFIG.CHROMIUM_PATH;
   
+  // Advanced anti-detection browser args
   const browserArgs = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -170,25 +377,33 @@ async function launchBrowserWithFallback() {
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
-    '--window-size=1366,768',
     '--disable-software-rasterizer',
     '--disable-features=TranslateUI',
     '--disable-ipc-flooding-protection',
-    '--single-process'
+    '--single-process',
+    // === ANTI-DETECTION ARGS ===
+    '--disable-blink-features=AutomationControlled',
+    '--disable-infobars',
+    '--disable-features=IsolateOrigins,site-per-process',
+    '--flag-switches-begin',
+    '--flag-switches-end',
+    // Random window size (not predictable)
+    `--window-size=${1280 + Math.floor(Math.random() * 200)},${720 + Math.floor(Math.random() * 100)}`,
   ];
   
   // Try system Chromium first
   if (chromiumPath && fs.existsSync(chromiumPath)) {
     try {
-      log(`Launching browser with system Chromium: ${chromiumPath}`);
+      log(`[Stealth] Launching browser with system Chromium: ${chromiumPath}`);
       const browser = await puppeteer.launch({
         headless: CONFIG.HEADLESS,
         executablePath: chromiumPath,
         args: browserArgs,
         timeout: 60000,
-        protocolTimeout: 120000
+        protocolTimeout: 120000,
+        ignoreDefaultArgs: ['--enable-automation']
       });
-      log('Browser launched successfully with system Chromium');
+      log('[Stealth] Browser launched successfully with system Chromium');
       return browser;
     } catch (err) {
       log(`System Chromium failed: ${err.message}`, 'WARN');
@@ -198,14 +413,15 @@ async function launchBrowserWithFallback() {
   
   // Fallback: Let Puppeteer use its bundled browser
   try {
-    log('Launching browser with Puppeteer bundled Chromium...');
+    log('[Stealth] Launching browser with Puppeteer bundled Chromium...');
     const browser = await puppeteer.launch({
       headless: CONFIG.HEADLESS,
       args: browserArgs,
       timeout: 60000,
-      protocolTimeout: 120000
+      protocolTimeout: 120000,
+      ignoreDefaultArgs: ['--enable-automation']
     });
-    log('Browser launched successfully with Puppeteer bundled Chromium');
+    log('[Stealth] Browser launched successfully with Puppeteer bundled Chromium');
     return browser;
   } catch (err) {
     log(`Puppeteer bundled Chromium also failed: ${err.message}`, 'ERROR');
@@ -257,9 +473,10 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 // === STARTUP BANNER ===
 console.log('');
 console.log('==========================================');
-console.log('  BCA SCRAPER - SESSION REUSE v4.1.0');
+console.log('  BCA SCRAPER - STEALTH MODE v4.2.0');
 console.log('==========================================');
 console.log(`  Version      : ${SCRAPER_VERSION} (${SCRAPER_BUILD_DATE})`);
+console.log(`  Platform     : ${SCRAPER_PLATFORM}`);
 console.log(`  Timestamp    : ${new Date().toISOString()} (UTC)`);
 console.log(`  Jakarta Time : ${getJakartaDateString()}`);
 console.log(`  Chromium Path: ${CONFIG.CHROMIUM_PATH || 'NOT FOUND!'}`);
@@ -270,10 +487,13 @@ console.log(`  Debug Mode   : ${CONFIG.DEBUG_MODE}`);
 console.log(`  Webhook URL  : ${CONFIG.WEBHOOK_URL.substring(0, 50)}...`);
 console.log(`  Config URL   : ${CONFIG_URL.substring(0, 50)}...`);
 console.log('==========================================');
-console.log('  v4.1.0 FEATURES:');
-console.log(`  - Login Cooldown    : 5 minutes (BCA limit)`);
-console.log(`  - Session Reuse     : Burst mode reuses active session`);
-console.log(`  - No Burst Restart  : Browser won't restart during burst`);
+console.log('  v4.2.0 STEALTH FEATURES:');
+console.log('  - puppeteer-extra-plugin-stealth');
+console.log('  - Human-like mouse (Bezier curves)');
+console.log('  - Random delays (Gaussian)');
+console.log('  - WebGL/Canvas fingerprint spoof');
+console.log('  - Random viewport size');
+console.log('==========================================');
 console.log('  ULTRA-ROBUST FEATURES:');
 console.log(`  - Global Timeout    : ${CONFIG.GLOBAL_SCRAPE_TIMEOUT / 1000}s`);
 console.log(`  - Browser Restart   : Every 50 logins or ${CONFIG.MAX_UPTIME_MS / 3600000}h`);
@@ -363,14 +583,14 @@ function categorizeError(error) {
 }
 
 // Save debug screenshot
-async function saveDebug(page, name, type = 'png') {
+async function saveDebug(targetPage, name, type = 'png') {
   if (!CONFIG.DEBUG_MODE) return;
   try {
     if (type === 'png') {
-      await page.screenshot({ path: `debug-${name}.png`, fullPage: true });
+      await targetPage.screenshot({ path: `debug-${name}.png`, fullPage: true });
       log(`Screenshot: debug-${name}.png`);
     } else {
-      const html = await page.content();
+      const html = await targetPage.content();
       fs.writeFileSync(`debug-${name}.html`, html);
       log(`HTML saved: debug-${name}.html`);
     }
@@ -381,9 +601,6 @@ async function saveDebug(page, name, type = 'png') {
 
 // ============ ULTRA-ROBUST HELPERS ============
 
-/**
- * Safe frame operation with timeout protection
- */
 async function safeFrameOperation(operation, timeoutMs = CONFIG.FRAME_OPERATION_TIMEOUT, operationName = 'operation') {
   try {
     const opPromise = operation();
@@ -397,11 +614,8 @@ async function safeFrameOperation(operation, timeoutMs = CONFIG.FRAME_OPERATION_
   }
 }
 
-/**
- * Retry with exponential backoff
- */
 async function retryWithBackoff(fn, maxRetries = 3, operationName = 'operation') {
-  const delays = [5000, 15000, 45000]; // 5s, 15s, 45s
+  const delays = [5000, 15000, 45000];
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -420,9 +634,6 @@ async function retryWithBackoff(fn, maxRetries = 3, operationName = 'operation')
   }
 }
 
-/**
- * Check if page is healthy
- */
 async function isPageHealthy() {
   if (!page) return false;
   
@@ -438,10 +649,6 @@ async function isPageHealthy() {
   }
 }
 
-/**
- * Wait for target number of frames to be loaded
- * This indicates successful login (BCA has 5 frames when logged in)
- */
 async function waitForFrames(targetCount, maxWait = 15000) {
   const startTime = Date.now();
   while (Date.now() - startTime < maxWait) {
@@ -457,9 +664,6 @@ async function waitForFrames(targetCount, maxWait = 15000) {
   return false;
 }
 
-/**
- * Check if session expired
- */
 async function checkSessionExpired() {
   if (!page) return true;
   
@@ -487,18 +691,14 @@ async function checkSessionExpired() {
     return false;
   } catch (e) {
     log(`Session check failed: ${e.message}`, 'WARN');
-    return true; // Assume expired if check fails
+    return true;
   }
 }
 
-/**
- * Check if browser needs restart (memory leak prevention)
- * v4.1.0: Skip restart during burst mode to avoid breaking active session
- */
 function shouldRestartBrowser() {
   if (!browserStartTime) return true;
   
-  // v4.1.0: NEVER restart during burst mode - it breaks the active session
+  // NEVER restart during burst mode - it breaks the active session
   if (isBurstMode) {
     log('Skipping browser restart check - burst mode active');
     return false;
@@ -506,7 +706,6 @@ function shouldRestartBrowser() {
   
   const uptime = Date.now() - browserStartTime;
   
-  // v4.1.0: Increase limit to 50 for burst-heavy usage
   const effectiveLimit = 50;
   if (scrapeCount >= effectiveLimit) {
     log(`Browser restart needed: ${scrapeCount} scrapes reached limit (${effectiveLimit})`);
@@ -521,9 +720,6 @@ function shouldRestartBrowser() {
   return false;
 }
 
-/**
- * Force kill ALL browser processes and restart
- */
 async function forceKillAndRestart() {
   log('=== FORCE KILL & RESTART ===', 'WARN');
   
@@ -558,15 +754,19 @@ async function forceKillAndRestart() {
   
   // Reinitialize
   await initBrowser();
-  scrapeCount = 0; // Reset counter after restart
-  isLoggedIn = false; // Reset login state after restart
+  scrapeCount = 0;
+  isLoggedIn = false;
   
   log('=== FORCE KILL COMPLETE, BROWSER RESTARTED ===');
 }
 
-/**
- * Send heartbeat to server
- */
+// Calculate remaining cooldown time before next login allowed
+function getLoginCooldownRemaining() {
+  const timeSinceLastLogin = Date.now() - lastLoginTime;
+  const remaining = LOGIN_COOLDOWN_MS - timeSinceLastLogin;
+  return remaining > 0 ? remaining : 0;
+}
+
 async function sendHeartbeat(status = 'running') {
   try {
     const uptimeMinutes = browserStartTime ? Math.round((Date.now() - browserStartTime) / 60000) : 0;
@@ -575,6 +775,7 @@ async function sendHeartbeat(status = 'running') {
     const payload = {
       secret_key: CONFIG.SECRET_KEY,
       version: SCRAPER_VERSION,
+      platform: SCRAPER_PLATFORM,
       status,
       uptime_minutes: uptimeMinutes,
       scrape_count: scrapeCount,
@@ -603,11 +804,8 @@ async function sendHeartbeat(status = 'running') {
 
 // === BROWSER MANAGEMENT ===
 
-/**
- * Initialize or restart browser
- */
 async function initBrowser() {
-  log('Initializing browser...');
+  log('[Stealth] Initializing browser with anti-detection...');
   
   // Close existing browser if any
   if (browser) {
@@ -631,8 +829,13 @@ async function initBrowser() {
   browser = await launchBrowserWithFallback();
   
   page = await browser.newPage();
-  await page.setViewport({ width: 1366, height: 768 });
+  
+  // Setup stealth page with random viewport and fingerprint spoofing
+  await setupStealthPage(page);
+  
+  // Set realistic user agent
   await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+  
   page.setDefaultTimeout(CONFIG.TIMEOUT);
   page.setDefaultNavigationTimeout(CONFIG.TIMEOUT);
   
@@ -642,13 +845,10 @@ async function initBrowser() {
   browserStartTime = Date.now();
   isIdle = true;
   
-  log('Browser initialized and ready (standby mode)');
+  log('[Stealth] Browser initialized with full anti-detection (standby mode)');
   return true;
 }
 
-/**
- * Enhanced Watchdog - check if browser is responsive
- */
 async function watchdog() {
   if (!browser || !page) {
     log('Watchdog: Browser not initialized, restarting...', 'WARN');
@@ -657,7 +857,6 @@ async function watchdog() {
   }
   
   try {
-    // Simple health check with timeout
     const result = await Promise.race([
       page.evaluate(() => true),
       new Promise((_, reject) => setTimeout(() => reject(new Error('watchdog_timeout')), 10000))
@@ -667,7 +866,6 @@ async function watchdog() {
       const uptime = Math.round((Date.now() - browserStartTime) / 60000);
       log(`Watchdog: Browser healthy (uptime: ${uptime}m, scrapes: ${scrapeCount}, errors: ${errorCount})`);
       
-      // Check if browser needs restart
       if (shouldRestartBrowser()) {
         log('Watchdog: Scheduled browser restart...');
         await forceKillAndRestart();
@@ -679,45 +877,30 @@ async function watchdog() {
   }
 }
 
-/**
- * Safe logout with multiple fallback methods
- * v4.1.1: Fixed logout using correct BCA selector and goToPage() function
- */
 async function safeLogout() {
   if (!page) return;
   
-  log('Attempting safe logout...');
+  log('Attempting safe logout with human behavior...');
   let loggedOut = false;
   
-  // Method 1: Try clicking via Puppeteer frame API (most reliable)
+  // Method 1: Try clicking via Puppeteer frame API
   try {
     const frames = page.frames();
     
     for (const frame of frames) {
       try {
-        // v4.1.1: Use exact BCA selector - #gotohome > font > b > a
         const logoutLink = await frame.$('#gotohome > font > b > a');
         if (logoutLink) {
-          await logoutLink.click();
+          await humanClick(page, logoutLink);
           log('Logout via #gotohome selector - SUCCESS');
           loggedOut = true;
           break;
         }
         
-        // Fallback: Find by onclick attribute containing 'logout'
         const logoutByOnclick = await frame.$('a[onclick*="logout"]');
         if (logoutByOnclick) {
-          await logoutByOnclick.click();
+          await humanClick(page, logoutByOnclick);
           log('Logout via onclick attribute - SUCCESS');
-          loggedOut = true;
-          break;
-        }
-        
-        // Fallback: Find by text content containing LOGOUT
-        const logoutByText = await frame.$('a:has-text("LOGOUT")');
-        if (logoutByText) {
-          await logoutByText.click();
-          log('Logout via text content - SUCCESS');
           loggedOut = true;
           break;
         }
@@ -729,18 +912,16 @@ async function safeLogout() {
     log(`Frame-based logout failed: ${e.message}`, 'WARN');
   }
   
-  // Method 2: Execute goToPage() JavaScript function directly
+  // Method 2: Execute goToPage() JavaScript function
   if (!loggedOut) {
     try {
       await safeFrameOperation(
         () => page.evaluate(() => {
-          // v4.1.1: BCA uses goToPage function for logout
           if (typeof goToPage === 'function') {
             goToPage('authentication.do?value(actions)=logout');
             return true;
           }
           
-          // Also try on all frames
           const frames = document.querySelectorAll('iframe');
           for (const frame of frames) {
             try {
@@ -764,66 +945,7 @@ async function safeLogout() {
     }
   }
   
-  // Method 3: Click using page.evaluate with exact selector
-  if (!loggedOut) {
-    try {
-      const clicked = await safeFrameOperation(
-        () => page.evaluate(() => {
-          // Try exact selector first
-          const logoutEl = document.querySelector('#gotohome > font > b > a');
-          if (logoutEl) {
-            logoutEl.click();
-            return 'gotohome_selector';
-          }
-          
-          // Try any link with LOGOUT text
-          const links = document.querySelectorAll('a');
-          for (const link of links) {
-            if (link.textContent && link.textContent.includes('LOGOUT')) {
-              link.click();
-              return 'logout_text';
-            }
-          }
-          
-          // Check iframes
-          const frames = document.querySelectorAll('iframe');
-          for (const frame of frames) {
-            try {
-              const frameDoc = frame.contentDocument || frame.contentWindow?.document;
-              if (frameDoc) {
-                const frameLogout = frameDoc.querySelector('#gotohome > font > b > a');
-                if (frameLogout) {
-                  frameLogout.click();
-                  return 'iframe_gotohome';
-                }
-                
-                const frameLinks = frameDoc.querySelectorAll('a');
-                for (const link of frameLinks) {
-                  if (link.textContent && link.textContent.includes('LOGOUT')) {
-                    link.click();
-                    return 'iframe_logout_text';
-                  }
-                }
-              }
-            } catch (e) {}
-          }
-          
-          return null;
-        }),
-        5000,
-        'LOGOUT_CLICK'
-      );
-      
-      if (clicked) {
-        log(`Logout via evaluate click (${clicked}) - SUCCESS`);
-        loggedOut = true;
-      }
-    } catch (e) {
-      log(`Evaluate click failed: ${e.message}`, 'WARN');
-    }
-  }
-  
-  // Method 4: Direct URL with action parameter (last resort)
+  // Method 3: Direct URL (last resort)
   if (!loggedOut) {
     try {
       await Promise.race([
@@ -839,13 +961,12 @@ async function safeLogout() {
     }
   }
   
-  await delay(2000);
+  await humanDelay(1500, 2500);
   isLoggedIn = false;
   
-  // v4.1.2: Track logout success to skip cooldown on next login
   if (loggedOut) {
     lastLogoutSuccess = true;
-    lastLoginTime = 0; // Reset cooldown timer
+    lastLoginTime = 0;
     log('Safe logout completed - cooldown RESET (next login can proceed immediately)');
   } else {
     lastLogoutSuccess = false;
@@ -853,17 +974,12 @@ async function safeLogout() {
   }
 }
 
-/**
- * Refresh page to clear any stuck session
- */
 async function refreshToCleanState() {
   log('Refreshing page to clear session...');
   
   try {
-    // First try to logout if we're logged in
     await safeLogout();
     
-    // Navigate to login page (fresh start) with retry
     await retryWithBackoff(
       async () => {
         await page.goto('https://ibank.klikbca.com/', { 
@@ -875,12 +991,11 @@ async function refreshToCleanState() {
       'NAVIGATE_TO_LOGIN'
     );
     
-    await delay(2000);
+    await humanDelay(2000, 4000);
     log('Page refreshed - clean state ready');
     return true;
   } catch (e) {
     log(`Refresh failed: ${e.message}`, 'ERROR');
-    // If refresh fails, restart browser
     await forceKillAndRestart();
     await page.goto('https://ibank.klikbca.com/', { 
       waitUntil: 'networkidle2', 
@@ -932,7 +1047,7 @@ async function findLoginFrame() {
 }
 
 async function enterCredentials(frame, userId, pin) {
-  log('Entering credentials...');
+  log('[enterCredentials] Finding input fields with human behavior...');
   
   try {
     const userIdInput = await frame.$('input#txt_user_id') || 
@@ -945,18 +1060,27 @@ async function enterCredentials(frame, userId, pin) {
                      await frame.$('input[name="value(pswd)"]');
     
     if (userIdInput && pinInput) {
+      // Human-like interaction
+      await humanDelay(300, 600);
       await userIdInput.focus();
-      await randomDelay(200, 400);
+      await humanDelay(200, 400);
       await frame.evaluate(el => { el.value = ''; }, userIdInput);
-      await userIdInput.type(userId, { delay: 80 });
-      log('User ID entered');
+      await humanDelay(100, 200);
       
-      await randomDelay(300, 500);
+      // Type with human-like speed
+      await humanType(userIdInput, userId);
+      log(`User ID entered (${userId.length} chars)`);
+      
+      await humanDelay(400, 800);
+      
       await pinInput.focus();
-      await randomDelay(200, 400);
+      await humanDelay(200, 400);
       await frame.evaluate(el => { el.value = ''; }, pinInput);
-      await pinInput.type(pin, { delay: 80 });
-      log('PIN entered');
+      await humanDelay(100, 200);
+      
+      // Type PIN with human-like speed
+      await humanType(pinInput, pin);
+      log(`PIN entered (${pin.length} chars)`);
       
       return true;
     }
@@ -968,7 +1092,7 @@ async function enterCredentials(frame, userId, pin) {
 }
 
 async function submitLogin(frame) {
-  log('Submitting login...');
+  log('Submitting login with human behavior...');
   
   try {
     const submitBtn = await frame.$('input[value="LOGIN"]') ||
@@ -976,9 +1100,17 @@ async function submitLogin(frame) {
                       await frame.$('input[name="value(Submit)"]');
     
     if (submitBtn) {
-      await submitBtn.click();
+      // Human pause before clicking
+      await humanDelay(500, 1000);
+      
+      // Try human click first
+      const clicked = await humanClick(page, submitBtn);
+      if (!clicked) {
+        await submitBtn.click();
+      }
+      
       log('LOGIN button clicked');
-      await delay(3000);
+      await humanDelay(2500, 4000);
       return true;
     }
   } catch (e) {
@@ -988,31 +1120,24 @@ async function submitLogin(frame) {
   return false;
 }
 
-// === v4.1.0: SESSION REUSE WITH LOGIN COOLDOWN ===
+// === SESSION REUSE WITH LOGIN COOLDOWN ===
 
-/**
- * Check if we're currently logged in (session still active)
- * BCA shows 5 frames when logged in, and no login form visible
- */
 async function isCurrentlyLoggedIn() {
   if (!page) return false;
   
   try {
-    // Check frame count first (quick check)
     const frameCount = page.frames().length;
     if (frameCount < 5) {
       log(`Not logged in: only ${frameCount} frames (need 5)`);
       return false;
     }
     
-    // Check if login form is visible
     const loginFrame = await findLoginFrame();
     if (loginFrame) {
       log('Not logged in: login form visible');
       return false;
     }
     
-    // Check if session expired
     if (await checkSessionExpired()) {
       log('Not logged in: session expired');
       return false;
@@ -1026,24 +1151,6 @@ async function isCurrentlyLoggedIn() {
   }
 }
 
-/**
- * Calculate remaining cooldown time before next login allowed
- */
-function getLoginCooldownRemaining() {
-  const timeSinceLastLogin = Date.now() - lastLoginTime;
-  const remaining = LOGIN_COOLDOWN_MS - timeSinceLastLogin;
-  return remaining > 0 ? remaining : 0;
-}
-
-/**
- * Ensure we're logged in, respecting BCA 5-minute login cooldown
- * Returns true if logged in successfully, false otherwise
- * 
- * Logic:
- * 1. If already logged in with valid session → reuse session (no new login)
- * 2. If not logged in and last logout was successful → skip cooldown, proceed login
- * 3. If not logged in and last logout failed → wait for cooldown (safety measure)
- */
 async function ensureLoggedIn() {
   // Check if already logged in
   if (await isCurrentlyLoggedIn()) {
@@ -1052,7 +1159,7 @@ async function ensureLoggedIn() {
     return true;
   }
   
-  // v4.1.2: Skip cooldown if last logout was successful
+  // Check cooldown
   const cooldownRemaining = getLoginCooldownRemaining();
   if (cooldownRemaining > 0) {
     if (lastLogoutSuccess) {
@@ -1063,18 +1170,18 @@ async function ensureLoggedIn() {
     }
   }
   
-  // Reset logout success flag before new login attempt
   lastLogoutSuccess = false;
   
-  log('Performing fresh login...');
+  log('[Stealth] Performing fresh login with human behavior...');
   
   // Navigate to login page
   try {
+    await humanDelay(500, 1000);
     await page.goto('https://ibank.klikbca.com/', { 
       waitUntil: 'networkidle2', 
       timeout: CONFIG.TIMEOUT 
     });
-    await delay(2000);
+    await humanDelay(2000, 4000);
   } catch (e) {
     log(`Navigation to login failed: ${e.message}`, 'ERROR');
     return false;
@@ -1088,12 +1195,11 @@ async function ensureLoggedIn() {
   );
   
   if (!frameResult) {
-    // Maybe already logged in after navigation
     if (await isCurrentlyLoggedIn()) {
       log('Already logged in after navigation');
       lastLoginTime = Date.now();
       isLoggedIn = true;
-      scrapeCount++; // Count this as a login
+      scrapeCount++;
       return true;
     }
     throw new Error('Could not find login form');
@@ -1130,18 +1236,17 @@ async function ensureLoggedIn() {
     throw new Error('SESSION_EXPIRED - detected after login');
   }
   
-  // Login successful - update tracking
+  // Login successful
   lastLoginTime = Date.now();
   isLoggedIn = true;
-  scrapeCount++; // Only count actual logins
+  scrapeCount++;
   
-  log(`LOGIN SUCCESSFUL! (${finalFrameCount} frames loaded, cooldown reset)`);
+  log(`[Stealth] LOGIN SUCCESSFUL! (${finalFrameCount} frames loaded, cooldown reset)`);
   return true;
 }
 
-/**
- * Execute a single scrape with global timeout wrapper
- */
+// === SCRAPE FUNCTIONS ===
+
 async function executeScrapeWithTimeout() {
   const scrapePromise = executeScrape();
   const timeoutPromise = new Promise((_, reject) => 
@@ -1159,9 +1264,6 @@ async function executeScrapeWithTimeout() {
   }
 }
 
-/**
- * Execute a single scrape (normal mode)
- */
 async function executeScrape() {
   if (!isIdle) {
     log('Scraper busy, skipping...', 'WARN');
@@ -1173,7 +1275,7 @@ async function executeScrape() {
   const startTime = Date.now();
   let mutations = [];
   
-  log(`=== STARTING SCRAPE #${scrapeCount} (NORMAL MODE) ===`);
+  log(`=== STARTING SCRAPE #${scrapeCount} (STEALTH MODE) ===`);
   
   try {
     // Pre-scrape checks
@@ -1182,7 +1284,7 @@ async function executeScrape() {
       await forceKillAndRestart();
     }
     
-    // Step 1: Refresh page to clear any stuck session
+    // Step 1: Refresh page to clear session
     await refreshToCleanState();
     await saveDebug(page, '01-login-page');
     
@@ -1200,7 +1302,7 @@ async function executeScrape() {
     const { frame, isMainPage } = frameResult;
     log(`Using ${isMainPage ? 'main page' : 'iframe'} for login`);
     
-    // Step 3: Enter credentials with retry
+    // Step 3: Enter credentials with human behavior
     const credentialsEntered = await retryWithBackoff(
       () => enterCredentials(frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN),
       2,
@@ -1215,7 +1317,6 @@ async function executeScrape() {
     
     // Step 4: Submit login
     await submitLogin(frame);
-    await delay(3000);
     
     // Check if still on login page
     let loginFrame = await findLoginFrame();
@@ -1223,7 +1324,6 @@ async function executeScrape() {
       log('Still on login page, trying again...');
       await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
       await submitLogin(loginFrame.frame);
-      await delay(3000);
     }
     
     // Final login check
@@ -1232,19 +1332,17 @@ async function executeScrape() {
       throw new Error('LOGIN_FAILED - still on login page');
     }
     
-    // Check for session expiry
     if (await checkSessionExpired()) {
       throw new Error('SESSION_EXPIRED - detected after login attempt');
     }
     
-    log('LOGIN SUCCESSFUL!');
+    log('[Stealth] LOGIN SUCCESSFUL!');
     await saveDebug(page, '03-logged-in');
     
-    // Step 5: Navigate to Mutasi Rekening with safe operations
-    log('Step 5: Navigating to Mutasi Rekening...');
-    await delay(2000);
+    // Step 5: Navigate to Mutasi Rekening with human delays
+    log('Step 5: Navigating to Mutasi Rekening with human behavior...');
+    await humanDelay(2000, 4000);
     
-    // List all available frames for debugging
     const allFrames = page.frames();
     log(`Available frames: ${allFrames.map(f => f.name() || 'unnamed').join(', ')}`);
     
@@ -1254,8 +1352,9 @@ async function executeScrape() {
       throw new Error('FRAME_NOT_FOUND - Menu frame');
     }
     
-    // Click Informasi Rekening with timeout protection
+    // Click Informasi Rekening with human delay
     log('Clicking: Informasi Rekening...');
+    await humanDelay(1000, 2000);
     const clickInfoResult = await safeFrameOperation(
       () => menuFrame.evaluate(() => {
         const links = document.querySelectorAll('a');
@@ -1275,10 +1374,11 @@ async function executeScrape() {
     if (!clickInfoResult) {
       throw new Error('CLICK_FAILED - Informasi Rekening not found in menu');
     }
-    await delay(3000);
+    await humanDelay(3000, 6000);
     
-    // Click Mutasi Rekening with timeout protection
+    // Click Mutasi Rekening with human delay
     log('Clicking: Mutasi Rekening...');
+    await humanDelay(1000, 2000);
     const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
     log(`Updated menu frame found: ${updatedMenuFrame ? 'YES' : 'NO'}`);
     const clickMutasiResult = await safeFrameOperation(
@@ -1300,10 +1400,10 @@ async function executeScrape() {
     if (!clickMutasiResult) {
       throw new Error('CLICK_FAILED - Mutasi Rekening not found in menu');
     }
-    await delay(3000);
+    await humanDelay(4000, 8000);
     
     // Step 6: Set date and view
-    log('Step 6: Setting date filter...');
+    log('Step 6: Setting date filter with human behavior...');
     let atmFrame = page.frames().find(f => f.name() === 'atm');
     log(`ATM frame found: ${atmFrame ? 'YES' : 'NO'}`);
     if (!atmFrame) {
@@ -1317,6 +1417,7 @@ async function executeScrape() {
     
     log(`Setting date: ${day}/${month}/${currentYear} (Jakarta: ${getJakartaDateString()})`);
     
+    await humanDelay(1000, 2000);
     await safeFrameOperation(
       () => atmFrame.evaluate((day, month) => {
         const selectors = [
@@ -1344,7 +1445,8 @@ async function executeScrape() {
       'SET_DATE'
     );
     
-    // Click Lihat with timeout protection
+    // Click Lihat with human delay
+    await humanDelay(1000, 2000);
     await safeFrameOperation(
       () => atmFrame.evaluate(() => {
         const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"]');
@@ -1359,9 +1461,9 @@ async function executeScrape() {
       CONFIG.FRAME_OPERATION_TIMEOUT,
       'CLICK_LIHAT'
     );
-    await delay(3000);
+    await humanDelay(3000, 5000);
     
-    // Step 7: Parse mutations with timeout protection
+    // Step 7: Parse mutations
     atmFrame = page.frames().find(f => f.name() === 'atm');
     await saveDebug(page, '04-mutations-result');
     
@@ -1433,7 +1535,7 @@ async function executeScrape() {
     mutations = parseResult || [];
     log(`Found ${mutations.length} credit mutations`);
     
-    // Step 8: Logout
+    // Step 8: Logout with human behavior
     await safeLogout();
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -1453,7 +1555,6 @@ async function executeScrape() {
     await saveDebug(page, 'error-state');
     await safeLogout();
     
-    // Restart browser on error
     await forceKillAndRestart();
     
     return { success: false, error: error.message, errorType };
@@ -1463,13 +1564,10 @@ async function executeScrape() {
   }
 }
 
-/**
- * Execute burst mode scrape with global timeout
- */
 async function executeBurstScrapeWithTimeout() {
   const scrapePromise = executeBurstScrape();
   const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('BURST_GLOBAL_TIMEOUT')), CONFIG.GLOBAL_SCRAPE_TIMEOUT * 2) // 4 minutes for burst
+    setTimeout(() => reject(new Error('BURST_GLOBAL_TIMEOUT')), CONFIG.GLOBAL_SCRAPE_TIMEOUT * 2)
   );
   
   try {
@@ -1483,16 +1581,6 @@ async function executeBurstScrapeWithTimeout() {
   }
 }
 
-/**
- * Execute burst mode scrape
- * v4.1.4: Full navigation (Step 5-6-7) per iteration, stop on match
- * - Login once at start
- * - Full navigation to Mutasi Rekening each iteration
- * - Set date + Click Lihat each iteration  
- * - Parse mutations and check for match
- * - STOP IMMEDIATELY if match found
- * - Logout once at end
- */
 async function executeBurstScrape() {
   if (!isIdle) {
     log('Scraper busy, skipping burst...', 'WARN');
@@ -1503,50 +1591,46 @@ async function executeBurstScrape() {
   const startTime = Date.now();
   
   const maxIterations = 24;
-  const maxDuration = 180000; // 3 minutes (increased for full navigation)
+  const maxDuration = 180000;
   let checkCount = 0;
   let matchFound = false;
   
-  log(`=== STARTING BURST MODE v4.1.4 ===`);
+  log(`=== STARTING BURST MODE v4.2.0 STEALTH ===`);
   log(`Session reuse: ${isLoggedIn ? 'checking...' : 'need login'}`);
   log(`Last login: ${lastLoginTime > 0 ? ((Date.now() - lastLoginTime) / 1000).toFixed(0) + 's ago' : 'never'}`);
   log(`Cooldown remaining: ${(getLoginCooldownRemaining() / 1000).toFixed(0)}s`);
   log(`Max iterations: ${maxIterations}, Max duration: ${maxDuration/1000}s`);
   
   try {
-    // Pre-scrape checks
     if (!await isPageHealthy()) {
       log('Page unhealthy before burst, restarting browser...', 'WARN');
       await forceKillAndRestart();
       isLoggedIn = false;
     }
     
-    // STEP 1-4: Login once using ensureLoggedIn()
     const loginSuccess = await ensureLoggedIn();
     if (!loginSuccess) {
       throw new Error('Failed to ensure login state');
     }
     
-    log('Login successful, starting burst loop with full navigation per iteration');
+    log('[Stealth] Login successful, starting burst loop with human behavior');
     
-    // Get date info once (used for all iterations)
     const today = getJakartaDate();
     const day = String(today.getDate());
     const month = String(today.getMonth() + 1);
     const currentYear = today.getFullYear();
     
-    // === BURST LOOP: Full Step 5-6-7 per iteration ===
+    // === BURST LOOP ===
     while (checkCount < maxIterations && (Date.now() - startTime < maxDuration)) {
       checkCount++;
       log(`--- Burst iteration #${checkCount}/${maxIterations} ---`);
       
-      // Check session during loop
       if (await checkSessionExpired()) {
         log('Session expired during burst loop, exiting...', 'WARN');
         break;
       }
       
-      // === STEP 5: Navigate to Mutasi Rekening ===
+      // Step 5: Navigate with human delays
       log('Step 5: Navigating to Mutasi Rekening...');
       
       const menuFrame = page.frames().find(f => f.name() === 'menu');
@@ -1555,7 +1639,7 @@ async function executeBurstScrape() {
         break;
       }
       
-      // Click "Informasi Rekening"
+      await humanDelay(1500, 3000);
       await safeFrameOperation(
         () => menuFrame.evaluate(() => {
           const links = document.querySelectorAll('a');
@@ -1567,15 +1651,15 @@ async function executeBurstScrape() {
         CONFIG.FRAME_OPERATION_TIMEOUT,
         'CLICK_INFORMASI_REKENING_LOOP'
       );
-      await delay(3000);
+      await humanDelay(3000, 5000);
       
-      // Click "Mutasi Rekening"
       const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
       if (!updatedMenuFrame) {
-        log('Updated menu frame not found after Informasi Rekening click', 'WARN');
+        log('Updated menu frame not found', 'WARN');
         break;
       }
       
+      await humanDelay(1000, 2000);
       await safeFrameOperation(
         () => updatedMenuFrame.evaluate(() => {
           const links = document.querySelectorAll('a');
@@ -1587,18 +1671,18 @@ async function executeBurstScrape() {
         CONFIG.FRAME_OPERATION_TIMEOUT,
         'CLICK_MUTASI_REKENING_LOOP'
       );
-      await delay(3000);
+      await humanDelay(3000, 5000);
       
-      // === STEP 6: Set Date + Click Lihat ===
+      // Step 6: Set Date + Click Lihat
       log('Step 6: Setting date and clicking Lihat...');
       
       let atmFrame = page.frames().find(f => f.name() === 'atm');
       if (!atmFrame) {
-        log('ATM frame not found for date setting, exiting loop', 'WARN');
+        log('ATM frame not found, exiting loop', 'WARN');
         break;
       }
       
-      // Set date selectors
+      await humanDelay(800, 1500);
       await safeFrameOperation(
         () => atmFrame.evaluate((day, month) => {
           const startDt = document.querySelector('select[name="value(startDt)"]');
@@ -1614,7 +1698,7 @@ async function executeBurstScrape() {
         'SET_DATE_LOOP'
       );
       
-      // Click Lihat button
+      await humanDelay(800, 1500);
       await safeFrameOperation(
         () => atmFrame.evaluate(() => {
           const buttons = document.querySelectorAll('input[type="submit"]');
@@ -1627,16 +1711,16 @@ async function executeBurstScrape() {
         CONFIG.FRAME_OPERATION_TIMEOUT,
         'CLICK_LIHAT_LOOP'
       );
-      await delay(3000);
+      await humanDelay(3000, 4000);
       
-      // CRITICAL: Re-grab atmFrame after Lihat click (page reloads)
+      // Re-grab atmFrame after Lihat click
       atmFrame = page.frames().find(f => f.name() === 'atm');
       if (!atmFrame) {
         log('ATM frame lost after Lihat click, exiting loop', 'WARN');
         break;
       }
       
-      // === STEP 7: Parse Mutations ===
+      // Step 7: Parse Mutations
       log('Step 7: Parsing mutations...');
       
       const mutations = await safeFrameOperation(
@@ -1667,7 +1751,6 @@ async function executeBurstScrape() {
                 const description = cells[1]?.innerText?.trim() || '';
                 const mutasiCell = cells[3]?.innerText?.trim() || '';
                 
-                // Skip debit transactions
                 if (description.toUpperCase().includes('DB') || mutasiCell.toUpperCase().includes('DB')) continue;
                 
                 const amount = parseFloat(mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, ''));
@@ -1689,35 +1772,30 @@ async function executeBurstScrape() {
       
       log(`Found ${mutations.length} mutations in iteration #${checkCount}`);
       
-      // Send to webhook if found
       if (mutations.length > 0) {
         const result = await sendToWebhook(mutations);
         log(`Webhook result: ${JSON.stringify(result)}`);
         
-        // === STOP ON MATCH ===
         if (result.matched && result.matched > 0) {
           log(`🎯 MATCH FOUND! Payment verified at iteration #${checkCount}`);
           matchFound = true;
-          break; // EXIT LOOP IMMEDIATELY
+          break;
         }
       }
       
-      // Check server status
       const status = await checkBurstCommand();
       if (!status.burst_active) {
         log('Burst stopped by server');
         break;
       }
       
-      // Small delay before next full navigation iteration
-      log(`Iteration #${checkCount} complete, waiting 2s before next...`);
-      await delay(2000);
+      log(`Iteration #${checkCount} complete, waiting before next...`);
+      await humanDelay(2000, 3000);
     }
     
     log(`=== BURST LOOP ENDED ===`);
     log(`Iterations: ${checkCount}/${maxIterations}, Match found: ${matchFound}`);
     
-    // v4.1.4: Session kept active - logout will happen in mainLoop when burst ends
     log('Session kept active for potential next iteration');
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -1801,37 +1879,31 @@ async function sendToWebhook(mutations) {
 // === MAIN LOOP ===
 
 async function mainLoop() {
-  log('=== ULTRA-ROBUST SCHEDULER STARTED ===');
+  log('=== STEALTH MODE SCHEDULER STARTED v4.2.0 ===');
   log(`Config URL: ${CONFIG_URL}`);
   log(`Poll interval: ${CONFIG.CONFIG_POLL_INTERVAL / 1000}s`);
   log(`Watchdog interval: ${CONFIG.WATCHDOG_INTERVAL / 1000}s`);
   log(`Heartbeat interval: ${CONFIG.HEARTBEAT_INTERVAL / 1000}s`);
   
-  // Initialize browser
   await initBrowser();
   
-  // Start watchdog
   setInterval(watchdog, CONFIG.WATCHDOG_INTERVAL);
   
-  // Start heartbeat
   await sendHeartbeat('started');
   heartbeatInterval = setInterval(() => sendHeartbeat('running'), CONFIG.HEARTBEAT_INTERVAL);
   
   while (true) {
     try {
-      // Pre-loop health check
       if (!await isPageHealthy()) {
         log('Page unhealthy in main loop, restarting browser...', 'WARN');
         await forceKillAndRestart();
       }
       
-      // Check if browser needs restart
       if (shouldRestartBrowser()) {
         log('Scheduled browser restart in main loop...');
         await forceKillAndRestart();
       }
       
-      // Fetch config from server
       const config = await fetchServerConfig();
       
       if (!config || !config.success) {
@@ -1840,14 +1912,12 @@ async function mainLoop() {
         continue;
       }
       
-      // Update interval
       const serverIntervalMs = (config.scrape_interval_minutes || 10) * 60 * 1000;
       if (serverIntervalMs !== currentIntervalMs) {
         log(`Interval changed: ${currentIntervalMs / 60000}m -> ${serverIntervalMs / 60000}m`);
         currentIntervalMs = serverIntervalMs;
       }
       
-      // Check burst mode
       if (config.burst_in_progress && config.burst_enabled) {
         if (!isBurstMode) {
           log('=== ENTERING BURST MODE ===');
@@ -1856,17 +1926,14 @@ async function mainLoop() {
           await sendHeartbeat('burst_mode');
         }
         
-        // Execute burst scrape with global timeout
         await executeBurstScrapeWithTimeout();
         
-        // Check if burst ended
         const updatedConfig = await fetchServerConfig();
         if (!updatedConfig?.burst_in_progress) {
           log('=== BURST MODE ENDED ===');
           isBurstMode = false;
           await sendHeartbeat('running');
           
-          // v4.1.3: Post-burst cooldown to prevent restart loops
           log('Post-burst cooldown: waiting 10s before next poll');
           await delay(10000);
         }
@@ -1877,20 +1944,17 @@ async function mainLoop() {
           isBurstMode = false;
           await sendHeartbeat('running');
           
-          // v4.1.3: Post-burst cooldown
           log('Post-burst cooldown: waiting 10s before next poll');
           await delay(10000);
         }
       }
       
-      // Normal mode - check if should scrape
       if (config.is_active) {
         const timeSinceLastScrape = Date.now() - lastScrapeTime;
         
         if (timeSinceLastScrape >= currentIntervalMs) {
           log(`Time to scrape (${(timeSinceLastScrape / 60000).toFixed(1)}m since last)`);
           
-          // Execute scrape with global timeout
           const result = await executeScrapeWithTimeout();
           
           if (result.success && result.mutations && result.mutations.length > 0) {
@@ -1913,12 +1977,10 @@ async function mainLoop() {
       lastError = `${errorType}: ${error.message}`;
       errorCount++;
       
-      // Force restart on loop error
       await sendHeartbeat('error');
       await forceKillAndRestart();
     }
     
-    // Wait before next config poll
     await delay(CONFIG.CONFIG_POLL_INTERVAL);
   }
 }
@@ -1947,7 +2009,6 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-// Handle uncaught exceptions
 process.on('uncaughtException', async (error) => {
   log(`UNCAUGHT EXCEPTION: ${error.message}`, 'ERROR');
   lastError = `UNCAUGHT: ${error.message}`;
