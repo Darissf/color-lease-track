@@ -40,11 +40,7 @@ RestartSec=30
 # Watchdog - systemd will restart if no response in 10 minutes
 WatchdogSec=600
 
-# Resource limits
-MemoryMax=600M
-CPUQuota=80%
-TasksMax=100
-LimitNOFILE=65535
+# No resource limits - high-spec VPS
 
 # Logging
 StandardOutput=append:/var/log/bca-scraper.log
@@ -53,7 +49,7 @@ SyslogIdentifier=bca-scraper
 
 # Environment
 Environment=NODE_ENV=production
-Environment=NODE_OPTIONS=--max-old-space-size=512
+Environment=NODE_OPTIONS=--max-old-space-size=4096
 Environment=TZ=Asia/Jakarta
 EnvironmentFile=/root/bca-scraper/config.env
 
