@@ -2,7 +2,7 @@
 /**
  * ============================================================
  *  BCA BALANCE CHECKER - LINUX VPS
- *  Version: 1.0.0
+ *  Version: 1.0.1
  *  Build Date: 2025-12-30
  *  Platform: Linux (Ubuntu/Debian)
  *  
