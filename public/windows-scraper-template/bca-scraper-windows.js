@@ -27,9 +27,10 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.8-windows";
+const SCRAPER_VERSION = "4.1.9-windows";
 const SCRAPER_BUILD_DATE = "2025-12-29";
 const SCRAPER_PLATFORM = "windows";
+// v4.1.9-windows: Fixed config/burst fetch 401 - use POST instead of GET
 // v4.1.8-windows: Fixed "Node not clickable" - use focus() instead of click()
 // v4.1.7-windows: Fixed PIN entry - use evaluate+events hybrid approach
 // v4.1.6-windows: Fixed login - sync with Linux version (findLoginFrame, enterCredentials)
@@ -505,10 +506,10 @@ function stopHeartbeat() {
 
 async function fetchServerConfig() {
   try {
-    const url = `${CONFIG_URL}?secret_key=${encodeURIComponent(CONFIG.SECRET_KEY)}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+    const response = await fetch(CONFIG_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret_key: CONFIG.SECRET_KEY }),
     });
 
     if (!response.ok) {
@@ -516,8 +517,7 @@ async function fetchServerConfig() {
       return null;
     }
 
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (e) {
     log(`Config fetch error: ${e.message}`, 'WARN');
     return null;
@@ -527,24 +527,23 @@ async function fetchServerConfig() {
 // ============ CHECK BURST COMMAND ============
 
 async function checkBurstCommand() {
-  if (!CONFIG.BURST_CHECK_URL) return null;
+  if (!CONFIG.BURST_CHECK_URL) return { burst_active: false };
   
   try {
-    const url = `${CONFIG.BURST_CHECK_URL}?secret_key=${encodeURIComponent(CONFIG.SECRET_KEY)}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+    const response = await fetch(CONFIG.BURST_CHECK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret_key: CONFIG.SECRET_KEY }),
     });
 
     if (!response.ok) {
-      return null;
+      return { burst_active: false };
     }
 
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (e) {
     log(`Burst check error: ${e.message}`, 'WARN');
-    return null;
+    return { burst_active: false };
   }
 }
 
