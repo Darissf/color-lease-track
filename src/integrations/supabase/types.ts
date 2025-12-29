@@ -1915,19 +1915,34 @@ export type Database = {
           show_qr_code: boolean | null
           show_signature: boolean | null
           show_stamp: boolean | null
+          show_stamp_on_invoice: boolean | null
+          show_stamp_on_receipt: boolean | null
           show_table_header: boolean | null
           show_terbilang: boolean | null
           show_terms: boolean | null
           show_watermark: boolean | null
           signature_image_url: string | null
+          signature_label: string | null
+          signature_position: string | null
           signature_url: string | null
           signer_name: string | null
           signer_title: string | null
+          stamp_border_style: string | null
+          stamp_border_width: number | null
           stamp_color: string | null
           stamp_color_belum_lunas: string | null
           stamp_color_lunas: string | null
+          stamp_font_family: string | null
+          stamp_font_size: number | null
           stamp_opacity: number | null
+          stamp_position: string | null
+          stamp_rotation: number | null
+          stamp_show_company_name: boolean | null
+          stamp_show_date: boolean | null
+          stamp_show_document_number: boolean | null
+          stamp_size: string | null
           stamp_text: string | null
+          stamp_type: string | null
           table_alternating_color: string | null
           table_alternating_rows: boolean | null
           table_border_style: string | null
@@ -2021,19 +2036,34 @@ export type Database = {
           show_qr_code?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
+          show_stamp_on_invoice?: boolean | null
+          show_stamp_on_receipt?: boolean | null
           show_table_header?: boolean | null
           show_terbilang?: boolean | null
           show_terms?: boolean | null
           show_watermark?: boolean | null
           signature_image_url?: string | null
+          signature_label?: string | null
+          signature_position?: string | null
           signature_url?: string | null
           signer_name?: string | null
           signer_title?: string | null
+          stamp_border_style?: string | null
+          stamp_border_width?: number | null
           stamp_color?: string | null
           stamp_color_belum_lunas?: string | null
           stamp_color_lunas?: string | null
+          stamp_font_family?: string | null
+          stamp_font_size?: number | null
           stamp_opacity?: number | null
+          stamp_position?: string | null
+          stamp_rotation?: number | null
+          stamp_show_company_name?: boolean | null
+          stamp_show_date?: boolean | null
+          stamp_show_document_number?: boolean | null
+          stamp_size?: string | null
           stamp_text?: string | null
+          stamp_type?: string | null
           table_alternating_color?: string | null
           table_alternating_rows?: boolean | null
           table_border_style?: string | null
@@ -2127,19 +2157,34 @@ export type Database = {
           show_qr_code?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
+          show_stamp_on_invoice?: boolean | null
+          show_stamp_on_receipt?: boolean | null
           show_table_header?: boolean | null
           show_terbilang?: boolean | null
           show_terms?: boolean | null
           show_watermark?: boolean | null
           signature_image_url?: string | null
+          signature_label?: string | null
+          signature_position?: string | null
           signature_url?: string | null
           signer_name?: string | null
           signer_title?: string | null
+          stamp_border_style?: string | null
+          stamp_border_width?: number | null
           stamp_color?: string | null
           stamp_color_belum_lunas?: string | null
           stamp_color_lunas?: string | null
+          stamp_font_family?: string | null
+          stamp_font_size?: number | null
           stamp_opacity?: number | null
+          stamp_position?: string | null
+          stamp_rotation?: number | null
+          stamp_show_company_name?: boolean | null
+          stamp_show_date?: boolean | null
+          stamp_show_document_number?: boolean | null
+          stamp_size?: string | null
           stamp_text?: string | null
+          stamp_type?: string | null
           table_alternating_color?: string | null
           table_alternating_rows?: boolean | null
           table_border_style?: string | null

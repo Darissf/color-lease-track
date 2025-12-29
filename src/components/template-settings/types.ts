@@ -58,13 +58,30 @@ export interface TemplateSettings {
   signature_url: string | null;
   signer_name: string;
   signer_title: string;
+  signature_position: string;
+  signature_label: string;
   show_stamp: boolean;
-  custom_stamp_url: string | null; // was stamp_image_url
+  custom_stamp_url: string | null;
   stamp_text: string;
   stamp_color: string;
   stamp_color_lunas: string;
   stamp_color_belum_lunas: string;
   stamp_opacity: number;
+  
+  // Extended Stamp Settings
+  stamp_type: string;
+  stamp_font_family: string;
+  stamp_font_size: number;
+  stamp_rotation: number;
+  stamp_border_width: number;
+  stamp_border_style: string;
+  stamp_show_date: boolean;
+  stamp_show_document_number: boolean;
+  stamp_show_company_name: boolean;
+  stamp_position: string;
+  stamp_size: string;
+  show_stamp_on_invoice: boolean;
+  show_stamp_on_receipt: boolean;
   
   // Watermark
   show_watermark: boolean;
@@ -186,6 +203,8 @@ export const defaultSettings: TemplateSettings = {
   signature_url: null,
   signer_name: '',
   signer_title: '',
+  signature_position: 'right',
+  signature_label: 'Hormat Kami,',
   show_stamp: true,
   custom_stamp_url: null,
   stamp_text: 'LUNAS',
@@ -193,6 +212,21 @@ export const defaultSettings: TemplateSettings = {
   stamp_color_lunas: '#047857',
   stamp_color_belum_lunas: '#b91c1c',
   stamp_opacity: 80,
+  
+  // Extended Stamp Settings
+  stamp_type: 'rectangle',
+  stamp_font_family: 'Courier New',
+  stamp_font_size: 24,
+  stamp_rotation: -8,
+  stamp_border_width: 4,
+  stamp_border_style: 'solid',
+  stamp_show_date: true,
+  stamp_show_document_number: true,
+  stamp_show_company_name: true,
+  stamp_position: 'left',
+  stamp_size: 'md',
+  show_stamp_on_invoice: false,
+  show_stamp_on_receipt: true,
   
   show_watermark: false,
   watermark_type: 'logo',

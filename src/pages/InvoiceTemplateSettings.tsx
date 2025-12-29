@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2, Stamp, PenTool } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageCropper } from '@/components/ImageCropper';
 import { InvoiceTemplatePreview } from '@/components/documents/InvoiceTemplatePreview';
@@ -17,6 +17,8 @@ import { TypographySection } from '@/components/template-settings/TypographySect
 import { LayoutSection } from '@/components/template-settings/LayoutSection';
 import { ContentSection } from '@/components/template-settings/ContentSection';
 import { AdvancedSection } from '@/components/template-settings/AdvancedSection';
+import { StampSection } from '@/components/template-settings/StampSection';
+import { SignatureSection } from '@/components/template-settings/SignatureSection';
 
 type CropTarget = 'invoice_logo_url' | 'icon_maps_url' | 'icon_whatsapp_url' | 'icon_email_url' | 'icon_website_url' | 'bank_logo_url' | 'signature_url' | 'custom_stamp_url' | null;
 
@@ -149,6 +151,14 @@ const InvoiceTemplateSettings = () => {
               <AccordionItem value="content" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /><span className="font-medium">Konten & Info</span></div></AccordionTrigger>
                 <AccordionContent className="pb-4"><ContentSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="signature" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><PenTool className="h-4 w-4 text-primary" /><span className="font-medium">Tanda Tangan</span></div></AccordionTrigger>
+                <AccordionContent className="pb-4"><SignatureSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="stamp" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Stamp className="h-4 w-4 text-primary" /><span className="font-medium">Stempel</span></div></AccordionTrigger>
+                <AccordionContent className="pb-4"><StampSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
               </AccordionItem>
               <AccordionItem value="advanced" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-primary" /><span className="font-medium">Advanced</span></div></AccordionTrigger>

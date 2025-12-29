@@ -448,9 +448,9 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
 
           {/* Signature & Stamp Section */}
           {settings.show_signature !== false && (
-            <div className="flex justify-between items-end mb-8">
+            <div className={`flex items-end mb-8 ${settings.signature_position === 'left' ? 'justify-start' : 'justify-end'}`}>
               <div className="text-center">
-                <p className="text-sm text-gray-600 mb-2">Hormat Kami,</p>
+                <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
                 {settings.signature_url ? (
                   <img 
                     src={settings.signature_url} 
@@ -465,33 +465,6 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                   <p className="text-sm text-gray-500">{settings.signer_title}</p>
                 )}
               </div>
-
-              {/* Stamp */}
-              {settings.show_stamp && (
-                <div 
-                  className="flex items-center justify-center"
-                  style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
-                >
-                  {settings.custom_stamp_url ? (
-                    <img 
-                      src={settings.custom_stamp_url} 
-                      alt="Stamp" 
-                      className="h-24 w-24 object-contain"
-                    />
-                  ) : (
-                    <div 
-                      className="w-24 h-24 border-4 rounded-full flex flex-col items-center justify-center transform rotate-[-15deg]"
-                      style={{ 
-                        borderColor: settings.stamp_color || '#22c55e',
-                        color: settings.stamp_color || '#22c55e'
-                      }}
-                    >
-                      <span className="text-xs font-bold">{settings.stamp_text || 'LUNAS'}</span>
-                      <span className="text-[8px] mt-0.5">{format(issuedAt, 'dd/MM/yyyy')}</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
