@@ -1,14 +1,14 @@
 @echo off
 REM ============================================
-REM BCA Scraper Windows - Run Script
+REM BCA Scraper Windows - Run Script v4.2.0
 REM ============================================
 
 echo.
 echo ============================================
-echo    BCA Scraper Windows v4.1.9
+echo    BCA Scraper Windows v4.2.0 STEALTH
 echo ============================================
 echo.
-echo Starting scraper...
+echo Starting scraper with anti-detection...
 echo Press Ctrl+C to stop.
 echo.
 

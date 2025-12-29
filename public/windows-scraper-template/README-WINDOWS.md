@@ -1,15 +1,17 @@
-# BCA Scraper - Windows RDP Version v4.1.9
+# BCA Scraper - Windows RDP Version v4.2.0 STEALTH
 
-Versi Windows dari BCA Bank Scraper untuk dijalankan di Windows RDP (Remote Desktop).
+Versi Windows dari BCA Bank Scraper dengan **Advanced Stealth Mode** untuk menghindari deteksi bot.
 
-## 🎯 Keunggulan Windows RDP
+## 🎯 Keunggulan v4.2.0 Stealth
 
 | Fitur | Keterangan |
 |-------|-----------|
+| 🛡️ **Anti-Detection** | puppeteer-extra-plugin-stealth (11+ evasions) |
+| 🖱️ **Human Mouse** | Gerakan mouse dengan Bezier curves |
+| ⌨️ **Human Typing** | Kecepatan ketik bervariasi seperti manusia |
+| ⏱️ **Random Delays** | Gaussian distribution, tidak predictable |
 | 🖥️ **Visual Debugging** | Bisa lihat browser langsung (HEADLESS=false) |
-| 🔧 **Lebih Mudah Debug** | Tidak perlu SSH, langsung RDP |
-| ⚡ **Parallel Testing** | Cross-check dengan VPS Linux |
-| 🔄 **Backup** | Jika VPS Linux down, Windows tetap jalan |
+| 🔧 **Fingerprint Spoof** | WebGL, Canvas, Battery API |
 
 ## Requirements
 
@@ -147,6 +149,7 @@ Download ulang ZIP package dari Bank Scraper Settings dan replace semua file.
 
 | Version | Tanggal | Perubahan |
 |---------|---------|-----------|
+| v4.2.0 | 2025-12-29 | **STEALTH MODE** - puppeteer-extra, human behavior, anti-detection |
 | v4.1.9 | 2025-12-29 | Fixed config/burst fetch 401 - use POST instead of GET |
 | v4.1.8 | 2025-12-29 | Fixed "Node not clickable" - use focus() instead of click() |
 | v4.1.7 | 2025-12-29 | Fixed PIN entry - hybrid evaluate+events approach |
@@ -160,5 +163,5 @@ Download ulang ZIP package dari Bank Scraper Settings dan replace semua file.
 - Hubungi admin jika ada masalah
 
 ---
-Version: 4.1.9-windows
+Version: 4.2.0-windows (STEALTH)
 Build Date: 2025-12-29

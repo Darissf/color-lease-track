@@ -1,10 +1,13 @@
 /**
- * BCA iBanking Scraper - WINDOWS RDP VERSION v4.1.9
+ * BCA iBanking Scraper - WINDOWS RDP VERSION v4.2.0
  * 
  * Versi Windows dari BCA Scraper untuk dijalankan di Windows RDP.
  * Fitur sama dengan versi Linux, dengan penyesuaian untuk Windows.
  * 
  * Features:
+ * - STEALTH MODE: Anti-detection with puppeteer-extra-plugin-stealth
+ * - HUMAN BEHAVIOR: Mouse movement with Bezier curves, realistic typing
+ * - RANDOM DELAYS: Gaussian distribution delays, not fixed timing
  * - Browser standby 24/7, siap dipakai kapan saja
  * - LOGIN COOLDOWN: Respects BCA 5-minute login limit (skipped if logout successful)
  * - SESSION REUSE: Burst mode reuses active session (no re-login)
@@ -27,16 +30,34 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.9-windows";
+const SCRAPER_VERSION = "4.2.0-windows";
 const SCRAPER_BUILD_DATE = "2025-12-29";
 const SCRAPER_PLATFORM = "windows";
+// v4.2.0-windows: Advanced stealth mode + human-like behavior + anti-detection
 // v4.1.9-windows: Fixed config/burst fetch 401 - use POST instead of GET
 // v4.1.8-windows: Fixed "Node not clickable" - use focus() instead of click()
 // v4.1.7-windows: Fixed PIN entry - use evaluate+events hybrid approach
 // v4.1.6-windows: Fixed login - sync with Linux version (findLoginFrame, enterCredentials)
 // =========================================
 
-const puppeteer = require('puppeteer');
+// Use puppeteer-extra with stealth plugin for anti-detection
+let puppeteer;
+let StealthPlugin;
+try {
+  puppeteer = require('puppeteer-extra');
+  StealthPlugin = require('puppeteer-extra-plugin-stealth');
+  
+  // Enable stealth with all evasions
+  const stealth = StealthPlugin();
+  puppeteer.use(stealth);
+  console.log('[STEALTH] puppeteer-extra-plugin-stealth loaded with all evasions');
+} catch (e) {
+  // Fallback to regular puppeteer if stealth not installed
+  console.log('[STEALTH] Stealth plugin not found, using regular puppeteer');
+  console.log('[STEALTH] Run: npm install puppeteer-extra puppeteer-extra-plugin-stealth');
+  puppeteer = require('puppeteer');
+}
+
 const path = require('path');
 const fs = require('fs');
 
@@ -126,10 +147,212 @@ function findChromiumPath() {
   return null;
 }
 
-// Fallback browser launch
+// ============ HUMAN-LIKE BEHAVIOR HELPERS ============
+
+// Gaussian random for more natural distribution
+function gaussianRandom(mean, stdev) {
+  const u = 1 - Math.random();
+  const v = Math.random();
+  const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  return z * stdev + mean;
+}
+
+// Human-like delay with gaussian distribution
+async function humanDelay(minMs, maxMs) {
+  const mean = (minMs + maxMs) / 2;
+  const stdev = (maxMs - minMs) / 4;
+  let delayTime = Math.round(gaussianRandom(mean, stdev));
+  delayTime = Math.max(minMs, Math.min(maxMs, delayTime));
+  log(`[Human] Waiting ${delayTime}ms...`);
+  return new Promise(r => setTimeout(r, delayTime));
+}
+
+// Cubic Bezier interpolation for smooth mouse movement
+function cubicBezier(t, p0, p1, p2, p3) {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+}
+
+// Human-like mouse movement with Bezier curves
+async function humanMouseMove(page, targetX, targetY) {
+  const mouse = page.mouse;
+  const viewport = page.viewport();
+  
+  // Start from approximate current position (center as default)
+  let currentX = viewport.width / 2;
+  let currentY = viewport.height / 2;
+  
+  // Calculate distance
+  const distance = Math.sqrt(Math.pow(targetX - currentX, 2) + Math.pow(targetY - currentY, 2));
+  
+  // More steps for longer distance (minimum 20, max 80)
+  const steps = Math.min(80, Math.max(20, Math.floor(distance / 8)));
+  
+  // Generate random control points for Bezier curve (not straight line)
+  const cp1x = currentX + (targetX - currentX) * 0.25 + (Math.random() - 0.5) * 80;
+  const cp1y = currentY + (targetY - currentY) * 0.25 + (Math.random() - 0.5) * 80;
+  const cp2x = currentX + (targetX - currentX) * 0.75 + (Math.random() - 0.5) * 80;
+  const cp2y = currentY + (targetY - currentY) * 0.75 + (Math.random() - 0.5) * 80;
+  
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    
+    // Cubic Bezier interpolation
+    const x = cubicBezier(t, currentX, cp1x, cp2x, targetX);
+    const y = cubicBezier(t, currentY, cp1y, cp2y, targetY);
+    
+    // Add micro-jitter (human hand shake)
+    const jitterX = (Math.random() - 0.5) * 2;
+    const jitterY = (Math.random() - 0.5) * 2;
+    
+    await mouse.move(x + jitterX, y + jitterY);
+    
+    // Variable delay - slower at start/end, faster in middle (easing)
+    const speedFactor = Math.sin(t * Math.PI);
+    const stepDelay = 3 + Math.random() * 12 * (1 - speedFactor * 0.5);
+    await new Promise(r => setTimeout(r, stepDelay));
+  }
+  
+  // Final position exact
+  await mouse.move(targetX, targetY);
+}
+
+// Human-like click with mouse movement
+async function humanClick(page, element) {
+  if (!element) return false;
+  
+  try {
+    const box = await element.boundingBox();
+    if (!box) return false;
+    
+    // Random position within element (not always center)
+    const targetX = box.x + box.width * (0.25 + Math.random() * 0.5);
+    const targetY = box.y + box.height * (0.25 + Math.random() * 0.5);
+    
+    log(`[Human] Moving mouse to (${Math.round(targetX)}, ${Math.round(targetY)})...`);
+    
+    // Move mouse like human with Bezier curve
+    await humanMouseMove(page, targetX, targetY);
+    
+    // Small pause before click (thinking time)
+    await new Promise(r => setTimeout(r, 50 + Math.random() * 150));
+    
+    // Click with realistic timing (press and release)
+    await page.mouse.down();
+    await new Promise(r => setTimeout(r, 30 + Math.random() * 70));
+    await page.mouse.up();
+    
+    return true;
+  } catch (e) {
+    log(`[Human] Click failed: ${e.message}`, 'WARN');
+    return false;
+  }
+}
+
+// Human-like typing with variable speed
+async function humanType(element, text) {
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    
+    // Base delay varies by character type
+    let charDelay = 50 + Math.random() * 80;
+    
+    // Slower for uncommon characters
+    if (!'aeioutnsr'.includes(char.toLowerCase())) {
+      charDelay *= 1.2;
+    }
+    
+    await element.type(char, { delay: 0 });
+    await new Promise(r => setTimeout(r, charDelay));
+    
+    // Occasionally longer pause (thinking)
+    if (Math.random() < 0.03) {
+      await new Promise(r => setTimeout(r, 150 + Math.random() * 250));
+    }
+  }
+}
+
+// Random scroll behavior (human reads pages before clicking)
+async function humanScroll(page) {
+  if (Math.random() < 0.3) { // 30% chance to scroll
+    const scrollAmount = 50 + Math.random() * 150;
+    await page.evaluate((amount) => {
+      window.scrollBy(0, amount);
+    }, scrollAmount);
+    await humanDelay(200, 500);
+  }
+}
+
+// ============ STEALTH PAGE SETUP ============
+
+async function setupStealthPage(page) {
+  // Random viewport (not always same size)
+  const width = 1280 + Math.floor(Math.random() * 200);
+  const height = 720 + Math.floor(Math.random() * 100);
+  await page.setViewport({ width, height });
+  
+  // Set timezone Indonesia
+  await page.emulateTimezone('Asia/Jakarta');
+  
+  // Additional stealth overrides (beyond stealth plugin)
+  await page.evaluateOnNewDocument(() => {
+    // Override WebGL vendor/renderer to look like real hardware
+    const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+      // UNMASKED_VENDOR_WEBGL
+      if (parameter === 37445) return 'Intel Inc.';
+      // UNMASKED_RENDERER_WEBGL
+      if (parameter === 37446) return 'Intel Iris OpenGL Engine';
+      return getParameter.call(this, parameter);
+    };
+    
+    // Fake battery API
+    if (navigator.getBattery) {
+      navigator.getBattery = () => Promise.resolve({
+        charging: true,
+        chargingTime: 0,
+        dischargingTime: Infinity,
+        level: 0.85 + Math.random() * 0.15,
+        addEventListener: () => {},
+        removeEventListener: () => {}
+      });
+    }
+    
+    // Override connection info
+    Object.defineProperty(navigator, 'connection', {
+      get: () => ({
+        effectiveType: '4g',
+        rtt: 50 + Math.floor(Math.random() * 50),
+        downlink: 10 + Math.random() * 5,
+        saveData: false
+      })
+    });
+    
+    // Override hardware concurrency (CPU cores)
+    Object.defineProperty(navigator, 'hardwareConcurrency', {
+      get: () => 4 + Math.floor(Math.random() * 4)
+    });
+    
+    // Override device memory
+    Object.defineProperty(navigator, 'deviceMemory', {
+      get: () => 8
+    });
+    
+    // Override max touch points
+    Object.defineProperty(navigator, 'maxTouchPoints', {
+      get: () => 0 // Desktop
+    });
+  });
+  
+  log(`[Stealth] Page configured: ${width}x${height}, timezone: Asia/Jakarta`);
+}
+
+// ============ BROWSER LAUNCH WITH STEALTH ============
+
 async function launchBrowserWithFallback() {
   const chromiumPath = CONFIG.CHROMIUM_PATH;
   
+  // Advanced anti-detection browser args
   const browserArgs = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -139,24 +362,32 @@ async function launchBrowserWithFallback() {
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
-    '--window-size=1366,768',
     '--disable-software-rasterizer',
     '--disable-features=TranslateUI',
-    '--disable-ipc-flooding-protection'
+    '--disable-ipc-flooding-protection',
+    // === ANTI-DETECTION ARGS ===
+    '--disable-blink-features=AutomationControlled',
+    '--disable-infobars',
+    '--disable-features=IsolateOrigins,site-per-process',
+    '--flag-switches-begin',
+    '--flag-switches-end',
+    // Random window size (not predictable)
+    `--window-size=${1280 + Math.floor(Math.random() * 200)},${720 + Math.floor(Math.random() * 100)}`,
   ];
   
   // Try specified Chrome path first
   if (chromiumPath && fs.existsSync(chromiumPath)) {
     try {
-      log(`Launching browser with: ${chromiumPath}`);
+      log(`[Stealth] Launching browser with: ${chromiumPath}`);
       const browser = await puppeteer.launch({
         headless: CONFIG.HEADLESS,
         executablePath: chromiumPath,
         args: browserArgs,
         timeout: 60000,
-        protocolTimeout: 120000
+        protocolTimeout: 120000,
+        ignoreDefaultArgs: ['--enable-automation']
       });
-      log('Browser launched successfully');
+      log('[Stealth] Browser launched successfully');
       return browser;
     } catch (err) {
       log(`Chrome launch failed: ${err.message}`, 'WARN');
@@ -166,14 +397,15 @@ async function launchBrowserWithFallback() {
   
   // Fallback: Let Puppeteer use its bundled browser
   try {
-    log('Launching browser with Puppeteer bundled Chromium...');
+    log('[Stealth] Launching browser with Puppeteer bundled Chromium...');
     const browser = await puppeteer.launch({
       headless: CONFIG.HEADLESS,
       args: browserArgs,
       timeout: 60000,
-      protocolTimeout: 120000
+      protocolTimeout: 120000,
+      ignoreDefaultArgs: ['--enable-automation']
     });
-    log('Browser launched successfully with Puppeteer bundled Chromium');
+    log('[Stealth] Browser launched successfully with Puppeteer bundled Chromium');
     return browser;
   } catch (err) {
     log(`Puppeteer bundled Chromium also failed: ${err.message}`, 'ERROR');
@@ -226,7 +458,7 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 // === STARTUP BANNER ===
 console.log('');
 console.log('==========================================');
-console.log('  BCA SCRAPER - WINDOWS RDP v4.1.6');
+console.log('  BCA SCRAPER - STEALTH MODE v4.2.0');
 console.log('==========================================');
 console.log(`  Version      : ${SCRAPER_VERSION} (${SCRAPER_BUILD_DATE})`);
 console.log(`  Platform     : ${SCRAPER_PLATFORM}`);
@@ -239,6 +471,13 @@ console.log(`  Headless     : ${CONFIG.HEADLESS}`);
 console.log(`  Debug Mode   : ${CONFIG.DEBUG_MODE}`);
 console.log(`  Webhook URL  : ${CONFIG.WEBHOOK_URL.substring(0, 50)}...`);
 console.log(`  Config URL   : ${CONFIG_URL.substring(0, 50)}...`);
+console.log('==========================================');
+console.log('  v4.2.0 STEALTH FEATURES:');
+console.log('  - puppeteer-extra-plugin-stealth');
+console.log('  - Human-like mouse (Bezier curves)');
+console.log('  - Random delays (Gaussian)');
+console.log('  - WebGL/Canvas fingerprint spoof');
+console.log('  - Random viewport size');
 console.log('==========================================');
 console.log('  WINDOWS RDP FEATURES:');
 console.log(`  - Native Windows paths`);
@@ -550,13 +789,16 @@ async function checkBurstCommand() {
 // ============ BROWSER MANAGEMENT ============
 
 async function initBrowser() {
-  log('Initializing browser...');
+  log('[Stealth] Initializing browser with anti-detection...');
   
   try {
     browser = await launchBrowserWithFallback();
     page = await browser.newPage();
     
-    await page.setViewport({ width: 1366, height: 768 });
+    // Setup stealth page with random viewport and fingerprint spoofing
+    await setupStealthPage(page);
+    
+    // Set realistic user agent
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     
     // Handle dialog popups
@@ -567,7 +809,7 @@ async function initBrowser() {
     
     browserStartTime = Date.now();
     scrapeCount = 0;
-    log('Browser initialized successfully');
+    log('[Stealth] Browser initialized with full anti-detection');
     
     startHeartbeat();
     
@@ -672,31 +914,34 @@ async function enterCredentials(frame, userId, pin) {
   
   log('[enterCredentials] Found both input fields');
   
-  // === USER ID: Use focus() NOT click() - fixes "Node not clickable" error ===
+  // === USER ID: Human-like interaction ===
+  await humanDelay(300, 600);
   await userIdInput.focus();
-  await delay(300);
+  await humanDelay(200, 400);
   await frame.evaluate(el => { el.value = ''; }, userIdInput);
-  await delay(100);
-  await userIdInput.type(userId, { delay: 80 });
+  await humanDelay(100, 200);
+  
+  // Type with human-like speed
+  await humanType(userIdInput, userId);
   log(`[enterCredentials] User ID entered (${userId.length} chars)`);
   
-  await delay(500);
+  await humanDelay(400, 800);
   
-  // === PIN: Use focus() + hybrid approach ===
+  // === PIN: Human-like interaction ===
   await pinInput.focus();
-  await delay(300);
+  await humanDelay(200, 400);
   await frame.evaluate(el => { el.value = ''; }, pinInput);
-  await delay(100);
+  await humanDelay(100, 200);
   
-  // Method 1: Standard type()
-  await pinInput.type(pin, { delay: 80 });
+  // Type PIN with human-like speed
+  await humanType(pinInput, pin);
   
   // Verify
-  await delay(300);
+  await humanDelay(200, 400);
   const pinLength = await frame.evaluate(el => el.value.length, pinInput);
   log(`[enterCredentials] PIN entered: ${pinLength} chars`);
   
-  // Method 2: If type() failed, use evaluate with events
+  // Fallback if type() failed
   if (pinLength !== pin.length) {
     log('[enterCredentials] Fallback: using evaluate + events...');
     
@@ -732,7 +977,7 @@ async function bcaLogin() {
     await delay(LOGIN_COOLDOWN_MS - timeSinceLastLogin);
   }
   
-  log('Starting BCA login...');
+  log('[Stealth] Starting BCA login with human behavior...');
   lastLogoutSuccess = false; // Reset for next cycle
   
   // Validate credentials before attempting login
@@ -747,12 +992,18 @@ async function bcaLogin() {
   log(`[bcaLogin] Credentials check: User ID=${CONFIG.BCA_USER_ID.length} chars, PIN=${CONFIG.BCA_PIN.length} chars`);
   
   try {
+    // Human-like delay before navigation
+    await humanDelay(500, 1000);
+    
     await page.goto('https://ibank.klikbca.com/', { 
       waitUntil: 'networkidle2',
       timeout: CONFIG.LOGIN_TIMEOUT 
     });
     
-    await delay(2000);
+    // Human reads the page before interacting
+    await humanDelay(2000, 4000);
+    await humanScroll(page);
+    
     await saveDebug(page, 'login-page');
     
     // Find login form (might be in iframe)
@@ -764,10 +1015,11 @@ async function bcaLogin() {
     
     const { frame } = loginResult;
     
-    // Enter credentials with proper focus/clear/type
+    // Enter credentials with human-like behavior
     await enterCredentials(frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
     
-    await delay(500);
+    // Human pause before clicking submit
+    await humanDelay(500, 1000);
     
     // Find submit button with multiple fallbacks
     const submitBtn = await frame.$('input[type="submit"]') ||
@@ -780,15 +1032,20 @@ async function bcaLogin() {
       throw new Error('Could not find submit button');
     }
     
-    log('[bcaLogin] Clicking submit button...');
+    log('[bcaLogin] Clicking submit button with human behavior...');
     
-    // Click login button and wait for navigation
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.LOGIN_TIMEOUT }),
-      submitBtn.click()
-    ]);
+    // Human-like click on submit
+    const clicked = await humanClick(page, submitBtn);
+    if (!clicked) {
+      // Fallback to regular click
+      await submitBtn.click();
+    }
     
-    await delay(3000);
+    // Wait for navigation
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.LOGIN_TIMEOUT });
+    
+    // Human reads the result page
+    await humanDelay(2000, 4000);
     
     // Check if login successful (should have multiple frames)
     const frameCount = page.frames().length;
@@ -801,7 +1058,7 @@ async function bcaLogin() {
     
     lastLoginTime = Date.now();
     isLoggedIn = true;
-    log('BCA login successful!');
+    log('[Stealth] BCA login successful!');
     
     await saveDebug(page, 'login-success');
     return true;
@@ -843,8 +1100,9 @@ async function safeLogout() {
     }
     
     if (menuFrame) {
-      await menuFrame.click('#gotohome');
-      await delay(2000);
+      const logoutBtn = await menuFrame.$('#gotohome');
+      await humanClick(page, logoutBtn);
+      await humanDelay(1500, 2500);
       log('Logout successful via #gotohome');
       lastLogoutSuccess = true;
     } else {
@@ -856,7 +1114,7 @@ async function safeLogout() {
               goToPage('logout');
             }
           });
-          await delay(2000);
+          await humanDelay(1500, 2500);
           log('Logout successful via goToPage');
           lastLogoutSuccess = true;
           break;
@@ -877,7 +1135,7 @@ async function safeLogout() {
 // ============ SCRAPE MUTATIONS ============
 
 async function scrapeMutations() {
-  log('Starting mutation scrape...');
+  log('[Stealth] Starting mutation scrape with human behavior...');
   
   try {
     // Navigate to Informasi Rekening
@@ -922,56 +1180,78 @@ async function scrapeMutations() {
       throw new Error('FRAME_NOT_FOUND: Menu frame not found');
     }
     
+    // Human delay before clicking
+    await humanDelay(2000, 4000);
+    
     // Click Informasi Rekening
     log('[Step 5] Clicking Informasi Rekening...');
     try {
-      await menuFrame.evaluate(() => {
+      const infoLink = await menuFrame.evaluateHandle(() => {
         const links = Array.from(document.querySelectorAll('a'));
-        for (const link of links) {
-          if (link.textContent.includes('Informasi Rekening')) {
-            link.click();
+        return links.find(link => link.textContent.includes('Informasi Rekening'));
+      });
+      
+      if (infoLink) {
+        await humanClick(page, infoLink);
+      } else {
+        await menuFrame.evaluate(() => {
+          const links = Array.from(document.querySelectorAll('a'));
+          for (const link of links) {
+            if (link.textContent.includes('Informasi Rekening')) {
+              link.click();
+              return true;
+            }
+          }
+          if (typeof goToPage === 'function') {
+            goToPage('accountstmt.do');
             return true;
           }
-        }
-        // Try goToPage
-        if (typeof goToPage === 'function') {
-          goToPage('accountstmt.do');
-          return true;
-        }
-        return false;
-      });
+          return false;
+        });
+      }
       log('[Step 5] Informasi Rekening click: SUCCESS');
     } catch (e) {
       log(`[Step 5] Informasi Rekening click: FAILED - ${e.message}`, 'ERROR');
       throw new Error('CLICK_FAILED: Informasi Rekening');
     }
     
-    await delay(2000);
+    // Human reads the page
+    await humanDelay(3000, 6000);
     
     // Click Mutasi Rekening
     log('[Step 5] Clicking Mutasi Rekening...');
     try {
-      await menuFrame.evaluate(() => {
+      const mutasiLink = await menuFrame.evaluateHandle(() => {
         const links = Array.from(document.querySelectorAll('a'));
-        for (const link of links) {
-          if (link.textContent.includes('Mutasi Rekening')) {
-            link.click();
+        return links.find(link => link.textContent.includes('Mutasi Rekening'));
+      });
+      
+      if (mutasiLink) {
+        await humanClick(page, mutasiLink);
+      } else {
+        await menuFrame.evaluate(() => {
+          const links = Array.from(document.querySelectorAll('a'));
+          for (const link of links) {
+            if (link.textContent.includes('Mutasi Rekening')) {
+              link.click();
+              return true;
+            }
+          }
+          if (typeof goToPage === 'function') {
+            goToPage('balanceinquiry.do');
             return true;
           }
-        }
-        if (typeof goToPage === 'function') {
-          goToPage('balanceinquiry.do');
-          return true;
-        }
-        return false;
-      });
+          return false;
+        });
+      }
       log('[Step 5] Mutasi Rekening click: SUCCESS');
     } catch (e) {
       log(`[Step 5] Mutasi Rekening click: FAILED - ${e.message}`, 'ERROR');
       throw new Error('CLICK_FAILED: Mutasi Rekening');
     }
     
-    await delay(3000);
+    // Human reads and thinks
+    await humanDelay(4000, 8000);
     
     // [Step 6] Set date and click Lihat
     log('[Step 6] Setting date range and clicking Lihat...');
@@ -1018,20 +1298,39 @@ async function scrapeMutations() {
     
     log(`[Step 6] Setting date: ${day}/${month}/${year}`);
     
+    // Human delay before interacting with form
+    await humanDelay(1000, 2000);
+    
     try {
       await atmFrame.select('select[name="value(startDt)"]', day);
+      await humanDelay(200, 400);
       await atmFrame.select('select[name="value(startMt)"]', month);
+      await humanDelay(200, 400);
       await atmFrame.select('select[name="value(startYr)"]', String(year));
+      await humanDelay(300, 600);
       await atmFrame.select('select[name="value(endDt)"]', day);
+      await humanDelay(200, 400);
       await atmFrame.select('select[name="value(endMt)"]', month);
+      await humanDelay(200, 400);
       await atmFrame.select('select[name="value(endYr)"]', String(year));
     } catch (e) {
       log(`Date selection warning: ${e.message}`, 'WARN');
     }
     
-    // Click Lihat button
-    await atmFrame.click('input[name="value(submit1)"], input[type="submit"]');
-    await delay(3000);
+    // Human pause before clicking Lihat
+    await humanDelay(1000, 2000);
+    
+    // Click Lihat button with human behavior
+    const lihatBtn = await atmFrame.$('input[name="value(submit1)"]') || 
+                     await atmFrame.$('input[type="submit"]');
+    if (lihatBtn) {
+      await humanClick(page, lihatBtn);
+    } else {
+      await atmFrame.click('input[name="value(submit1)"], input[type="submit"]');
+    }
+    
+    // Human waits for results
+    await humanDelay(3000, 5000);
     
     // [Step 7] Parse results
     log('[Step 7] Parsing mutation results...');
@@ -1143,7 +1442,7 @@ async function runScrapeCycle(isBurst = false) {
   }
   
   isIdle = false;
-  log(`Starting scrape cycle (burst: ${isBurst})`);
+  log(`[Stealth] Starting scrape cycle (burst: ${isBurst})`);
   
   try {
     // Check if browser is healthy
@@ -1200,7 +1499,7 @@ async function runScrapeCycle(isBurst = false) {
 // ============ BURST MODE HANDLER ============
 
 async function runBurstMode(config) {
-  log(`Starting burst mode: ${config.duration_seconds}s @ ${config.interval_seconds}s interval`);
+  log(`[Stealth] Starting burst mode: ${config.duration_seconds}s @ ${config.interval_seconds}s interval`);
   
   isBurstMode = true;
   burstEndTime = Date.now() + (config.duration_seconds * 1000);
@@ -1220,9 +1519,10 @@ async function runBurstMode(config) {
       break;
     }
     
-    // Wait for next iteration
+    // Wait for next iteration with human-like variance
     if (Date.now() < burstEndTime) {
-      await delay(config.interval_seconds * 1000);
+      const waitTime = config.interval_seconds * 1000 + Math.floor(Math.random() * 2000 - 1000);
+      await delay(Math.max(5000, waitTime));
     }
   }
   
@@ -1240,7 +1540,7 @@ async function runBurstMode(config) {
 // ============ MAIN LOOP ============
 
 async function main() {
-  log('Starting BCA Scraper (Windows RDP)...');
+  log('[Stealth] Starting BCA Scraper (Windows RDP) v4.2.0...');
   
   // Initialize browser
   const success = await initBrowser();
