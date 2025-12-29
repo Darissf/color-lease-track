@@ -29,6 +29,7 @@ interface PendingRequest {
   expires_at: string;
   created_by_role: string | null;
   status: string;
+  burst_triggered_at?: string | null;
 }
 
 interface BankInfo {
@@ -74,7 +75,7 @@ export function PaymentRequestGenerator({
   const [timeRemaining, setTimeRemaining] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
-  const [burstTriggered, setBurstTriggered] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const minimumAmount = Math.ceil(remainingAmount * 0.5);
   const isPublicMode = !!accessCode;
@@ -112,7 +113,7 @@ export function PaymentRequestGenerator({
     };
   }, [pendingRequest?.id, onPaymentVerified]);
 
-  // Calculate time remaining
+  // Calculate time remaining for expiry
   useEffect(() => {
     if (!pendingRequest?.expires_at) return;
 
@@ -145,6 +146,28 @@ export function PaymentRequestGenerator({
 
     return () => clearInterval(timer);
   }, [pendingRequest?.expires_at]);
+
+  // Calculate cooldown remaining for burst trigger (2 minutes)
+  useEffect(() => {
+    if (!pendingRequest?.burst_triggered_at) {
+      setCooldownRemaining(0);
+      return;
+    }
+
+    const updateCooldown = () => {
+      const triggeredAt = new Date(pendingRequest.burst_triggered_at!).getTime();
+      const now = Date.now();
+      const cooldownMs = 2 * 60 * 1000; // 2 minutes
+      const elapsed = now - triggeredAt;
+      const remaining = Math.max(0, cooldownMs - elapsed);
+      setCooldownRemaining(Math.ceil(remaining / 1000));
+    };
+
+    updateCooldown();
+    const timer = setInterval(updateCooldown, 1000);
+
+    return () => clearInterval(timer);
+  }, [pendingRequest?.burst_triggered_at]);
 
   const formatInputValue = (value: string) => {
     const numericValue = value.replace(/[^\d]/g, "");
@@ -237,9 +260,11 @@ export function PaymentRequestGenerator({
         expires_at: data.expires_at,
         created_by_role: isPublicMode ? "user" : "admin",
         status: "pending",
+        burst_triggered_at: data.burst_triggered_at || null,
       });
       setAmount("");
       setIsGenerating(false);
+      setCooldownRemaining(0);
       toast.success("Request pembayaran dibuat!");
     } catch (error: any) {
       console.error("Error creating payment request:", error);
@@ -275,7 +300,7 @@ export function PaymentRequestGenerator({
       }
 
       setPendingRequest(null);
-      setBurstTriggered(false);
+      setCooldownRemaining(0);
       toast.success("Request dibatalkan");
     } catch (error: any) {
       console.error("Error cancelling request:", error);
@@ -286,7 +311,7 @@ export function PaymentRequestGenerator({
   };
 
   const handleConfirmTransfer = async () => {
-    if (!pendingRequest) return;
+    if (!pendingRequest || cooldownRemaining > 0) return;
 
     setIsConfirmingTransfer(true);
     try {
@@ -297,7 +322,12 @@ export function PaymentRequestGenerator({
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Gagal memicu pengecekan");
 
-      setBurstTriggered(true);
+      // Update local state with new burst_triggered_at
+      setPendingRequest(prev => prev ? {
+        ...prev,
+        burst_triggered_at: new Date().toISOString()
+      } : null);
+      
       toast.success("Pengecekan dipercepat! Pembayaran akan diverifikasi dalam 1-2 menit.", {
         duration: 5000,
       });
@@ -307,6 +337,13 @@ export function PaymentRequestGenerator({
     } finally {
       setIsConfirmingTransfer(false);
     }
+  };
+
+  // Format cooldown remaining as MM:SS
+  const formatCooldown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Render pending request view
@@ -357,7 +394,27 @@ export function PaymentRequestGenerator({
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
-          {!burstTriggered ? (
+          {cooldownRemaining > 0 ? (
+            <Badge variant="outline" className="gap-1.5 py-1.5 px-3 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+              <Clock className="h-3 w-3" />
+              Tunggu {formatCooldown(cooldownRemaining)}
+            </Badge>
+          ) : pendingRequest?.burst_triggered_at ? (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleConfirmTransfer}
+              disabled={isConfirmingTransfer}
+              className="gap-1.5 bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+            >
+              {isConfirmingTransfer ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <CheckCircle className="h-3 w-3" />
+              )}
+              Cek Ulang Pembayaran
+            </Button>
+          ) : (
             <Button
               variant="default"
               size="sm"
@@ -372,11 +429,6 @@ export function PaymentRequestGenerator({
               )}
               Saya Sudah Transfer
             </Button>
-          ) : (
-            <Badge variant="outline" className="gap-1.5 py-1.5 px-3 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
-              <CheckCircle className="h-3 w-3" />
-              Pengecekan dipercepat aktif
-            </Badge>
           )}
           
           <Button
