@@ -503,10 +503,18 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
 
       if (request) {
         const contract = request.rental_contracts;
-        const actualAmount = mutation.amount;
+        
+        // FIX: Use amount_expected (full invoice amount) instead of mutation.amount (unique amount transferred)
+        // Example: Invoice 300, unique_code 223, user transfers 77
+        // - mutation.amount = 77 (actual transfer)
+        // - request.amount_expected = 300 (full invoice amount)
+        // We should deduct 300 from tagihan_belum_bayar, not 77
+        const fullAmount = request.amount_expected || mutation.amount;
+        const uniqueCode = request.unique_code || 0;
+        const transferredAmount = mutation.amount;
 
-        // Calculate new tagihan_belum_bayar
-        const newTagihanBelumBayar = Math.max(0, (contract.tagihan_belum_bayar || 0) - actualAmount);
+        // Calculate new tagihan_belum_bayar with FULL amount
+        const newTagihanBelumBayar = Math.max(0, (contract.tagihan_belum_bayar || 0) - fullAmount);
 
         // Update contract
         await supabase
@@ -517,17 +525,21 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
           })
           .eq('id', contract.id);
 
-        // Create payment record
+        // Create payment record with full amount
         await supabase
           .from('contract_payments')
           .insert({
             user_id: settings.user_id,
             contract_id: contract.id,
-            amount: actualAmount,
+            amount: fullAmount,
             payment_date: new Date().toISOString().split('T')[0],
             payment_source: 'cloud_scraper',
-            notes: `Auto-verified via Cloud Scraper. Mutation: ${mutation.description}`,
+            notes: uniqueCode > 0
+              ? `Auto-verified via Cloud Scraper. Mutation: ${mutation.description}. Transfer: Rp ${transferredAmount.toLocaleString('id-ID')}, Kode unik Rp ${uniqueCode.toLocaleString('id-ID')} ditanggung owner.`
+              : `Auto-verified via Cloud Scraper. Mutation: ${mutation.description}`,
           });
+
+        console.log(`[Cloud Bank Scraper] Payment recorded: fullAmount=${fullAmount}, transferred=${transferredAmount}, uniqueCode=${uniqueCode}, newTagihan=${newTagihanBelumBayar}`);
 
         // Try to send WhatsApp notification
         try {
@@ -536,7 +548,7 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
               contract_id: contract.id,
               notification_type: 'payment_confirmation',
               custom_data: {
-                amount: actualAmount,
+                amount: fullAmount,
                 matched_at: new Date().toISOString(),
               },
             },
