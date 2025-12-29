@@ -100,17 +100,17 @@ serve(async (req) => {
       .eq('id', contractData.client_group_id)
       .single();
 
-    // Get document settings
-    const { data: documentSettings } = await supabase
+    // Get FULL template settings from document_settings table
+    const { data: templateSettings } = await supabase
       .from('document_settings')
-      .select('company_name, company_address, company_phone, owner_name, signature_image_url')
+      .select('*')
       .eq('user_id', linkData.user_id)
       .single();
 
-    // Get brand settings for logo
+    // Get brand settings for logo fallback
     const { data: brandSettings } = await supabase
       .from('brand_settings')
-      .select('logo_url, site_name')
+      .select('logo_url, sidebar_logo_url, brand_image_url, site_name')
       .eq('user_id', linkData.user_id)
       .single();
 
@@ -150,6 +150,16 @@ serve(async (req) => {
       }
     }
 
+    // Merge template settings with brand settings fallback for logo
+    const mergedTemplateSettings = templateSettings ? {
+      ...templateSettings,
+      invoice_logo_url: templateSettings.invoice_logo_url || brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || brandSettings?.logo_url || null,
+      company_name: templateSettings.company_name || brandSettings?.site_name || null,
+    } : {
+      invoice_logo_url: brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || brandSettings?.logo_url || null,
+      company_name: brandSettings?.site_name || null,
+    };
+
     const response = {
       verification_code: verificationCode,
       contract: {
@@ -163,15 +173,7 @@ serve(async (req) => {
         tagihan_belum_bayar: contractData.tagihan_belum_bayar,
       },
       client: clientData,
-      document_settings: documentSettings ? {
-        company_name: documentSettings.company_name,
-        company_address: documentSettings.company_address,
-        company_phone: documentSettings.company_phone,
-        owner_name: documentSettings.owner_name,
-        signature_image_url: documentSettings.signature_image_url,
-        logo_url: brandSettings?.logo_url || null,
-        site_name: brandSettings?.site_name || null,
-      } : null,
+      template_settings: mergedTemplateSettings,
       payment: paymentData,
       document_type,
     };

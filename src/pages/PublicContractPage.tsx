@@ -571,7 +571,7 @@ const getStatusColor = (status: string) => {
       </div>
 
       {/* Document Preview Modal */}
-      {accessCode && data?.document_settings !== undefined && (
+      {accessCode && (
         <PublicDocumentPreviewModal
           open={documentModalOpen}
           onOpenChange={setDocumentModalOpen}
@@ -588,7 +588,6 @@ const getStatusColor = (status: string) => {
             tagihan_belum_bayar: contract.tagihan_belum_bayar,
           }}
           clientData={contract.client}
-          documentSettings={data.document_settings}
         />
       )}
     </div>
