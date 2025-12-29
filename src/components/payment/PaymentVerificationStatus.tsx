@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +38,9 @@ export function PaymentVerificationStatus({
   const [burstTriggeredAt, setBurstTriggeredAt] = useState<string | null>(initialBurstTriggeredAt || null);
   const [createdAt, setCreatedAt] = useState<string | null>(initialCreatedAt || null);
   const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
-  const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
+  
+  // Use ref to track confetti state to avoid stale closure and dependency issues
+  const hasTriggeredConfettiRef = useRef(false);
 
   const triggerConfetti = useCallback(() => {
     confetti({
@@ -154,9 +156,9 @@ export function PaymentVerificationStatus({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Reset hasTriggeredConfetti when requestId changes
+  // Reset hasTriggeredConfettiRef when requestId changes
   useEffect(() => {
-    setHasTriggeredConfetti(false);
+    hasTriggeredConfettiRef.current = false;
   }, [requestId]);
 
   useEffect(() => {
@@ -193,9 +195,10 @@ export function PaymentVerificationStatus({
             setStatus(newStatus);
           }
           
-          if (newStatus === "matched" && !hasTriggeredConfetti) {
-            console.log("[Realtime] Status matched! Triggering confetti...");
-            setHasTriggeredConfetti(true);
+          // Use ref to check confetti state (avoids stale closure)
+          if (newStatus === "matched" && !hasTriggeredConfettiRef.current) {
+            console.log("[Realtime] Status matched! Triggering confetti NOW!");
+            hasTriggeredConfettiRef.current = true;
             triggerConfetti();
             toast.success("Pembayaran terverifikasi!");
             onVerified?.();
@@ -214,9 +217,7 @@ export function PaymentVerificationStatus({
 
       if (diff <= 0) {
         setTimeRemaining("Kedaluwarsa");
-        if (status === "pending") {
-          setStatus("expired");
-        }
+        setStatus(prev => prev === "pending" ? "expired" : prev);
         return;
       }
 
@@ -254,13 +255,13 @@ export function PaymentVerificationStatus({
         }
         
         // Trigger confetti if status is matched and recently updated (within 30 seconds)
-        if (data.status === "matched" && data.updated_at && !hasTriggeredConfetti) {
+        if (data.status === "matched" && data.updated_at && !hasTriggeredConfettiRef.current) {
           const updatedAt = new Date(data.updated_at).getTime();
           const now = Date.now();
           const isRecentMatch = (now - updatedAt) < 30 * 1000; // 30 seconds
           
           if (isRecentMatch) {
-            setHasTriggeredConfetti(true);
+            hasTriggeredConfettiRef.current = true;
             triggerConfetti();
             toast.success("Pembayaran terverifikasi!");
             onVerified?.();
@@ -274,7 +275,7 @@ export function PaymentVerificationStatus({
       supabase.removeChannel(channel);
       clearInterval(timer);
     };
-  }, [requestId, expiresAt, status, onVerified, triggerConfetti, hasTriggeredConfetti]);
+  }, [requestId, expiresAt, onVerified, triggerConfetti]); // Removed status and hasTriggeredConfetti from deps
 
   return (
     <Card className={cn(
