@@ -183,19 +183,30 @@ serve(async (req: Request) => {
           const contract = requestData.rental_contracts as any;
           const clientGroup = contract.client_groups as any;
 
-          // Create contract payment record
+          // FIX: Use amount_expected (full invoice amount) instead of mutation.amount (unique amount transferred)
+          // Example: Invoice 300, unique_code 223, user transfers 77
+          // - mutation.amount = 77 (actual transfer)
+          // - requestData.amount_expected = 300 (full invoice amount)
+          // We should deduct 300 from tagihan_belum_bayar, not 77
+          const fullAmount = requestData.amount_expected || mutation.amount;
+          const uniqueCode = requestData.unique_code || 0;
+          const transferredAmount = mutation.amount;
+
+          // Create contract payment record with full amount
           await supabase.from("contract_payments").insert({
             user_id: settings.user_id,
             contract_id: contract.id,
             payment_date: mutation.date,
-            amount: mutation.amount,
+            amount: fullAmount,
             payment_source: "auto",
             confirmed_by: null,
-            notes: `Auto-verified via VPS Scraper: ${mutation.description}`,
+            notes: uniqueCode > 0
+              ? `Auto-verified via VPS Scraper: ${mutation.description}. Transfer: Rp ${transferredAmount.toLocaleString('id-ID')}, Kode unik Rp ${uniqueCode.toLocaleString('id-ID')} ditanggung owner.`
+              : `Auto-verified via VPS Scraper: ${mutation.description}`,
           });
 
-          // Update contract tagihan_belum_bayar
-          const newTagihanBelumBayar = Math.max(0, (contract.tagihan_belum_bayar || 0) - mutation.amount);
+          // Update contract tagihan_belum_bayar with FULL amount
+          const newTagihanBelumBayar = Math.max(0, (contract.tagihan_belum_bayar || 0) - fullAmount);
           await supabase
             .from("rental_contracts")
             .update({
@@ -203,6 +214,8 @@ serve(async (req: Request) => {
               tanggal_bayar_terakhir: mutation.date,
             })
             .eq("id", contract.id);
+          
+          console.log(`[VPS Scraper Webhook] Payment recorded: fullAmount=${fullAmount}, transferred=${transferredAmount}, uniqueCode=${uniqueCode}, newTagihan=${newTagihanBelumBayar}`);
 
           // Send WhatsApp notification
           try {
