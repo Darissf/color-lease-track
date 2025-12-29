@@ -19,8 +19,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.1";
+const SCRAPER_VERSION = "4.1.2";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v4.1.2: Fix cooldown - skip 5-min wait if previous logout was successful
 // v4.1.1: Fixed logout - uses correct BCA selector #gotohome and goToPage()
 // v4.1.0: Login Cooldown & Session Reuse - respect BCA 5-minute login limit
 // v4.0.0: Ultra-Robust Mode - comprehensive error handling, auto-recovery
@@ -305,6 +306,9 @@ let heartbeatInterval = null;
 let lastLoginTime = 0;
 let isLoggedIn = false;
 const LOGIN_COOLDOWN_MS = 300000; // 5 minutes in milliseconds
+
+// v4.1.2: Track logout success to skip cooldown after clean logout
+let lastLogoutSuccess = false;
 
 // === HELPERS ===
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -830,7 +834,16 @@ async function safeLogout() {
   
   await delay(2000);
   isLoggedIn = false;
-  log('Safe logout completed');
+  
+  // v4.1.2: Track logout success to skip cooldown on next login
+  if (loggedOut) {
+    lastLogoutSuccess = true;
+    lastLoginTime = 0; // Reset cooldown timer
+    log('Safe logout completed - cooldown RESET (next login can proceed immediately)');
+  } else {
+    lastLogoutSuccess = false;
+    log('Safe logout completed (no explicit logout clicked, keeping cooldown active)', 'WARN');
+  }
 }
 
 /**
@@ -1021,8 +1034,8 @@ function getLoginCooldownRemaining() {
  * 
  * Logic:
  * 1. If already logged in with valid session → reuse session (no new login)
- * 2. If not logged in but cooldown active → wait for cooldown
- * 3. If not logged in and cooldown expired → perform login
+ * 2. If not logged in and last logout was successful → skip cooldown, proceed login
+ * 3. If not logged in and last logout failed → wait for cooldown (safety measure)
  */
 async function ensureLoggedIn() {
   // Check if already logged in
@@ -1032,12 +1045,19 @@ async function ensureLoggedIn() {
     return true;
   }
   
-  // Check cooldown before attempting login
+  // v4.1.2: Skip cooldown if last logout was successful
   const cooldownRemaining = getLoginCooldownRemaining();
   if (cooldownRemaining > 0) {
-    log(`Login cooldown active: waiting ${(cooldownRemaining / 1000).toFixed(0)}s (BCA 5-min limit)`, 'WARN');
-    await delay(cooldownRemaining);
+    if (lastLogoutSuccess) {
+      log(`Cooldown skipped - previous logout was successful (${(cooldownRemaining / 1000).toFixed(0)}s remaining but ignored)`);
+    } else {
+      log(`Login cooldown active: waiting ${(cooldownRemaining / 1000).toFixed(0)}s (last logout may have failed)`, 'WARN');
+      await delay(cooldownRemaining);
+    }
   }
+  
+  // Reset logout success flag before new login attempt
+  lastLogoutSuccess = false;
   
   log('Performing fresh login...');
   

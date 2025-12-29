@@ -5,14 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Embedded scraper files content - v4.1.1 Session Reuse Mode (Fixed Logout)
+// Embedded scraper files content - v4.1.2 Session Reuse Mode (Fixed Cooldown)
 const SCRAPER_FILES: Record<string, string> = {
   'bca-scraper.js': `/**
- * BCA iBanking Scraper - SESSION REUSE MODE v4.1.1
+ * BCA iBanking Scraper - SESSION REUSE MODE v4.1.2
  * 
  * Features:
  * - Browser standby 24/7, siap dipakai kapan saja
- * - LOGIN COOLDOWN: Respects BCA 5-minute login limit
+ * - LOGIN COOLDOWN: Respects BCA 5-minute login limit (skipped if logout successful)
  * - SESSION REUSE: Burst mode reuses active session (no re-login)
  * - Global scrape timeout (max 2 menit per scrape)
  * - Safe frame operations dengan timeout protection
@@ -28,10 +28,12 @@ const SCRAPER_FILES: Record<string, string> = {
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.1";
+const SCRAPER_VERSION = "4.1.2";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v4.1.2: Fix cooldown - skip 5-min wait if previous logout was successful
 // v4.1.1: Fixed logout - uses correct BCA selector #gotohome and goToPage()
 // v4.1.0: Login Cooldown & Session Reuse - respect BCA 5-minute login limit
+// v4.0.0: Ultra-Robust Mode - comprehensive error handling, auto-recovery
 // v3.0.0: Persistent Browser Mode - browser standby 24/7
 // v2.1.2: Added forceLogout on error/stuck
 // v2.1.1: Fixed button click stuck - using Promise.race
@@ -297,6 +299,9 @@ let heartbeatInterval = null;
 let lastLoginTime = 0;
 let isLoggedIn = false;
 const LOGIN_COOLDOWN_MS = 300000; // 5 minutes in milliseconds
+
+// v4.1.2: Track logout success to skip cooldown after clean logout
+let lastLogoutSuccess = false;
 
 // === HELPERS ===
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -778,7 +783,17 @@ async function safeLogout() {
   }
   
   await delay(2000);
-  log('Safe logout completed');
+  isLoggedIn = false;
+  
+  // v4.1.2: Track logout success to skip cooldown on next login
+  if (loggedOut) {
+    lastLogoutSuccess = true;
+    lastLoginTime = 0; // Reset cooldown timer
+    log('Safe logout completed - cooldown RESET (next login can proceed immediately)');
+  } else {
+    lastLogoutSuccess = false;
+    log('Safe logout completed (no explicit logout clicked, keeping cooldown active)', 'WARN');
+  }
 }
 
 async function refreshToCleanState() {
@@ -952,11 +967,19 @@ async function ensureLoggedIn() {
     return true;
   }
   
+  // v4.1.2: Skip cooldown if last logout was successful
   const cooldownRemaining = getLoginCooldownRemaining();
   if (cooldownRemaining > 0) {
-    log(\`Login cooldown active: waiting \${(cooldownRemaining / 1000).toFixed(0)}s (BCA 5-min limit)\`, 'WARN');
-    await delay(cooldownRemaining);
+    if (lastLogoutSuccess) {
+      log(\`Cooldown skipped - previous logout was successful (\${(cooldownRemaining / 1000).toFixed(0)}s remaining but ignored)\`);
+    } else {
+      log(\`Login cooldown active: waiting \${(cooldownRemaining / 1000).toFixed(0)}s (last logout may have failed)\`, 'WARN');
+      await delay(cooldownRemaining);
+    }
   }
+  
+  // Reset logout success flag before new login attempt
+  lastLogoutSuccess = false;
   
   log('Performing fresh login...');
   
