@@ -27,6 +27,7 @@ interface PendingRequest {
   unique_code: string;
   amount_expected: number;
   expires_at: string;
+  created_at?: string;
   created_by_role: string | null;
   status: string;
   burst_triggered_at?: string | null;
@@ -76,6 +77,7 @@ export function PaymentRequestGenerator({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [cancelCooldownRemaining, setCancelCooldownRemaining] = useState(0);
 
   const minimumAmount = Math.ceil(remainingAmount * 0.5);
   const isPublicMode = !!accessCode;
@@ -169,6 +171,28 @@ export function PaymentRequestGenerator({
     return () => clearInterval(timer);
   }, [pendingRequest?.burst_triggered_at]);
 
+  // Calculate cancel cooldown remaining (2 minutes from created_at)
+  useEffect(() => {
+    if (!pendingRequest?.created_at) {
+      setCancelCooldownRemaining(0);
+      return;
+    }
+
+    const updateCancelCooldown = () => {
+      const createdAt = new Date(pendingRequest.created_at!).getTime();
+      const now = Date.now();
+      const cooldownMs = 2 * 60 * 1000; // 2 minutes
+      const elapsed = now - createdAt;
+      const remaining = Math.max(0, cooldownMs - elapsed);
+      setCancelCooldownRemaining(Math.ceil(remaining / 1000));
+    };
+
+    updateCancelCooldown();
+    const timer = setInterval(updateCancelCooldown, 1000);
+
+    return () => clearInterval(timer);
+  }, [pendingRequest?.created_at]);
+
   const formatInputValue = (value: string) => {
     const numericValue = value.replace(/[^\d]/g, "");
     if (!numericValue) return "";
@@ -258,6 +282,7 @@ export function PaymentRequestGenerator({
         unique_code: data.unique_code || "",
         amount_expected: data.amount_expected || parsedAmount,
         expires_at: data.expires_at,
+        created_at: data.created_at || new Date().toISOString(),
         created_by_role: isPublicMode ? "user" : "admin",
         status: "pending",
         burst_triggered_at: data.burst_triggered_at || null,
@@ -435,15 +460,17 @@ export function PaymentRequestGenerator({
             variant="destructive"
             size="sm"
             onClick={handleCancel}
-            disabled={cancelling}
+            disabled={cancelling || cancelCooldownRemaining > 0}
             className="gap-1.5"
           >
             {cancelling ? (
               <Loader2 className="h-3 w-3 animate-spin" />
+            ) : cancelCooldownRemaining > 0 ? (
+              <Clock className="h-3 w-3" />
             ) : (
               <X className="h-3 w-3" />
             )}
-            Batalkan
+            {cancelCooldownRemaining > 0 ? `Batalkan (${formatCooldown(cancelCooldownRemaining)})` : "Batalkan"}
           </Button>
         </div>
       </div>
