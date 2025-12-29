@@ -12,17 +12,19 @@ interface RequestBody {
   request_id?: string; // For cancel action
 }
 
-// Generate unique 3-digit code (001-999) that's not currently in use
-async function generateUniqueCode(supabase: any): Promise<string> {
+// Generate unique code (100-300) that's not currently in use
+// This will be SUBTRACTED from amount, so unique_amount = amount - code
+async function generateUniqueCode(supabase: any): Promise<number> {
   const maxAttempts = 50;
   
   for (let i = 0; i < maxAttempts; i++) {
-    const code = Math.floor(Math.random() * 900 + 100).toString();
+    // Generate random code between 100-300
+    const code = Math.floor(Math.random() * 201 + 100); // 100 to 300
     
     const { data: existing } = await supabase
       .from("payment_confirmation_requests")
       .select("id")
-      .eq("unique_code", code)
+      .eq("unique_code", code.toString())
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString())
       .limit(1)
@@ -33,7 +35,8 @@ async function generateUniqueCode(supabase: any): Promise<string> {
     }
   }
   
-  return (Date.now() % 900 + 100).toString();
+  // Fallback: use timestamp-based code within range
+  return (Date.now() % 201) + 100; // Still 100-300
 }
 
 Deno.serve(async (req: Request) => {
@@ -175,9 +178,10 @@ Deno.serve(async (req: Request) => {
         .eq("contract_id", linkData.contract_id)
         .eq("status", "pending");
 
-      // Generate unique code
+      // Generate unique code (100-300, will be subtracted)
       const uniqueCode = await generateUniqueCode(supabase);
-      const uniqueAmount = amount_expected + parseInt(uniqueCode);
+      // SUBTRACT the unique code from amount (e.g., 100000 - 240 = 99760)
+      const uniqueAmount = amount_expected - uniqueCode;
       
       // Set expiry to 3 days
       const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
@@ -189,14 +193,14 @@ Deno.serve(async (req: Request) => {
           contract_id: linkData.contract_id,
           customer_name: clientGroup.nama,
           amount_expected,
-          unique_code: uniqueCode,
+          unique_code: uniqueCode.toString(),
           unique_amount: uniqueAmount,
           status: "pending",
           expires_at: expiresAt.toISOString(),
           user_id: linkData.user_id,
           created_by_role: "user", // Public link is always "user"
         })
-        .select("id, unique_code, unique_amount, expires_at")
+        .select("id, unique_code, unique_amount, expires_at, burst_triggered_at")
         .single();
 
       if (insertError) {

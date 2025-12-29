@@ -3449,6 +3449,7 @@ export type Database = {
       payment_confirmation_requests: {
         Row: {
           amount_expected: number
+          burst_triggered_at: string | null
           contract_id: string
           created_at: string
           created_by_role: string | null
@@ -3469,6 +3470,7 @@ export type Database = {
         }
         Insert: {
           amount_expected: number
+          burst_triggered_at?: string | null
           contract_id: string
           created_at?: string
           created_by_role?: string | null
@@ -3489,6 +3491,7 @@ export type Database = {
         }
         Update: {
           amount_expected?: number
+          burst_triggered_at?: string | null
           contract_id?: string
           created_at?: string
           created_by_role?: string | null

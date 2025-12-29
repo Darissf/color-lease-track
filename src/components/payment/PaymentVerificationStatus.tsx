@@ -12,6 +12,7 @@ interface PaymentVerificationStatusProps {
   requestId: string;
   uniqueAmount: number;
   expiresAt: string;
+  burstTriggeredAt?: string | null;
   onClose: () => void;
   onVerified?: () => void;
 }
@@ -22,6 +23,7 @@ export function PaymentVerificationStatus({
   requestId,
   uniqueAmount,
   expiresAt,
+  burstTriggeredAt: initialBurstTriggeredAt,
   onClose,
   onVerified,
 }: PaymentVerificationStatusProps) {
@@ -29,7 +31,8 @@ export function PaymentVerificationStatus({
   const [timeRemaining, setTimeRemaining] = useState("");
   const [copied, setCopied] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [burstTriggered, setBurstTriggered] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [burstTriggeredAt, setBurstTriggeredAt] = useState<string | null>(initialBurstTriggeredAt || null);
   const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
 
   const triggerConfetti = useCallback(() => {
@@ -73,22 +76,55 @@ export function PaymentVerificationStatus({
 
   // Manual trigger burst scrape when user confirms transfer
   const handleConfirmTransfer = async () => {
-    if (burstTriggered || isConfirmingTransfer) return;
+    if (cooldownRemaining > 0 || isConfirmingTransfer) return;
     
     setIsConfirmingTransfer(true);
     try {
       console.log("[PaymentVerification] Triggering burst scrape...");
-      await supabase.functions.invoke("trigger-burst-scrape", {
+      const { data, error } = await supabase.functions.invoke("trigger-burst-scrape", {
         body: { request_id: requestId }
       });
-      setBurstTriggered(true);
+      
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Gagal memicu pengecekan");
+      
+      setBurstTriggeredAt(new Date().toISOString());
       toast.success("Pengecekan dipercepat diaktifkan! Sistem akan memverifikasi pembayaran Anda.");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to trigger burst scrape:", err);
-      toast.error("Gagal mengaktifkan pengecekan cepat");
+      toast.error(err.message || "Gagal mengaktifkan pengecekan cepat");
     } finally {
       setIsConfirmingTransfer(false);
     }
+  };
+
+  // Calculate cooldown remaining (2 minutes)
+  useEffect(() => {
+    if (!burstTriggeredAt) {
+      setCooldownRemaining(0);
+      return;
+    }
+
+    const updateCooldown = () => {
+      const triggeredAt = new Date(burstTriggeredAt).getTime();
+      const now = Date.now();
+      const cooldownMs = 2 * 60 * 1000; // 2 minutes
+      const elapsed = now - triggeredAt;
+      const remaining = Math.max(0, cooldownMs - elapsed);
+      setCooldownRemaining(Math.ceil(remaining / 1000));
+    };
+
+    updateCooldown();
+    const timer = setInterval(updateCooldown, 1000);
+
+    return () => clearInterval(timer);
+  }, [burstTriggeredAt]);
+
+  // Format cooldown remaining as MM:SS
+  const formatCooldown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   useEffect(() => {
@@ -150,12 +186,15 @@ export function PaymentVerificationStatus({
     const fetchStatus = async () => {
       const { data } = await supabase
         .from("payment_confirmation_requests")
-        .select("status, expires_at, unique_amount")
+        .select("status, expires_at, unique_amount, burst_triggered_at")
         .eq("id", requestId)
         .single();
       
       if (data) {
         setStatus(data.status as VerificationStatus);
+        if (data.burst_triggered_at) {
+          setBurstTriggeredAt(data.burst_triggered_at);
+        }
       }
     };
     fetchStatus();
@@ -223,7 +262,27 @@ export function PaymentVerificationStatus({
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {!burstTriggered ? (
+                    {cooldownRemaining > 0 ? (
+                      <div className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm">
+                        <Clock className="h-3 w-3" />
+                        Tunggu {formatCooldown(cooldownRemaining)}
+                      </div>
+                    ) : burstTriggeredAt ? (
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={handleConfirmTransfer}
+                        disabled={isConfirmingTransfer}
+                        className="gap-1.5 bg-green-600 hover:bg-green-700 flex-1"
+                      >
+                        {isConfirmingTransfer ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-3 w-3" />
+                        )}
+                        Cek Ulang Pembayaran
+                      </Button>
+                    ) : (
                       <Button 
                         variant="default" 
                         size="sm" 
@@ -238,11 +297,6 @@ export function PaymentVerificationStatus({
                         )}
                         Saya Sudah Transfer
                       </Button>
-                    ) : (
-                      <div className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm">
-                        <CheckCircle className="h-3 w-3" />
-                        Pengecekan dipercepat aktif
-                      </div>
                     )}
                     <Button 
                       variant="destructive" 

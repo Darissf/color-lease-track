@@ -20,6 +20,36 @@ Deno.serve(async (req) => {
 
     console.log(`[Trigger Burst] Starting burst mode for VPS scraper, request: ${request_id || 'manual'}`);
 
+    // If request_id is provided, check if it's still on cooldown (2 minutes)
+    if (request_id) {
+      const { data: existingRequest } = await supabase
+        .from('payment_confirmation_requests')
+        .select('burst_triggered_at')
+        .eq('id', request_id)
+        .single();
+
+      if (existingRequest?.burst_triggered_at) {
+        const triggeredAt = new Date(existingRequest.burst_triggered_at).getTime();
+        const now = Date.now();
+        const cooldownMs = 2 * 60 * 1000; // 2 minutes
+        const elapsedMs = now - triggeredAt;
+        
+        if (elapsedMs < cooldownMs) {
+          const remainingSeconds = Math.ceil((cooldownMs - elapsedMs) / 1000);
+          console.log(`[Trigger Burst] Request ${request_id} is on cooldown. ${remainingSeconds}s remaining`);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `Tunggu ${remainingSeconds} detik lagi sebelum mengklik lagi`,
+              cooldown_remaining_seconds: remainingSeconds,
+              burst_triggered_at: existingRequest.burst_triggered_at
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
+
     // Check if VPS scraper is active
     const { data: settings, error: settingsError } = await supabase
       .from('payment_provider_settings')
@@ -79,6 +109,18 @@ Deno.serve(async (req) => {
         burst_last_match_found: false,
       })
       .eq('id', settings.id);
+
+    // Also update the payment request's burst_triggered_at for cooldown tracking
+    if (request_id) {
+      const { error: requestUpdateError } = await supabase
+        .from('payment_confirmation_requests')
+        .update({ burst_triggered_at: new Date().toISOString() })
+        .eq('id', request_id);
+      
+      if (requestUpdateError) {
+        console.log('[Trigger Burst] Warning: Failed to update burst_triggered_at:', requestUpdateError);
+      }
+    }
 
     if (updateError) {
       console.error('[Trigger Burst] Failed to update settings:', updateError);
