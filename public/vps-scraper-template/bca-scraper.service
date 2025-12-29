@@ -1,5 +1,5 @@
 [Unit]
-Description=BCA Scraper v4.0.0 - Ultra-Robust Mode
+Description=BCA Scraper v4.2.0 - Advanced Stealth Mode
 After=network-online.target
 Wants=network-online.target
 
