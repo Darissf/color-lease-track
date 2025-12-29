@@ -34,7 +34,7 @@ export function PaymentVerificationStatus({
   const [copied, setCopied] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const [cancelCooldownRemaining, setCancelCooldownRemaining] = useState(0);
+  
   const [burstTriggeredAt, setBurstTriggeredAt] = useState<string | null>(initialBurstTriggeredAt || null);
   const [createdAt, setCreatedAt] = useState<string | null>(initialCreatedAt || null);
   const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
@@ -127,27 +127,6 @@ export function PaymentVerificationStatus({
     return () => clearInterval(timer);
   }, [burstTriggeredAt]);
 
-  // Calculate cancel cooldown remaining (2 minutes from created_at)
-  useEffect(() => {
-    if (!createdAt) {
-      setCancelCooldownRemaining(0);
-      return;
-    }
-
-    const updateCancelCooldown = () => {
-      const createdTime = new Date(createdAt).getTime();
-      const now = Date.now();
-      const cooldownMs = 2 * 60 * 1000; // 2 minutes
-      const elapsed = now - createdTime;
-      const remaining = Math.max(0, cooldownMs - elapsed);
-      setCancelCooldownRemaining(Math.ceil(remaining / 1000));
-    };
-
-    updateCancelCooldown();
-    const timer = setInterval(updateCancelCooldown, 1000);
-
-    return () => clearInterval(timer);
-  }, [createdAt]);
 
   // Format cooldown remaining as MM:SS
   const formatCooldown = (seconds: number) => {
@@ -374,17 +353,15 @@ export function PaymentVerificationStatus({
                       variant="destructive" 
                       size="sm" 
                       onClick={handleCancel}
-                      disabled={cancelling || cancelCooldownRemaining > 0}
+                      disabled={cancelling}
                       className="gap-1.5"
                     >
                       {cancelling ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : cancelCooldownRemaining > 0 ? (
-                        <Clock className="h-3 w-3" />
                       ) : (
                         <X className="h-3 w-3" />
                       )}
-                      {cancelCooldownRemaining > 0 ? `Batalkan (${formatCooldown(cancelCooldownRemaining)})` : "Batalkan"}
+                      Batalkan
                     </Button>
                   </div>
                 </div>
