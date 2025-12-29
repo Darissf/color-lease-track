@@ -1,5 +1,5 @@
 /**
- * BCA iBanking Scraper - WINDOWS RDP VERSION v4.1.5
+ * BCA iBanking Scraper - WINDOWS RDP VERSION v4.1.7
  * 
  * Versi Windows dari BCA Scraper untuk dijalankan di Windows RDP.
  * Fitur sama dengan versi Linux, dengan penyesuaian untuk Windows.
@@ -21,14 +21,16 @@
  * - Page health check sebelum scrape
  * - Server heartbeat reporting with login status
  * - Error categorization
+ * - HYBRID PIN ENTRY: Uses evaluate+events to bypass JavaScript protection
  * 
  * Usage: node bca-scraper-windows.js
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.6-windows";
+const SCRAPER_VERSION = "4.1.7-windows";
 const SCRAPER_BUILD_DATE = "2025-12-29";
 const SCRAPER_PLATFORM = "windows";
+// v4.1.7-windows: Fixed PIN entry - use evaluate+events hybrid approach
 // v4.1.6-windows: Fixed login - sync with Linux version (findLoginFrame, enterCredentials)
 // =========================================
 
@@ -670,33 +672,79 @@ async function enterCredentials(frame, userId, pin) {
   
   log(`[enterCredentials] Found both input fields`);
   
-  // Focus, clear, then type User ID
-  await userIdInput.focus();
+  // === USER ID: Standard typing works ===
+  await userIdInput.click();
   await delay(200);
-  await frame.evaluate(el => { el.value = ''; }, userIdInput);
+  await userIdInput.focus();
   await delay(100);
-  await userIdInput.type(userId, { delay: 80 });
+  await frame.evaluate(el => { el.value = ''; el.select(); }, userIdInput);
+  await delay(100);
+  
+  // Type User ID character by character for reliability
+  for (const char of userId) {
+    await userIdInput.type(char, { delay: 50 });
+  }
   log(`[enterCredentials] User ID entered (${userId.length} chars)`);
   
-  // Focus, clear, then type PIN
-  await delay(300);
-  await pinInput.focus();
-  await delay(200);
-  await frame.evaluate(el => { el.value = ''; }, pinInput);
-  await delay(100);
-  await pinInput.type(pin, { delay: 80 });
-  log(`[enterCredentials] PIN entered (${pin.length} chars)`);
+  await delay(500);
   
-  // Verify PIN was actually typed
-  try {
-    const typedPinLength = await frame.evaluate(el => el.value.length, pinInput);
-    log(`[enterCredentials] Verified PIN length in field: ${typedPinLength}`);
+  // === PIN: Use hybrid approach to bypass JS protection ===
+  await pinInput.click();
+  await delay(200);
+  await pinInput.focus();
+  await delay(100);
+  
+  // Method 1: Try direct value assignment with event dispatch
+  const pinEntered = await frame.evaluate((el, pinValue) => {
+    // Clear first
+    el.value = '';
     
-    if (typedPinLength !== pin.length) {
-      log(`[enterCredentials] WARNING: PIN length mismatch! Expected ${pin.length}, got ${typedPinLength}`, 'WARN');
+    // Set value directly
+    el.value = pinValue;
+    
+    // Dispatch all necessary events to trigger form validation
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
+    el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+    
+    return el.value.length;
+  }, pinInput, pin);
+  
+  log(`[enterCredentials] PIN via evaluate: ${pinEntered} chars`);
+  
+  // Method 2: If evaluate didn't work, try character-by-character keyboard
+  if (pinEntered !== pin.length) {
+    log('[enterCredentials] Fallback: typing PIN char by char with keyboard...');
+    await frame.evaluate(el => { el.value = ''; }, pinInput);
+    await pinInput.focus();
+    await delay(100);
+    
+    for (const char of pin) {
+      await page.keyboard.type(char, { delay: 100 });
+      await delay(50);
     }
-  } catch (e) {
-    log(`[enterCredentials] Could not verify PIN: ${e.message}`, 'WARN');
+  }
+  
+  // Final verification
+  await delay(300);
+  const finalLength = await frame.evaluate(el => el.value.length, pinInput);
+  log(`[enterCredentials] Final PIN verification: ${finalLength} chars`);
+  
+  if (finalLength === 0) {
+    // Last resort: use keyboard.type on focused element
+    log('[enterCredentials] Last resort: direct keyboard typing...');
+    await pinInput.focus();
+    await delay(100);
+    await page.keyboard.type(pin, { delay: 80 });
+    
+    await delay(200);
+    const lastCheck = await frame.evaluate(el => el.value.length, pinInput);
+    log(`[enterCredentials] After keyboard.type: ${lastCheck} chars`);
+    
+    if (lastCheck === 0) {
+      throw new Error('PIN_ENTRY_FAILED: Could not enter PIN into field after all attempts');
+    }
   }
   
   return true;

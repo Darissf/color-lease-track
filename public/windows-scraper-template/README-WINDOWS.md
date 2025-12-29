@@ -1,13 +1,15 @@
-# BCA Scraper - Windows RDP Version v4.1.5
+# BCA Scraper - Windows RDP Version v4.1.7
 
 Versi Windows dari BCA Bank Scraper untuk dijalankan di Windows RDP (Remote Desktop).
 
-## Keunggulan Windows RDP
+## 🎯 Keunggulan Windows RDP
 
-1. **Visual Debugging** - Bisa lihat browser langsung (HEADLESS=false)
-2. **Lebih Mudah Debug** - Tidak perlu SSH, langsung RDP
-3. **Parallel Testing** - Cross-check dengan VPS Linux
-4. **Backup** - Jika VPS Linux down, Windows tetap jalan
+| Fitur | Keterangan |
+|-------|-----------|
+| 🖥️ **Visual Debugging** | Bisa lihat browser langsung (HEADLESS=false) |
+| 🔧 **Lebih Mudah Debug** | Tidak perlu SSH, langsung RDP |
+| ⚡ **Parallel Testing** | Cross-check dengan VPS Linux |
+| 🔄 **Backup** | Jika VPS Linux down, Windows tetap jalan |
 
 ## Requirements
 
@@ -15,7 +17,7 @@ Versi Windows dari BCA Bank Scraper untuk dijalankan di Windows RDP (Remote Desk
 - Node.js 18+ (Download: https://nodejs.org)
 - Google Chrome atau Microsoft Edge
 
-## Instalasi Cepat
+## 🚀 Instalasi Cepat
 
 ### 1. Download & Extract
 
@@ -56,16 +58,22 @@ Browser Chrome akan terbuka dan mulai scraping.
 
 Jalankan `setup-autostart.bat` untuk auto-start saat login Windows.
 
-## VPN Setup (Indonesia IP)
+## 🌐 VPN Setup (WAJIB - Indonesia IP)
 
-Karena BCA harus diakses dari IP Indonesia:
+BCA iBanking **WAJIB** diakses dari IP Indonesia!
 
 1. Install OpenVPN GUI: https://openvpn.net/client/
 2. Download file .ovpn dari VPN provider (VPNJantit, Surfshark, dll)
-3. Pilih server Indonesia
-4. Connect VPN sebelum menjalankan scraper
+3. Pilih server **Indonesia**
+4. Connect VPN **sebelum** menjalankan scraper
 
-## Troubleshooting
+Verifikasi IP:
+```powershell
+(Invoke-WebRequest -Uri "https://ipinfo.io/country").Content
+# Harus menampilkan: ID
+```
+
+## ⚠️ Troubleshooting
 
 ### Error: Node.js not found
 - Download & install dari https://nodejs.org
@@ -86,12 +94,17 @@ Karena BCA harus diakses dari IP Indonesia:
 - Set HEADLESS=false di config.env
 - Restart scraper
 
-### Login BCA gagal
-- Cek User ID dan PIN di config.env
-- Pastikan VPN Indonesia aktif
-- Coba akses manual ke https://ibank.klikbca.com
+### ❌ Login BCA gagal / "Please input your PIN"
+**Penyebab:** Versi scraper lama tidak bisa input PIN dengan benar.
 
-## File Structure
+**Solusi:** Update ke **v4.1.7+** yang sudah fix PIN entry:
+```powershell
+# Quick Update (PowerShell)
+$v=[DateTimeOffset]::Now.ToUnixTimeSeconds()
+Invoke-WebRequest -Uri "https://[YOUR-PROJECT].lovable.app/windows-scraper-template/bca-scraper-windows.js?v=$v" -OutFile "bca-scraper-windows.js"
+```
+
+## 📁 File Structure
 
 ```
 C:\bca-scraper\
@@ -106,7 +119,7 @@ C:\bca-scraper\
 └── node_modules\           <- Dependencies (auto-created)
 ```
 
-## Logs & Debug
+## 📋 Logs & Debug
 
 Screenshot debug disimpan di folder `debug\`:
 - `debug-login-page.png` - Halaman login
@@ -119,13 +132,24 @@ cd C:\bca-scraper
 node bca-scraper-windows.js
 ```
 
-## Update Script
+## 🔄 Update Script
 
-Untuk update ke versi terbaru:
+### Quick Update (hanya bca-scraper-windows.js)
+```powershell
+$v=[DateTimeOffset]::Now.ToUnixTimeSeconds()
+Invoke-WebRequest -Uri "https://[YOUR-PROJECT].lovable.app/windows-scraper-template/bca-scraper-windows.js?v=$v" -OutFile "bca-scraper-windows.js"
+```
 
-1. Download file `bca-scraper-windows.js` baru
-2. Replace file lama
-3. Restart scraper
+### Full Update
+Download ulang ZIP package dari Bank Scraper Settings dan replace semua file.
+
+## 📝 Changelog
+
+| Version | Tanggal | Perubahan |
+|---------|---------|-----------|
+| v4.1.7 | 2025-12-29 | Fixed PIN entry - hybrid evaluate+events approach |
+| v4.1.6 | 2025-12-29 | Sync login dengan Linux version |
+| v4.1.5 | 2025-12-29 | Navigation logging, burst mode optimization |
 
 ## Support
 
@@ -134,5 +158,5 @@ Untuk update ke versi terbaru:
 - Hubungi admin jika ada masalah
 
 ---
-Version: 4.1.5-windows
+Version: 4.1.7-windows
 Build Date: 2025-12-29
