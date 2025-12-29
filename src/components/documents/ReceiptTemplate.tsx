@@ -6,6 +6,7 @@ import { terbilang } from "@/lib/terbilang";
 import { MapPin, Phone, Mail, Globe } from "lucide-react";
 import QRCode from "react-qr-code";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
+import { DynamicStamp } from "./DynamicStamp";
 
 interface ReceiptTemplateProps {
   documentNumber: string;
@@ -425,8 +426,32 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
           {/* Signature & Stamp Section */}
           {settings.show_signature !== false && (
             <div className="flex justify-between items-end mb-8">
+              {/* Stamp on Left */}
+              {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
+                settings.custom_stamp_url ? (
+                  <img 
+                    src={settings.custom_stamp_url} 
+                    alt="Stamp" 
+                    className="h-24 w-24 object-contain"
+                    style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+                  />
+                ) : (
+                  <DynamicStamp
+                    status="LUNAS"
+                    documentNumber={documentNumber}
+                    companyName={settings.company_name || 'Perusahaan'}
+                    date={format(issuedAt, 'dd/MM/yyyy')}
+                    settings={settings}
+                  />
+                )
+              )}
+              
+              {/* Empty space if no stamp */}
+              {(!settings.show_stamp || settings.show_stamp_on_receipt === false) && <div />}
+
+              {/* Signature on Right */}
               <div className="text-center">
-                <p className="text-sm text-gray-600 mb-2">Hormat Kami,</p>
+                <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
                 {settings.signature_url ? (
                   <img 
                     src={settings.signature_url} 
@@ -441,33 +466,6 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                   <p className="text-sm text-gray-500">{settings.signer_title}</p>
                 )}
               </div>
-
-              {/* Stamp */}
-              {settings.show_stamp && (
-                <div 
-                  className="flex items-center justify-center"
-                  style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
-                >
-                  {settings.custom_stamp_url ? (
-                    <img 
-                      src={settings.custom_stamp_url} 
-                      alt="Stamp" 
-                      className="h-24 w-24 object-contain"
-                    />
-                  ) : (
-                    <div 
-                      className="w-24 h-24 border-4 rounded-full flex flex-col items-center justify-center transform rotate-[-15deg]"
-                      style={{ 
-                        borderColor: settings.stamp_color || '#22c55e',
-                        color: settings.stamp_color || '#22c55e'
-                      }}
-                    >
-                      <span className="text-xs font-bold">{settings.stamp_text || 'LUNAS'}</span>
-                      <span className="text-[8px] mt-0.5">{format(issuedAt, 'dd/MM/yyyy')}</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
