@@ -110,7 +110,7 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 // Startup banner
 console.log('');
 console.log('==========================================');
-console.log('  BCA BALANCE CHECKER v1.0.1');
+console.log('  BCA BALANCE CHECKER v1.0.2');
 console.log('==========================================');
 console.log(`  Version : ${CHECKER_VERSION} (${CHECKER_BUILD_DATE})`);
 console.log(`  Headless: ${CONFIG.HEADLESS}`);
