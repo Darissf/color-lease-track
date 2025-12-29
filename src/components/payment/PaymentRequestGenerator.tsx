@@ -81,39 +81,84 @@ export function PaymentRequestGenerator({
   
   // Use ref to track confetti state to avoid stale closure and dependency issues
   const hasTriggeredConfettiRef = useRef(false);
+  // Ref to prevent cleanup during confetti animation
+  const isProcessingMatchRef = useRef(false);
 
   const minimumAmount = Math.ceil(remainingAmount * 0.5);
   const isPublicMode = !!accessCode;
+
+  // Verbose logging on render
+  console.log("[PaymentRequestGenerator] Rendered:", {
+    isPublicMode,
+    pendingRequestId: pendingRequest?.id,
+    pendingRequestStatus: pendingRequest?.status,
+    accessCode: accessCode ? `${accessCode.substring(0, 8)}...` : null,
+    hasTriggeredConfetti: hasTriggeredConfettiRef.current,
+  });
 
   // Reset hasTriggeredConfettiRef when pendingRequest changes
   useEffect(() => {
     if (!pendingRequest?.id) {
       hasTriggeredConfettiRef.current = false;
+      isProcessingMatchRef.current = false;
     }
   }, [pendingRequest?.id]);
 
   // Handle status change (matched/cancelled/expired)
   const handleStatusChange = useCallback((newStatus: string) => {
-    if (newStatus === "matched" && !hasTriggeredConfettiRef.current) {
+    console.log("[handleStatusChange] Called with status:", newStatus, "hasTriggered:", hasTriggeredConfettiRef.current, "isProcessing:", isProcessingMatchRef.current);
+    
+    if (newStatus === "matched" && !hasTriggeredConfettiRef.current && !isProcessingMatchRef.current) {
       console.log("[Payment] Status matched! Triggering confetti!");
       hasTriggeredConfettiRef.current = true;
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      toast.success("Pembayaran terverifikasi!");
+      isProcessingMatchRef.current = true;
+      
+      // Trigger confetti
+      confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+      toast.success("Pembayaran terverifikasi!", { duration: 5000 });
       onPaymentVerified?.();
-      setPendingRequest(null);
-    } else if (newStatus === "cancelled" || newStatus === "expired") {
+      
+      // Delay clearing pending request to let confetti finish and prevent race condition
+      setTimeout(() => {
+        console.log("[Payment] Clearing pending request after delay");
+        setPendingRequest(null);
+        isProcessingMatchRef.current = false;
+      }, 2500);
+    } else if ((newStatus === "cancelled" || newStatus === "expired") && !isProcessingMatchRef.current) {
       setPendingRequest(null);
     }
   }, [onPaymentVerified]);
 
   // Polling for public mode (RLS blocks realtime for anonymous users)
   useEffect(() => {
-    if (!pendingRequest?.id || !isPublicMode) return;
+    // Skip if not public mode or no pending request
+    if (!isPublicMode) {
+      console.log("[Polling] Skipping - not public mode");
+      return;
+    }
+    
+    if (!pendingRequest?.id) {
+      console.log("[Polling] Skipping - no pending request");
+      return;
+    }
 
-    console.log("[Polling] Starting polling for public mode, request:", pendingRequest.id);
+    // Skip if already processing a match
+    if (isProcessingMatchRef.current) {
+      console.log("[Polling] Skipping - already processing match");
+      return;
+    }
+
+    console.log("[Polling] Starting polling for public mode, request:", pendingRequest.id, "accessCode:", accessCode);
 
     const pollStatus = async () => {
+      // Double-check we should still be polling
+      if (hasTriggeredConfettiRef.current || isProcessingMatchRef.current) {
+        console.log("[Polling] Skipping poll - confetti already triggered or processing");
+        return;
+      }
+
       try {
+        console.log("[Polling] Calling check_status...");
         const { data, error } = await supabase.functions.invoke("public-payment-request", {
           body: {
             access_code: accessCode,
@@ -123,28 +168,32 @@ export function PaymentRequestGenerator({
         });
 
         if (error) {
-          console.error("[Polling] Error:", error);
+          console.error("[Polling] Error from edge function:", error);
           return;
         }
 
-        console.log("[Polling] Status response:", data);
+        console.log("[Polling] Response:", JSON.stringify(data));
 
         if (data?.success && data?.status) {
+          console.log("[Polling] Got status:", data.status);
           handleStatusChange(data.status);
+        } else {
+          console.log("[Polling] No status in response or not successful");
         }
       } catch (err) {
         console.error("[Polling] Exception:", err);
       }
     };
 
-    // Initial check
-    pollStatus();
+    // Initial check after small delay
+    const initialTimeout = setTimeout(pollStatus, 500);
 
     // Poll every 3 seconds
     const pollInterval = setInterval(pollStatus, 3000);
 
     return () => {
       console.log("[Polling] Cleaning up polling interval");
+      clearTimeout(initialTimeout);
       clearInterval(pollInterval);
     };
   }, [pendingRequest?.id, isPublicMode, accessCode, handleStatusChange]);
