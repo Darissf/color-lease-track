@@ -42,8 +42,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate secret key
-    if (settings.secret_key !== secret_key) {
+    // Validate secret key (stored as webhook_secret_encrypted)
+    if (settings.webhook_secret_encrypted !== secret_key) {
       console.log('[Check Burst] Invalid secret key');
       return new Response(
         JSON.stringify({ error: 'Invalid secret_key' }),
