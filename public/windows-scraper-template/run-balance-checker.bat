@@ -2,7 +2,7 @@
 title BCA Balance Checker
 
 echo ==========================================
-echo    BCA Balance Checker v1.0.0
+echo    BCA Balance Checker v1.0.2
 echo ==========================================
 echo.
 
