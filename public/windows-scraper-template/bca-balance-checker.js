@@ -1,5 +1,5 @@
 /**
- * BCA Balance Checker - WINDOWS RDP VERSION v1.0.2
+ * BCA Balance Checker - WINDOWS RDP VERSION v1.0.3
  * 
  * Script khusus untuk cek saldo BCA (BUKAN mutasi).
  * Digunakan untuk payment verification berbasis perubahan saldo.
@@ -20,8 +20,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const CHECKER_VERSION = "1.0.2-windows";
+const CHECKER_VERSION = "1.0.3-windows";
 const CHECKER_BUILD_DATE = "2025-12-29";
+// v1.0.3-windows: Port humanType() from bca-scraper-windows.js - use native Puppeteer type()
 // v1.0.2-windows: Fixed "Node is either not clickable" - use focus() instead of click()
 // v1.0.0-windows: Initial release - speed optimized balance checking
 // =========================================
@@ -110,7 +111,7 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 // Startup banner
 console.log('');
 console.log('==========================================');
-console.log('  BCA BALANCE CHECKER v1.0.2');
+console.log('  BCA BALANCE CHECKER v1.0.3');
 console.log('==========================================');
 console.log(`  Version : ${CHECKER_VERSION} (${CHECKER_BUILD_DATE})`);
 console.log(`  Headless: ${CONFIG.HEADLESS}`);
@@ -130,6 +131,29 @@ async function humanDelay(minMs, maxMs) {
 
 async function quickDelay(ms = 500) {
   await new Promise(r => setTimeout(r, ms));
+}
+
+// Human-like typing with variable speed (synced from bca-scraper-windows.js)
+async function humanType(element, text) {
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    
+    // Base delay varies by character type
+    let charDelay = 50 + Math.random() * 80;
+    
+    // Slower for uncommon characters
+    if (!'aeioutnsr'.includes(char.toLowerCase())) {
+      charDelay *= 1.2;
+    }
+    
+    await element.type(char, { delay: 0 });
+    await new Promise(r => setTimeout(r, charDelay));
+    
+    // Occasionally longer pause (thinking)
+    if (Math.random() < 0.03) {
+      await new Promise(r => setTimeout(r, 150 + Math.random() * 250));
+    }
+  }
 }
 
 // ============ SERVER COMMUNICATION ============
@@ -265,32 +289,45 @@ async function bcaLogin() {
     loginFrame = page;
   }
   
-  // Enter User ID
+  // Enter User ID dengan humanType
   log('Entering User ID...');
   const userInput = await loginFrame.$('input[name="value(user_id)"], input[name="user_id"], #user_id');
   if (!userInput) throw new Error('User ID input not found');
   
   await userInput.focus();
-  await quickDelay(200);
-  await userInput.type(CONFIG.BCA_USER_ID, { delay: 50 });
+  await quickDelay(300);
+  await loginFrame.evaluate(el => { el.value = ''; }, userInput);
+  await quickDelay(100);
+  await humanType(userInput, CONFIG.BCA_USER_ID);
+  log(`User ID entered (${CONFIG.BCA_USER_ID.length} chars)`);
   
-  // Enter PIN using hybrid approach
+  await quickDelay(500);
+  
+  // Enter PIN dengan humanType
   log('Entering PIN...');
-  const pinInput = await loginFrame.$('input[name="value(pswd)"], input[name="pswd"], #pswd');
+  const pinInput = await loginFrame.$('input[name="value(pswd)"], input[name="pswd"], #pswd, input[type="password"]');
   if (!pinInput) throw new Error('PIN input not found');
   
   await pinInput.focus();
-  await quickDelay(200);
+  await quickDelay(300);
+  await loginFrame.evaluate(el => { el.value = ''; }, pinInput);
+  await quickDelay(100);
+  await humanType(pinInput, CONFIG.BCA_PIN);
   
-  // Hybrid PIN entry - simulate events manually
-  for (const char of CONFIG.BCA_PIN) {
-    await loginFrame.evaluate((el, c) => {
-      el.value += c;
+  // Verify PIN was entered
+  await quickDelay(200);
+  const pinLength = await loginFrame.evaluate(el => el.value.length, pinInput);
+  log(`PIN entered: ${pinLength} chars`);
+  
+  // Fallback if humanType failed
+  if (pinLength !== CONFIG.BCA_PIN.length) {
+    log('Fallback: using evaluate + events...', 'WARN');
+    await loginFrame.evaluate((el, pinValue) => {
+      el.value = '';
+      el.value = pinValue;
       el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new KeyboardEvent('keydown', { key: c, bubbles: true }));
-      el.dispatchEvent(new KeyboardEvent('keyup', { key: c, bubbles: true }));
-    }, pinInput, char);
-    await quickDelay(80);
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, pinInput, CONFIG.BCA_PIN);
   }
   
   // Click login button
