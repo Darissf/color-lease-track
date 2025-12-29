@@ -582,14 +582,20 @@ export default function BankScraperSettings() {
       // Add update instructions
       const updateInstructions = `
 ================================================================================
-VPS Bank Scraper - Update v4.1.3 (Burst Fix Mode)
+VPS Bank Scraper - Update v4.1.4 (Full Navigation Burst Mode)
 ================================================================================
+
+PERUBAHAN v4.1.4:
+- FULL NAVIGATION LOOP: Step 5-6-7 dijalankan setiap iterasi burst
+- STOP ON MATCH: Loop berhenti segera jika pembayaran cocok
+- RE-GRAB ATM FRAME: Frame di-refresh setelah setiap klik Lihat
+- Lebih reliable: Tidak bergantung pada button Kembali yang kadang error
+- Max 3 menit burst duration (naik dari 2.5 menit)
 
 PERUBAHAN v4.1.3:
 - NO LOGOUT DURING BURST: Session tetap aktif antar iterasi burst
 - POST-BURST COOLDOWN: Delay 10 detik setelah burst selesai
 - BURST TIMING RESET: VPS mendapat full duration dari saat fetch pertama
-- Lebih efisien: Tidak perlu re-login dalam satu burst session
 
 PERUBAHAN v4.1.2:
 - Fixed Cooldown Logic: Skip 5-min wait jika logout sebelumnya berhasil

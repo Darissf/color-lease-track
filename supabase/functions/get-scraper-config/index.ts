@@ -53,37 +53,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if burst has expired
+    // v4.1.4: Improved burst timing logic
+    // Reset burst timer on VPS first fetch BEFORE checking expiration
     let burstInProgress = settings.burst_in_progress || false;
     let burstRemainingSeconds = 0;
     
     if (burstInProgress && settings.burst_started_at) {
-      const burstStarted = new Date(settings.burst_started_at).getTime();
-      const now = Date.now();
-      const burstDuration = (settings.burst_duration_seconds || 120) * 1000;
-
-      if (now - burstStarted > burstDuration) {
-        // Burst has expired, update status
-        await supabase
-          .from('payment_provider_settings')
-          .update({
-            burst_in_progress: false,
-            burst_ended_at: new Date().toISOString(),
-          })
-          .eq('id', settings.id);
-        
-        burstInProgress = false;
-        console.log('[Get Config] Burst expired, marked as ended');
-      }
-    }
-
-    // v4.1.3: Reset burst timing when VPS first fetches during active burst
-    // This ensures VPS gets full burst duration from the moment it starts processing
-    if (burstInProgress) {
       const currentCheckCount = settings.burst_check_count || 0;
       
       if (currentCheckCount === 0) {
-        // VPS first fetch during this burst - reset timer so VPS gets full duration
+        // VPS FIRST FETCH during this burst - reset timer so VPS gets full duration
+        // This happens BEFORE expiration check to ensure VPS always gets full time
         const newBurstStartedAt = new Date().toISOString();
         await supabase
           .from('payment_provider_settings')
@@ -95,24 +75,42 @@ Deno.serve(async (req) => {
           .eq('id', settings.id);
         
         burstRemainingSeconds = settings.burst_duration_seconds || 120;
-        console.log('[Get Config] Burst timing reset - VPS gets full duration:', burstRemainingSeconds, 's');
+        console.log('[Get Config] Burst timing reset on first VPS fetch - full duration:', burstRemainingSeconds, 's');
       } else {
-        // Subsequent fetch - calculate remaining time and increment counter
+        // Subsequent fetch - calculate remaining time based on actual burst_started_at
         const burstStarted = new Date(settings.burst_started_at).getTime();
         const burstDuration = (settings.burst_duration_seconds || 120) * 1000;
-        burstRemainingSeconds = Math.max(0, Math.floor((burstDuration - (Date.now() - burstStarted)) / 1000));
+        const elapsed = Date.now() - burstStarted;
         
-        await supabase
-          .from('payment_provider_settings')
-          .update({ 
-            burst_check_count: currentCheckCount + 1,
-            last_burst_check_at: new Date().toISOString(),
-          })
-          .eq('id', settings.id);
-        
-        console.log('[Get Config] Burst check #', currentCheckCount + 1, ', remaining:', burstRemainingSeconds, 's');
+        if (elapsed > burstDuration) {
+          // Burst has expired
+          await supabase
+            .from('payment_provider_settings')
+            .update({
+              burst_in_progress: false,
+              burst_ended_at: new Date().toISOString(),
+            })
+            .eq('id', settings.id);
+          
+          burstInProgress = false;
+          burstRemainingSeconds = 0;
+          console.log('[Get Config] Burst expired, marked as ended');
+        } else {
+          // Burst still active - calculate remaining and increment counter
+          burstRemainingSeconds = Math.max(0, Math.floor((burstDuration - elapsed) / 1000));
+          
+          await supabase
+            .from('payment_provider_settings')
+            .update({ 
+              burst_check_count: currentCheckCount + 1,
+              last_burst_check_at: new Date().toISOString(),
+            })
+            .eq('id', settings.id);
+          
+          console.log('[Get Config] Burst check #', currentCheckCount + 1, ', remaining:', burstRemainingSeconds, 's');
+        }
       }
-    } else {
+    } else if (!burstInProgress) {
       // Not in burst mode - just update last check time
       await supabase
         .from('payment_provider_settings')
