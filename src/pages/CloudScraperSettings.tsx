@@ -70,6 +70,7 @@ export default function BankScraperSettings() {
   
   const [loading, setLoading] = useState(true);
   const [generatingPackage, setGeneratingPackage] = useState(false);
+  const [generatingWindowsPackage, setGeneratingWindowsPackage] = useState(false);
   const [downloadingScraperOnly, setDownloadingScraperOnly] = useState(false);
   const [downloadingUpdatePackage, setDownloadingUpdatePackage] = useState(false);
   
@@ -661,6 +662,114 @@ LANGKAH UPDATE:
       toast.error("Gagal generate update package");
     } finally {
       setDownloadingUpdatePackage(false);
+    }
+  };
+
+
+  // Download Windows Package as ZIP
+  const handleDownloadWindowsPackage = async () => {
+    setGeneratingWindowsPackage(true);
+    try {
+      const zip = new JSZip();
+      const cacheBuster = `?v=${Date.now()}`;
+      const version = "4.1.5";
+      const updateDate = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+      
+      // Fetch all Windows files
+      const [scraperRes, configRes, installRes, runRes, autoStartRes, readmeRes] = await Promise.all([
+        fetch(`/windows-scraper-template/bca-scraper-windows.js${cacheBuster}`),
+        fetch(`/windows-scraper-template/config.env.template${cacheBuster}`),
+        fetch(`/windows-scraper-template/install-windows.bat${cacheBuster}`),
+        fetch(`/windows-scraper-template/run-windows.bat${cacheBuster}`),
+        fetch(`/windows-scraper-template/setup-autostart.bat${cacheBuster}`),
+        fetch(`/windows-scraper-template/README-WINDOWS.md${cacheBuster}`),
+      ]);
+
+      const [scraperText, configText, installText, runText, autoStartText, readmeText] = await Promise.all([
+        scraperRes.text(),
+        configRes.text(),
+        installRes.text(),
+        runRes.text(),
+        autoStartRes.text(),
+        readmeRes.text(),
+      ]);
+
+      // Modify config with secret key and webhook URL
+      let configContent = configText;
+      if (vpsSettings?.webhook_secret_encrypted) {
+        configContent = configContent.replace(
+          "SECRET_KEY=YOUR_SECRET_KEY_HERE",
+          `SECRET_KEY=${vpsSettings.webhook_secret_encrypted}`
+        );
+      }
+      configContent = configContent.replace(
+        /WEBHOOK_URL=.*/,
+        `WEBHOOK_URL=${vpsWebhookUrl}`
+      );
+
+      // Add files to ZIP
+      zip.file("bca-scraper-windows.js", scraperText);
+      zip.file("config.env", configContent);
+      zip.file("install-windows.bat", installText);
+      zip.file("run-windows.bat", runText);
+      zip.file("setup-autostart.bat", autoStartText);
+      zip.file("README-WINDOWS.md", readmeText);
+      
+      // Add VERSION.txt with changelog
+      zip.file("VERSION.txt", `BCA Scraper Windows v${version}
+========================================
+Tanggal Update: ${updateDate}
+Platform: Windows RDP / Desktop
+
+CARA INSTALL:
+1. Extract ZIP ini ke Desktop
+2. Jalankan install-windows.bat
+3. Edit config.env (SECRET_KEY sudah terisi)
+4. Connect VPN Indonesia
+5. Jalankan run-windows.bat
+
+CHANGELOG v4.1.5:
+- Step 5 Navigation Logging untuk debug
+- Detailed frame debugging
+- Click tracking dengan error handling
+
+CHANGELOG v4.1.4:
+- Full navigation loop di Burst Mode
+- Stop on match detection
+- Re-grab ATM frame setelah klik Lihat
+
+CHANGELOG v4.1.3:
+- Windows path handling improvements
+- Auto Chrome detection
+- Removed systemd dependencies
+
+KONFIGURASI:
+- SECRET_KEY: ${vpsSettings?.webhook_secret_encrypted ? '✓ Sudah terisi' : '✗ Belum dikonfigurasi'}
+- WEBHOOK_URL: ✓ Sudah terisi
+
+SUPPORT:
+Jika ada error, cek console log atau buka config.env
+dan set HEADLESS=false untuk debug visual.
+`);
+
+      // Generate and download ZIP
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `BCA-Scraper-Windows-v${version}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      
+      toast.success(`Windows package v${version} berhasil di-download!`);
+    } catch (error) {
+      console.error("Error generating Windows package:", error);
+      toast.error("Gagal generate Windows package");
+    } finally {
+      setGeneratingWindowsPackage(false);
     }
   };
 
@@ -1869,11 +1978,49 @@ LANGKAH UPDATE:
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-3">
-                  <WindowsScriptDownloadDialog 
-                    secretKey={vpsSettings?.webhook_secret_encrypted || ''} 
-                    webhookUrl={vpsWebhookUrl}
-                  />
+                {/* Primary: ZIP Download */}
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 rounded-full bg-blue-500/20">
+                      <Package className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-blue-700 dark:text-blue-400">Recommended: Download ZIP Package</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Download semua file dalam 1 ZIP dengan config.env yang sudah terisi SECRET_KEY & WEBHOOK_URL.
+                        Termasuk VERSION.txt dengan changelog lengkap.
+                      </p>
+                      <Button 
+                        onClick={handleDownloadWindowsPackage}
+                        disabled={generatingWindowsPackage || !vpsSettings?.webhook_secret_encrypted}
+                        className="mt-3 gap-2"
+                      >
+                        {generatingWindowsPackage ? (
+                          <><RefreshCw className="h-4 w-4 animate-spin" /> Generating ZIP...</>
+                        ) : (
+                          <><Download className="h-4 w-4" /> Download Windows Package v4.1.5</>
+                        )}
+                      </Button>
+                      {!vpsSettings?.webhook_secret_encrypted && (
+                        <p className="text-xs text-amber-600 mt-2">
+                          ⚠️ Generate secret key di tab Linux VPS terlebih dahulu
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+                
+                {/* Alternative: PowerShell Script */}
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm text-muted-foreground">Alternative: PowerShell Script</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <WindowsScriptDownloadDialog 
+                      secretKey={vpsSettings?.webhook_secret_encrypted || ''} 
+                      webhookUrl={vpsWebhookUrl}
+                    />
+                  </div>
                 </div>
 
                 <Separator />
