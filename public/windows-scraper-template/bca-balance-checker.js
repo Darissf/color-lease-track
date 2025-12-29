@@ -84,7 +84,9 @@ const CONFIG = {
   BCA_USER_ID: process.env.BCA_USER_ID || 'YOUR_KLIKBCA_USER_ID',
   BCA_PIN: process.env.BCA_PIN || 'YOUR_KLIKBCA_PIN',
   SECRET_KEY: process.env.SECRET_KEY || 'YOUR_SECRET_KEY_HERE',
-  WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/bank-scraper-webhook',
+  // Read URLs directly from env - no more derive logic
+  COMMAND_URL: process.env.COMMAND_URL || 'https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/windows-balance-command',
+  WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/windows-balance-webhook',
   HEADLESS: process.env.HEADLESS !== 'false',
   CHROMIUM_PATH: process.env.CHROMIUM_PATH || findChromiumPath(),
   POLL_INTERVAL: 2000, // Poll server every 2 seconds
@@ -92,10 +94,6 @@ const CONFIG = {
   CHECK_DELAY_MAX: 3000, // Max delay between saldo checks
   MAX_CHECKS: 30, // Maximum checks per session
 };
-
-// Derived URLs
-const COMMAND_URL = CONFIG.WEBHOOK_URL.replace('/bank-scraper-webhook', '/windows-balance-command');
-const WEBHOOK_URL = CONFIG.WEBHOOK_URL.replace('/bank-scraper-webhook', '/windows-balance-webhook');
 
 // Validate config
 if (CONFIG.BCA_USER_ID === 'YOUR_KLIKBCA_USER_ID') {
@@ -135,7 +133,7 @@ async function quickDelay(ms = 500) {
 // ============ SERVER COMMUNICATION ============
 async function pollCommand() {
   try {
-    const response = await fetch(COMMAND_URL, {
+    const response = await fetch(CONFIG.COMMAND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -159,7 +157,7 @@ async function pollCommand() {
 
 async function reportToWebhook(action, data = {}) {
   try {
-    const response = await fetch(WEBHOOK_URL, {
+    const response = await fetch(CONFIG.WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -180,7 +178,7 @@ async function reportToWebhook(action, data = {}) {
 
 async function clearCommand() {
   try {
-    await fetch(COMMAND_URL, {
+    await fetch(CONFIG.COMMAND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
