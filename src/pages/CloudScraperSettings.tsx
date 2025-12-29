@@ -69,6 +69,7 @@ export default function BankScraperSettings() {
   const [loading, setLoading] = useState(true);
   const [generatingPackage, setGeneratingPackage] = useState(false);
   const [downloadingScraperOnly, setDownloadingScraperOnly] = useState(false);
+  const [downloadingUpdatePackage, setDownloadingUpdatePackage] = useState(false);
   
   // Scraper File Info State
   const [scraperFileInfo, setScraperFileInfo] = useState<{
@@ -548,6 +549,113 @@ export default function BankScraperSettings() {
       toast.error("Gagal download bca-scraper.js");
     } finally {
       setDownloadingScraperOnly(false);
+    }
+  };
+
+  const handleDownloadUpdatePackage = async () => {
+    setDownloadingUpdatePackage(true);
+    try {
+      const zip = new JSZip();
+      const cacheBuster = `?v=${Date.now()}`;
+      
+      // Fetch update files
+      const [scraperRes, serviceRes, installRes, installServiceRes] = await Promise.all([
+        fetch(`/vps-scraper-template/bca-scraper.js${cacheBuster}`),
+        fetch(`/vps-scraper-template/bca-scraper.service${cacheBuster}`),
+        fetch(`/vps-scraper-template/install.sh${cacheBuster}`),
+        fetch(`/vps-scraper-template/install-service.sh${cacheBuster}`),
+      ]);
+
+      const [scraperText, serviceText, installText, installServiceText] = await Promise.all([
+        scraperRes.text(),
+        serviceRes.text(),
+        installRes.text(),
+        installServiceRes.text(),
+      ]);
+
+      // Add files to zip
+      zip.file("bca-scraper.js", scraperText);
+      zip.file("bca-scraper.service", serviceText);
+      zip.file("install.sh", installText);
+      zip.file("install-service.sh", installServiceText);
+
+      // Add update instructions
+      const updateInstructions = `
+================================================================================
+VPS Bank Scraper - Update v3.0.0 (Persistent Browser Mode - 24 Jam)
+================================================================================
+
+PERUBAHAN UTAMA:
+- Persistent Browser Mode: Browser tetap hidup 24/7, tidak restart setiap scrape
+- Tidak ada resource limits: VPS dengan spek tinggi bisa maksimal
+- Node.js heap dinaikkan ke 4GB
+- scheduler.js DIHAPUS, diganti bca-scraper.js sebagai daemon utama
+
+================================================================================
+LANGKAH UPDATE:
+================================================================================
+
+1. STOP SERVICE:
+   sudo systemctl stop bca-scraper
+
+2. HAPUS FILE LAMA (scheduler.js sudah tidak dipakai):
+   rm -f /root/bca-scraper/scheduler.js
+
+3. UPLOAD FILE BARU:
+   Upload semua file dari ZIP ini ke /root/bca-scraper/:
+   - bca-scraper.js (daemon utama)
+   - bca-scraper.service (systemd service)
+   - install.sh (installer)
+   - install-service.sh (service installer)
+
+4. SET PERMISSIONS:
+   chmod +x /root/bca-scraper/*.sh
+   chmod +x /root/bca-scraper/*.js
+
+5. INSTALL ULANG SERVICE:
+   cd /root/bca-scraper
+   sudo ./install-service.sh
+
+6. ATAU MANUAL RELOAD:
+   sudo cp bca-scraper.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl restart bca-scraper
+
+7. CEK STATUS:
+   sudo systemctl status bca-scraper
+   sudo journalctl -u bca-scraper -f
+
+================================================================================
+FITUR v3.0.0:
+================================================================================
+✓ Persistent Browser Mode (24/7 standby)
+✓ Auto-restart on crash (30s delay)
+✓ Auto-start on system boot
+✓ No resource limits (high-spec VPS)
+✓ Node.js heap: 4GB max
+✓ Log rotation: daily, 7 days retention
+✓ Watchdog: restart if hung > 10 minutes
+
+================================================================================
+`;
+      zip.file("UPDATE-INSTRUCTIONS.txt", updateInstructions);
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Update-24-Jam-v3.0.0.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Update package v3.0.0 berhasil di-download!");
+    } catch (error) {
+      console.error("Error generating update package:", error);
+      toast.error("Gagal generate update package");
+    } finally {
+      setDownloadingUpdatePackage(false);
     }
   };
 
@@ -1121,6 +1229,35 @@ export default function BankScraperSettings() {
                     Download ZIP
                   </Button>
                 </div>
+              </div>
+
+              {/* Update v3.0.0 Package */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/30 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-semibold flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                    <Zap className="h-4 w-4" />
+                    Update v3.0.0 - Persistent Browser Mode (24 Jam)
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Berisi: bca-scraper.js, bca-scraper.service, install.sh, install-service.sh, dan UPDATE-INSTRUCTIONS.txt
+                  </p>
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                    ⚡ No resource limits • 4GB Node.js heap • 24/7 browser standby
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleDownloadUpdatePackage} 
+                  disabled={downloadingUpdatePackage}
+                  className="gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+                  size="lg"
+                >
+                  {downloadingUpdatePackage ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Update 24 Jam v3.0.0
+                </Button>
               </div>
 
               {/* Quick Download bca-scraper.js */}
