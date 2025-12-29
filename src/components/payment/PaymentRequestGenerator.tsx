@@ -83,6 +83,13 @@ export function PaymentRequestGenerator({
   const minimumAmount = Math.ceil(remainingAmount * 0.5);
   const isPublicMode = !!accessCode;
 
+  // Reset hasTriggeredConfetti when pendingRequest changes
+  useEffect(() => {
+    if (!pendingRequest?.id) {
+      setHasTriggeredConfetti(false);
+    }
+  }, [pendingRequest?.id]);
+
   // Subscribe to realtime updates for pending request
   useEffect(() => {
     if (!pendingRequest?.id) return;
@@ -97,9 +104,26 @@ export function PaymentRequestGenerator({
           table: "payment_confirmation_requests",
           filter: `id=eq.${pendingRequest.id}`,
         },
-        (payload) => {
-          const newStatus = payload.new.status;
+        async (payload) => {
+          console.log("[Realtime] Payment request updated - raw payload:", payload);
+          
+          let newStatus = payload.new?.status;
+          console.log("[Realtime] Status from payload:", newStatus);
+          
+          // Fallback: refetch if status is missing from payload
+          if (!newStatus && payload.new?.id) {
+            console.log("[Realtime] Status missing, refetching from database...");
+            const { data } = await supabase
+              .from("payment_confirmation_requests")
+              .select("status")
+              .eq("id", payload.new.id)
+              .single();
+            newStatus = data?.status;
+            console.log("[Realtime] Refetched status:", newStatus);
+          }
+          
           if (newStatus === "matched" && !hasTriggeredConfetti) {
+            console.log("[Realtime] Status matched! Triggering confetti...");
             setHasTriggeredConfetti(true);
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             toast.success("Pembayaran terverifikasi!");
@@ -110,7 +134,9 @@ export function PaymentRequestGenerator({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[Realtime] Subscription status:", status);
+      });
 
     // Check if initial pendingRequest status is already matched (for page refresh scenario)
     if (initialPendingRequest?.status === "matched" && !hasTriggeredConfetti) {

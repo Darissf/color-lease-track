@@ -154,6 +154,11 @@ export function PaymentVerificationStatus({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Reset hasTriggeredConfetti when requestId changes
+  useEffect(() => {
+    setHasTriggeredConfetti(false);
+  }, [requestId]);
+
   useEffect(() => {
     // Subscribe to realtime updates
     const channel = supabase
@@ -166,11 +171,30 @@ export function PaymentVerificationStatus({
           table: "payment_confirmation_requests",
           filter: `id=eq.${requestId}`,
         },
-        (payload) => {
-          const newStatus = payload.new.status as VerificationStatus;
-          setStatus(newStatus);
+        async (payload) => {
+          console.log("[Realtime] Payment request updated - raw payload:", payload);
+          
+          let newStatus = payload.new?.status as VerificationStatus;
+          console.log("[Realtime] Status from payload:", newStatus);
+          
+          // Fallback: refetch if status is missing from payload
+          if (!newStatus && payload.new?.id) {
+            console.log("[Realtime] Status missing, refetching from database...");
+            const { data } = await supabase
+              .from("payment_confirmation_requests")
+              .select("status")
+              .eq("id", payload.new.id)
+              .single();
+            newStatus = data?.status as VerificationStatus;
+            console.log("[Realtime] Refetched status:", newStatus);
+          }
+          
+          if (newStatus) {
+            setStatus(newStatus);
+          }
           
           if (newStatus === "matched" && !hasTriggeredConfetti) {
+            console.log("[Realtime] Status matched! Triggering confetti...");
             setHasTriggeredConfetti(true);
             triggerConfetti();
             toast.success("Pembayaran terverifikasi!");
@@ -178,7 +202,9 @@ export function PaymentVerificationStatus({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[Realtime] Subscription status:", status);
+      });
 
     // Calculate time remaining
     const updateTimeRemaining = () => {
