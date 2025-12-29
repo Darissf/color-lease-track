@@ -1,9 +1,9 @@
 /**
- * BCA iBanking Scraper - SESSION REUSE MODE v4.1.1
+ * BCA iBanking Scraper - SESSION REUSE MODE v4.1.2
  * 
  * Features:
  * - Browser standby 24/7, siap dipakai kapan saja
- * - LOGIN COOLDOWN: Respects BCA 5-minute login limit
+ * - LOGIN COOLDOWN: Respects BCA 5-minute login limit (skipped if logout successful)
  * - SESSION REUSE: Burst mode reuses active session (no re-login)
  * - Global scrape timeout (max 2 menit per scrape)
  * - Safe frame operations dengan timeout protection
