@@ -68,7 +68,8 @@ Deno.serve(async (req) => {
             global_locked: true,
             locked_until: new Date(lockedAt + GLOBAL_COOLDOWN_MS).toISOString(),
             seconds_remaining: remainingSeconds,
-            burst_global_locked_at: settings.burst_global_locked_at
+            burst_global_locked_at: settings.burst_global_locked_at,
+            burst_request_id: settings.burst_request_id
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
