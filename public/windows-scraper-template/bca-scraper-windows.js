@@ -1,5 +1,5 @@
 /**
- * BCA iBanking Scraper - WINDOWS RDP VERSION v4.1.7
+ * BCA iBanking Scraper - WINDOWS RDP VERSION v4.1.8
  * 
  * Versi Windows dari BCA Scraper untuk dijalankan di Windows RDP.
  * Fitur sama dengan versi Linux, dengan penyesuaian untuk Windows.
