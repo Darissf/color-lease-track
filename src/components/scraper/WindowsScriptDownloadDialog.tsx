@@ -14,36 +14,44 @@ export function WindowsScriptDownloadDialog({ webhookUrl, secretKey }: WindowsSc
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const fileBaseUrl = "https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/get-scraper-file";
+  // Direct download from public folder (bypasses edge function)
+  const baseUrl = "https://132e95d2-c3e7-435a-8b4e-be3ead18be0b.lovableproject.com/windows-scraper-template";
 
-  // PowerShell download script
-  const downloadScript = `# BCA Scraper Windows - Download Script
+  // PowerShell download script - direct from public folder
+  const downloadScript = `# BCA Scraper Windows - Download Script v4.1.5
+# Download langsung dari repository (selalu versi terbaru)
+
 $scraperDir = "$env:USERPROFILE\\bca-scraper"
 New-Item -ItemType Directory -Force -Path $scraperDir | Out-Null
 Set-Location $scraperDir
 
-# Download files
+$baseUrl = "${baseUrl}"
+$v = Get-Date -UFormat %s
+
+# Download semua files
 $files = @("bca-scraper-windows.js", "config.env.template", "install-windows.bat", "run-windows.bat", "setup-autostart.bat", "README-WINDOWS.md")
 foreach ($file in $files) {
-    Invoke-WebRequest -Uri "${fileBaseUrl}?file=$file&platform=windows" -OutFile $file
+    Invoke-WebRequest -Uri "$baseUrl/$file?v=$v" -OutFile $file
     Write-Host "[OK] Downloaded: $file"
 }
 
-# Create config.env
-if (!(Test-Path "config.env")) {
-    Copy-Item "config.env.template" "config.env"
-    (Get-Content "config.env") -replace "SECRET_KEY=YOUR_SECRET_KEY_HERE", "SECRET_KEY=${secretKey || 'YOUR_SECRET_KEY_HERE'}" | Set-Content "config.env"
-    Write-Host "[OK] Created config.env"
-}
+# Create config.env dengan secret key
+Copy-Item "config.env.template" "config.env" -Force
+(Get-Content "config.env") -replace "SECRET_KEY=YOUR_SECRET_KEY_HERE", "SECRET_KEY=${secretKey || 'YOUR_SECRET_KEY_HERE'}" | Set-Content "config.env"
+Write-Host "[OK] Created config.env"
 
 Write-Host ""
-Write-Host "Download complete! Next: Edit config.env and run install-windows.bat"`;
+Write-Host "Download complete! Next steps:"
+Write-Host "1. Edit config.env dengan BCA credentials"
+Write-Host "2. Jalankan install-windows.bat"
+Write-Host "3. Jalankan run-windows.bat"`;
 
-  // Quick update script
-  const quickUpdateScript = `# Quick Update bca-scraper-windows.js
-$v = Get-Date -Format "yyyyMMddHHmmss"
-Invoke-WebRequest -Uri "${fileBaseUrl}?file=bca-scraper-windows.js&platform=windows&v=$v" -OutFile "$env:USERPROFILE\\bca-scraper\\bca-scraper-windows.js"
-Write-Host "Updated to latest version!"`;
+  // Quick update script - only main scraper file
+  const quickUpdateScript = `# Quick Update bca-scraper-windows.js ke v4.1.5
+$v = Get-Date -UFormat %s
+cd $env:USERPROFILE\\bca-scraper
+Invoke-WebRequest -Uri "${baseUrl}/bca-scraper-windows.js?v=$v" -OutFile "bca-scraper-windows.js"
+Write-Host "[OK] Updated bca-scraper-windows.js to latest version!"`;
 
   const copyToClipboard = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text);
