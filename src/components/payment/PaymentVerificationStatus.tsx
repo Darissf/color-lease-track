@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { formatRupiah } from "@/lib/currency";
 import { toast } from "sonner";
-import { CheckCircle, Clock, AlertTriangle, Loader2, X, Copy, CreditCard } from "lucide-react";
+import { CheckCircle, Clock, AlertTriangle, Loader2, X, Copy, CreditCard, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
@@ -20,6 +20,9 @@ interface PaymentVerificationStatusProps {
 
 type VerificationStatus = "pending" | "matched" | "expired" | "cancelled";
 
+// Global cooldown: 6 minutes (must match edge function)
+const GLOBAL_COOLDOWN_MS = 6 * 60 * 1000;
+
 export function PaymentVerificationStatus({
   requestId,
   uniqueAmount,
@@ -34,6 +37,12 @@ export function PaymentVerificationStatus({
   const [copied, setCopied] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  
+  // Global lock state
+  const [globalLock, setGlobalLock] = useState<{
+    locked: boolean;
+    secondsRemaining: number;
+  }>({ locked: false, secondsRemaining: 0 });
   
   const [burstTriggeredAt, setBurstTriggeredAt] = useState<string | null>(initialBurstTriggeredAt || null);
   const [createdAt, setCreatedAt] = useState<string | null>(initialCreatedAt || null);
@@ -83,7 +92,7 @@ export function PaymentVerificationStatus({
 
   // Manual trigger burst scrape when user confirms transfer
   const handleConfirmTransfer = async () => {
-    if (cooldownRemaining > 0 || isConfirmingTransfer) return;
+    if (globalLock.secondsRemaining > 0 || cooldownRemaining > 0 || isConfirmingTransfer) return;
     
     setIsConfirmingTransfer(true);
     try {
@@ -93,9 +102,29 @@ export function PaymentVerificationStatus({
       });
       
       if (error) throw error;
+      
+      // Handle global lock response
+      if (!data?.success && data?.global_locked) {
+        setGlobalLock({
+          locked: true,
+          secondsRemaining: data.seconds_remaining || 360
+        });
+        toast.error(data.error);
+        return;
+      }
+      
       if (!data?.success) throw new Error(data?.error || "Gagal memicu pengecekan");
       
       setBurstTriggeredAt(new Date().toISOString());
+      
+      // Set global lock on success (6 minutes)
+      if (data?.burst_global_locked_at) {
+        setGlobalLock({
+          locked: true,
+          secondsRemaining: data.global_cooldown_seconds || 360
+        });
+      }
+      
       toast.success("Pengecekan dipercepat diaktifkan! Sistem akan memverifikasi pembayaran Anda.");
     } catch (err: any) {
       console.error("Failed to trigger burst scrape:", err);
@@ -105,7 +134,76 @@ export function PaymentVerificationStatus({
     }
   };
 
-  // Calculate cooldown remaining (2 minutes)
+  // Fetch global lock status on mount and subscribe to changes
+  useEffect(() => {
+    const fetchGlobalLock = async () => {
+      const { data: settings } = await supabase
+        .from("payment_provider_settings")
+        .select("burst_global_locked_at")
+        .eq("provider", "vps_scraper")
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (settings?.burst_global_locked_at) {
+        const lockedAt = new Date(settings.burst_global_locked_at).getTime();
+        const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
+        if (remaining > 0) {
+          setGlobalLock({
+            locked: true,
+            secondsRemaining: Math.ceil(remaining / 1000)
+          });
+        }
+      }
+    };
+
+    fetchGlobalLock();
+
+    // Subscribe to realtime updates for global lock
+    const settingsChannel = supabase
+      .channel('global-burst-lock-status')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'payment_provider_settings',
+        },
+        (payload: any) => {
+          if (payload.new?.burst_global_locked_at) {
+            const lockedAt = new Date(payload.new.burst_global_locked_at).getTime();
+            const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
+            setGlobalLock({
+              locked: remaining > 0,
+              secondsRemaining: Math.ceil(remaining / 1000)
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(settingsChannel);
+    };
+  }, []);
+
+  // Global lock countdown effect
+  useEffect(() => {
+    if (!globalLock.locked || globalLock.secondsRemaining <= 0) return;
+    
+    const timer = setInterval(() => {
+      setGlobalLock(prev => {
+        const newSeconds = prev.secondsRemaining - 1;
+        if (newSeconds <= 0) {
+          return { locked: false, secondsRemaining: 0 };
+        }
+        return { ...prev, secondsRemaining: newSeconds };
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [globalLock.locked, globalLock.secondsRemaining]);
+
+  // Calculate individual cooldown remaining (2 minutes)
   useEffect(() => {
     if (!burstTriggeredAt) {
       setCooldownRemaining(0);
@@ -256,6 +354,10 @@ export function PaymentVerificationStatus({
     };
   }, [requestId, expiresAt, onVerified, triggerConfetti]); // Removed status and hasTriggeredConfetti from deps
 
+  // Determine which cooldown to show (global takes precedence)
+  const effectiveCooldown = globalLock.secondsRemaining > 0 ? globalLock.secondsRemaining : cooldownRemaining;
+  const isGlobalLocked = globalLock.secondsRemaining > 0;
+
   return (
     <Card className={cn(
       "border-2 transition-all duration-300",
@@ -313,10 +415,20 @@ export function PaymentVerificationStatus({
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {cooldownRemaining > 0 ? (
-                      <div className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm">
-                        <Clock className="h-3 w-3" />
-                        Tunggu {formatCooldown(cooldownRemaining)}
+                    {effectiveCooldown > 0 ? (
+                      <div className={cn(
+                        "flex-1 flex items-center gap-1.5 px-3 py-2 rounded-md text-sm",
+                        isGlobalLocked 
+                          ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                          : "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                      )}>
+                        {isGlobalLocked ? <Ban className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                        <span>
+                          {isGlobalLocked 
+                            ? `Sistem sedang memproses. Tunggu ${formatCooldown(effectiveCooldown)}`
+                            : `Tunggu ${formatCooldown(effectiveCooldown)}`
+                          }
+                        </span>
                       </div>
                     ) : burstTriggeredAt ? (
                       <Button 

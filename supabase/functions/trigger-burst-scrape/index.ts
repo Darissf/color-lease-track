@@ -5,6 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Global cooldown: 6 minutes (BCA login limit ~5 min + 1 min buffer)
+const GLOBAL_COOLDOWN_MS = 6 * 60 * 1000;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -19,36 +22,6 @@ Deno.serve(async (req) => {
     const { request_id } = body;
 
     console.log(`[Trigger Burst] Starting burst mode for VPS scraper, request: ${request_id || 'manual'}`);
-
-    // If request_id is provided, check if it's still on cooldown (2 minutes)
-    if (request_id) {
-      const { data: existingRequest } = await supabase
-        .from('payment_confirmation_requests')
-        .select('burst_triggered_at')
-        .eq('id', request_id)
-        .single();
-
-      if (existingRequest?.burst_triggered_at) {
-        const triggeredAt = new Date(existingRequest.burst_triggered_at).getTime();
-        const now = Date.now();
-        const cooldownMs = 2 * 60 * 1000; // 2 minutes
-        const elapsedMs = now - triggeredAt;
-        
-        if (elapsedMs < cooldownMs) {
-          const remainingSeconds = Math.ceil((cooldownMs - elapsedMs) / 1000);
-          console.log(`[Trigger Burst] Request ${request_id} is on cooldown. ${remainingSeconds}s remaining`);
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: `Tunggu ${remainingSeconds} detik lagi sebelum mengklik lagi`,
-              cooldown_remaining_seconds: remainingSeconds,
-              burst_triggered_at: existingRequest.burst_triggered_at
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-      }
-    }
 
     // Check if VPS scraper is active
     const { data: settings, error: settingsError } = await supabase
@@ -75,6 +48,63 @@ Deno.serve(async (req) => {
       );
     }
 
+    // GLOBAL LOCK CHECK: Check if any user triggered burst within last 6 minutes
+    if (settings.burst_global_locked_at) {
+      const lockedAt = new Date(settings.burst_global_locked_at).getTime();
+      const now = Date.now();
+      const elapsedMs = now - lockedAt;
+      
+      if (elapsedMs < GLOBAL_COOLDOWN_MS) {
+        const remainingSeconds = Math.ceil((GLOBAL_COOLDOWN_MS - elapsedMs) / 1000);
+        const remainingMins = Math.floor(remainingSeconds / 60);
+        const remainingSecs = remainingSeconds % 60;
+        const formattedRemaining = `${remainingMins}:${remainingSecs.toString().padStart(2, '0')}`;
+        
+        console.log(`[Trigger Burst] Global cooldown active. ${remainingSeconds}s remaining`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Sistem sedang memproses. Tunggu ${formattedRemaining}`,
+            global_locked: true,
+            locked_until: new Date(lockedAt + GLOBAL_COOLDOWN_MS).toISOString(),
+            seconds_remaining: remainingSeconds,
+            burst_global_locked_at: settings.burst_global_locked_at
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Individual request cooldown check (2 minutes per request) - for showing UI cooldown
+    if (request_id) {
+      const { data: existingRequest } = await supabase
+        .from('payment_confirmation_requests')
+        .select('burst_triggered_at')
+        .eq('id', request_id)
+        .single();
+
+      if (existingRequest?.burst_triggered_at) {
+        const triggeredAt = new Date(existingRequest.burst_triggered_at).getTime();
+        const now = Date.now();
+        const cooldownMs = 2 * 60 * 1000; // 2 minutes
+        const elapsedMs = now - triggeredAt;
+        
+        if (elapsedMs < cooldownMs) {
+          const remainingSeconds = Math.ceil((cooldownMs - elapsedMs) / 1000);
+          console.log(`[Trigger Burst] Request ${request_id} is on cooldown. ${remainingSeconds}s remaining`);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `Tunggu ${Math.floor(remainingSeconds / 60)}:${(remainingSeconds % 60).toString().padStart(2, '0')} lagi sebelum mengklik lagi`,
+              cooldown_remaining_seconds: remainingSeconds,
+              burst_triggered_at: existingRequest.burst_triggered_at
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
+
     // Check if another burst is already in progress
     if (settings.burst_in_progress) {
       const burstStarted = new Date(settings.burst_started_at).getTime();
@@ -97,16 +127,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Update status to indicate burst is starting
-    // VPS will poll check-burst-command to know when to start burst mode
+    const now = new Date().toISOString();
+
+    // Update status to indicate burst is starting + SET GLOBAL LOCK
     const { error: updateError } = await supabase
       .from('payment_provider_settings')
       .update({
         burst_in_progress: true,
-        burst_started_at: new Date().toISOString(),
+        burst_started_at: now,
         burst_request_id: request_id || null,
         burst_check_count: 0,
         burst_last_match_found: false,
+        burst_global_locked_at: now, // SET GLOBAL LOCK - blocks all users for 6 minutes
       })
       .eq('id', settings.id);
 
@@ -114,7 +146,7 @@ Deno.serve(async (req) => {
     if (request_id) {
       const { error: requestUpdateError } = await supabase
         .from('payment_confirmation_requests')
-        .update({ burst_triggered_at: new Date().toISOString() })
+        .update({ burst_triggered_at: now })
         .eq('id', request_id);
       
       if (requestUpdateError) {
@@ -130,14 +162,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('[Trigger Burst] Burst mode activated for VPS scraper');
+    console.log('[Trigger Burst] Burst mode activated for VPS scraper with global lock');
 
     // Return immediately - VPS will detect this via polling check-burst-command
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Burst mode activated. VPS will start burst scraping on next poll.',
-        burst_started_at: new Date().toISOString(),
+        burst_started_at: now,
+        burst_global_locked_at: now,
+        global_cooldown_seconds: GLOBAL_COOLDOWN_MS / 1000,
         burst_interval_seconds: settings.burst_interval_seconds || 10,
         burst_duration_seconds: settings.burst_duration_seconds || 120,
         max_checks: Math.floor((settings.burst_duration_seconds || 120) / (settings.burst_interval_seconds || 10))

@@ -200,9 +200,7 @@ serve(async (req: Request) => {
             amount: fullAmount,
             payment_source: "auto",
             confirmed_by: null,
-            notes: uniqueCode > 0
-              ? `Auto-verified via VPS Scraper: ${mutation.description}. Transfer: Rp ${transferredAmount.toLocaleString('id-ID')}, Kode unik Rp ${uniqueCode.toLocaleString('id-ID')} ditanggung owner.`
-              : `Auto-verified via VPS Scraper: ${mutation.description}`,
+            notes: `Auto-verified via ExEnt Creative: ${mutation.description}. Transfer: Rp ${transferredAmount.toLocaleString('id-ID')}.`,
           });
 
           // Update contract tagihan_belum_bayar with FULL amount

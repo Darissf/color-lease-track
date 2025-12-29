@@ -3610,6 +3610,7 @@ export type Database = {
           burst_duration_seconds: number | null
           burst_enabled: boolean | null
           burst_ended_at: string | null
+          burst_global_locked_at: string | null
           burst_in_progress: boolean | null
           burst_interval_seconds: number | null
           burst_last_match_found: boolean | null
@@ -3641,6 +3642,7 @@ export type Database = {
           burst_duration_seconds?: number | null
           burst_enabled?: boolean | null
           burst_ended_at?: string | null
+          burst_global_locked_at?: string | null
           burst_in_progress?: boolean | null
           burst_interval_seconds?: number | null
           burst_last_match_found?: boolean | null
@@ -3672,6 +3674,7 @@ export type Database = {
           burst_duration_seconds?: number | null
           burst_enabled?: boolean | null
           burst_ended_at?: string | null
+          burst_global_locked_at?: string | null
           burst_in_progress?: boolean | null
           burst_interval_seconds?: number | null
           burst_last_match_found?: boolean | null

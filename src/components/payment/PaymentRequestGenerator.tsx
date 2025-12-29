@@ -16,7 +16,8 @@ import {
   CheckCircle, 
   X,
   Wallet,
-  Check
+  Check,
+  Ban
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
@@ -56,6 +57,9 @@ interface PaymentRequestGeneratorProps {
   cardTitle?: string;
 }
 
+// Global cooldown: 6 minutes (must match edge function)
+const GLOBAL_COOLDOWN_MS = 6 * 60 * 1000;
+
 export function PaymentRequestGenerator({
   accessCode,
   contractId,
@@ -79,6 +83,12 @@ export function PaymentRequestGenerator({
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [cancelCooldownRemaining, setCancelCooldownRemaining] = useState(0);
   
+  // Global lock state
+  const [globalLock, setGlobalLock] = useState<{
+    locked: boolean;
+    secondsRemaining: number;
+  }>({ locked: false, secondsRemaining: 0 });
+  
   // Use ref to track confetti state to avoid stale closure and dependency issues
   const hasTriggeredConfettiRef = useRef(false);
   // Ref to prevent cleanup during confetti animation
@@ -94,6 +104,7 @@ export function PaymentRequestGenerator({
     pendingRequestStatus: pendingRequest?.status,
     accessCode: accessCode ? `${accessCode.substring(0, 8)}...` : null,
     hasTriggeredConfetti: hasTriggeredConfettiRef.current,
+    globalLock,
   });
 
   // Reset hasTriggeredConfettiRef when pendingRequest changes
@@ -282,6 +293,75 @@ export function PaymentRequestGenerator({
     return () => clearInterval(timer);
   }, [pendingRequest?.expires_at]);
 
+  // Fetch global lock status on mount and subscribe to changes
+  useEffect(() => {
+    const fetchGlobalLock = async () => {
+      const { data: settings } = await supabase
+        .from("payment_provider_settings")
+        .select("burst_global_locked_at")
+        .eq("provider", "vps_scraper")
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (settings?.burst_global_locked_at) {
+        const lockedAt = new Date(settings.burst_global_locked_at).getTime();
+        const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
+        if (remaining > 0) {
+          setGlobalLock({
+            locked: true,
+            secondsRemaining: Math.ceil(remaining / 1000)
+          });
+        }
+      }
+    };
+
+    fetchGlobalLock();
+
+    // Subscribe to realtime updates for global lock
+    const settingsChannel = supabase
+      .channel('global-burst-lock-generator')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'payment_provider_settings',
+        },
+        (payload: any) => {
+          if (payload.new?.burst_global_locked_at) {
+            const lockedAt = new Date(payload.new.burst_global_locked_at).getTime();
+            const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
+            setGlobalLock({
+              locked: remaining > 0,
+              secondsRemaining: Math.ceil(remaining / 1000)
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(settingsChannel);
+    };
+  }, []);
+
+  // Global lock countdown effect
+  useEffect(() => {
+    if (!globalLock.locked || globalLock.secondsRemaining <= 0) return;
+    
+    const timer = setInterval(() => {
+      setGlobalLock(prev => {
+        const newSeconds = prev.secondsRemaining - 1;
+        if (newSeconds <= 0) {
+          return { locked: false, secondsRemaining: 0 };
+        }
+        return { ...prev, secondsRemaining: newSeconds };
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [globalLock.locked, globalLock.secondsRemaining]);
+
   // Calculate cooldown remaining for burst trigger (2 minutes)
   useEffect(() => {
     if (!pendingRequest?.burst_triggered_at) {
@@ -469,7 +549,8 @@ export function PaymentRequestGenerator({
   };
 
   const handleConfirmTransfer = async () => {
-    if (!pendingRequest || cooldownRemaining > 0) return;
+    // Check global lock first, then individual cooldown
+    if (!pendingRequest || globalLock.secondsRemaining > 0 || cooldownRemaining > 0) return;
 
     setIsConfirmingTransfer(true);
     try {
@@ -478,6 +559,17 @@ export function PaymentRequestGenerator({
       });
 
       if (error) throw error;
+      
+      // Handle global lock response
+      if (!data?.success && data?.global_locked) {
+        setGlobalLock({
+          locked: true,
+          secondsRemaining: data.seconds_remaining || 360
+        });
+        toast.error(data.error);
+        return;
+      }
+      
       if (!data?.success) throw new Error(data?.error || "Gagal memicu pengecekan");
 
       // Update local state with new burst_triggered_at
@@ -485,6 +577,14 @@ export function PaymentRequestGenerator({
         ...prev,
         burst_triggered_at: new Date().toISOString()
       } : null);
+      
+      // Set global lock on success (6 minutes)
+      if (data?.burst_global_locked_at) {
+        setGlobalLock({
+          locked: true,
+          secondsRemaining: data.global_cooldown_seconds || 360
+        });
+      }
       
       toast.success("Pengecekan dipercepat! Pembayaran akan diverifikasi dalam 1-2 menit.", {
         duration: 5000,
@@ -552,10 +652,21 @@ export function PaymentRequestGenerator({
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
-          {cooldownRemaining > 0 ? (
-            <Badge variant="outline" className="gap-1.5 py-1.5 px-3 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800">
-              <Clock className="h-3 w-3" />
-              Tunggu {formatCooldown(cooldownRemaining)}
+          {(globalLock.secondsRemaining > 0 || cooldownRemaining > 0) ? (
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "gap-1.5 py-1.5 px-3 flex-1 sm:flex-none justify-center",
+                globalLock.secondsRemaining > 0
+                  ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
+                  : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+              )}
+            >
+              {globalLock.secondsRemaining > 0 ? <Ban className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+              {globalLock.secondsRemaining > 0 
+                ? `Sistem memproses. Tunggu ${formatCooldown(globalLock.secondsRemaining)}`
+                : `Tunggu ${formatCooldown(cooldownRemaining)}`
+              }
             </Badge>
           ) : pendingRequest?.burst_triggered_at ? (
             <Button
