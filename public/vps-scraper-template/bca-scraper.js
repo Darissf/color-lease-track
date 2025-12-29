@@ -1,5 +1,5 @@
 /**
- * BCA iBanking Scraper - SESSION REUSE MODE v4.1.0
+ * BCA iBanking Scraper - SESSION REUSE MODE v4.1.1
  * 
  * Features:
  * - Browser standby 24/7, siap dipakai kapan saja
@@ -19,8 +19,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.0";
+const SCRAPER_VERSION = "4.1.1";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v4.1.1: Fixed logout - uses correct BCA selector #gotohome and goToPage()
 // v4.1.0: Login Cooldown & Session Reuse - respect BCA 5-minute login limit
 // v4.0.0: Ultra-Robust Mode - comprehensive error handling, auto-recovery
 // v3.0.0: Persistent Browser Mode - browser standby 24/7
@@ -669,76 +670,167 @@ async function watchdog() {
 
 /**
  * Safe logout with multiple fallback methods
+ * v4.1.1: Fixed logout using correct BCA selector and goToPage() function
  */
 async function safeLogout() {
   if (!page) return;
   
   log('Attempting safe logout...');
+  let loggedOut = false;
   
+  // Method 1: Try clicking via Puppeteer frame API (most reliable)
   try {
-    // Method 1: Find and click logout link via page.evaluate
-    const logoutPromise = safeFrameOperation(
-      () => page.evaluate(() => {
-        // Check main page links
-        const links = document.querySelectorAll('a');
-        for (const link of links) {
-          const text = (link.textContent || '').toLowerCase();
-          const href = (link.getAttribute('href') || '').toLowerCase();
-          if (text.includes('logout') || text.includes('keluar') || href.includes('logout')) {
-            link.click();
-            return { success: true, method: 'main_page_link' };
-          }
+    const frames = page.frames();
+    
+    for (const frame of frames) {
+      try {
+        // v4.1.1: Use exact BCA selector - #gotohome > font > b > a
+        const logoutLink = await frame.$('#gotohome > font > b > a');
+        if (logoutLink) {
+          await logoutLink.click();
+          log('Logout via #gotohome selector - SUCCESS');
+          loggedOut = true;
+          break;
         }
         
-        // Check all iframes
-        const frames = document.querySelectorAll('iframe');
-        for (const frame of frames) {
-          try {
-            const frameDoc = frame.contentDocument || frame.contentWindow?.document;
-            if (frameDoc) {
-              const frameLinks = frameDoc.querySelectorAll('a');
-              for (const link of frameLinks) {
-                const text = (link.textContent || '').toLowerCase();
-                if (text.includes('logout') || text.includes('keluar')) {
-                  link.click();
-                  return { success: true, method: 'iframe_link' };
+        // Fallback: Find by onclick attribute containing 'logout'
+        const logoutByOnclick = await frame.$('a[onclick*="logout"]');
+        if (logoutByOnclick) {
+          await logoutByOnclick.click();
+          log('Logout via onclick attribute - SUCCESS');
+          loggedOut = true;
+          break;
+        }
+        
+        // Fallback: Find by text content containing LOGOUT
+        const logoutByText = await frame.$('a:has-text("LOGOUT")');
+        if (logoutByText) {
+          await logoutByText.click();
+          log('Logout via text content - SUCCESS');
+          loggedOut = true;
+          break;
+        }
+      } catch (frameErr) {
+        // Continue to next frame
+      }
+    }
+  } catch (e) {
+    log(`Frame-based logout failed: ${e.message}`, 'WARN');
+  }
+  
+  // Method 2: Execute goToPage() JavaScript function directly
+  if (!loggedOut) {
+    try {
+      await safeFrameOperation(
+        () => page.evaluate(() => {
+          // v4.1.1: BCA uses goToPage function for logout
+          if (typeof goToPage === 'function') {
+            goToPage('authentication.do?value(actions)=logout');
+            return true;
+          }
+          
+          // Also try on all frames
+          const frames = document.querySelectorAll('iframe');
+          for (const frame of frames) {
+            try {
+              const frameWin = frame.contentWindow;
+              if (frameWin && typeof frameWin.goToPage === 'function') {
+                frameWin.goToPage('authentication.do?value(actions)=logout');
+                return true;
+              }
+            } catch (e) {}
+          }
+          
+          return false;
+        }),
+        5000,
+        'LOGOUT_GOOTOPAGE'
+      );
+      log('Logout via goToPage() execution - SUCCESS');
+      loggedOut = true;
+    } catch (e) {
+      log(`goToPage() execution failed: ${e.message}`, 'WARN');
+    }
+  }
+  
+  // Method 3: Click using page.evaluate with exact selector
+  if (!loggedOut) {
+    try {
+      const clicked = await safeFrameOperation(
+        () => page.evaluate(() => {
+          // Try exact selector first
+          const logoutEl = document.querySelector('#gotohome > font > b > a');
+          if (logoutEl) {
+            logoutEl.click();
+            return 'gotohome_selector';
+          }
+          
+          // Try any link with LOGOUT text
+          const links = document.querySelectorAll('a');
+          for (const link of links) {
+            if (link.textContent && link.textContent.includes('LOGOUT')) {
+              link.click();
+              return 'logout_text';
+            }
+          }
+          
+          // Check iframes
+          const frames = document.querySelectorAll('iframe');
+          for (const frame of frames) {
+            try {
+              const frameDoc = frame.contentDocument || frame.contentWindow?.document;
+              if (frameDoc) {
+                const frameLogout = frameDoc.querySelector('#gotohome > font > b > a');
+                if (frameLogout) {
+                  frameLogout.click();
+                  return 'iframe_gotohome';
+                }
+                
+                const frameLinks = frameDoc.querySelectorAll('a');
+                for (const link of frameLinks) {
+                  if (link.textContent && link.textContent.includes('LOGOUT')) {
+                    link.click();
+                    return 'iframe_logout_text';
+                  }
                 }
               }
-            }
-          } catch (e) {}
-        }
-        
-        return { success: false };
-      }),
-      5000,
-      'LOGOUT_CLICK'
-    );
-    
-    const result = await logoutPromise;
-    
-    if (result.success) {
-      await delay(2000);
-      log(`Safe logout successful via ${result.method}`);
+            } catch (e) {}
+          }
+          
+          return null;
+        }),
+        5000,
+        'LOGOUT_CLICK'
+      );
+      
+      if (clicked) {
+        log(`Logout via evaluate click (${clicked}) - SUCCESS`);
+        loggedOut = true;
+      }
+    } catch (e) {
+      log(`Evaluate click failed: ${e.message}`, 'WARN');
     }
-    
-  } catch (e) {
-    log(`Logout click failed: ${e.message}`, 'WARN');
   }
   
-  // Method 2: Direct URL navigation (backup)
-  try {
-    await Promise.race([
-      page.goto('https://ibank.klikbca.com/logout.do', { 
-        timeout: 5000,
-        waitUntil: 'domcontentloaded' 
-      }),
-      new Promise(resolve => setTimeout(resolve, 5000))
-    ]);
-    await delay(1000);
-    log('Logout via direct URL navigation');
-  } catch (e) {
-    log('Direct logout navigation failed, session will be cleared on refresh', 'WARN');
+  // Method 4: Direct URL with action parameter (last resort)
+  if (!loggedOut) {
+    try {
+      await Promise.race([
+        page.goto('https://ibank.klikbca.com/authentication.do?value(actions)=logout', { 
+          timeout: 5000,
+          waitUntil: 'domcontentloaded' 
+        }),
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]);
+      log('Logout via authentication.do URL - FALLBACK');
+    } catch (e) {
+      log('Direct logout URL failed, session may persist', 'WARN');
+    }
   }
+  
+  await delay(2000);
+  isLoggedIn = false;
+  log('Safe logout completed');
 }
 
 /**
