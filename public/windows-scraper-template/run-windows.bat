@@ -5,7 +5,7 @@ REM ============================================
 
 echo.
 echo ============================================
-echo    BCA Scraper Windows v4.1.5
+echo    BCA Scraper Windows v4.1.7
 echo ============================================
 echo.
 echo Starting scraper...
