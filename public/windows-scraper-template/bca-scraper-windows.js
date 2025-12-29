@@ -26,10 +26,10 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.5-windows";
+const SCRAPER_VERSION = "4.1.6-windows";
 const SCRAPER_BUILD_DATE = "2025-12-29";
 const SCRAPER_PLATFORM = "windows";
-// v4.1.5-windows: Windows RDP version with detailed logging
+// v4.1.6-windows: Fixed login - sync with Linux version (findLoginFrame, enterCredentials)
 // =========================================
 
 const puppeteer = require('puppeteer');
@@ -222,7 +222,7 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 // === STARTUP BANNER ===
 console.log('');
 console.log('==========================================');
-console.log('  BCA SCRAPER - WINDOWS RDP v4.1.5');
+console.log('  BCA SCRAPER - WINDOWS RDP v4.1.6');
 console.log('==========================================');
 console.log(`  Version      : ${SCRAPER_VERSION} (${SCRAPER_BUILD_DATE})`);
 console.log(`  Platform     : ${SCRAPER_PLATFORM}`);
@@ -602,6 +602,106 @@ async function restartBrowser() {
   return await initBrowser();
 }
 
+// ============ LOGIN HELPERS (synced from Linux version) ============
+
+async function findLoginFrame() {
+  const frames = page.frames();
+  log(`[findLoginFrame] Total frames on page: ${frames.length}`);
+  
+  const loginSelectors = [
+    'input[name="value(user_id)"]',
+    'input#txt_user_id',
+    'input[name="txt_user_id"]',
+    'input[name="user_id"]',
+    'input#user_id'
+  ];
+  
+  // Check main page first
+  for (const selector of loginSelectors) {
+    try {
+      const mainInput = await page.$(selector);
+      if (mainInput) {
+        log(`[findLoginFrame] Login form found in MAIN PAGE with "${selector}"`);
+        return { frame: page, isMainPage: true, selector };
+      }
+    } catch (e) {}
+  }
+  
+  // Search all frames
+  for (const selector of loginSelectors) {
+    for (const frame of frames) {
+      try {
+        const input = await frame.$(selector);
+        if (input) {
+          const frameUrl = frame.url();
+          log(`[findLoginFrame] Login form found in FRAME: ${frameUrl.substring(0, 50)}...`);
+          return { frame, isMainPage: false, selector };
+        }
+      } catch (e) {}
+    }
+  }
+  
+  log('[findLoginFrame] Could not find login form in any frame!', 'ERROR');
+  return null;
+}
+
+async function enterCredentials(frame, userId, pin) {
+  log('[enterCredentials] Finding input fields...');
+  
+  // Multiple selector fallbacks for User ID
+  const userIdInput = await frame.$('input[name="value(user_id)"]') || 
+                      await frame.$('input#txt_user_id') ||
+                      await frame.$('input[name="txt_user_id"]') ||
+                      await frame.$('input[name="user_id"]');
+  
+  // Multiple selector fallbacks for PIN
+  const pinInput = await frame.$('input[name="value(pswd)"]') ||
+                   await frame.$('input#txt_pswd') || 
+                   await frame.$('input[name="txt_pswd"]') ||
+                   await frame.$('input[type="password"]');
+  
+  if (!userIdInput) {
+    throw new Error('Could not find User ID input field');
+  }
+  
+  if (!pinInput) {
+    throw new Error('Could not find PIN input field');
+  }
+  
+  log(`[enterCredentials] Found both input fields`);
+  
+  // Focus, clear, then type User ID
+  await userIdInput.focus();
+  await delay(200);
+  await frame.evaluate(el => { el.value = ''; }, userIdInput);
+  await delay(100);
+  await userIdInput.type(userId, { delay: 80 });
+  log(`[enterCredentials] User ID entered (${userId.length} chars)`);
+  
+  // Focus, clear, then type PIN
+  await delay(300);
+  await pinInput.focus();
+  await delay(200);
+  await frame.evaluate(el => { el.value = ''; }, pinInput);
+  await delay(100);
+  await pinInput.type(pin, { delay: 80 });
+  log(`[enterCredentials] PIN entered (${pin.length} chars)`);
+  
+  // Verify PIN was actually typed
+  try {
+    const typedPinLength = await frame.evaluate(el => el.value.length, pinInput);
+    log(`[enterCredentials] Verified PIN length in field: ${typedPinLength}`);
+    
+    if (typedPinLength !== pin.length) {
+      log(`[enterCredentials] WARNING: PIN length mismatch! Expected ${pin.length}, got ${typedPinLength}`, 'WARN');
+    }
+  } catch (e) {
+    log(`[enterCredentials] Could not verify PIN: ${e.message}`, 'WARN');
+  }
+  
+  return true;
+}
+
 // ============ BCA LOGIN ============
 
 async function bcaLogin() {
@@ -619,6 +719,17 @@ async function bcaLogin() {
   log('Starting BCA login...');
   lastLogoutSuccess = false; // Reset for next cycle
   
+  // Validate credentials before attempting login
+  if (!CONFIG.BCA_PIN || CONFIG.BCA_PIN === 'YOUR_KLIKBCA_PIN' || CONFIG.BCA_PIN.length < 4) {
+    throw new Error('BCA_PIN tidak valid - cek config.env');
+  }
+  
+  if (!CONFIG.BCA_USER_ID || CONFIG.BCA_USER_ID === 'YOUR_KLIKBCA_USER_ID') {
+    throw new Error('BCA_USER_ID tidak valid - cek config.env');
+  }
+  
+  log(`[bcaLogin] Credentials check: User ID=${CONFIG.BCA_USER_ID.length} chars, PIN=${CONFIG.BCA_PIN.length} chars`);
+  
   try {
     await page.goto('https://ibank.klikbca.com/', { 
       waitUntil: 'networkidle2',
@@ -628,14 +739,37 @@ async function bcaLogin() {
     await delay(2000);
     await saveDebug(page, 'login-page');
     
-    // Fill login form
-    await page.type('input[name="value(user_id)"]', CONFIG.BCA_USER_ID, { delay: 100 });
-    await page.type('input[name="value(pswd)"]', CONFIG.BCA_PIN, { delay: 100 });
+    // Find login form (might be in iframe)
+    const loginResult = await findLoginFrame();
+    if (!loginResult) {
+      await saveDebug(page, 'login-no-form');
+      throw new Error('Could not find login form on page');
+    }
     
-    // Click login button
+    const { frame } = loginResult;
+    
+    // Enter credentials with proper focus/clear/type
+    await enterCredentials(frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+    
+    await delay(500);
+    
+    // Find submit button with multiple fallbacks
+    const submitBtn = await frame.$('input[type="submit"]') ||
+                      await frame.$('input[name="value(Submit)"]') ||
+                      await frame.$('button[type="submit"]') ||
+                      await frame.$('input[value="LOGIN"]');
+    
+    if (!submitBtn) {
+      await saveDebug(page, 'login-no-submit');
+      throw new Error('Could not find submit button');
+    }
+    
+    log('[bcaLogin] Clicking submit button...');
+    
+    // Click login button and wait for navigation
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'networkidle2', timeout: CONFIG.LOGIN_TIMEOUT }),
-      page.click('input[type="submit"], input[name="value(Submit)"]')
+      submitBtn.click()
     ]);
     
     await delay(3000);
