@@ -1,8 +1,10 @@
 /**
- * BCA iBanking Scraper - ULTRA-ROBUST MODE v4.0.0
+ * BCA iBanking Scraper - SESSION REUSE MODE v4.1.0
  * 
  * Features:
  * - Browser standby 24/7, siap dipakai kapan saja
+ * - LOGIN COOLDOWN: Respects BCA 5-minute login limit
+ * - SESSION REUSE: Burst mode reuses active session (no re-login)
  * - Global scrape timeout (max 2 menit per scrape)
  * - Safe frame operations dengan timeout protection
  * - Session expired detection & auto-recovery
@@ -10,15 +12,16 @@
  * - Retry with exponential backoff (3x retry)
  * - Force kill & restart jika browser unresponsive
  * - Page health check sebelum scrape
- * - Server heartbeat reporting
+ * - Server heartbeat reporting with login status
  * - Error categorization
  * 
  * Usage: node bca-scraper.js
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.0.0";
+const SCRAPER_VERSION = "4.1.0";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v4.1.0: Login Cooldown & Session Reuse - respect BCA 5-minute login limit
 // v4.0.0: Ultra-Robust Mode - comprehensive error handling, auto-recovery
 // v3.0.0: Persistent Browser Mode - browser standby 24/7
 // v2.1.2: Added forceLogout on error/stuck
@@ -245,7 +248,7 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 // === STARTUP BANNER ===
 console.log('');
 console.log('==========================================');
-console.log('  BCA SCRAPER - ULTRA-ROBUST MODE v4.0.0');
+console.log('  BCA SCRAPER - SESSION REUSE v4.1.0');
 console.log('==========================================');
 console.log(`  Version      : ${SCRAPER_VERSION} (${SCRAPER_BUILD_DATE})`);
 console.log(`  Timestamp    : ${new Date().toISOString()} (UTC)`);
@@ -258,12 +261,15 @@ console.log(`  Debug Mode   : ${CONFIG.DEBUG_MODE}`);
 console.log(`  Webhook URL  : ${CONFIG.WEBHOOK_URL.substring(0, 50)}...`);
 console.log(`  Config URL   : ${CONFIG_URL.substring(0, 50)}...`);
 console.log('==========================================');
+console.log('  v4.1.0 FEATURES:');
+console.log(`  - Login Cooldown    : 5 minutes (BCA limit)`);
+console.log(`  - Session Reuse     : Burst mode reuses active session`);
+console.log(`  - No Burst Restart  : Browser won't restart during burst`);
 console.log('  ULTRA-ROBUST FEATURES:');
 console.log(`  - Global Timeout    : ${CONFIG.GLOBAL_SCRAPE_TIMEOUT / 1000}s`);
-console.log(`  - Browser Restart   : Every ${CONFIG.MAX_SCRAPES_BEFORE_RESTART} scrapes or ${CONFIG.MAX_UPTIME_MS / 3600000}h`);
+console.log(`  - Browser Restart   : Every 50 logins or ${CONFIG.MAX_UPTIME_MS / 3600000}h`);
 console.log(`  - Frame Timeout     : ${CONFIG.FRAME_OPERATION_TIMEOUT / 1000}s`);
 console.log(`  - Heartbeat         : Every ${CONFIG.HEARTBEAT_INTERVAL / 60000}m`);
-console.log(`  - Retry with Backoff: 3x (5s, 15s, 45s)`);
 console.log('==========================================');
 console.log('');
 
@@ -293,6 +299,11 @@ let lastError = null;
 let errorCount = 0;
 let successCount = 0;
 let heartbeatInterval = null;
+
+// v4.1.0: Login cooldown tracking - BCA limits login to once per 5 minutes
+let lastLoginTime = 0;
+let isLoggedIn = false;
+const LOGIN_COOLDOWN_MS = 300000; // 5 minutes in milliseconds
 
 // === HELPERS ===
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -470,14 +481,23 @@ async function checkSessionExpired() {
 
 /**
  * Check if browser needs restart (memory leak prevention)
+ * v4.1.0: Skip restart during burst mode to avoid breaking active session
  */
 function shouldRestartBrowser() {
   if (!browserStartTime) return true;
   
+  // v4.1.0: NEVER restart during burst mode - it breaks the active session
+  if (isBurstMode) {
+    log('Skipping browser restart check - burst mode active');
+    return false;
+  }
+  
   const uptime = Date.now() - browserStartTime;
   
-  if (scrapeCount >= CONFIG.MAX_SCRAPES_BEFORE_RESTART) {
-    log(`Browser restart needed: ${scrapeCount} scrapes reached limit (${CONFIG.MAX_SCRAPES_BEFORE_RESTART})`);
+  // v4.1.0: Increase limit to 50 for burst-heavy usage
+  const effectiveLimit = 50;
+  if (scrapeCount >= effectiveLimit) {
+    log(`Browser restart needed: ${scrapeCount} scrapes reached limit (${effectiveLimit})`);
     return true;
   }
   
@@ -527,6 +547,7 @@ async function forceKillAndRestart() {
   // Reinitialize
   await initBrowser();
   scrapeCount = 0; // Reset counter after restart
+  isLoggedIn = false; // Reset login state after restart
   
   log('=== FORCE KILL COMPLETE, BROWSER RESTARTED ===');
 }
@@ -537,6 +558,7 @@ async function forceKillAndRestart() {
 async function sendHeartbeat(status = 'running') {
   try {
     const uptimeMinutes = browserStartTime ? Math.round((Date.now() - browserStartTime) / 60000) : 0;
+    const loginCooldownRemaining = Math.round(getLoginCooldownRemaining() / 1000);
     
     const payload = {
       secret_key: CONFIG.SECRET_KEY,
@@ -549,6 +571,9 @@ async function sendHeartbeat(status = 'running') {
       last_error: lastError,
       is_idle: isIdle,
       is_burst_mode: isBurstMode,
+      is_logged_in: isLoggedIn,
+      login_cooldown_remaining: loginCooldownRemaining,
+      last_login_at: lastLoginTime > 0 ? new Date(lastLoginTime).toISOString() : null,
       timestamp: new Date().toISOString(),
     };
     
@@ -558,7 +583,7 @@ async function sendHeartbeat(status = 'running') {
       body: JSON.stringify(payload),
     });
     
-    log(`Heartbeat sent: status=${status}, uptime=${uptimeMinutes}m, scrapes=${scrapeCount}`);
+    log(`Heartbeat sent: status=${status}, uptime=${uptimeMinutes}m, logins=${scrapeCount}, cooldown=${loginCooldownRemaining}s`);
   } catch (e) {
     log(`Heartbeat failed: ${e.message}`, 'WARN');
   }
@@ -851,7 +876,149 @@ async function submitLogin(frame) {
   return false;
 }
 
-// === SCRAPE FUNCTIONS ===
+// === v4.1.0: SESSION REUSE WITH LOGIN COOLDOWN ===
+
+/**
+ * Check if we're currently logged in (session still active)
+ * BCA shows 5 frames when logged in, and no login form visible
+ */
+async function isCurrentlyLoggedIn() {
+  if (!page) return false;
+  
+  try {
+    // Check frame count first (quick check)
+    const frameCount = page.frames().length;
+    if (frameCount < 5) {
+      log(`Not logged in: only ${frameCount} frames (need 5)`);
+      return false;
+    }
+    
+    // Check if login form is visible
+    const loginFrame = await findLoginFrame();
+    if (loginFrame) {
+      log('Not logged in: login form visible');
+      return false;
+    }
+    
+    // Check if session expired
+    if (await checkSessionExpired()) {
+      log('Not logged in: session expired');
+      return false;
+    }
+    
+    log(`Session active: ${frameCount} frames, no login form visible`);
+    return true;
+  } catch (e) {
+    log(`Login check failed: ${e.message}`, 'WARN');
+    return false;
+  }
+}
+
+/**
+ * Calculate remaining cooldown time before next login allowed
+ */
+function getLoginCooldownRemaining() {
+  const timeSinceLastLogin = Date.now() - lastLoginTime;
+  const remaining = LOGIN_COOLDOWN_MS - timeSinceLastLogin;
+  return remaining > 0 ? remaining : 0;
+}
+
+/**
+ * Ensure we're logged in, respecting BCA 5-minute login cooldown
+ * Returns true if logged in successfully, false otherwise
+ * 
+ * Logic:
+ * 1. If already logged in with valid session → reuse session (no new login)
+ * 2. If not logged in but cooldown active → wait for cooldown
+ * 3. If not logged in and cooldown expired → perform login
+ */
+async function ensureLoggedIn() {
+  // Check if already logged in
+  if (await isCurrentlyLoggedIn()) {
+    log('Session still active, reusing existing session');
+    isLoggedIn = true;
+    return true;
+  }
+  
+  // Check cooldown before attempting login
+  const cooldownRemaining = getLoginCooldownRemaining();
+  if (cooldownRemaining > 0) {
+    log(`Login cooldown active: waiting ${(cooldownRemaining / 1000).toFixed(0)}s (BCA 5-min limit)`, 'WARN');
+    await delay(cooldownRemaining);
+  }
+  
+  log('Performing fresh login...');
+  
+  // Navigate to login page
+  try {
+    await page.goto('https://ibank.klikbca.com/', { 
+      waitUntil: 'networkidle2', 
+      timeout: CONFIG.TIMEOUT 
+    });
+    await delay(2000);
+  } catch (e) {
+    log(`Navigation to login failed: ${e.message}`, 'ERROR');
+    return false;
+  }
+  
+  // Find login frame
+  const frameResult = await retryWithBackoff(
+    () => findLoginFrame(),
+    3,
+    'FIND_LOGIN_FRAME_ENSURE'
+  );
+  
+  if (!frameResult) {
+    // Maybe already logged in after navigation
+    if (await isCurrentlyLoggedIn()) {
+      log('Already logged in after navigation');
+      lastLoginTime = Date.now();
+      isLoggedIn = true;
+      scrapeCount++; // Count this as a login
+      return true;
+    }
+    throw new Error('Could not find login form');
+  }
+  
+  // Enter credentials and submit
+  await enterCredentials(frameResult.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+  await submitLogin(frameResult.frame);
+  
+  // Wait for frames to load (5 frames = fully logged in)
+  log('Waiting for page to fully load after login...');
+  let framesLoaded = await waitForFrames(5, 15000);
+  
+  if (!framesLoaded) {
+    const loginFrame = await findLoginFrame();
+    if (loginFrame) {
+      log('Still on login page, one more attempt...');
+      await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+      await submitLogin(loginFrame.frame);
+      framesLoaded = await waitForFrames(5, 15000);
+    }
+  }
+  
+  // Final verification
+  const finalFrameCount = page.frames().length;
+  if (finalFrameCount < 5) {
+    const finalLoginCheck = await findLoginFrame();
+    if (finalLoginCheck) {
+      throw new Error('LOGIN_FAILED - still on login page after retry');
+    }
+  }
+  
+  if (await checkSessionExpired()) {
+    throw new Error('SESSION_EXPIRED - detected after login');
+  }
+  
+  // Login successful - update tracking
+  lastLoginTime = Date.now();
+  isLoggedIn = true;
+  scrapeCount++; // Only count actual logins
+  
+  log(`LOGIN SUCCESSFUL! (${finalFrameCount} frames loaded, cooldown reset)`);
+  return true;
+}
 
 /**
  * Execute a single scrape with global timeout wrapper
@@ -1180,6 +1347,10 @@ async function executeBurstScrapeWithTimeout() {
 
 /**
  * Execute burst mode scrape
+ * v4.1.0: Uses ensureLoggedIn() to respect BCA 5-minute login cooldown
+ * - Reuses existing session if still valid
+ * - Only logs in if cooldown allows
+ * - Does NOT increment scrapeCount per burst call (ensureLoggedIn handles it)
  */
 async function executeBurstScrape() {
   if (!isIdle) {
@@ -1188,7 +1359,7 @@ async function executeBurstScrape() {
   }
   
   isIdle = false;
-  scrapeCount++;
+  // v4.1.0: DON'T increment scrapeCount here - ensureLoggedIn() handles it for actual logins
   const startTime = Date.now();
   
   const maxIterations = 24;
@@ -1196,99 +1367,80 @@ async function executeBurstScrape() {
   let checkCount = 0;
   let matchFound = false;
   
-  log(`=== STARTING BURST MODE SCRAPE #${scrapeCount} ===`);
+  log(`=== STARTING BURST MODE ===`);
+  log(`Session reuse: ${isLoggedIn ? 'checking...' : 'need login'}`);
+  log(`Last login: ${lastLoginTime > 0 ? ((Date.now() - lastLoginTime) / 1000).toFixed(0) + 's ago' : 'never'}`);
+  log(`Cooldown remaining: ${(getLoginCooldownRemaining() / 1000).toFixed(0)}s`);
   
   try {
     // Pre-scrape checks
     if (!await isPageHealthy()) {
       log('Page unhealthy before burst, restarting browser...', 'WARN');
       await forceKillAndRestart();
+      isLoggedIn = false; // Reset login state after browser restart
     }
     
-    // Step 1: Refresh and login
-    await refreshToCleanState();
-    
-    const frameResult = await retryWithBackoff(
-      () => findLoginFrame(),
-      3,
-      'FIND_LOGIN_FRAME_BURST'
-    );
-    
-    if (!frameResult) {
-      throw new Error('Could not find login form');
+    // v4.1.0: Use ensureLoggedIn() - handles cooldown and session reuse
+    const loginSuccess = await ensureLoggedIn();
+    if (!loginSuccess) {
+      throw new Error('Failed to ensure login state');
     }
     
-    await enterCredentials(frameResult.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
-    await submitLogin(frameResult.frame);
+    // Step 2: Navigate to Mutasi Rekening (if not already there)
+    await delay(1000);
     
-    // Wait for frames to load (5 frames = fully logged in)
-    log('Waiting for page to fully load after login...');
-    let framesLoaded = await waitForFrames(5, 15000);
-    
-    if (!framesLoaded) {
-      // Retry login if frames not loaded
-      log('Frames not loaded, checking if still on login page...');
-      const loginFrame = await findLoginFrame();
-      if (loginFrame) {
-        log('Still on login page, retrying login...');
-        await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
-        await submitLogin(loginFrame.frame);
-        framesLoaded = await waitForFrames(5, 15000);
-      }
-    }
-    
-    // Final verification
-    const finalFrameCount = page.frames().length;
-    if (finalFrameCount < 5) {
-      // One more check - maybe login form is still visible
-      const finalLoginCheck = await findLoginFrame();
-      if (finalLoginCheck) {
-        throw new Error('LOGIN_FAILED - still on login page');
-      }
-    }
-    
-    // Check session expiry
-    if (await checkSessionExpired()) {
-      throw new Error('SESSION_EXPIRED');
-    }
-    
-    log(`LOGIN SUCCESSFUL! (${finalFrameCount} frames loaded)`);
-    
-    // Step 2: Navigate to Mutasi Rekening
-    await delay(2000);
-    
-    const menuFrame = page.frames().find(f => f.name() === 'menu');
-    if (!menuFrame) throw new Error('FRAME_NOT_FOUND - Menu frame');
-    
-    await safeFrameOperation(
-      () => menuFrame.evaluate(() => {
-        const links = document.querySelectorAll('a');
-        for (const link of links) {
-          const text = (link.textContent || '').toLowerCase();
-          if (text.includes('informasi rekening')) { link.click(); return; }
+    // Check if we're already on mutasi page (session reuse case)
+    let atmFrame = page.frames().find(f => f.name() === 'atm');
+    const alreadyOnMutasi = atmFrame && await safeFrameOperation(
+      () => atmFrame.evaluate(() => {
+        const buttons = document.querySelectorAll('input[type="submit"]');
+        for (const btn of buttons) {
+          if (btn.value.toLowerCase().includes('lihat')) return true;
         }
+        return false;
       }),
-      CONFIG.FRAME_OPERATION_TIMEOUT,
-      'CLICK_INFORMASI_REKENING_BURST'
-    );
-    await delay(3000);
+      3000,
+      'CHECK_MUTASI_PAGE'
+    ).catch(() => false);
     
-    const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
-    await safeFrameOperation(
-      () => updatedMenuFrame.evaluate(() => {
-        const links = document.querySelectorAll('a');
-        for (const link of links) {
-          const text = (link.textContent || '').toLowerCase();
-          if (text.includes('mutasi rekening')) { link.click(); return; }
-        }
-      }),
-      CONFIG.FRAME_OPERATION_TIMEOUT,
-      'CLICK_MUTASI_REKENING_BURST'
-    );
-    await delay(3000);
+    if (!alreadyOnMutasi) {
+      log('Navigating to Mutasi Rekening...');
+      
+      const menuFrame = page.frames().find(f => f.name() === 'menu');
+      if (!menuFrame) throw new Error('FRAME_NOT_FOUND - Menu frame');
+      
+      await safeFrameOperation(
+        () => menuFrame.evaluate(() => {
+          const links = document.querySelectorAll('a');
+          for (const link of links) {
+            const text = (link.textContent || '').toLowerCase();
+            if (text.includes('informasi rekening')) { link.click(); return; }
+          }
+        }),
+        CONFIG.FRAME_OPERATION_TIMEOUT,
+        'CLICK_INFORMASI_REKENING_BURST'
+      );
+      await delay(3000);
+      
+      const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
+      await safeFrameOperation(
+        () => updatedMenuFrame.evaluate(() => {
+          const links = document.querySelectorAll('a');
+          for (const link of links) {
+            const text = (link.textContent || '').toLowerCase();
+            if (text.includes('mutasi rekening')) { link.click(); return; }
+          }
+        }),
+        CONFIG.FRAME_OPERATION_TIMEOUT,
+        'CLICK_MUTASI_REKENING_BURST'
+      );
+      await delay(3000);
+    } else {
+      log('Already on Mutasi page, reusing navigation');
+    }
     
     // Step 3: Set date
-    let atmFrame = page.frames().find(f => f.name() === 'atm');
+    atmFrame = page.frames().find(f => f.name() === 'atm');
     if (!atmFrame) throw new Error('FRAME_NOT_FOUND - ATM frame');
     
     const today = getJakartaDate();
@@ -1332,8 +1484,6 @@ async function executeBurstScrape() {
     );
     await delay(3000);
     
-    // Step 5: Burst loop
-    log('=== ENTERING BURST LOOP ===');
     
     while (checkCount < maxIterations && (Date.now() - startTime < maxDuration)) {
       checkCount++;
@@ -1462,8 +1612,9 @@ async function executeBurstScrape() {
     
     log(`=== BURST LOOP ENDED (${checkCount} iterations, match=${matchFound}) ===`);
     
-    // Logout
+    // Logout and mark session as ended
     await safeLogout();
+    isLoggedIn = false;
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     log(`=== BURST COMPLETED in ${duration}s ===`);
@@ -1480,6 +1631,7 @@ async function executeBurstScrape() {
     errorCount++;
     
     await safeLogout();
+    isLoggedIn = false;
     await forceKillAndRestart();
     return { success: false, error: error.message, errorType };
   } finally {
