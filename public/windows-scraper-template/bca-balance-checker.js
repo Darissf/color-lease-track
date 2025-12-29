@@ -1,5 +1,5 @@
 /**
- * BCA Balance Checker - WINDOWS RDP VERSION v1.0.3
+ * BCA Balance Checker - WINDOWS RDP VERSION v1.0.4
  * 
  * Script khusus untuk cek saldo BCA (BUKAN mutasi).
  * Digunakan untuk payment verification berbasis perubahan saldo.
@@ -20,8 +20,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const CHECKER_VERSION = "1.0.3-windows";
-const CHECKER_BUILD_DATE = "2025-12-29";
+const CHECKER_VERSION = "1.0.4-windows";
+const CHECKER_BUILD_DATE = "2025-12-30";
+// v1.0.4-windows: Port navigation flow from bca-scraper-windows.js - fix login detection & frame navigation
 // v1.0.3-windows: Port humanType() from bca-scraper-windows.js - use native Puppeteer type()
 // v1.0.2-windows: Fixed "Node is either not clickable" - use focus() instead of click()
 // v1.0.0-windows: Initial release - speed optimized balance checking
@@ -111,7 +112,7 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 // Startup banner
 console.log('');
 console.log('==========================================');
-console.log('  BCA BALANCE CHECKER v1.0.3');
+console.log('  BCA BALANCE CHECKER v1.0.4');
 console.log('==========================================');
 console.log(`  Version : ${CHECKER_VERSION} (${CHECKER_BUILD_DATE})`);
 console.log(`  Headless: ${CONFIG.HEADLESS}`);
@@ -343,48 +344,138 @@ async function bcaLogin() {
   
   // Wait for navigation
   await quickDelay(2000);
-  await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+  await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
+  await quickDelay(2000);
   
-  // Check if login successful
-  const pageContent = await page.content();
-  if (pageContent.includes('Selamat Datang') || pageContent.includes('Welcome') || pageContent.includes('Account Information')) {
+  // Check if login successful (should have multiple frames - same as bca-scraper-windows.js)
+  const frameCount = page.frames().length;
+  log(`Post-login frame count: ${frameCount}`);
+  
+  if (frameCount >= 3) {
     log('Login successful!');
     isLoggedIn = true;
     return true;
   }
   
-  throw new Error('Login failed - check credentials');
+  throw new Error('Login failed - insufficient frames (expected >= 3)');
 }
 
 // ============ NAVIGATE TO SALDO ============
 async function navigateToInfoSaldo() {
   log('Navigating to Info Saldo...');
   
-  // Find account info link
-  const accountInfoLink = await page.$('a[href*="accountstmt.do"]') || 
-                          await page.$('a:contains("Account Information")') ||
-                          await page.$('area[href*="accountstmt"]');
+  const frames = page.frames();
+  log(`Available frames: ${frames.length}`);
   
-  if (accountInfoLink) {
-    await accountInfoLink.click();
-    await quickDelay(1500);
-  } else {
-    // Try direct navigation
-    await page.goto('https://ibank.klikbca.com/nav_bar_indo/account_information_bar.htm', { timeout: 15000 }).catch(() => {});
-    await quickDelay(1000);
+  // List frames for debugging
+  frames.forEach((f, i) => {
+    log(`  Frame ${i}: ${f.name() || '(no name)'}`);
+  });
+  
+  // Find menu frame (same as bca-scraper-windows.js)
+  let menuFrame = null;
+  for (const frame of frames) {
+    const frameName = frame.name();
+    if (frameName === 'menu' || frameName.includes('menu')) {
+      menuFrame = frame;
+      log(`Found menu frame: ${frameName}`);
+      break;
+    }
   }
   
-  // Click on Saldo
-  const atmFrame = await findAtmFrame();
-  const targetFrame = atmFrame || page;
+  // Fallback: find by content
+  if (!menuFrame) {
+    for (const frame of frames) {
+      try {
+        const hasInfo = await frame.evaluate(() => 
+          document.body.textContent.includes('Informasi Rekening')
+        );
+        if (hasInfo) {
+          menuFrame = frame;
+          log('Found menu frame by content');
+          break;
+        }
+      } catch (e) { continue; }
+    }
+  }
   
-  // Look for balance inquiry link
-  const balanceLink = await targetFrame.$('a[href*="balanceinquiry"]') ||
-                      await targetFrame.$('a:contains("Informasi Saldo")') ||
-                      await targetFrame.$('a:contains("Balance Inquiry")');
+  if (!menuFrame) throw new Error('Menu frame not found');
   
-  if (balanceLink) {
-    await balanceLink.click();
+  // Click "Informasi Rekening" (same approach as bca-scraper-windows.js)
+  log('Clicking Informasi Rekening...');
+  const clickedInfoRek = await menuFrame.evaluate(() => {
+    const links = Array.from(document.querySelectorAll('a'));
+    for (const link of links) {
+      if (link.textContent.includes('Informasi Rekening')) {
+        link.click();
+        return true;
+      }
+    }
+    // Fallback: goToPage function
+    if (typeof goToPage === 'function') {
+      goToPage('accountstmt.do');
+      return true;
+    }
+    return false;
+  });
+  
+  if (!clickedInfoRek) {
+    log('Fallback: direct frame navigation', 'WARN');
+    await page.goto('https://ibank.klikbca.com/nav_bar_indo/account_information_bar.htm', { timeout: 15000 }).catch(() => {});
+  }
+  
+  await quickDelay(2000);
+  
+  // Click "Informasi Saldo" (for balance, not mutation)
+  log('Clicking Informasi Saldo...');
+  
+  // Re-grab frames after navigation
+  const updatedFrames = page.frames();
+  let targetFrame = null;
+  
+  for (const frame of updatedFrames) {
+    const frameName = frame.name();
+    if (frameName === 'atm' || frameName.includes('atm')) {
+      targetFrame = frame;
+      log(`Found atm frame: ${frameName}`);
+      break;
+    }
+  }
+  
+  // Fallback: find frame with balance inquiry link
+  if (!targetFrame) {
+    for (const frame of updatedFrames) {
+      try {
+        const hasBalance = await frame.evaluate(() => 
+          document.body.textContent.includes('Informasi Saldo')
+        );
+        if (hasBalance) {
+          targetFrame = frame;
+          log('Found target frame by content');
+          break;
+        }
+      } catch (e) { continue; }
+    }
+  }
+  
+  if (targetFrame) {
+    const clickedSaldo = await targetFrame.evaluate(() => {
+      const links = Array.from(document.querySelectorAll('a'));
+      for (const link of links) {
+        if (link.textContent.includes('Informasi Saldo')) {
+          link.click();
+          return true;
+        }
+      }
+      return false;
+    });
+    
+    if (clickedSaldo) {
+      log('Clicked Informasi Saldo');
+    } else {
+      log('Informasi Saldo link not found, trying alternative...', 'WARN');
+    }
+    
     await quickDelay(1500);
   }
   
