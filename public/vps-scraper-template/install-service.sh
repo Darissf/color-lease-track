@@ -113,12 +113,6 @@ install_service() {
     # Verify required files exist
     print_info "Checking required files..."
     
-    if [ ! -f "${SCRIPT_DIR}/scheduler.js" ]; then
-        print_error "scheduler.js not found in ${SCRIPT_DIR}"
-        exit 1
-    fi
-    print_success "Found scheduler.js"
-    
     if [ ! -f "${SCRIPT_DIR}/bca-scraper.js" ]; then
         print_error "bca-scraper.js not found in ${SCRIPT_DIR}"
         exit 1
@@ -163,7 +157,7 @@ install_service() {
     
     cat > "${SERVICE_FILE}" << EOF
 [Unit]
-Description=BCA Scraper Scheduler Daemon
+Description=BCA Scraper - Persistent Browser Mode
 Documentation=file://${SCRIPT_DIR}/README.md
 After=network-online.target openvpn-client@indonesia.service
 Wants=network-online.target
@@ -179,14 +173,16 @@ WorkingDirectory=${SCRIPT_DIR}
 
 # Pre-start checks
 ExecStartPre=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] ========================================" >> ${LOG_FILE}'
-ExecStartPre=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] Starting BCA Scraper v2.0.0..." >> ${LOG_FILE}'
+ExecStartPre=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] Starting BCA Scraper v3.0.0 (Persistent Browser Mode)..." >> ${LOG_FILE}'
+ExecStartPre=/bin/bash -c 'pkill -f "chromium.*puppeteer" 2>/dev/null || true'
 ExecStartPre=/bin/sleep 5
 
-# Main process
-ExecStart=/usr/bin/node ${SCRIPT_DIR}/scheduler.js
+# Main process - Persistent Browser Mode (single daemon)
+ExecStart=/usr/bin/node ${SCRIPT_DIR}/bca-scraper.js
 
-# Post-stop logging
+# Post-stop logging and cleanup
 ExecStopPost=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] BCA Scraper stopped (exit: \$EXIT_STATUS)" >> ${LOG_FILE}'
+ExecStopPost=/bin/bash -c 'pkill -f "chromium.*puppeteer" 2>/dev/null || true'
 
 # Auto-restart configuration
 Restart=always
@@ -197,12 +193,7 @@ RestartPreventExitStatus=0
 WatchdogSec=600
 NotifyAccess=all
 
-# Resource limits
-MemoryMax=2G
-MemoryHigh=1536M
-CPUQuota=80%
-TasksMax=100
-LimitNOFILE=65535
+# No resource limits - high-spec VPS
 
 # Logging
 StandardOutput=append:${LOG_FILE}
@@ -211,7 +202,7 @@ SyslogIdentifier=${SERVICE_NAME}
 
 # Environment
 Environment=NODE_ENV=production
-Environment=NODE_OPTIONS="--max-old-space-size=1536"
+Environment=NODE_OPTIONS="--max-old-space-size=4096"
 Environment=TZ=Asia/Jakarta
 EnvironmentFile=-${SCRIPT_DIR}/config.env
 
@@ -326,10 +317,11 @@ EOF
     echo "  Error log:    ${ERROR_LOG_FILE}"
     echo ""
     echo "Features Enabled:"
+    echo "  ✓ Persistent Browser Mode (24/7 standby)"
     echo "  ✓ Auto-restart on crash (30s delay)"
     echo "  ✓ Auto-start on system boot"
-    echo "  ✓ Memory limit: 2GB max"
-    echo "  ✓ CPU limit: 80%"
+    echo "  ✓ No resource limits (high-spec VPS)"
+    echo "  ✓ Node.js heap: 4GB max"
     echo "  ✓ Log rotation: daily, 7 days retention"
     echo "  ✓ Watchdog: restart if hung > 10 minutes"
     echo ""
