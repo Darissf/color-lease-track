@@ -71,6 +71,7 @@ export default function BankScraperSettings() {
   const [loading, setLoading] = useState(true);
   const [generatingPackage, setGeneratingPackage] = useState(false);
   const [generatingWindowsPackage, setGeneratingWindowsPackage] = useState(false);
+  const [generatingBalancePackage, setGeneratingBalancePackage] = useState(false);
   const [downloadingScraperOnly, setDownloadingScraperOnly] = useState(false);
   const [downloadingUpdatePackage, setDownloadingUpdatePackage] = useState(false);
   
@@ -812,6 +813,150 @@ dan set HEADLESS=false untuk debug visual.
       toast.error("Gagal generate Windows package");
     } finally {
       setGeneratingWindowsPackage(false);
+    }
+  };
+
+  // Download Balance Checker Package as ZIP
+  const handleDownloadBalanceCheckerPackage = async () => {
+    setGeneratingBalancePackage(true);
+    try {
+      const zip = new JSZip();
+      const cacheBuster = `?v=${Date.now()}`;
+      const updateDate = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+      
+      // Fetch Balance Checker files
+      const [checkerRes, configRes, installRes, runRes] = await Promise.all([
+        fetch(`/windows-scraper-template/bca-balance-checker.js${cacheBuster}`),
+        fetch(`/windows-scraper-template/config.env.template${cacheBuster}`),
+        fetch(`/windows-scraper-template/install-balance-checker.bat${cacheBuster}`),
+        fetch(`/windows-scraper-template/run-balance-checker.bat${cacheBuster}`),
+      ]);
+
+      const [checkerText, configText, installText, runText] = await Promise.all([
+        checkerRes.text(),
+        configRes.text(),
+        installRes.text(),
+        runRes.text(),
+      ]);
+
+      // Extract version from checker file
+      const versionMatch = checkerText.match(/CHECKER_VERSION\s*=\s*["']([^"']+)["']/);
+      const version = versionMatch?.[1] || '1.0.0';
+      
+      // Modify config with secret key and balance checker webhook URL
+      let configContent = configText;
+      if (vpsSettings?.webhook_secret_encrypted) {
+        configContent = configContent.replace(
+          "SECRET_KEY=YOUR_SECRET_KEY_HERE",
+          `SECRET_KEY=${vpsSettings.webhook_secret_encrypted}`
+        );
+      }
+      // Use balance checker specific webhook
+      const balanceWebhookUrl = `https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/windows-balance-webhook`;
+      const commandUrl = `https://uqzzpxfmwhmhiqniiyjk.supabase.co/functions/v1/windows-balance-command`;
+      
+      configContent = configContent.replace(
+        /WEBHOOK_URL=.*/,
+        `WEBHOOK_URL=${balanceWebhookUrl}`
+      );
+      // Add COMMAND_URL if not present
+      if (!configContent.includes('COMMAND_URL=')) {
+        configContent += `\n# Balance Checker Command URL\nCOMMAND_URL=${commandUrl}\n`;
+      }
+
+      // Add files to ZIP
+      zip.file("bca-balance-checker.js", checkerText);
+      zip.file("config.env", configContent);
+      zip.file("install-balance-checker.bat", installText);
+      zip.file("run-balance-checker.bat", runText);
+      
+      // Add VERSION.txt
+      zip.file("VERSION.txt", `BCA Balance Checker v${version}
+========================================
+Tanggal Update: ${updateDate}
+Platform: Windows RDP / Desktop
+
+CARA INSTALL:
+1. Extract ZIP ini ke Desktop
+2. Jalankan install-balance-checker.bat (double-click)
+3. Config sudah terisi otomatis dengan SECRET_KEY
+4. Connect VPN Indonesia
+5. Jalankan run-balance-checker.bat
+
+CARA KERJA:
+1. Script akan standby dan polling server
+2. Saat user klik "Generate" di UI, script grab saldo awal (~15 detik)
+3. Saat user klik "Saya Sudah Transfer", script cek saldo 30x
+4. Jika match → Payment verified!
+
+KONFIGURASI:
+- SECRET_KEY: ${vpsSettings?.webhook_secret_encrypted ? '✓ Sudah terisi' : '✗ Belum dikonfigurasi'}
+- WEBHOOK_URL: ✓ Sudah terisi (balance-webhook)
+- COMMAND_URL: ✓ Sudah terisi (balance-command)
+
+TROUBLESHOOTING:
+- Set HEADLESS=false di config.env untuk debug visual
+- Cek folder debug/ untuk screenshot error
+- Pastikan VPN Indonesia aktif
+`);
+
+      // Add README
+      zip.file("README-BALANCE-CHECKER.md", `# BCA Balance Checker v${version}
+
+## Deskripsi
+Script untuk verifikasi pembayaran berbasis perubahan saldo.
+Lebih cepat (~15 detik) dan lebih aman dari scraping mutasi.
+
+## Requirement
+- Windows 10/11 atau Windows Server
+- Node.js 18+ (https://nodejs.org)
+- Google Chrome terinstall
+- VPN Indonesia (wajib)
+
+## Instalasi
+1. Extract ZIP ke Desktop
+2. Double-click \`install-balance-checker.bat\`
+3. Tunggu instalasi selesai
+
+## Menjalankan
+1. Pastikan VPN Indonesia aktif
+2. Double-click \`run-balance-checker.bat\`
+3. Script akan standby menunggu command dari UI
+
+## Config.env
+- SECRET_KEY: Sudah terisi otomatis
+- WEBHOOK_URL: Endpoint untuk report hasil
+- COMMAND_URL: Endpoint untuk polling command
+- HEADLESS: true/false (false = lihat browser)
+
+## Flow
+1. User klik "Generate" di UI
+2. Script grab saldo awal (${15} detik)
+3. Angka unik dikirim ke user
+4. User transfer ke BCA
+5. User klik "Saya Sudah Transfer"
+6. Script loop 30x cek saldo (2-3 detik per check)
+7. Jika saldo bertambah sesuai angka unik → SUKSES!
+`);
+
+      // Generate and download ZIP
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `BCA-Balance-Checker-v${version}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      
+      toast.success(`Balance Checker v${version} berhasil di-download!`);
+    } catch (error) {
+      console.error("Error generating Balance Checker package:", error);
+      toast.error("Gagal generate Balance Checker package");
+    } finally {
+      setGeneratingBalancePackage(false);
     }
   };
 
@@ -2439,7 +2584,7 @@ dan set HEADLESS=false untuk debug visual.
                     <Wallet className="h-5 w-5 text-emerald-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-emerald-700 dark:text-emerald-400">Windows RDP - Cek Saldo</h3>
+                    <h3 className="font-semibold text-emerald-700 dark:text-emerald-400">Windows RDP - Cek Saldo v1.0</h3>
                     <p className="text-sm text-muted-foreground mt-1">
                       Metode verifikasi pembayaran berbasis perubahan saldo (bukan mutasi). 
                       Lebih cepat (~15 detik) dan lebih aman dari rate limit BCA.
@@ -2460,6 +2605,38 @@ dan set HEADLESS=false untuk debug visual.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Download Button */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    onClick={handleDownloadBalanceCheckerPackage}
+                    disabled={generatingBalancePackage || !vpsSettings?.webhook_secret_encrypted}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {generatingBalancePackage ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download ZIP Package
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {!vpsSettings?.webhook_secret_encrypted && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <p className="text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Generate SECRET_KEY terlebih dahulu di tab "VPS Settings"
+                    </p>
+                  </div>
+                )}
+
+                <Separator />
+
                 <div className="p-4 bg-muted/30 rounded-lg space-y-3">
                   <h4 className="font-medium">Cara Kerja:</h4>
                   <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
@@ -2489,12 +2666,70 @@ dan set HEADLESS=false untuk debug visual.
                   </div>
                 </div>
 
-                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                  <p className="text-sm text-blue-700 dark:text-blue-400">
-                    <strong>Files:</strong> Download dari folder <code className="bg-zinc-800 text-green-400 px-1 rounded">windows-scraper-template/</code>
-                    <br />
-                    <code className="text-xs">bca-balance-checker.js</code>, <code className="text-xs">run-balance-checker.bat</code>, <code className="text-xs">install-balance-checker.bat</code>
-                  </p>
+                {/* ZIP Contents Preview */}
+                <div className="p-3 bg-zinc-900 border border-zinc-700 rounded-lg">
+                  <h4 className="font-medium text-sm text-zinc-300 mb-2 flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    ZIP Contents:
+                  </h4>
+                  <div className="font-mono text-xs text-green-400 space-y-0.5">
+                    <div>📁 BCA-Balance-Checker-v1.0.0.zip</div>
+                    <div className="pl-4">├── bca-balance-checker.js</div>
+                    <div className="pl-4">├── config.env <span className="text-zinc-500">(SECRET_KEY terisi)</span></div>
+                    <div className="pl-4">├── install-balance-checker.bat</div>
+                    <div className="pl-4">├── run-balance-checker.bat</div>
+                    <div className="pl-4">├── README-BALANCE-CHECKER.md</div>
+                    <div className="pl-4">└── VERSION.txt</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Installation Steps */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  Langkah Instalasi
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">1</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Download & Extract</h4>
+                      <p className="text-xs text-muted-foreground">Klik tombol "Download ZIP Package" dan extract ke Desktop</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">2</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Install Dependencies</h4>
+                      <p className="text-xs text-muted-foreground">Double-click <code className="bg-zinc-800 text-green-400 px-1 rounded">install-balance-checker.bat</code></p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">3</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Connect VPN</h4>
+                      <p className="text-xs text-muted-foreground">Pastikan VPN Indonesia aktif sebelum menjalankan script</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">4</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Run Script</h4>
+                      <p className="text-xs text-muted-foreground">Double-click <code className="bg-zinc-800 text-green-400 px-1 rounded">run-balance-checker.bat</code> - script akan standby</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">5</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Siap Digunakan</h4>
+                      <p className="text-xs text-muted-foreground">Script akan otomatis merespon saat user klik "Generate" di Payment Request</p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
