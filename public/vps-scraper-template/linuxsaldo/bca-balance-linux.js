@@ -165,7 +165,7 @@ async function setupStealthPage(page) {
 // CONFIGURATION CONSTANTS
 // ============================================================
 
-const SCRAPER_VERSION = '1.0.0';
+const SCRAPER_VERSION = '1.0.1';
 const SCRAPER_BUILD_DATE = '2025-12-30';
 
 const CONFIG = {
@@ -242,9 +242,11 @@ async function pollCommand() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-secret-key': CONFIG.SECRET_KEY,
       },
-      body: JSON.stringify({ action: 'poll' }),
+      body: JSON.stringify({ 
+        action: 'poll',
+        secret_key: CONFIG.SECRET_KEY 
+      }),
     });
     
     if (!response.ok) {
@@ -293,9 +295,11 @@ async function clearCommand() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-secret-key': CONFIG.SECRET_KEY,
       },
-      body: JSON.stringify({ action: 'clear' }),
+      body: JSON.stringify({ 
+        action: 'clear',
+        secret_key: CONFIG.SECRET_KEY 
+      }),
     });
   } catch (error) {
     log(`Clear command error: ${error.message}`, 'WARN');
