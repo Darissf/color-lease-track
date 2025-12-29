@@ -20,9 +20,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const CHECKER_VERSION = "1.0.1-windows";
+const CHECKER_VERSION = "1.0.2-windows";
 const CHECKER_BUILD_DATE = "2025-12-29";
-// v1.0.1-windows: Fixed URL config - read COMMAND_URL directly from env
+// v1.0.2-windows: Fixed "Node is either not clickable" - use focus() instead of click()
 // v1.0.0-windows: Initial release - speed optimized balance checking
 // =========================================
 
@@ -270,7 +270,7 @@ async function bcaLogin() {
   const userInput = await loginFrame.$('input[name="value(user_id)"], input[name="user_id"], #user_id');
   if (!userInput) throw new Error('User ID input not found');
   
-  await userInput.click();
+  await userInput.focus();
   await quickDelay(200);
   await userInput.type(CONFIG.BCA_USER_ID, { delay: 50 });
   
