@@ -5,16 +5,7 @@ import { ReceiptTemplate } from './ReceiptTemplate';
 import { DocumentPDFGenerator } from './DocumentPDFGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface DocumentSettings {
-  company_name: string | null;
-  company_address: string | null;
-  company_phone: string | null;
-  owner_name: string | null;
-  signature_image_url: string | null;
-  logo_url: string | null;
-  site_name: string | null;
-}
+import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
 
 interface ContractData {
   id: string;
@@ -46,7 +37,6 @@ interface PublicDocumentPreviewModalProps {
   documentType: 'invoice' | 'kwitansi';
   contractData: ContractData;
   clientData: ClientData | null;
-  documentSettings: DocumentSettings | null;
   paymentId?: string;
 }
 
@@ -57,12 +47,12 @@ export function PublicDocumentPreviewModal({
   documentType,
   contractData,
   clientData,
-  documentSettings,
   paymentId,
 }: PublicDocumentPreviewModalProps) {
   const documentRef = useRef<HTMLDivElement>(null);
   const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
+  const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -100,6 +90,12 @@ export function PublicDocumentPreviewModal({
       }
 
       setVerificationCode(data.verification_code);
+      
+      // Set template settings from response
+      if (data.template_settings) {
+        setTemplateSettings({ ...defaultSettings, ...data.template_settings });
+      }
+      
       if (data.payment) {
         setPaymentData(data.payment);
       }
@@ -129,29 +125,20 @@ export function PublicDocumentPreviewModal({
 
     const issuedAt = contractData.tanggal ? new Date(contractData.tanggal) : new Date();
 
-    const commonProps = {
-      documentNumber: contractData.invoice || `INV-${contractData.id.substring(0, 8)}`,
-      verificationCode,
-      issuedAt,
-      clientName: clientData?.nama || 'Klien',
-      companyName: documentSettings?.company_name || documentSettings?.site_name || 'Perusahaan',
-      companyAddress: documentSettings?.company_address || undefined,
-      companyPhone: documentSettings?.company_phone || undefined,
-      ownerName: documentSettings?.owner_name || undefined,
-      logoUrl: documentSettings?.logo_url || undefined,
-      signatureUrl: documentSettings?.signature_image_url || undefined,
-    };
-
     if (documentType === 'invoice') {
       const period = `${contractData.start_date} - ${contractData.end_date}`;
       return (
         <InvoiceTemplate
           ref={documentRef}
-          {...commonProps}
+          documentNumber={contractData.invoice || `INV-${contractData.id.substring(0, 8)}`}
+          verificationCode={verificationCode}
+          issuedAt={issuedAt}
+          clientName={clientData?.nama || 'Klien'}
           description={contractData.keterangan || 'Sewa Scaffolding'}
           amount={contractData.tagihan}
           contractInvoice={contractData.invoice || undefined}
           period={period}
+          settings={templateSettings}
         />
       );
     }
@@ -163,12 +150,15 @@ export function PublicDocumentPreviewModal({
     return (
       <ReceiptTemplate
         ref={documentRef}
-        {...commonProps}
         documentNumber={`KWT-${contractData.invoice || contractData.id.substring(0, 8)}`}
+        verificationCode={verificationCode}
+        issuedAt={issuedAt}
+        clientName={clientData?.nama || 'Klien'}
         description={`Pembayaran sewa scaffolding - ${contractData.keterangan || 'Invoice ' + contractData.invoice}`}
         amount={amount}
         invoiceNumber={contractData.invoice || undefined}
         paymentDate={paymentDate}
+        settings={templateSettings}
       />
     );
   };
