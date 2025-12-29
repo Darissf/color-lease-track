@@ -157,43 +157,28 @@ install_service() {
     
     cat > "${SERVICE_FILE}" << EOF
 [Unit]
-Description=BCA Scraper - Persistent Browser Mode
-Documentation=file://${SCRIPT_DIR}/README.md
-After=network-online.target openvpn-client@indonesia.service
+Description=BCA Scraper v4.0.0 - Ultra-Robust Mode
+After=network-online.target
 Wants=network-online.target
-Requires=network-online.target
-StartLimitIntervalSec=300
-StartLimitBurst=5
 
 [Service]
 Type=simple
 User=root
-Group=root
 WorkingDirectory=${SCRIPT_DIR}
 
-# Pre-start checks
-ExecStartPre=/bin/bash -c 'echo "[$(date +"%Y-%m-%d %H:%M:%S")] ========================================" >> ${LOG_FILE}'
-ExecStartPre=/bin/bash -c 'echo "[$(date +"%Y-%m-%d %H:%M:%S")] Starting BCA Scraper v4.0.0 Ultra-Robust Mode..." >> ${LOG_FILE}'
-ExecStartPre=/bin/bash -c 'pkill -f "chromium.*puppeteer" 2>/dev/null || true'
-ExecStartPre=/bin/sleep 5
+# Pre-start: kill orphan chromium (- prefix ignores errors)
+ExecStartPre=-/usr/bin/pkill -f "chromium.*puppeteer"
+ExecStartPre=/bin/sleep 3
 
-# Main process - Persistent Browser Mode (single daemon)
+# Main process - Persistent Browser Mode
 ExecStart=/usr/bin/node ${SCRIPT_DIR}/bca-scraper.js
 
-# Post-stop logging and cleanup
-ExecStopPost=/bin/bash -c 'echo "[$(date +"%Y-%m-%d %H:%M:%S")] BCA Scraper stopped (exit: \$EXIT_STATUS)" >> ${LOG_FILE}'
-ExecStopPost=/bin/bash -c 'pkill -f "chromium.*puppeteer" 2>/dev/null || true'
+# Post-stop cleanup (- prefix ignores errors)
+ExecStopPost=-/usr/bin/pkill -f "chromium.*puppeteer"
 
 # Auto-restart configuration
 Restart=always
 RestartSec=30
-RestartPreventExitStatus=0
-
-# Watchdog - restart if hangs > 10 minutes
-WatchdogSec=600
-NotifyAccess=all
-
-# No resource limits - high-spec VPS
 
 # Logging
 StandardOutput=append:${LOG_FILE}
@@ -202,21 +187,17 @@ SyslogIdentifier=${SERVICE_NAME}
 
 # Environment
 Environment=NODE_ENV=production
-Environment=NODE_OPTIONS="--max-old-space-size=4096"
+Environment=NODE_OPTIONS=--max-old-space-size=4096
 Environment=TZ=Asia/Jakarta
 EnvironmentFile=-${SCRIPT_DIR}/config.env
 
 # Security - Chromium needs full system access
-NoNewPrivileges=false
 PrivateTmp=false
 ProtectSystem=false
 
 # Timeouts
-TimeoutStartSec=120
+TimeoutStartSec=300
 TimeoutStopSec=60
-KillMode=mixed
-KillSignal=SIGTERM
-FinalKillSignal=SIGKILL
 
 [Install]
 WantedBy=multi-user.target
@@ -319,10 +300,8 @@ EOF
     echo "  ✓ Persistent Browser Mode (24/7 standby)"
     echo "  ✓ Auto-restart on crash (30s delay)"
     echo "  ✓ Auto-start on system boot"
-    echo "  ✓ No resource limits (high-spec VPS)"
     echo "  ✓ Node.js heap: 4GB max"
     echo "  ✓ Log rotation: daily, 7 days retention"
-    echo "  ✓ Watchdog: restart if hung > 10 minutes"
     echo ""
     
     # Uninstall instructions
