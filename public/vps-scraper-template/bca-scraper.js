@@ -1,33 +1,36 @@
 /**
- * BCA iBanking Scraper - PERSISTENT BROWSER MODE
+ * BCA iBanking Scraper - ULTRA-ROBUST MODE v4.0.0
  * 
  * Features:
  * - Browser standby 24/7, siap dipakai kapan saja
- * - Page refresh untuk clear session sebelum setiap scrape
- * - Watchdog mechanism untuk restart jika browser crash
- * - Single daemon yang handle normal + burst mode
+ * - Global scrape timeout (max 2 menit per scrape)
+ * - Safe frame operations dengan timeout protection
+ * - Session expired detection & auto-recovery
+ * - Periodic browser restart (memory leak prevention)
+ * - Retry with exponential backoff (3x retry)
+ * - Force kill & restart jika browser unresponsive
+ * - Page health check sebelum scrape
+ * - Server heartbeat reporting
+ * - Error categorization
  * 
  * Usage: node bca-scraper.js
- * 
- * Arsitektur Baru:
- * - Browser di-launch saat startup, tidak ditutup
- * - Setiap scrape dimulai dengan page refresh (clear session)
- * - Watchdog check setiap 5 menit untuk ensure browser responsive
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "3.0.0";
+const SCRAPER_VERSION = "4.0.0";
 const SCRAPER_BUILD_DATE = "2025-12-29";
-// v3.0.0: Persistent Browser Mode - browser standby 24/7, page refresh untuk clear session
-// v2.1.2: Added forceLogout on error/stuck - session always cleaned up
-// v2.1.1: Fixed button click stuck - using Promise.race with timeout
-// v2.1.0: Fixed timezone bug - now uses WIB (Asia/Jakarta) instead of UTC
+// v4.0.0: Ultra-Robust Mode - comprehensive error handling, auto-recovery
+// v3.0.0: Persistent Browser Mode - browser standby 24/7
+// v2.1.2: Added forceLogout on error/stuck
+// v2.1.1: Fixed button click stuck - using Promise.race
+// v2.1.0: Fixed timezone bug - uses WIB (Asia/Jakarta)
 // v2.0.0: Optimized burst mode - login 1x, loop Kembali+Lihat
 // =========================================
 
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
 
 // ============ JAKARTA TIMEZONE HELPER ============
 function getJakartaDate() {
@@ -112,10 +115,17 @@ const CONFIG = {
   CONFIG_POLL_INTERVAL: 60000,
   WATCHDOG_INTERVAL: 300000, // 5 minutes
   BURST_CHECK_URL: process.env.BURST_CHECK_URL || (process.env.WEBHOOK_URL ? process.env.WEBHOOK_URL.replace('/bank-scraper-webhook', '/check-burst-command') : ''),
+  // v4.0.0 Ultra-Robust settings
+  GLOBAL_SCRAPE_TIMEOUT: parseInt(process.env.GLOBAL_SCRAPE_TIMEOUT) || 120000, // 2 minutes max per scrape
+  MAX_SCRAPES_BEFORE_RESTART: parseInt(process.env.MAX_SCRAPES_BEFORE_RESTART) || 10,
+  MAX_UPTIME_MS: parseInt(process.env.MAX_UPTIME_MS) || 7200000, // 2 hours
+  FRAME_OPERATION_TIMEOUT: parseInt(process.env.FRAME_OPERATION_TIMEOUT) || 10000,
+  HEARTBEAT_INTERVAL: parseInt(process.env.HEARTBEAT_INTERVAL) || 300000, // 5 minutes
 };
 
 // Derive config URL from webhook URL
 const CONFIG_URL = CONFIG.WEBHOOK_URL.replace('/bank-scraper-webhook', '/get-scraper-config');
+const HEARTBEAT_URL = CONFIG.WEBHOOK_URL.replace('/bank-scraper-webhook', '/update-scraper-status');
 
 // Validate config
 if (CONFIG.BCA_USER_ID === 'YOUR_KLIKBCA_USER_ID' || CONFIG.BCA_USER_ID === 'your_bca_user_id') {
@@ -131,7 +141,7 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 // === STARTUP BANNER ===
 console.log('');
 console.log('==========================================');
-console.log('  BCA SCRAPER - PERSISTENT BROWSER MODE');
+console.log('  BCA SCRAPER - ULTRA-ROBUST MODE v4.0.0');
 console.log('==========================================');
 console.log(`  Version      : ${SCRAPER_VERSION} (${SCRAPER_BUILD_DATE})`);
 console.log(`  Timestamp    : ${new Date().toISOString()} (UTC)`);
@@ -143,6 +153,13 @@ console.log(`  Headless     : ${CONFIG.HEADLESS}`);
 console.log(`  Debug Mode   : ${CONFIG.DEBUG_MODE}`);
 console.log(`  Webhook URL  : ${CONFIG.WEBHOOK_URL.substring(0, 50)}...`);
 console.log(`  Config URL   : ${CONFIG_URL.substring(0, 50)}...`);
+console.log('==========================================');
+console.log('  ULTRA-ROBUST FEATURES:');
+console.log(`  - Global Timeout    : ${CONFIG.GLOBAL_SCRAPE_TIMEOUT / 1000}s`);
+console.log(`  - Browser Restart   : Every ${CONFIG.MAX_SCRAPES_BEFORE_RESTART} scrapes or ${CONFIG.MAX_UPTIME_MS / 3600000}h`);
+console.log(`  - Frame Timeout     : ${CONFIG.FRAME_OPERATION_TIMEOUT / 1000}s`);
+console.log(`  - Heartbeat         : Every ${CONFIG.HEARTBEAT_INTERVAL / 60000}m`);
+console.log(`  - Retry with Backoff: 3x (5s, 15s, 45s)`);
 console.log('==========================================');
 console.log('');
 
@@ -171,10 +188,55 @@ let isBurstMode = false;
 let burstEndTime = 0;
 let browserStartTime = null;
 let scrapeCount = 0;
+let lastError = null;
+let errorCount = 0;
+let successCount = 0;
+let heartbeatInterval = null;
 
+// === HELPERS ===
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const randomDelay = (min, max) => delay(Math.floor(Math.random() * (max - min + 1)) + min);
 const log = (msg, level = 'INFO') => console.log(`[${new Date().toISOString()}] [${level}] ${msg}`);
+
+// === ERROR CATEGORIES ===
+const ERROR_TYPES = {
+  LOGIN_FAILED: 'LOGIN_FAILED',
+  SESSION_EXPIRED: 'SESSION_EXPIRED',
+  FRAME_NOT_FOUND: 'FRAME_NOT_FOUND',
+  NAVIGATION_TIMEOUT: 'NAVIGATION_TIMEOUT',
+  OPERATION_TIMEOUT: 'OPERATION_TIMEOUT',
+  BROWSER_CRASHED: 'BROWSER_CRASHED',
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  UNKNOWN: 'UNKNOWN',
+};
+
+function categorizeError(error) {
+  const msg = (error.message || '').toLowerCase();
+  
+  if (msg.includes('login') || msg.includes('credential') || msg.includes('still on login')) {
+    return ERROR_TYPES.LOGIN_FAILED;
+  }
+  if (msg.includes('session') || msg.includes('expired') || msg.includes('timeout')) {
+    return ERROR_TYPES.SESSION_EXPIRED;
+  }
+  if (msg.includes('frame') || msg.includes('not found')) {
+    return ERROR_TYPES.FRAME_NOT_FOUND;
+  }
+  if (msg.includes('navigation') || msg.includes('goto')) {
+    return ERROR_TYPES.NAVIGATION_TIMEOUT;
+  }
+  if (msg.includes('timeout')) {
+    return ERROR_TYPES.OPERATION_TIMEOUT;
+  }
+  if (msg.includes('browser') || msg.includes('crash') || msg.includes('target closed')) {
+    return ERROR_TYPES.BROWSER_CRASHED;
+  }
+  if (msg.includes('network') || msg.includes('fetch') || msg.includes('econnrefused')) {
+    return ERROR_TYPES.NETWORK_ERROR;
+  }
+  
+  return ERROR_TYPES.UNKNOWN;
+}
 
 // Save debug screenshot
 async function saveDebug(page, name, type = 'png') {
@@ -190,6 +252,195 @@ async function saveDebug(page, name, type = 'png') {
     }
   } catch (e) {
     log(`Debug save failed: ${e.message}`, 'WARN');
+  }
+}
+
+// ============ ULTRA-ROBUST HELPERS ============
+
+/**
+ * Safe frame operation with timeout protection
+ */
+async function safeFrameOperation(operation, timeoutMs = CONFIG.FRAME_OPERATION_TIMEOUT, operationName = 'operation') {
+  try {
+    const opPromise = operation();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(`${operationName}_TIMEOUT`)), timeoutMs)
+    );
+    return await Promise.race([opPromise, timeoutPromise]);
+  } catch (e) {
+    log(`${operationName} failed: ${e.message}`, 'WARN');
+    throw e;
+  }
+}
+
+/**
+ * Retry with exponential backoff
+ */
+async function retryWithBackoff(fn, maxRetries = 3, operationName = 'operation') {
+  const delays = [5000, 15000, 45000]; // 5s, 15s, 45s
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      log(`${operationName} failed (attempt ${attempt}/${maxRetries}): ${e.message}`, 'WARN');
+      
+      if (attempt < maxRetries) {
+        const delayMs = delays[attempt - 1] || 30000;
+        log(`Retrying ${operationName} in ${delayMs / 1000}s...`);
+        await delay(delayMs);
+      } else {
+        throw e;
+      }
+    }
+  }
+}
+
+/**
+ * Check if page is healthy
+ */
+async function isPageHealthy() {
+  if (!page) return false;
+  
+  try {
+    const result = await Promise.race([
+      page.evaluate(() => document.readyState),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('health_check_timeout')), 5000))
+    ]);
+    return result === 'complete' || result === 'interactive';
+  } catch (e) {
+    log(`Page health check failed: ${e.message}`, 'WARN');
+    return false;
+  }
+}
+
+/**
+ * Check if session expired
+ */
+async function checkSessionExpired() {
+  if (!page) return true;
+  
+  try {
+    const content = await safeFrameOperation(
+      () => page.content(), 
+      5000, 
+      'GET_PAGE_CONTENT'
+    );
+    
+    const expiredIndicators = [
+      'session expired', 'sesi berakhir', 'login again', 
+      'silakan login', 'waktu habis', 'session timeout',
+      'your session has expired', 'please login again'
+    ];
+    
+    const contentLower = content.toLowerCase();
+    for (const indicator of expiredIndicators) {
+      if (contentLower.includes(indicator)) {
+        log(`Session expired detected: "${indicator}"`, 'WARN');
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (e) {
+    log(`Session check failed: ${e.message}`, 'WARN');
+    return true; // Assume expired if check fails
+  }
+}
+
+/**
+ * Check if browser needs restart (memory leak prevention)
+ */
+function shouldRestartBrowser() {
+  if (!browserStartTime) return true;
+  
+  const uptime = Date.now() - browserStartTime;
+  
+  if (scrapeCount >= CONFIG.MAX_SCRAPES_BEFORE_RESTART) {
+    log(`Browser restart needed: ${scrapeCount} scrapes reached limit (${CONFIG.MAX_SCRAPES_BEFORE_RESTART})`);
+    return true;
+  }
+  
+  if (uptime >= CONFIG.MAX_UPTIME_MS) {
+    log(`Browser restart needed: ${(uptime / 3600000).toFixed(1)}h uptime exceeded limit (${CONFIG.MAX_UPTIME_MS / 3600000}h)`);
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Force kill ALL browser processes and restart
+ */
+async function forceKillAndRestart() {
+  log('=== FORCE KILL & RESTART ===', 'WARN');
+  
+  // Try graceful close first
+  if (browser) {
+    try {
+      await Promise.race([
+        browser.close(),
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]);
+      log('Browser closed gracefully');
+    } catch (e) {
+      log(`Graceful close failed: ${e.message}`, 'WARN');
+    }
+  }
+  
+  // Force kill ALL chromium/puppeteer processes
+  try {
+    execSync('pkill -9 -f chromium 2>/dev/null || true', { stdio: 'ignore' });
+    execSync('pkill -9 -f puppeteer 2>/dev/null || true', { stdio: 'ignore' });
+    execSync('pkill -9 -f "chrome.*type=renderer" 2>/dev/null || true', { stdio: 'ignore' });
+    log('Force killed all browser processes');
+  } catch (e) {
+    // Ignore errors - process might not exist
+  }
+  
+  browser = null;
+  page = null;
+  
+  // Cool down period
+  await delay(5000);
+  
+  // Reinitialize
+  await initBrowser();
+  scrapeCount = 0; // Reset counter after restart
+  
+  log('=== FORCE KILL COMPLETE, BROWSER RESTARTED ===');
+}
+
+/**
+ * Send heartbeat to server
+ */
+async function sendHeartbeat(status = 'running') {
+  try {
+    const uptimeMinutes = browserStartTime ? Math.round((Date.now() - browserStartTime) / 60000) : 0;
+    
+    const payload = {
+      secret_key: CONFIG.SECRET_KEY,
+      version: SCRAPER_VERSION,
+      status,
+      uptime_minutes: uptimeMinutes,
+      scrape_count: scrapeCount,
+      success_count: successCount,
+      error_count: errorCount,
+      last_error: lastError,
+      is_idle: isIdle,
+      is_burst_mode: isBurstMode,
+      timestamp: new Date().toISOString(),
+    };
+    
+    await fetch(HEARTBEAT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    
+    log(`Heartbeat sent: status=${status}, uptime=${uptimeMinutes}m, scrapes=${scrapeCount}`);
+  } catch (e) {
+    log(`Heartbeat failed: ${e.message}`, 'WARN');
   }
 }
 
@@ -213,7 +464,6 @@ async function initBrowser() {
   
   // Kill any orphan chromium processes
   try {
-    const { execSync } = require('child_process');
     execSync('pkill -f "chromium.*puppeteer" 2>/dev/null || true', { stdio: 'ignore' });
     log('Cleaned up orphan Chromium processes');
   } catch (e) {}
@@ -255,34 +505,40 @@ async function initBrowser() {
 }
 
 /**
- * Watchdog - check if browser is responsive
+ * Enhanced Watchdog - check if browser is responsive
  */
 async function watchdog() {
   if (!browser || !page) {
     log('Watchdog: Browser not initialized, restarting...', 'WARN');
-    await initBrowser();
+    await forceKillAndRestart();
     return;
   }
   
   try {
-    // Simple health check - try to evaluate something
+    // Simple health check with timeout
     const result = await Promise.race([
       page.evaluate(() => true),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('watchdog_timeout')), 10000))
     ]);
     
     if (result === true) {
       const uptime = Math.round((Date.now() - browserStartTime) / 60000);
-      log(`Watchdog: Browser healthy (uptime: ${uptime}m, scrapes: ${scrapeCount})`);
+      log(`Watchdog: Browser healthy (uptime: ${uptime}m, scrapes: ${scrapeCount}, errors: ${errorCount})`);
+      
+      // Check if browser needs restart
+      if (shouldRestartBrowser()) {
+        log('Watchdog: Scheduled browser restart...');
+        await forceKillAndRestart();
+      }
     }
   } catch (e) {
-    log(`Watchdog: Browser unresponsive (${e.message}), restarting...`, 'WARN');
-    await initBrowser();
+    log(`Watchdog: Browser unresponsive (${e.message}), force restarting...`, 'WARN');
+    await forceKillAndRestart();
   }
 }
 
 /**
- * Safe logout with timeout protection
+ * Safe logout with multiple fallback methods
  */
 async function safeLogout() {
   if (!page) return;
@@ -290,69 +546,73 @@ async function safeLogout() {
   log('Attempting safe logout...');
   
   try {
-    const logoutPromise = page.evaluate(() => {
-      // Try to find and click logout link
-      const links = document.querySelectorAll('a');
-      for (const link of links) {
-        const text = (link.textContent || '').toLowerCase();
-        const href = (link.getAttribute('href') || '').toLowerCase();
-        if (text.includes('logout') || text.includes('keluar') || href.includes('logout')) {
-          link.click();
-          return { success: true, method: 'link_click' };
+    // Method 1: Find and click logout link via page.evaluate
+    const logoutPromise = safeFrameOperation(
+      () => page.evaluate(() => {
+        // Check main page links
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+          const text = (link.textContent || '').toLowerCase();
+          const href = (link.getAttribute('href') || '').toLowerCase();
+          if (text.includes('logout') || text.includes('keluar') || href.includes('logout')) {
+            link.click();
+            return { success: true, method: 'main_page_link' };
+          }
         }
-      }
-      
-      // Check iframes
-      const frames = document.querySelectorAll('iframe');
-      for (const frame of frames) {
-        try {
-          const frameDoc = frame.contentDocument || frame.contentWindow?.document;
-          if (frameDoc) {
-            const frameLinks = frameDoc.querySelectorAll('a');
-            for (const link of frameLinks) {
-              const text = (link.textContent || '').toLowerCase();
-              if (text.includes('logout') || text.includes('keluar')) {
-                link.click();
-                return { success: true, method: 'iframe_link_click' };
+        
+        // Check all iframes
+        const frames = document.querySelectorAll('iframe');
+        for (const frame of frames) {
+          try {
+            const frameDoc = frame.contentDocument || frame.contentWindow?.document;
+            if (frameDoc) {
+              const frameLinks = frameDoc.querySelectorAll('a');
+              for (const link of frameLinks) {
+                const text = (link.textContent || '').toLowerCase();
+                if (text.includes('logout') || text.includes('keluar')) {
+                  link.click();
+                  return { success: true, method: 'iframe_link' };
+                }
               }
             }
-          }
-        } catch (e) {}
-      }
-      
-      return { success: false };
-    });
-    
-    const timeoutPromise = new Promise(resolve => 
-      setTimeout(() => resolve({ success: false, timeout: true }), 5000)
+          } catch (e) {}
+        }
+        
+        return { success: false };
+      }),
+      5000,
+      'LOGOUT_CLICK'
     );
     
-    const result = await Promise.race([logoutPromise, timeoutPromise]);
+    const result = await logoutPromise;
     
     if (result.success) {
       await delay(2000);
       log(`Safe logout successful via ${result.method}`);
-    } else if (result.timeout) {
-      log('Logout timeout - will be cleared on next page refresh');
     }
     
-    // Try direct URL navigation as backup
-    try {
-      await page.goto('https://ibank.klikbca.com/logout.do', { 
+  } catch (e) {
+    log(`Logout click failed: ${e.message}`, 'WARN');
+  }
+  
+  // Method 2: Direct URL navigation (backup)
+  try {
+    await Promise.race([
+      page.goto('https://ibank.klikbca.com/logout.do', { 
         timeout: 5000,
         waitUntil: 'domcontentloaded' 
-      });
-      await delay(1000);
-    } catch (e) {}
-    
+      }),
+      new Promise(resolve => setTimeout(resolve, 5000))
+    ]);
+    await delay(1000);
+    log('Logout via direct URL navigation');
   } catch (e) {
-    log(`Safe logout error: ${e.message}`, 'WARN');
+    log('Direct logout navigation failed, session will be cleared on refresh', 'WARN');
   }
 }
 
 /**
  * Refresh page to clear any stuck session
- * This is the KEY feature of persistent mode
  */
 async function refreshToCleanState() {
   log('Refreshing page to clear session...');
@@ -361,11 +621,17 @@ async function refreshToCleanState() {
     // First try to logout if we're logged in
     await safeLogout();
     
-    // Navigate to login page (fresh start)
-    await page.goto('https://ibank.klikbca.com/', { 
-      waitUntil: 'networkidle2', 
-      timeout: CONFIG.TIMEOUT 
-    });
+    // Navigate to login page (fresh start) with retry
+    await retryWithBackoff(
+      async () => {
+        await page.goto('https://ibank.klikbca.com/', { 
+          waitUntil: 'networkidle2', 
+          timeout: CONFIG.TIMEOUT 
+        });
+      },
+      3,
+      'NAVIGATE_TO_LOGIN'
+    );
     
     await delay(2000);
     log('Page refreshed - clean state ready');
@@ -373,7 +639,7 @@ async function refreshToCleanState() {
   } catch (e) {
     log(`Refresh failed: ${e.message}`, 'ERROR');
     // If refresh fails, restart browser
-    await initBrowser();
+    await forceKillAndRestart();
     await page.goto('https://ibank.klikbca.com/', { 
       waitUntil: 'networkidle2', 
       timeout: CONFIG.TIMEOUT 
@@ -483,8 +749,27 @@ async function submitLogin(frame) {
 // === SCRAPE FUNCTIONS ===
 
 /**
+ * Execute a single scrape with global timeout wrapper
+ */
+async function executeScrapeWithTimeout() {
+  const scrapePromise = executeScrape();
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('GLOBAL_SCRAPE_TIMEOUT')), CONFIG.GLOBAL_SCRAPE_TIMEOUT)
+  );
+  
+  try {
+    return await Promise.race([scrapePromise, timeoutPromise]);
+  } catch (e) {
+    log(`Global timeout exceeded (${CONFIG.GLOBAL_SCRAPE_TIMEOUT / 1000}s)! Force restarting browser...`, 'ERROR');
+    lastError = 'GLOBAL_TIMEOUT';
+    errorCount++;
+    await forceKillAndRestart();
+    return { success: false, error: 'GLOBAL_TIMEOUT' };
+  }
+}
+
+/**
  * Execute a single scrape (normal mode)
- * Uses the persistent browser, starts with page refresh
  */
 async function executeScrape() {
   if (!isIdle) {
@@ -500,29 +785,45 @@ async function executeScrape() {
   log(`=== STARTING SCRAPE #${scrapeCount} (NORMAL MODE) ===`);
   
   try {
+    // Pre-scrape checks
+    if (!await isPageHealthy()) {
+      log('Page unhealthy before scrape, restarting browser...', 'WARN');
+      await forceKillAndRestart();
+    }
+    
     // Step 1: Refresh page to clear any stuck session
     await refreshToCleanState();
     await saveDebug(page, '01-login-page');
     
-    // Step 2: Find login frame
-    const frameResult = await findLoginFrame();
+    // Step 2: Find login frame with retry
+    const frameResult = await retryWithBackoff(
+      () => findLoginFrame(),
+      3,
+      'FIND_LOGIN_FRAME'
+    );
+    
     if (!frameResult) {
-      throw new Error('Could not find login form');
+      throw new Error('Could not find login form after 3 attempts');
     }
     
     const { frame, isMainPage } = frameResult;
     log(`Using ${isMainPage ? 'main page' : 'iframe'} for login`);
     
-    // Step 3: Enter credentials
-    const credentialsEntered = await enterCredentials(frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+    // Step 3: Enter credentials with retry
+    const credentialsEntered = await retryWithBackoff(
+      () => enterCredentials(frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN),
+      2,
+      'ENTER_CREDENTIALS'
+    );
+    
     if (!credentialsEntered) {
-      throw new Error('Failed to enter credentials');
+      throw new Error('Failed to enter credentials after retries');
     }
     
     await saveDebug(page, '02-credentials-entered');
     
     // Step 4: Submit login
-    const submitted = await submitLogin(frame);
+    await submitLogin(frame);
     await delay(3000);
     
     // Check if still on login page
@@ -537,53 +838,66 @@ async function executeScrape() {
     // Final login check
     const finalLoginCheck = await findLoginFrame();
     if (finalLoginCheck) {
-      throw new Error('Login failed - still on login page');
+      throw new Error('LOGIN_FAILED - still on login page');
+    }
+    
+    // Check for session expiry
+    if (await checkSessionExpired()) {
+      throw new Error('SESSION_EXPIRED - detected after login attempt');
     }
     
     log('LOGIN SUCCESSFUL!');
     await saveDebug(page, '03-logged-in');
     
-    // Step 5: Navigate to Mutasi Rekening
+    // Step 5: Navigate to Mutasi Rekening with safe operations
     await delay(2000);
     
     const menuFrame = page.frames().find(f => f.name() === 'menu');
     if (!menuFrame) {
-      throw new Error('Menu frame not found');
+      throw new Error('FRAME_NOT_FOUND - Menu frame');
     }
     
-    // Click Informasi Rekening
-    await menuFrame.evaluate(() => {
-      const links = document.querySelectorAll('a');
-      for (const link of links) {
-        const text = (link.textContent || '').toLowerCase();
-        if (text.includes('informasi rekening') || text.includes('account information')) {
-          link.click();
-          return true;
+    // Click Informasi Rekening with timeout protection
+    await safeFrameOperation(
+      () => menuFrame.evaluate(() => {
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+          const text = (link.textContent || '').toLowerCase();
+          if (text.includes('informasi rekening') || text.includes('account information')) {
+            link.click();
+            return true;
+          }
         }
-      }
-      return false;
-    });
+        return false;
+      }),
+      CONFIG.FRAME_OPERATION_TIMEOUT,
+      'CLICK_INFORMASI_REKENING'
+    );
     await delay(3000);
     
-    // Click Mutasi Rekening
+    // Click Mutasi Rekening with timeout protection
     const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
-    await updatedMenuFrame.evaluate(() => {
-      const links = document.querySelectorAll('a');
-      for (const link of links) {
-        const text = (link.textContent || '').toLowerCase();
-        if (text.includes('mutasi rekening') || text.includes('account statement')) {
-          link.click();
-          return true;
+    await safeFrameOperation(
+      () => updatedMenuFrame.evaluate(() => {
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+          const text = (link.textContent || '').toLowerCase();
+          if (text.includes('mutasi rekening') || text.includes('account statement')) {
+            link.click();
+            return true;
+          }
         }
-      }
-      return false;
-    });
+        return false;
+      }),
+      CONFIG.FRAME_OPERATION_TIMEOUT,
+      'CLICK_MUTASI_REKENING'
+    );
     await delay(3000);
     
     // Step 6: Set date and view
     let atmFrame = page.frames().find(f => f.name() === 'atm');
     if (!atmFrame) {
-      throw new Error('ATM frame not found');
+      throw new Error('FRAME_NOT_FOUND - ATM frame');
     }
     
     const today = getJakartaDate();
@@ -593,112 +907,118 @@ async function executeScrape() {
     
     log(`Setting date: ${day}/${month}/${currentYear} (Jakarta: ${getJakartaDateString()})`);
     
-    await atmFrame.evaluate((day, month) => {
-      const selectors = [
-        { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' },
-        { start: 'select[name="startDt"]', startMt: 'select[name="startMt"]', end: 'select[name="endDt"]', endMt: 'select[name="endMt"]' }
-      ];
-      
-      for (const sel of selectors) {
-        const startDt = document.querySelector(sel.start);
-        const startMt = document.querySelector(sel.startMt);
-        const endDt = document.querySelector(sel.end);
-        const endMt = document.querySelector(sel.endMt);
+    await safeFrameOperation(
+      () => atmFrame.evaluate((day, month) => {
+        const selectors = [
+          { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' },
+          { start: 'select[name="startDt"]', startMt: 'select[name="startMt"]', end: 'select[name="endDt"]', endMt: 'select[name="endMt"]' }
+        ];
         
-        if (startDt && startMt && endDt && endMt) {
-          startDt.value = day;
-          startMt.value = month;
-          endDt.value = day;
-          endMt.value = month;
-          return true;
+        for (const sel of selectors) {
+          const startDt = document.querySelector(sel.start);
+          const startMt = document.querySelector(sel.startMt);
+          const endDt = document.querySelector(sel.end);
+          const endMt = document.querySelector(sel.endMt);
+          
+          if (startDt && startMt && endDt && endMt) {
+            startDt.value = day;
+            startMt.value = month;
+            endDt.value = day;
+            endMt.value = month;
+            return true;
+          }
         }
-      }
-      return false;
-    }, day, month);
-    
-    // Click Lihat with timeout protection
-    const clickPromise = atmFrame.evaluate(() => {
-      const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"]');
-      for (const btn of buttons) {
-        if (btn.value.toLowerCase().includes('lihat') || btn.value.toLowerCase().includes('view') || btn.type === 'submit') {
-          btn.click();
-          return { success: true };
-        }
-      }
-      return { success: false };
-    });
-    
-    const timeoutPromise = new Promise(resolve => 
-      setTimeout(() => resolve({ success: true, timeout: true }), 5000)
+        return false;
+      }, day, month),
+      CONFIG.FRAME_OPERATION_TIMEOUT,
+      'SET_DATE'
     );
     
-    await Promise.race([clickPromise, timeoutPromise]);
+    // Click Lihat with timeout protection
+    await safeFrameOperation(
+      () => atmFrame.evaluate(() => {
+        const buttons = document.querySelectorAll('input[type="submit"], input[value*="Lihat"], input[value*="View"]');
+        for (const btn of buttons) {
+          if (btn.value.toLowerCase().includes('lihat') || btn.value.toLowerCase().includes('view') || btn.type === 'submit') {
+            btn.click();
+            return { success: true };
+          }
+        }
+        return { success: false };
+      }),
+      CONFIG.FRAME_OPERATION_TIMEOUT,
+      'CLICK_LIHAT'
+    );
     await delay(3000);
     
-    // Step 7: Parse mutations
+    // Step 7: Parse mutations with timeout protection
     atmFrame = page.frames().find(f => f.name() === 'atm');
     await saveDebug(page, '04-mutations-result');
     
-    const parseResult = await atmFrame.evaluate((year) => {
-      const results = [];
-      const seen = new Set();
-      const tables = document.querySelectorAll('table');
-      
-      for (const table of tables) {
-        const rows = table.querySelectorAll('tr');
-        for (const row of rows) {
-          const cells = row.querySelectorAll('td');
-          if (cells.length > 10) continue;
-          
-          if (cells.length >= 4) {
-            const firstCell = (cells[0]?.innerText || '').trim();
-            const firstCellUpper = firstCell.toUpperCase();
+    const parseResult = await safeFrameOperation(
+      () => atmFrame.evaluate((year) => {
+        const results = [];
+        const seen = new Set();
+        const tables = document.querySelectorAll('table');
+        
+        for (const table of tables) {
+          const rows = table.querySelectorAll('tr');
+          for (const row of rows) {
+            const cells = row.querySelectorAll('td');
+            if (cells.length > 10) continue;
             
-            const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
-            const isPending = firstCellUpper.includes('PEND');
-            
-            if (dateMatch || isPending) {
-              let date;
-              if (isPending) {
-                const now = new Date();
-                const day = String(now.getDate()).padStart(2, '0');
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                date = `${year}-${month}-${day}`;
-              } else {
-                const day = dateMatch[1].padStart(2, '0');
-                const month = dateMatch[2].padStart(2, '0');
-                date = `${year}-${month}-${day}`;
-              }
+            if (cells.length >= 4) {
+              const firstCell = (cells[0]?.innerText || '').trim();
+              const firstCellUpper = firstCell.toUpperCase();
               
-              const description = cells[1]?.innerText?.trim() || '';
-              const mutasiCell = cells[3]?.innerText?.trim() || '';
+              const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
+              const isPending = firstCellUpper.includes('PEND');
               
-              let type = 'credit';
-              const descUpper = description.toUpperCase();
-              if (descUpper.includes(' DB') || descUpper.includes('/DB') || mutasiCell.toUpperCase().includes('DB')) {
-                type = 'debit';
-              }
-              
-              // Skip debits
-              if (type === 'debit') continue;
-              
-              const cleanedAmount = mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, '');
-              const amount = parseFloat(cleanedAmount);
-              
-              if (amount > 0) {
-                const dedupKey = `${date}-${Math.round(amount)}-${description.substring(0, 30)}`;
-                if (seen.has(dedupKey)) continue;
-                seen.add(dedupKey);
+              if (dateMatch || isPending) {
+                let date;
+                if (isPending) {
+                  const now = new Date();
+                  const day = String(now.getDate()).padStart(2, '0');
+                  const month = String(now.getMonth() + 1).padStart(2, '0');
+                  date = `${year}-${month}-${day}`;
+                } else {
+                  const day = dateMatch[1].padStart(2, '0');
+                  const month = dateMatch[2].padStart(2, '0');
+                  date = `${year}-${month}-${day}`;
+                }
                 
-                results.push({ date, amount: Math.round(amount), type, description });
+                const description = cells[1]?.innerText?.trim() || '';
+                const mutasiCell = cells[3]?.innerText?.trim() || '';
+                
+                let type = 'credit';
+                const descUpper = description.toUpperCase();
+                if (descUpper.includes(' DB') || descUpper.includes('/DB') || mutasiCell.toUpperCase().includes('DB')) {
+                  type = 'debit';
+                }
+                
+                // Skip debits
+                if (type === 'debit') continue;
+                
+                const cleanedAmount = mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, '');
+                const amount = parseFloat(cleanedAmount);
+                
+                if (amount > 0) {
+                  const dedupKey = `${date}-${Math.round(amount)}-${description.substring(0, 30)}`;
+                  if (seen.has(dedupKey)) continue;
+                  seen.add(dedupKey);
+                  
+                  results.push({ date, amount: Math.round(amount), type, description });
+                }
               }
             }
           }
         }
-      }
-      
-      return results;
-    }, currentYear);
+        
+        return results;
+      }, currentYear),
+      CONFIG.FRAME_OPERATION_TIMEOUT,
+      'PARSE_MUTATIONS'
+    );
     
     mutations = parseResult || [];
     log(`Found ${mutations.length} credit mutations`);
@@ -709,17 +1029,24 @@ async function executeScrape() {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     log(`=== SCRAPE COMPLETED in ${duration}s ===`);
     
+    successCount++;
+    lastError = null;
+    
     return { success: true, mutations, duration };
     
   } catch (error) {
-    log(`Scrape error: ${error.message}`, 'ERROR');
+    const errorType = categorizeError(error);
+    log(`Scrape error [${errorType}]: ${error.message}`, 'ERROR');
+    lastError = `${errorType}: ${error.message}`;
+    errorCount++;
+    
     await saveDebug(page, 'error-state');
     await safeLogout();
     
     // Restart browser on error
-    await initBrowser();
+    await forceKillAndRestart();
     
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, errorType };
   } finally {
     isIdle = true;
     lastScrapeTime = Date.now();
@@ -727,8 +1054,27 @@ async function executeScrape() {
 }
 
 /**
+ * Execute burst mode scrape with global timeout
+ */
+async function executeBurstScrapeWithTimeout() {
+  const scrapePromise = executeBurstScrape();
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('BURST_GLOBAL_TIMEOUT')), CONFIG.GLOBAL_SCRAPE_TIMEOUT * 2) // 4 minutes for burst
+  );
+  
+  try {
+    return await Promise.race([scrapePromise, timeoutPromise]);
+  } catch (e) {
+    log(`Burst global timeout! Force restarting browser...`, 'ERROR');
+    lastError = 'BURST_GLOBAL_TIMEOUT';
+    errorCount++;
+    await forceKillAndRestart();
+    return { success: false, error: 'BURST_GLOBAL_TIMEOUT' };
+  }
+}
+
+/**
  * Execute burst mode scrape
- * Login once, then loop Kembali + Lihat
  */
 async function executeBurstScrape() {
   if (!isIdle) {
@@ -748,10 +1094,21 @@ async function executeBurstScrape() {
   log(`=== STARTING BURST MODE SCRAPE #${scrapeCount} ===`);
   
   try {
+    // Pre-scrape checks
+    if (!await isPageHealthy()) {
+      log('Page unhealthy before burst, restarting browser...', 'WARN');
+      await forceKillAndRestart();
+    }
+    
     // Step 1: Refresh and login
     await refreshToCleanState();
     
-    const frameResult = await findLoginFrame();
+    const frameResult = await retryWithBackoff(
+      () => findLoginFrame(),
+      3,
+      'FIND_LOGIN_FRAME_BURST'
+    );
+    
     if (!frameResult) {
       throw new Error('Could not find login form');
     }
@@ -769,7 +1126,12 @@ async function executeBurstScrape() {
     
     const finalLoginCheck = await findLoginFrame();
     if (finalLoginCheck) {
-      throw new Error('Login failed');
+      throw new Error('LOGIN_FAILED');
+    }
+    
+    // Check session expiry
+    if (await checkSessionExpired()) {
+      throw new Error('SESSION_EXPIRED');
     }
     
     log('LOGIN SUCCESSFUL!');
@@ -778,62 +1140,78 @@ async function executeBurstScrape() {
     await delay(2000);
     
     const menuFrame = page.frames().find(f => f.name() === 'menu');
-    if (!menuFrame) throw new Error('Menu frame not found');
+    if (!menuFrame) throw new Error('FRAME_NOT_FOUND - Menu frame');
     
-    await menuFrame.evaluate(() => {
-      const links = document.querySelectorAll('a');
-      for (const link of links) {
-        const text = (link.textContent || '').toLowerCase();
-        if (text.includes('informasi rekening')) { link.click(); return; }
-      }
-    });
+    await safeFrameOperation(
+      () => menuFrame.evaluate(() => {
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+          const text = (link.textContent || '').toLowerCase();
+          if (text.includes('informasi rekening')) { link.click(); return; }
+        }
+      }),
+      CONFIG.FRAME_OPERATION_TIMEOUT,
+      'CLICK_INFORMASI_REKENING_BURST'
+    );
     await delay(3000);
     
     const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
-    await updatedMenuFrame.evaluate(() => {
-      const links = document.querySelectorAll('a');
-      for (const link of links) {
-        const text = (link.textContent || '').toLowerCase();
-        if (text.includes('mutasi rekening')) { link.click(); return; }
-      }
-    });
+    await safeFrameOperation(
+      () => updatedMenuFrame.evaluate(() => {
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+          const text = (link.textContent || '').toLowerCase();
+          if (text.includes('mutasi rekening')) { link.click(); return; }
+        }
+      }),
+      CONFIG.FRAME_OPERATION_TIMEOUT,
+      'CLICK_MUTASI_REKENING_BURST'
+    );
     await delay(3000);
     
     // Step 3: Set date
     let atmFrame = page.frames().find(f => f.name() === 'atm');
-    if (!atmFrame) throw new Error('ATM frame not found');
+    if (!atmFrame) throw new Error('FRAME_NOT_FOUND - ATM frame');
     
     const today = getJakartaDate();
     const day = String(today.getDate());
     const month = String(today.getMonth() + 1);
     const currentYear = today.getFullYear();
     
-    await atmFrame.evaluate((day, month) => {
-      const selectors = [
-        { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' }
-      ];
-      for (const sel of selectors) {
-        const startDt = document.querySelector(sel.start);
-        const startMt = document.querySelector(sel.startMt);
-        const endDt = document.querySelector(sel.end);
-        const endMt = document.querySelector(sel.endMt);
-        if (startDt && startMt && endDt && endMt) {
-          startDt.value = day; startMt.value = month;
-          endDt.value = day; endMt.value = month;
-          return;
+    await safeFrameOperation(
+      () => atmFrame.evaluate((day, month) => {
+        const selectors = [
+          { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' }
+        ];
+        for (const sel of selectors) {
+          const startDt = document.querySelector(sel.start);
+          const startMt = document.querySelector(sel.startMt);
+          const endDt = document.querySelector(sel.end);
+          const endMt = document.querySelector(sel.endMt);
+          if (startDt && startMt && endDt && endMt) {
+            startDt.value = day; startMt.value = month;
+            endDt.value = day; endMt.value = month;
+            return;
+          }
         }
-      }
-    }, day, month);
+      }, day, month),
+      CONFIG.FRAME_OPERATION_TIMEOUT,
+      'SET_DATE_BURST'
+    );
     
     // Step 4: First click Lihat
-    await atmFrame.evaluate(() => {
-      const buttons = document.querySelectorAll('input[type="submit"]');
-      for (const btn of buttons) {
-        if (btn.value.toLowerCase().includes('lihat') || btn.type === 'submit') {
-          btn.click(); return;
+    await safeFrameOperation(
+      () => atmFrame.evaluate(() => {
+        const buttons = document.querySelectorAll('input[type="submit"]');
+        for (const btn of buttons) {
+          if (btn.value.toLowerCase().includes('lihat') || btn.type === 'submit') {
+            btn.click(); return;
+          }
         }
-      }
-    });
+      }),
+      CONFIG.FRAME_OPERATION_TIMEOUT,
+      'CLICK_LIHAT_BURST'
+    );
     await delay(3000);
     
     // Step 5: Burst loop
@@ -843,52 +1221,65 @@ async function executeBurstScrape() {
       checkCount++;
       log(`--- Burst iteration #${checkCount} ---`);
       
-      atmFrame = page.frames().find(f => f.name() === 'atm');
-      if (!atmFrame) break;
+      // Check session during loop
+      if (await checkSessionExpired()) {
+        log('Session expired during burst loop, exiting...', 'WARN');
+        break;
+      }
       
-      // Grab data
-      const mutations = await atmFrame.evaluate((year) => {
-        const results = [];
-        const seen = new Set();
-        const tables = document.querySelectorAll('table');
-        
-        for (const table of tables) {
-          const rows = table.querySelectorAll('tr');
-          for (const row of rows) {
-            const cells = row.querySelectorAll('td');
-            if (cells.length > 10 || cells.length < 4) continue;
-            
-            const firstCell = (cells[0]?.innerText || '').trim();
-            const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
-            const isPending = firstCell.toUpperCase().includes('PEND');
-            
-            if (dateMatch || isPending) {
-              let date;
-              if (isPending) {
-                const now = new Date();
-                date = `${year}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-              } else {
-                date = `${year}-${dateMatch[2].padStart(2,'0')}-${dateMatch[1].padStart(2,'0')}`;
-              }
+      atmFrame = page.frames().find(f => f.name() === 'atm');
+      if (!atmFrame) {
+        log('ATM frame lost during burst, exiting...', 'WARN');
+        break;
+      }
+      
+      // Grab data with timeout
+      const mutations = await safeFrameOperation(
+        () => atmFrame.evaluate((year) => {
+          const results = [];
+          const seen = new Set();
+          const tables = document.querySelectorAll('table');
+          
+          for (const table of tables) {
+            const rows = table.querySelectorAll('tr');
+            for (const row of rows) {
+              const cells = row.querySelectorAll('td');
+              if (cells.length > 10 || cells.length < 4) continue;
               
-              const description = cells[1]?.innerText?.trim() || '';
-              const mutasiCell = cells[3]?.innerText?.trim() || '';
+              const firstCell = (cells[0]?.innerText || '').trim();
+              const dateMatch = firstCell.match(/^(\d{1,2})\/(\d{1,2})/);
+              const isPending = firstCell.toUpperCase().includes('PEND');
               
-              if (description.toUpperCase().includes('DB') || mutasiCell.toUpperCase().includes('DB')) continue;
-              
-              const amount = parseFloat(mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, ''));
-              if (amount > 0) {
-                const key = `${date}-${Math.round(amount)}-${description.substring(0,30)}`;
-                if (!seen.has(key)) {
-                  seen.add(key);
-                  results.push({ date, amount: Math.round(amount), type: 'credit', description });
+              if (dateMatch || isPending) {
+                let date;
+                if (isPending) {
+                  const now = new Date();
+                  date = `${year}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                } else {
+                  date = `${year}-${dateMatch[2].padStart(2,'0')}-${dateMatch[1].padStart(2,'0')}`;
+                }
+                
+                const description = cells[1]?.innerText?.trim() || '';
+                const mutasiCell = cells[3]?.innerText?.trim() || '';
+                
+                if (description.toUpperCase().includes('DB') || mutasiCell.toUpperCase().includes('DB')) continue;
+                
+                const amount = parseFloat(mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, ''));
+                if (amount > 0) {
+                  const key = `${date}-${Math.round(amount)}-${description.substring(0,30)}`;
+                  if (!seen.has(key)) {
+                    seen.add(key);
+                    results.push({ date, amount: Math.round(amount), type: 'credit', description });
+                  }
                 }
               }
             }
           }
-        }
-        return results;
-      }, currentYear);
+          return results;
+        }, currentYear),
+        CONFIG.FRAME_OPERATION_TIMEOUT,
+        'PARSE_MUTATIONS_BURST'
+      );
       
       log(`Found ${mutations.length} mutations`);
       
@@ -911,32 +1302,43 @@ async function executeBurstScrape() {
         break;
       }
       
-      // Click Kembali
-      const kembaliClicked = await atmFrame.evaluate(() => {
-        const buttons = document.querySelectorAll('input[type="button"], input[type="submit"]');
-        for (const btn of buttons) {
-          if (btn.value.toLowerCase().includes('kembali') || btn.value.toLowerCase().includes('back')) {
-            btn.click(); return true;
+      // Click Kembali with timeout
+      const kembaliClicked = await safeFrameOperation(
+        () => atmFrame.evaluate(() => {
+          const buttons = document.querySelectorAll('input[type="button"], input[type="submit"]');
+          for (const btn of buttons) {
+            if (btn.value.toLowerCase().includes('kembali') || btn.value.toLowerCase().includes('back')) {
+              btn.click(); return true;
+            }
           }
-        }
-        return false;
-      });
+          return false;
+        }),
+        CONFIG.FRAME_OPERATION_TIMEOUT,
+        'CLICK_KEMBALI'
+      );
       
-      if (!kembaliClicked) break;
+      if (!kembaliClicked) {
+        log('Kembali button not found, exiting burst loop', 'WARN');
+        break;
+      }
       await delay(2000);
       
-      // Click Lihat again
+      // Click Lihat again with timeout
       atmFrame = page.frames().find(f => f.name() === 'atm');
       if (!atmFrame) break;
       
-      await atmFrame.evaluate(() => {
-        const buttons = document.querySelectorAll('input[type="submit"]');
-        for (const btn of buttons) {
-          if (btn.value.toLowerCase().includes('lihat') || btn.type === 'submit') {
-            btn.click(); return;
+      await safeFrameOperation(
+        () => atmFrame.evaluate(() => {
+          const buttons = document.querySelectorAll('input[type="submit"]');
+          for (const btn of buttons) {
+            if (btn.value.toLowerCase().includes('lihat') || btn.type === 'submit') {
+              btn.click(); return;
+            }
           }
-        }
-      });
+        }),
+        CONFIG.FRAME_OPERATION_TIMEOUT,
+        'CLICK_LIHAT_LOOP'
+      );
       await delay(3000);
     }
     
@@ -948,13 +1350,20 @@ async function executeBurstScrape() {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     log(`=== BURST COMPLETED in ${duration}s ===`);
     
+    successCount++;
+    lastError = null;
+    
     return { success: true, iterations: checkCount, matchFound, duration };
     
   } catch (error) {
-    log(`Burst error: ${error.message}`, 'ERROR');
+    const errorType = categorizeError(error);
+    log(`Burst error [${errorType}]: ${error.message}`, 'ERROR');
+    lastError = `${errorType}: ${error.message}`;
+    errorCount++;
+    
     await safeLogout();
-    await initBrowser();
-    return { success: false, error: error.message };
+    await forceKillAndRestart();
+    return { success: false, error: error.message, errorType };
   } finally {
     isIdle = true;
     lastScrapeTime = Date.now();
@@ -1005,6 +1414,7 @@ async function sendToWebhook(mutations) {
         bank_name: 'BCA',
         account_number: CONFIG.ACCOUNT_NUMBER,
         scraped_at: new Date().toISOString(),
+        scraper_version: SCRAPER_VERSION,
       }),
     });
     return await response.json();
@@ -1017,10 +1427,11 @@ async function sendToWebhook(mutations) {
 // === MAIN LOOP ===
 
 async function mainLoop() {
-  log('=== PERSISTENT BROWSER SCHEDULER STARTED ===');
+  log('=== ULTRA-ROBUST SCHEDULER STARTED ===');
   log(`Config URL: ${CONFIG_URL}`);
   log(`Poll interval: ${CONFIG.CONFIG_POLL_INTERVAL / 1000}s`);
   log(`Watchdog interval: ${CONFIG.WATCHDOG_INTERVAL / 1000}s`);
+  log(`Heartbeat interval: ${CONFIG.HEARTBEAT_INTERVAL / 1000}s`);
   
   // Initialize browser
   await initBrowser();
@@ -1028,8 +1439,24 @@ async function mainLoop() {
   // Start watchdog
   setInterval(watchdog, CONFIG.WATCHDOG_INTERVAL);
   
+  // Start heartbeat
+  await sendHeartbeat('started');
+  heartbeatInterval = setInterval(() => sendHeartbeat('running'), CONFIG.HEARTBEAT_INTERVAL);
+  
   while (true) {
     try {
+      // Pre-loop health check
+      if (!await isPageHealthy()) {
+        log('Page unhealthy in main loop, restarting browser...', 'WARN');
+        await forceKillAndRestart();
+      }
+      
+      // Check if browser needs restart
+      if (shouldRestartBrowser()) {
+        log('Scheduled browser restart in main loop...');
+        await forceKillAndRestart();
+      }
+      
       // Fetch config from server
       const config = await fetchServerConfig();
       
@@ -1052,22 +1479,25 @@ async function mainLoop() {
           log('=== ENTERING BURST MODE ===');
           isBurstMode = true;
           burstEndTime = Date.now() + (config.burst_remaining_seconds * 1000);
+          await sendHeartbeat('burst_mode');
         }
         
-        // Execute burst scrape
-        await executeBurstScrape();
+        // Execute burst scrape with global timeout
+        await executeBurstScrapeWithTimeout();
         
         // Check if burst ended
         const updatedConfig = await fetchServerConfig();
         if (!updatedConfig?.burst_in_progress) {
           log('=== BURST MODE ENDED ===');
           isBurstMode = false;
+          await sendHeartbeat('running');
         }
         continue;
       } else {
         if (isBurstMode) {
           log('=== BURST MODE ENDED ===');
           isBurstMode = false;
+          await sendHeartbeat('running');
         }
       }
       
@@ -1078,7 +1508,8 @@ async function mainLoop() {
         if (timeSinceLastScrape >= currentIntervalMs) {
           log(`Time to scrape (${(timeSinceLastScrape / 60000).toFixed(1)}m since last)`);
           
-          const result = await executeScrape();
+          // Execute scrape with global timeout
+          const result = await executeScrapeWithTimeout();
           
           if (result.success && result.mutations && result.mutations.length > 0) {
             const webhookResult = await sendToWebhook(result.mutations);
@@ -1095,7 +1526,14 @@ async function mainLoop() {
       }
       
     } catch (error) {
-      log(`Loop error: ${error.message}`, 'ERROR');
+      const errorType = categorizeError(error);
+      log(`Loop error [${errorType}]: ${error.message}`, 'ERROR');
+      lastError = `${errorType}: ${error.message}`;
+      errorCount++;
+      
+      // Force restart on loop error
+      await sendHeartbeat('error');
+      await forceKillAndRestart();
     }
     
     // Wait before next config poll
@@ -1107,6 +1545,8 @@ async function mainLoop() {
 
 process.on('SIGINT', async () => {
   log('Received SIGINT, shutting down...');
+  await sendHeartbeat('shutdown');
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
   if (browser) {
     await safeLogout();
     await browser.close();
@@ -1116,6 +1556,8 @@ process.on('SIGINT', async () => {
 
 process.on('SIGTERM', async () => {
   log('Received SIGTERM, shutting down...');
+  await sendHeartbeat('shutdown');
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
   if (browser) {
     await safeLogout();
     await browser.close();
@@ -1123,9 +1565,25 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
+// Handle uncaught exceptions
+process.on('uncaughtException', async (error) => {
+  log(`UNCAUGHT EXCEPTION: ${error.message}`, 'ERROR');
+  lastError = `UNCAUGHT: ${error.message}`;
+  await sendHeartbeat('crash');
+  await forceKillAndRestart();
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+  log(`UNHANDLED REJECTION: ${reason}`, 'ERROR');
+  lastError = `UNHANDLED: ${reason}`;
+  await sendHeartbeat('crash');
+  await forceKillAndRestart();
+});
+
 // === START ===
 
-mainLoop().catch(err => {
+mainLoop().catch(async (err) => {
   log(`Fatal error: ${err.message}`, 'ERROR');
+  await sendHeartbeat('fatal');
   process.exit(1);
 });
