@@ -5,16 +5,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Embedded scraper files content - v4.1.3 Burst Fix Mode
+// Embedded scraper files content - v4.1.4 Full Navigation Burst Mode
 const SCRAPER_FILES: Record<string, string> = {
   'bca-scraper.js': `/**
- * BCA iBanking Scraper - SESSION REUSE MODE v4.1.3
+ * BCA iBanking Scraper - SESSION REUSE MODE v4.1.4
  * 
  * Features:
  * - Browser standby 24/7, siap dipakai kapan saja
  * - LOGIN COOLDOWN: Respects BCA 5-minute login limit (skipped if logout successful)
  * - SESSION REUSE: Burst mode reuses active session (no re-login)
- * - NO LOGOUT DURING BURST: Session kept active between burst iterations
+ * - FULL NAVIGATION LOOP: Step 5-6-7 per burst iteration for reliable data
+ * - STOP ON MATCH: Immediately exits loop when payment matched
  * - POST-BURST COOLDOWN: 10s delay after burst ends to prevent restart loops
  * - BURST TIMING RESET: VPS gets full duration from first fetch
  * - Global scrape timeout (max 2 menit per scrape)
@@ -31,8 +32,9 @@ const SCRAPER_FILES: Record<string, string> = {
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.3";
+const SCRAPER_VERSION = "4.1.4";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v4.1.4: Full navigation per burst iteration (Step 5-6-7 loop), stop on match
 // v4.1.3: Burst Fix - no logout during burst, post-burst cooldown, timing reset
 // v4.1.2: Fix cooldown - skip 5-min wait if previous logout was successful
 // v4.1.1: Fixed logout - uses correct BCA selector #gotohome and goToPage()
@@ -2105,8 +2107,8 @@ Deno.serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: errorCount === 0,
-      message: `Synced ${successCount}/${results.length} files (v4.1.3 Burst Fix Mode)`,
-      version: '4.1.3',
+      message: `Synced ${successCount}/${results.length} files (v4.1.4 Full Navigation Burst Mode)`,
+      version: '4.1.4',
       results,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

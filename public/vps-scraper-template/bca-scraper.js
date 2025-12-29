@@ -1,11 +1,12 @@
 /**
- * BCA iBanking Scraper - SESSION REUSE MODE v4.1.3
+ * BCA iBanking Scraper - SESSION REUSE MODE v4.1.4
  * 
  * Features:
  * - Browser standby 24/7, siap dipakai kapan saja
  * - LOGIN COOLDOWN: Respects BCA 5-minute login limit (skipped if logout successful)
  * - SESSION REUSE: Burst mode reuses active session (no re-login)
- * - NO LOGOUT DURING BURST: Session kept active between burst iterations
+ * - FULL NAVIGATION LOOP: Step 5-6-7 per burst iteration for reliable data
+ * - STOP ON MATCH: Immediately exits loop when payment matched
  * - POST-BURST COOLDOWN: 10s delay after burst ends to prevent restart loops
  * - BURST TIMING RESET: VPS gets full duration from first fetch
  * - Global scrape timeout (max 2 menit per scrape)
@@ -22,8 +23,9 @@
  */
 
 // ============ SCRAPER VERSION ============
-const SCRAPER_VERSION = "4.1.3";
+const SCRAPER_VERSION = "4.1.4";
 const SCRAPER_BUILD_DATE = "2025-12-29";
+// v4.1.4: Full navigation per burst iteration (Step 5-6-7 loop), stop on match
 // v4.1.3: Burst Fix - no logout during burst, post-burst cooldown, timing reset
 // v4.1.2: Fix cooldown - skip 5-min wait if previous logout was successful
 // v4.1.1: Fixed logout - uses correct BCA selector #gotohome and goToPage()
@@ -1463,10 +1465,13 @@ async function executeBurstScrapeWithTimeout() {
 
 /**
  * Execute burst mode scrape
- * v4.1.0: Uses ensureLoggedIn() to respect BCA 5-minute login cooldown
- * - Reuses existing session if still valid
- * - Only logs in if cooldown allows
- * - Does NOT increment scrapeCount per burst call (ensureLoggedIn handles it)
+ * v4.1.4: Full navigation (Step 5-6-7) per iteration, stop on match
+ * - Login once at start
+ * - Full navigation to Mutasi Rekening each iteration
+ * - Set date + Click Lihat each iteration  
+ * - Parse mutations and check for match
+ * - STOP IMMEDIATELY if match found
+ * - Logout once at end
  */
 async function executeBurstScrape() {
   if (!isIdle) {
@@ -1475,56 +1480,62 @@ async function executeBurstScrape() {
   }
   
   isIdle = false;
-  // v4.1.0: DON'T increment scrapeCount here - ensureLoggedIn() handles it for actual logins
   const startTime = Date.now();
   
   const maxIterations = 24;
-  const maxDuration = 150000; // 2.5 minutes
+  const maxDuration = 180000; // 3 minutes (increased for full navigation)
   let checkCount = 0;
   let matchFound = false;
   
-  log(`=== STARTING BURST MODE ===`);
+  log(`=== STARTING BURST MODE v4.1.4 ===`);
   log(`Session reuse: ${isLoggedIn ? 'checking...' : 'need login'}`);
   log(`Last login: ${lastLoginTime > 0 ? ((Date.now() - lastLoginTime) / 1000).toFixed(0) + 's ago' : 'never'}`);
   log(`Cooldown remaining: ${(getLoginCooldownRemaining() / 1000).toFixed(0)}s`);
+  log(`Max iterations: ${maxIterations}, Max duration: ${maxDuration/1000}s`);
   
   try {
     // Pre-scrape checks
     if (!await isPageHealthy()) {
       log('Page unhealthy before burst, restarting browser...', 'WARN');
       await forceKillAndRestart();
-      isLoggedIn = false; // Reset login state after browser restart
+      isLoggedIn = false;
     }
     
-    // v4.1.0: Use ensureLoggedIn() - handles cooldown and session reuse
+    // STEP 1-4: Login once using ensureLoggedIn()
     const loginSuccess = await ensureLoggedIn();
     if (!loginSuccess) {
       throw new Error('Failed to ensure login state');
     }
     
-    // Step 2: Navigate to Mutasi Rekening (if not already there)
-    await delay(1000);
+    log('Login successful, starting burst loop with full navigation per iteration');
     
-    // Check if we're already on mutasi page (session reuse case)
-    let atmFrame = page.frames().find(f => f.name() === 'atm');
-    const alreadyOnMutasi = atmFrame && await safeFrameOperation(
-      () => atmFrame.evaluate(() => {
-        const buttons = document.querySelectorAll('input[type="submit"]');
-        for (const btn of buttons) {
-          if (btn.value.toLowerCase().includes('lihat')) return true;
-        }
-        return false;
-      }),
-      3000,
-      'CHECK_MUTASI_PAGE'
-    ).catch(() => false);
+    // Get date info once (used for all iterations)
+    const today = getJakartaDate();
+    const day = String(today.getDate());
+    const month = String(today.getMonth() + 1);
+    const currentYear = today.getFullYear();
     
-    if (!alreadyOnMutasi) {
-      log('Navigating to Mutasi Rekening...');
+    // === BURST LOOP: Full Step 5-6-7 per iteration ===
+    while (checkCount < maxIterations && (Date.now() - startTime < maxDuration)) {
+      checkCount++;
+      log(`--- Burst iteration #${checkCount}/${maxIterations} ---`);
+      
+      // Check session during loop
+      if (await checkSessionExpired()) {
+        log('Session expired during burst loop, exiting...', 'WARN');
+        break;
+      }
+      
+      // === STEP 5: Navigate to Mutasi Rekening ===
+      log('Step 5: Navigating to Mutasi Rekening...');
       
       const menuFrame = page.frames().find(f => f.name() === 'menu');
-      if (!menuFrame) throw new Error('FRAME_NOT_FOUND - Menu frame');
+      if (!menuFrame) {
+        log('Menu frame not found, exiting loop', 'WARN');
+        break;
+      }
       
+      // Click "Informasi Rekening"
       await safeFrameOperation(
         () => menuFrame.evaluate(() => {
           const links = document.querySelectorAll('a');
@@ -1534,11 +1545,17 @@ async function executeBurstScrape() {
           }
         }),
         CONFIG.FRAME_OPERATION_TIMEOUT,
-        'CLICK_INFORMASI_REKENING_BURST'
+        'CLICK_INFORMASI_REKENING_LOOP'
       );
       await delay(3000);
       
+      // Click "Mutasi Rekening"
       const updatedMenuFrame = page.frames().find(f => f.name() === 'menu');
+      if (!updatedMenuFrame) {
+        log('Updated menu frame not found after Informasi Rekening click', 'WARN');
+        break;
+      }
+      
       await safeFrameOperation(
         () => updatedMenuFrame.evaluate(() => {
           const links = document.querySelectorAll('a');
@@ -1548,76 +1565,60 @@ async function executeBurstScrape() {
           }
         }),
         CONFIG.FRAME_OPERATION_TIMEOUT,
-        'CLICK_MUTASI_REKENING_BURST'
+        'CLICK_MUTASI_REKENING_LOOP'
       );
       await delay(3000);
-    } else {
-      log('Already on Mutasi page, reusing navigation');
-    }
-    
-    // Step 3: Set date
-    atmFrame = page.frames().find(f => f.name() === 'atm');
-    if (!atmFrame) throw new Error('FRAME_NOT_FOUND - ATM frame');
-    
-    const today = getJakartaDate();
-    const day = String(today.getDate());
-    const month = String(today.getMonth() + 1);
-    const currentYear = today.getFullYear();
-    
-    await safeFrameOperation(
-      () => atmFrame.evaluate((day, month) => {
-        const selectors = [
-          { start: 'select[name="value(startDt)"]', startMt: 'select[name="value(startMt)"]', end: 'select[name="value(endDt)"]', endMt: 'select[name="value(endMt)"]' }
-        ];
-        for (const sel of selectors) {
-          const startDt = document.querySelector(sel.start);
-          const startMt = document.querySelector(sel.startMt);
-          const endDt = document.querySelector(sel.end);
-          const endMt = document.querySelector(sel.endMt);
+      
+      // === STEP 6: Set Date + Click Lihat ===
+      log('Step 6: Setting date and clicking Lihat...');
+      
+      let atmFrame = page.frames().find(f => f.name() === 'atm');
+      if (!atmFrame) {
+        log('ATM frame not found for date setting, exiting loop', 'WARN');
+        break;
+      }
+      
+      // Set date selectors
+      await safeFrameOperation(
+        () => atmFrame.evaluate((day, month) => {
+          const startDt = document.querySelector('select[name="value(startDt)"]');
+          const startMt = document.querySelector('select[name="value(startMt)"]');
+          const endDt = document.querySelector('select[name="value(endDt)"]');
+          const endMt = document.querySelector('select[name="value(endMt)"]');
           if (startDt && startMt && endDt && endMt) {
             startDt.value = day; startMt.value = month;
             endDt.value = day; endMt.value = month;
-            return;
           }
-        }
-      }, day, month),
-      CONFIG.FRAME_OPERATION_TIMEOUT,
-      'SET_DATE_BURST'
-    );
-    
-    // Step 4: First click Lihat
-    await safeFrameOperation(
-      () => atmFrame.evaluate(() => {
-        const buttons = document.querySelectorAll('input[type="submit"]');
-        for (const btn of buttons) {
-          if (btn.value.toLowerCase().includes('lihat') || btn.type === 'submit') {
-            btn.click(); return;
+        }, day, month),
+        CONFIG.FRAME_OPERATION_TIMEOUT,
+        'SET_DATE_LOOP'
+      );
+      
+      // Click Lihat button
+      await safeFrameOperation(
+        () => atmFrame.evaluate(() => {
+          const buttons = document.querySelectorAll('input[type="submit"]');
+          for (const btn of buttons) {
+            if (btn.value.toLowerCase().includes('lihat')) {
+              btn.click(); return;
+            }
           }
-        }
-      }),
-      CONFIG.FRAME_OPERATION_TIMEOUT,
-      'CLICK_LIHAT_BURST'
-    );
-    await delay(3000);
-    
-    
-    while (checkCount < maxIterations && (Date.now() - startTime < maxDuration)) {
-      checkCount++;
-      log(`--- Burst iteration #${checkCount} ---`);
+        }),
+        CONFIG.FRAME_OPERATION_TIMEOUT,
+        'CLICK_LIHAT_LOOP'
+      );
+      await delay(3000);
       
-      // Check session during loop
-      if (await checkSessionExpired()) {
-        log('Session expired during burst loop, exiting...', 'WARN');
-        break;
-      }
-      
+      // CRITICAL: Re-grab atmFrame after Lihat click (page reloads)
       atmFrame = page.frames().find(f => f.name() === 'atm');
       if (!atmFrame) {
-        log('ATM frame lost during burst, exiting...', 'WARN');
+        log('ATM frame lost after Lihat click, exiting loop', 'WARN');
         break;
       }
       
-      // Grab data with timeout
+      // === STEP 7: Parse Mutations ===
+      log('Step 7: Parsing mutations...');
+      
       const mutations = await safeFrameOperation(
         () => atmFrame.evaluate((year) => {
           const results = [];
@@ -1646,6 +1647,7 @@ async function executeBurstScrape() {
                 const description = cells[1]?.innerText?.trim() || '';
                 const mutasiCell = cells[3]?.innerText?.trim() || '';
                 
+                // Skip debit transactions
                 if (description.toUpperCase().includes('DB') || mutasiCell.toUpperCase().includes('DB')) continue;
                 
                 const amount = parseFloat(mutasiCell.replace(/,/g, '').replace(/[^0-9.]/g, ''));
@@ -1662,20 +1664,21 @@ async function executeBurstScrape() {
           return results;
         }, currentYear),
         CONFIG.FRAME_OPERATION_TIMEOUT,
-        'PARSE_MUTATIONS_BURST'
+        'PARSE_MUTATIONS_LOOP'
       );
       
-      log(`Found ${mutations.length} mutations`);
+      log(`Found ${mutations.length} mutations in iteration #${checkCount}`);
       
       // Send to webhook if found
       if (mutations.length > 0) {
         const result = await sendToWebhook(mutations);
         log(`Webhook result: ${JSON.stringify(result)}`);
         
+        // === STOP ON MATCH ===
         if (result.matched && result.matched > 0) {
-          log('MATCH FOUND! Payment verified.');
+          log(`🎯 MATCH FOUND! Payment verified at iteration #${checkCount}`);
           matchFound = true;
-          break;
+          break; // EXIT LOOP IMMEDIATELY
         }
       }
       
@@ -1686,51 +1689,16 @@ async function executeBurstScrape() {
         break;
       }
       
-      // Click Kembali with timeout
-      const kembaliClicked = await safeFrameOperation(
-        () => atmFrame.evaluate(() => {
-          const buttons = document.querySelectorAll('input[type="button"], input[type="submit"]');
-          for (const btn of buttons) {
-            if (btn.value.toLowerCase().includes('kembali') || btn.value.toLowerCase().includes('back')) {
-              btn.click(); return true;
-            }
-          }
-          return false;
-        }),
-        CONFIG.FRAME_OPERATION_TIMEOUT,
-        'CLICK_KEMBALI'
-      );
-      
-      if (!kembaliClicked) {
-        log('Kembali button not found, exiting burst loop', 'WARN');
-        break;
-      }
+      // Small delay before next full navigation iteration
+      log(`Iteration #${checkCount} complete, waiting 2s before next...`);
       await delay(2000);
-      
-      // Click Lihat again with timeout
-      atmFrame = page.frames().find(f => f.name() === 'atm');
-      if (!atmFrame) break;
-      
-      await safeFrameOperation(
-        () => atmFrame.evaluate(() => {
-          const buttons = document.querySelectorAll('input[type="submit"]');
-          for (const btn of buttons) {
-            if (btn.value.toLowerCase().includes('lihat') || btn.type === 'submit') {
-              btn.click(); return;
-            }
-          }
-        }),
-        CONFIG.FRAME_OPERATION_TIMEOUT,
-        'CLICK_LIHAT_LOOP'
-      );
-      await delay(3000);
     }
     
-    log(`=== BURST LOOP ENDED (${checkCount} iterations, match=${matchFound}) ===`);
+    log(`=== BURST LOOP ENDED ===`);
+    log(`Iterations: ${checkCount}/${maxIterations}, Match found: ${matchFound}`);
     
-    // v4.1.3: Keep session active during burst - don't logout between iterations
-    // Session will be reused for next burst iteration or normal scrape
-    log('Session kept active for potential next iteration (v4.1.3)');
+    // v4.1.4: Session kept active - logout will happen in mainLoop when burst ends
+    log('Session kept active for potential next iteration');
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     log(`=== BURST COMPLETED in ${duration}s ===`);
