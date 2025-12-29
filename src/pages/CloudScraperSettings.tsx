@@ -1245,18 +1245,18 @@ FITUR v4.0.0 ULTRA-ROBUST:
                 </div>
               </div>
 
-              {/* Update v3.0.0 Package */}
+              {/* Update v4.0.0 Ultra-Robust Package */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/30 rounded-lg">
                 <div className="flex-1">
                   <h4 className="font-semibold flex items-center gap-2 text-orange-700 dark:text-orange-400">
                     <Zap className="h-4 w-4" />
-                    Update v3.0.0 - Persistent Browser Mode (24 Jam)
+                    Update v4.0.0 - Ultra-Robust Mode
                   </h4>
                   <p className="text-sm text-muted-foreground mt-1">
                     Berisi: bca-scraper.js, bca-scraper.service, install.sh, install-service.sh, dan UPDATE-INSTRUCTIONS.txt
                   </p>
                   <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                    ⚡ No resource limits • 4GB Node.js heap • 24/7 browser standby
+                    🛡️ Global Timeout • Safe Frame Ops • Session Recovery • Auto-Restart
                   </p>
                 </div>
                 <Button 
@@ -1270,7 +1270,7 @@ FITUR v4.0.0 ULTRA-ROBUST:
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  Update 24 Jam v3.0.0
+                  Update Ultra-Robust v4.0.0
                 </Button>
               </div>
 
