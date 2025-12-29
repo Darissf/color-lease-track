@@ -416,6 +416,25 @@ async function isPageHealthy() {
 }
 
 /**
+ * Wait for target number of frames to be loaded
+ * This indicates successful login (BCA has 5 frames when logged in)
+ */
+async function waitForFrames(targetCount, maxWait = 15000) {
+  const startTime = Date.now();
+  while (Date.now() - startTime < maxWait) {
+    const frames = page.frames();
+    if (frames.length >= targetCount) {
+      log(`Frames ready: ${frames.length}/${targetCount}`);
+      return true;
+    }
+    await delay(500);
+  }
+  const finalCount = page.frames().length;
+  log(`Timeout waiting for ${targetCount} frames, got ${finalCount}`, 'WARN');
+  return false;
+}
+
+/**
  * Check if session expired
  */
 async function checkSessionExpired() {
@@ -1201,18 +1220,31 @@ async function executeBurstScrape() {
     
     await enterCredentials(frameResult.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
     await submitLogin(frameResult.frame);
-    await delay(3000);
     
-    let loginFrame = await findLoginFrame();
-    if (loginFrame) {
-      await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
-      await submitLogin(loginFrame.frame);
-      await delay(3000);
+    // Wait for frames to load (5 frames = fully logged in)
+    log('Waiting for page to fully load after login...');
+    let framesLoaded = await waitForFrames(5, 15000);
+    
+    if (!framesLoaded) {
+      // Retry login if frames not loaded
+      log('Frames not loaded, checking if still on login page...');
+      const loginFrame = await findLoginFrame();
+      if (loginFrame) {
+        log('Still on login page, retrying login...');
+        await enterCredentials(loginFrame.frame, CONFIG.BCA_USER_ID, CONFIG.BCA_PIN);
+        await submitLogin(loginFrame.frame);
+        framesLoaded = await waitForFrames(5, 15000);
+      }
     }
     
-    const finalLoginCheck = await findLoginFrame();
-    if (finalLoginCheck) {
-      throw new Error('LOGIN_FAILED');
+    // Final verification
+    const finalFrameCount = page.frames().length;
+    if (finalFrameCount < 5) {
+      // One more check - maybe login form is still visible
+      const finalLoginCheck = await findLoginFrame();
+      if (finalLoginCheck) {
+        throw new Error('LOGIN_FAILED - still on login page');
+      }
     }
     
     // Check session expiry
@@ -1220,7 +1252,7 @@ async function executeBurstScrape() {
       throw new Error('SESSION_EXPIRED');
     }
     
-    log('LOGIN SUCCESSFUL!');
+    log(`LOGIN SUCCESSFUL! (${finalFrameCount} frames loaded)`);
     
     // Step 2: Navigate to Mutasi Rekening
     await delay(2000);
