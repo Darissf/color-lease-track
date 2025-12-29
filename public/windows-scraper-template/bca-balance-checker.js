@@ -1,5 +1,5 @@
 /**
- * BCA Balance Checker - WINDOWS RDP VERSION v1.0.1
+ * BCA Balance Checker - WINDOWS RDP VERSION v1.0.2
  * 
  * Script khusus untuk cek saldo BCA (BUKAN mutasi).
  * Digunakan untuk payment verification berbasis perubahan saldo.
