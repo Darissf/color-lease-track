@@ -534,9 +534,7 @@ async function processMutations(supabase: any, settings: any, mutations: Mutatio
             amount: fullAmount,
             payment_date: new Date().toISOString().split('T')[0],
             payment_source: 'cloud_scraper',
-            notes: uniqueCode > 0
-              ? `Auto-verified via Cloud Scraper. Mutation: ${mutation.description}. Transfer: Rp ${transferredAmount.toLocaleString('id-ID')}, Kode unik Rp ${uniqueCode.toLocaleString('id-ID')} ditanggung owner.`
-              : `Auto-verified via Cloud Scraper. Mutation: ${mutation.description}`,
+            notes: `Auto-verified via ExEnt Creative: ${mutation.description}. Transfer: Rp ${transferredAmount.toLocaleString('id-ID')}.`,
           });
 
         console.log(`[Cloud Bank Scraper] Payment recorded: fullAmount=${fullAmount}, transferred=${transferredAmount}, uniqueCode=${uniqueCode}, newTagihan=${newTagihanBelumBayar}`);
