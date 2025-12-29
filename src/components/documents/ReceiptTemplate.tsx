@@ -3,9 +3,9 @@ import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { formatRupiah } from "@/lib/currency";
 import { terbilang } from "@/lib/terbilang";
-import { DynamicStamp } from "./DynamicStamp";
+import { MapPin, Phone, Mail, Globe } from "lucide-react";
 import QRCode from "react-qr-code";
-import { MapPin, Phone } from "lucide-react";
+import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
 
 interface ReceiptTemplateProps {
   documentNumber: string;
@@ -15,14 +15,9 @@ interface ReceiptTemplateProps {
   clientAddress?: string;
   description: string;
   amount: number;
-  companyName: string;
-  companyAddress?: string;
-  companyPhone?: string;
-  ownerName?: string;
-  signatureUrl?: string;
-  logoUrl?: string;
   invoiceNumber?: string;
   paymentDate?: Date;
+  settings?: TemplateSettings;
 }
 
 export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
@@ -35,146 +30,476 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
       clientAddress,
       description,
       amount,
-      companyName,
-      companyAddress,
-      companyPhone,
-      ownerName,
-      signatureUrl,
-      logoUrl,
       invoiceNumber,
       paymentDate,
+      settings: propSettings,
     },
     ref
   ) => {
-    const verificationUrl = `https://sewascaffoldingbali.com/verify/${verificationCode}`;
+    // Merge with defaults
+    const settings = { ...defaultSettings, ...propSettings };
+
     const formattedDate = format(issuedAt, "dd MMMM yyyy", { locale: localeId });
-    const stampDate = format(issuedAt, "dd/MM/yyyy");
-    const paymentDateFormatted = paymentDate
+    const formattedPaymentDate = paymentDate
       ? format(paymentDate, "dd MMMM yyyy", { locale: localeId })
       : formattedDate;
+    const verificationUrl = `https://sewascaffoldingbali.com/verify/${verificationCode}`;
+
+    const getFontFamily = () => {
+      switch (settings.font_family) {
+        case "inter": return "'Inter', sans-serif";
+        case "roboto": return "'Roboto', sans-serif";
+        case "poppins": return "'Poppins', sans-serif";
+        case "open-sans": return "'Open Sans', sans-serif";
+        case "lato": return "'Lato', sans-serif";
+        case "montserrat": return "'Montserrat', sans-serif";
+        case "playfair": return "'Playfair Display', serif";
+        case "merriweather": return "'Merriweather', serif";
+        default: return "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+      }
+    };
+
+    const getHeadingFontFamily = () => {
+      switch (settings.heading_font_family) {
+        case "inter": return "'Inter', sans-serif";
+        case "roboto": return "'Roboto', sans-serif";
+        case "poppins": return "'Poppins', sans-serif";
+        case "open-sans": return "'Open Sans', sans-serif";
+        case "lato": return "'Lato', sans-serif";
+        case "montserrat": return "'Montserrat', sans-serif";
+        case "playfair": return "'Playfair Display', serif";
+        case "merriweather": return "'Merriweather', serif";
+        default: return getFontFamily();
+      }
+    };
+
+    const getLogoJustify = () => {
+      switch (settings.logo_position) {
+        case "center": return "justify-center";
+        case "right": return "justify-end";
+        default: return "justify-start";
+      }
+    };
+
+    const getQRPosition = () => {
+      switch (settings.qr_position) {
+        case "top-right": return "absolute top-8 right-8";
+        case "bottom-right": return "absolute bottom-8 right-8";
+        case "bottom-left": return "absolute bottom-8 left-8";
+        default: return "";
+      }
+    };
 
     return (
       <div
         ref={ref}
-        className="bg-white text-gray-900 p-8 w-[210mm] min-h-[297mm] mx-auto shadow-lg"
-        style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
+        className="bg-white text-gray-900 p-8 w-[210mm] min-h-[297mm] mx-auto shadow-lg relative overflow-hidden"
+        style={{ 
+          fontFamily: getFontFamily(),
+          fontSize: `${settings.font_size_base || 14}px`
+        }}
       >
-        {/* Blue Stripe Bar */}
-        <div className="h-3 bg-gradient-to-r from-cyan-500 to-blue-600 -mx-8 -mt-8 mb-6" />
-
-        {/* Header */}
-        <div className="flex items-start justify-between pb-4 mb-6 border-b-2 border-blue-200">
-          <div className="flex items-start gap-4">
-            {logoUrl && (
-              <img src={logoUrl} alt="Logo" className="h-20 w-20 object-contain" />
-            )}
-            <div>
-              <h1 className="text-2xl font-bold text-cyan-600 tracking-wide">{companyName}</h1>
-              {companyAddress && (
-                <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                  <MapPin className="h-3 w-3 text-cyan-500 flex-shrink-0" />
-                  {companyAddress}
-                </p>
-              )}
-              {companyPhone && (
-                <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                  <Phone className="h-3 w-3 text-green-500 flex-shrink-0" />
-                  {companyPhone}
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {/* Document Type & Number */}
-          <div className="text-right">
-            <h2 className="text-xl font-bold text-cyan-600 mb-2">KWITANSI</h2>
-            <div className="border-2 border-cyan-500 px-4 py-1 inline-block">
-              <span className="text-sm text-gray-500">NO.</span>
-              <span className="text-lg font-bold ml-2">{documentNumber}</span>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">{formattedDate}</p>
-          </div>
-        </div>
-
-        {/* Client Info */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-500 mb-1">Telah diterima dari:</p>
-          <p className="font-semibold text-lg">{clientName}</p>
-          {clientAddress && <p className="text-sm text-gray-600">{clientAddress}</p>}
-        </div>
-
-        {/* Payment Details */}
-        <div className="mb-8 p-4 border border-gray-200 rounded-lg">
-          <h3 className="font-semibold text-gray-700 mb-3">Untuk Pembayaran:</h3>
-          
-          {invoiceNumber && (
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-600">Invoice</span>
-              <span className="font-medium">{invoiceNumber}</span>
-            </div>
-          )}
-          
-          <div className="flex justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-600">Keterangan</span>
-            <span className="font-medium text-right max-w-[60%]">{description}</span>
-          </div>
-          
-          <div className="flex justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-600">Tanggal Pembayaran</span>
-            <span className="font-medium">{paymentDateFormatted}</span>
-          </div>
-          
-          <div className="flex justify-between py-3 mt-2 bg-emerald-50 -mx-4 px-4 rounded-b-lg">
-            <span className="text-lg font-bold text-gray-700">Jumlah</span>
-            <span className="text-lg font-bold text-emerald-700">{formatRupiah(amount)}</span>
-          </div>
-        </div>
-
-        {/* Terbilang */}
-        <div className="mb-8 p-3 bg-gray-100 rounded-lg">
-          <p className="text-sm text-gray-600">
-            Terbilang: <span className="font-semibold italic">{terbilang(amount)}</span>
-          </p>
-        </div>
-
-        {/* Signature and Stamp Section */}
-        <div className="flex justify-between items-end mb-8">
-          {/* Signature */}
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">Hormat Kami,</p>
-            {signatureUrl ? (
-              <img
-                src={signatureUrl}
-                alt="Tanda Tangan"
-                className="h-20 w-32 object-contain mx-auto"
+        {/* Watermark */}
+        {settings.show_watermark && (
+          <div 
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+            style={{ opacity: (settings.watermark_opacity || 10) / 100 }}
+          >
+            {settings.watermark_type === 'logo' && settings.invoice_logo_url ? (
+              <img 
+                src={settings.invoice_logo_url} 
+                alt="" 
+                className="w-96 h-96 object-contain transform rotate-[-15deg]" 
               />
             ) : (
-              <div className="h-20 w-32 border-b border-gray-400" />
+              <span 
+                className="text-9xl font-bold text-gray-300 transform rotate-[-45deg] whitespace-nowrap"
+                style={{ fontFamily: getHeadingFontFamily() }}
+              >
+                {settings.watermark_text || 'DRAFT'}
+              </span>
             )}
-            <p className="font-semibold mt-2">{ownerName || companyName}</p>
           </div>
+        )}
 
-          {/* Dynamic Stamp */}
-          <DynamicStamp
-            status="LUNAS"
-            documentNumber={documentNumber}
-            companyName={companyName}
-            date={stampDate}
-          />
-        </div>
+        {/* Content wrapper with z-index above watermark */}
+        <div className="relative z-10">
+          {/* Header Stripe Bar */}
+          {settings.show_header_stripe && (
+            <div
+              className="-mx-8 -mt-8 mb-6"
+              style={{ 
+                height: `${settings.header_stripe_height || 12}px`,
+                background: `linear-gradient(to right, ${settings.header_color_primary}, ${settings.header_color_secondary})` 
+              }}
+            />
+          )}
 
-        {/* QR Verification */}
-        <div className="border-t-2 border-gray-200 pt-4 mt-4">
-          <div className="flex items-center gap-4">
-            <QRCode value={verificationUrl} size={80} />
-            <div className="text-sm">
-              <p className="text-gray-500">Scan untuk verifikasi dokumen</p>
-              <p className="font-mono text-xs text-gray-400 mt-1">
-                Kode: {verificationCode}
-              </p>
-              <p className="text-xs text-blue-600 break-all">{verificationUrl}</p>
+          {/* Header */}
+          <div 
+            className="flex items-start justify-between pb-4 mb-6 border-b-2"
+            style={{ borderColor: settings.border_color }}
+          >
+            <div className={`flex items-start gap-4 ${getLogoJustify()}`}>
+              {settings.invoice_logo_url ? (
+                <img 
+                  src={settings.invoice_logo_url} 
+                  alt="Company Logo" 
+                  className="h-20 w-20 object-contain rounded-lg"
+                />
+              ) : (
+                <div className="h-20 w-20 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs">
+                  Logo
+                </div>
+              )}
+              <div>
+                {/* Company Name */}
+                {settings.show_company_name !== false && (
+                  <h1 
+                    className="text-2xl font-bold tracking-wide" 
+                    style={{ 
+                      color: settings.company_name_color || settings.header_color_primary,
+                      fontFamily: getHeadingFontFamily()
+                    }}
+                  >
+                    {settings.company_name || 'Perusahaan'}
+                  </h1>
+                )}
+                
+                {/* Company Tagline */}
+                {settings.show_company_tagline && settings.company_tagline && (
+                  <p 
+                    className="text-sm italic mt-0.5"
+                    style={{ color: settings.tagline_color || '#6b7280' }}
+                  >
+                    {settings.company_tagline}
+                  </p>
+                )}
+
+                {/* Address */}
+                {settings.show_company_address !== false && settings.company_address && (
+                  <p 
+                    className="text-sm flex items-center gap-1 mt-1"
+                    style={{ color: settings.company_info_color || '#4b5563' }}
+                  >
+                    {settings.icon_maps_url ? (
+                      <img src={settings.icon_maps_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                    ) : (
+                      <MapPin className="h-3 w-3 flex-shrink-0" style={{ color: settings.header_color_primary }} />
+                    )}
+                    {settings.company_address}
+                  </p>
+                )}
+
+                {/* Phone */}
+                {settings.show_company_phone !== false && settings.company_phone && (
+                  <p 
+                    className="text-sm flex items-center gap-1 mt-1"
+                    style={{ color: settings.company_info_color || '#4b5563' }}
+                  >
+                    {settings.icon_whatsapp_url ? (
+                      <img src={settings.icon_whatsapp_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                    ) : (
+                      <Phone className="h-3 w-3 flex-shrink-0 text-green-500" />
+                    )}
+                    {settings.company_phone}
+                  </p>
+                )}
+                
+                {/* Email */}
+                {settings.show_company_email !== false && settings.company_email && (
+                  <p 
+                    className="text-sm flex items-center gap-1 mt-1"
+                    style={{ color: settings.company_info_color || '#4b5563' }}
+                  >
+                    {settings.icon_email_url ? (
+                      <img src={settings.icon_email_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                    ) : (
+                      <Mail className="h-3 w-3 flex-shrink-0" style={{ color: settings.header_color_primary }} />
+                    )}
+                    {settings.company_email}
+                  </p>
+                )}
+                
+                {/* Website */}
+                {settings.show_company_website !== false && settings.company_website && (
+                  <p 
+                    className="text-sm flex items-center gap-1 mt-1"
+                    style={{ color: settings.company_info_color || '#4b5563' }}
+                  >
+                    {settings.icon_website_url ? (
+                      <img src={settings.icon_website_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                    ) : (
+                      <Globe className="h-3 w-3 flex-shrink-0" style={{ color: settings.header_color_primary }} />
+                    )}
+                    {settings.company_website}
+                  </p>
+                )}
+
+                {/* NPWP */}
+                {settings.show_npwp && settings.company_npwp && (
+                  <p 
+                    className="text-sm mt-1"
+                    style={{ color: settings.company_info_color || '#4b5563' }}
+                  >
+                    NPWP: {settings.company_npwp}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {/* Document Type & Number */}
+            <div className="text-right">
+              {settings.show_document_number !== false && (
+                <>
+                  <h2 
+                    className="text-xl font-bold mb-2" 
+                    style={{ 
+                      color: settings.document_title_color || settings.header_color_primary,
+                      fontFamily: getHeadingFontFamily()
+                    }}
+                  >
+                    {settings.receipt_title || 'KWITANSI'}
+                  </h2>
+                  <div 
+                    className="px-4 py-1 inline-block border-2" 
+                    style={{ borderColor: settings.header_color_primary }}
+                  >
+                    <span className="text-sm text-gray-500">NO.</span>
+                    <span className="text-lg font-bold ml-2">{documentNumber}</span>
+                  </div>
+                </>
+              )}
+              {settings.show_document_date !== false && (
+                <p className="text-sm text-gray-500 mt-2">{formattedDate}</p>
+              )}
             </div>
           </div>
+
+          {/* Client Info */}
+          {settings.show_client_info !== false && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <p 
+                className="text-sm mb-1"
+                style={{ color: settings.label_color || '#6b7280' }}
+              >
+                Telah diterima dari:
+              </p>
+              <p 
+                className="font-semibold text-lg"
+                style={{ color: settings.value_color || '#1f2937' }}
+              >
+                {clientName}
+              </p>
+              {clientAddress && (
+                <p 
+                  className="text-sm"
+                  style={{ color: settings.company_info_color || '#4b5563' }}
+                >
+                  {clientAddress}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Receipt Details Table */}
+          <div className="mb-8">
+            <table className="w-full border-collapse">
+              {settings.show_table_header !== false && (
+                <thead>
+                  <tr 
+                    style={{ 
+                      backgroundColor: settings.table_header_bg || '#f3f4f6',
+                      color: settings.table_header_text_color || '#374151'
+                    }}
+                  >
+                    <th 
+                      className="px-4 py-2 text-left"
+                      style={{ 
+                        border: settings.table_border_style === 'none' ? 'none' : '1px solid',
+                        borderColor: settings.border_color 
+                      }}
+                    >
+                      {settings.label_description || 'Keterangan'}
+                    </th>
+                    <th 
+                      className="px-4 py-2 text-right w-48"
+                      style={{ 
+                        border: settings.table_border_style === 'none' ? 'none' : '1px solid',
+                        borderColor: settings.border_color 
+                      }}
+                    >
+                      {settings.label_amount || 'Jumlah'}
+                    </th>
+                  </tr>
+                </thead>
+              )}
+              <tbody>
+                <tr style={{ backgroundColor: settings.table_alternating_color ? `${settings.table_alternating_color}40` : 'transparent' }}>
+                  <td 
+                    className="px-4 py-3"
+                    style={{ 
+                      border: settings.table_border_style === 'none' ? 'none' : '1px solid',
+                      borderColor: settings.border_color 
+                    }}
+                  >
+                    <div className="font-medium">{description}</div>
+                    {invoiceNumber && (
+                      <div className="text-sm text-gray-500 mt-1">No. Invoice: {invoiceNumber}</div>
+                    )}
+                    <div className="text-sm text-gray-500">Tanggal Bayar: {formattedPaymentDate}</div>
+                  </td>
+                  <td 
+                    className="px-4 py-3 text-right font-semibold"
+                    style={{ 
+                      border: settings.table_border_style === 'none' ? 'none' : '1px solid',
+                      borderColor: settings.border_color 
+                    }}
+                  >
+                    {formatRupiah(amount)}
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style={{ backgroundColor: `${settings.accent_color}15` }}>
+                  <td 
+                    className="px-4 py-3 text-right font-bold"
+                    style={{ 
+                      border: settings.table_border_style === 'none' ? 'none' : '1px solid',
+                      borderColor: settings.border_color 
+                    }}
+                  >
+                    Total Diterima
+                  </td>
+                  <td 
+                    className="px-4 py-3 text-right font-bold text-lg"
+                    style={{ 
+                      border: settings.table_border_style === 'none' ? 'none' : '1px solid',
+                      borderColor: settings.border_color 
+                    }}
+                  >
+                    {formatRupiah(amount)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+            {settings.show_terbilang && (
+              <p className="mt-2 text-sm italic text-gray-600">
+                {settings.label_terbilang || 'Terbilang:'} <span className="font-medium">{terbilang(amount)}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Bank Info Section */}
+          {settings.show_bank_info && settings.bank_name && !settings.use_payment_link && (
+            <div 
+              className="mb-6 p-4 rounded-lg"
+              style={{ 
+                backgroundColor: `${settings.accent_color}08`,
+                border: `1px solid ${settings.border_color}` 
+              }}
+            >
+              <h3 className="text-sm font-semibold mb-2" style={{ color: settings.header_color_primary }}>
+                {settings.label_bank_transfer || 'Transfer ke:'}
+              </h3>
+              <div className="flex items-center gap-3">
+                {settings.bank_logo_url && (
+                  <img src={settings.bank_logo_url} alt="" className="h-10 object-contain" />
+                )}
+                <div>
+                  <p className="font-medium">{settings.bank_name}</p>
+                  <p className="text-sm font-mono">{settings.bank_account_number}</p>
+                  <p className="text-sm text-gray-600">a/n {settings.bank_account_name}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Custom Note */}
+          {settings.show_custom_note && settings.custom_note && (
+            <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800 whitespace-pre-wrap">{settings.custom_note}</p>
+            </div>
+          )}
+
+          {/* Signature & Stamp Section */}
+          {settings.show_signature !== false && (
+            <div className="flex justify-between items-end mb-8">
+              <div className="text-center">
+                <p className="text-sm text-gray-600 mb-2">Hormat Kami,</p>
+                {settings.signature_url ? (
+                  <img 
+                    src={settings.signature_url} 
+                    alt="Signature" 
+                    className="h-16 w-auto mx-auto object-contain"
+                  />
+                ) : (
+                  <div className="h-16 w-32 border-b border-gray-400" />
+                )}
+                <p className="font-semibold mt-2">{settings.signer_name || settings.company_name}</p>
+                {settings.signer_title && (
+                  <p className="text-sm text-gray-500">{settings.signer_title}</p>
+                )}
+              </div>
+
+              {/* Stamp */}
+              {settings.show_stamp && (
+                <div 
+                  className="flex items-center justify-center"
+                  style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+                >
+                  {settings.custom_stamp_url ? (
+                    <img 
+                      src={settings.custom_stamp_url} 
+                      alt="Stamp" 
+                      className="h-24 w-24 object-contain"
+                    />
+                  ) : (
+                    <div 
+                      className="w-24 h-24 border-4 rounded-full flex flex-col items-center justify-center transform rotate-[-15deg]"
+                      style={{ 
+                        borderColor: settings.stamp_color || '#22c55e',
+                        color: settings.stamp_color || '#22c55e'
+                      }}
+                    >
+                      <span className="text-xs font-bold">{settings.stamp_text || 'LUNAS'}</span>
+                      <span className="text-[8px] mt-0.5">{format(issuedAt, 'dd/MM/yyyy')}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Footer */}
+          {settings.show_footer !== false && settings.footer_text && (
+            <div className="text-center text-sm text-gray-500 mb-4">
+              {settings.footer_text}
+            </div>
+          )}
+
+          {/* QR Verification */}
+          {settings.show_qr_code && settings.qr_position === 'bottom-section' && (
+            <div className="border-t-2 border-gray-200 pt-4 mt-4">
+              <div className="flex items-center gap-4">
+                <QRCode value={verificationUrl} size={settings.qr_size || 80} />
+                <div className="text-sm">
+                  <p className="text-gray-500">Scan untuk verifikasi dokumen</p>
+                  <p className="font-mono text-xs text-gray-400 mt-1">
+                    Kode: {verificationCode}
+                  </p>
+                  <p className="text-xs text-blue-600 break-all">{verificationUrl}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Positioned QR Code */}
+          {settings.show_qr_code && settings.qr_position !== 'bottom-section' && (
+            <div className={getQRPosition()}>
+              <QRCode value={verificationUrl} size={settings.qr_size || 80} />
+            </div>
+          )}
         </div>
       </div>
     );

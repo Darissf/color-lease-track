@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
 
 interface DocumentData {
   documentType: 'invoice' | 'kwitansi';
@@ -37,14 +38,6 @@ interface DocumentPreviewModalProps {
   onDocumentSaved?: () => void;
 }
 
-interface DocumentSettings {
-  company_name: string;
-  company_address: string;
-  company_phone: string;
-  owner_name: string;
-  signature_image_url: string | null;
-}
-
 export const DocumentPreviewModal = ({
   open,
   onOpenChange,
@@ -54,7 +47,7 @@ export const DocumentPreviewModal = ({
   const documentRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { settings: brandSettings } = useBrandSettings();
-  const [settings, setSettings] = useState<DocumentSettings | null>(null);
+  const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
 
   useEffect(() => {
     if (open && user) {
@@ -144,13 +137,25 @@ export const DocumentPreviewModal = ({
       .maybeSingle();
 
     if (data) {
-      setSettings(data as DocumentSettings);
+      // Merge database settings with defaults, and add brand settings fallback
+      const mergedSettings: TemplateSettings = {
+        ...defaultSettings,
+        ...data,
+        // Use brand settings as fallback for logo
+        invoice_logo_url: data.invoice_logo_url || brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || defaultSettings.invoice_logo_url,
+      };
+      setTemplateSettings(mergedSettings);
+    } else {
+      // No settings in database, use defaults with brand settings
+      setTemplateSettings({
+        ...defaultSettings,
+        invoice_logo_url: brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || defaultSettings.invoice_logo_url,
+      });
     }
   };
 
   if (!documentData) return null;
 
-  const companyName = settings?.company_name || brandSettings?.brand_text || "Sewa Scaffolding Bali";
   const fileName = `${documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}_${documentData.documentNumber}`;
 
   return (
@@ -179,14 +184,9 @@ export const DocumentPreviewModal = ({
                 clientAddress={documentData.clientAddress}
                 description={documentData.description}
                 amount={documentData.amount}
-                companyName={companyName}
-                companyAddress={settings?.company_address}
-                companyPhone={settings?.company_phone}
-                ownerName={settings?.owner_name}
-                signatureUrl={settings?.signature_image_url || undefined}
-                logoUrl={brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || undefined}
                 contractInvoice={documentData.contractInvoice}
                 period={documentData.period}
+                settings={templateSettings}
               />
             ) : (
               <ReceiptTemplate
@@ -198,14 +198,9 @@ export const DocumentPreviewModal = ({
                 clientAddress={documentData.clientAddress}
                 description={documentData.description}
                 amount={documentData.amount}
-                companyName={companyName}
-                companyAddress={settings?.company_address}
-                companyPhone={settings?.company_phone}
-                ownerName={settings?.owner_name}
-                signatureUrl={settings?.signature_image_url || undefined}
-                logoUrl={brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || undefined}
                 invoiceNumber={documentData.invoiceNumber}
                 paymentDate={documentData.paymentDate}
+                settings={templateSettings}
               />
             )}
           </div>
