@@ -1,22 +1,17 @@
 @echo off
 REM ============================================
-REM BCA Scraper Windows - Installer v4.1.5
+REM BCA Scraper Windows - Installer v4.2.0
 REM ============================================
 
 echo.
 echo ============================================
-echo    BCA Scraper Windows - Installer v4.1.5
+echo    BCA Scraper Windows - Installer v4.2.0
+echo    STEALTH MODE + ANTI-DETECTION
 echo ============================================
 echo.
 
-REM Check if running as Administrator (optional but recommended)
-REM net session >nul 2>&1
-REM if %ERRORLEVEL% neq 0 (
-REM     echo [WARN] Not running as Administrator. Some features may not work.
-REM )
-
 REM Check Node.js installation
-echo [1/4] Checking Node.js installation...
+echo [1/5] Checking Node.js installation...
 where node >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo.
@@ -37,7 +32,7 @@ echo [OK] Node.js found: %NODE_VERSION%
 
 REM Check npm
 echo.
-echo [2/4] Checking npm...
+echo [2/5] Checking npm...
 where npm >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] npm is NOT installed!
@@ -51,7 +46,7 @@ echo [OK] npm found: v%NPM_VERSION%
 
 REM Install Puppeteer
 echo.
-echo [3/4] Installing Puppeteer (this may take a few minutes)...
+echo [3/5] Installing Puppeteer (this may take a few minutes)...
 npm install puppeteer
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to install Puppeteer!
@@ -61,9 +56,19 @@ if %ERRORLEVEL% neq 0 (
 )
 echo [OK] Puppeteer installed successfully!
 
+REM Install Puppeteer-Extra and Stealth Plugin
+echo.
+echo [4/5] Installing Stealth Plugin (anti-detection)...
+npm install puppeteer-extra puppeteer-extra-plugin-stealth
+if %ERRORLEVEL% neq 0 (
+    echo [WARN] Stealth plugin install failed - will use fallback mode
+) else (
+    echo [OK] Stealth plugin installed successfully!
+)
+
 REM Create config.env from template
 echo.
-echo [4/4] Setting up configuration...
+echo [5/5] Setting up configuration...
 if not exist config.env (
     if exist config.env.template (
         copy config.env.template config.env >nul
@@ -89,7 +94,7 @@ if not exist debug (
 REM Display completion message
 echo.
 echo ============================================
-echo    Installation Complete!
+echo    Installation Complete! (v4.2.0 Stealth)
 echo ============================================
 echo.
 echo NEXT STEPS:
