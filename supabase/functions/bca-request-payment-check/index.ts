@@ -182,7 +182,7 @@ Deno.serve(async (req: Request) => {
         user_id: user.id,
         created_by_role: createdByRole,
       })
-      .select("id, unique_code, unique_amount, expires_at, burst_triggered_at")
+      .select("id, unique_code, unique_amount, expires_at, burst_triggered_at, created_at")
       .single();
 
     if (insertError) {
@@ -204,6 +204,7 @@ Deno.serve(async (req: Request) => {
         unique_amount: request.unique_amount,
         amount_expected: amount_expected,
         expires_at: request.expires_at,
+        created_at: request.created_at,
         message: `Transfer tepat Rp ${uniqueAmount.toLocaleString('id-ID')} untuk verifikasi otomatis.`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }

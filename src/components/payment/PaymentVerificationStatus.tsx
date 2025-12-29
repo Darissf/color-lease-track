@@ -12,6 +12,7 @@ interface PaymentVerificationStatusProps {
   requestId: string;
   uniqueAmount: number;
   expiresAt: string;
+  createdAt?: string;
   burstTriggeredAt?: string | null;
   onClose: () => void;
   onVerified?: () => void;
@@ -23,6 +24,7 @@ export function PaymentVerificationStatus({
   requestId,
   uniqueAmount,
   expiresAt,
+  createdAt: initialCreatedAt,
   burstTriggeredAt: initialBurstTriggeredAt,
   onClose,
   onVerified,
@@ -32,7 +34,9 @@ export function PaymentVerificationStatus({
   const [copied, setCopied] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [cancelCooldownRemaining, setCancelCooldownRemaining] = useState(0);
   const [burstTriggeredAt, setBurstTriggeredAt] = useState<string | null>(initialBurstTriggeredAt || null);
+  const [createdAt, setCreatedAt] = useState<string | null>(initialCreatedAt || null);
   const [isConfirmingTransfer, setIsConfirmingTransfer] = useState(false);
 
   const triggerConfetti = useCallback(() => {
@@ -120,6 +124,28 @@ export function PaymentVerificationStatus({
     return () => clearInterval(timer);
   }, [burstTriggeredAt]);
 
+  // Calculate cancel cooldown remaining (2 minutes from created_at)
+  useEffect(() => {
+    if (!createdAt) {
+      setCancelCooldownRemaining(0);
+      return;
+    }
+
+    const updateCancelCooldown = () => {
+      const createdTime = new Date(createdAt).getTime();
+      const now = Date.now();
+      const cooldownMs = 2 * 60 * 1000; // 2 minutes
+      const elapsed = now - createdTime;
+      const remaining = Math.max(0, cooldownMs - elapsed);
+      setCancelCooldownRemaining(Math.ceil(remaining / 1000));
+    };
+
+    updateCancelCooldown();
+    const timer = setInterval(updateCancelCooldown, 1000);
+
+    return () => clearInterval(timer);
+  }, [createdAt]);
+
   // Format cooldown remaining as MM:SS
   const formatCooldown = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -186,7 +212,7 @@ export function PaymentVerificationStatus({
     const fetchStatus = async () => {
       const { data } = await supabase
         .from("payment_confirmation_requests")
-        .select("status, expires_at, unique_amount, burst_triggered_at")
+        .select("status, expires_at, unique_amount, burst_triggered_at, created_at")
         .eq("id", requestId)
         .single();
       
@@ -194,6 +220,9 @@ export function PaymentVerificationStatus({
         setStatus(data.status as VerificationStatus);
         if (data.burst_triggered_at) {
           setBurstTriggeredAt(data.burst_triggered_at);
+        }
+        if (data.created_at) {
+          setCreatedAt(data.created_at);
         }
       }
     };
@@ -302,15 +331,17 @@ export function PaymentVerificationStatus({
                       variant="destructive" 
                       size="sm" 
                       onClick={handleCancel}
-                      disabled={cancelling}
+                      disabled={cancelling || cancelCooldownRemaining > 0}
                       className="gap-1.5"
                     >
                       {cancelling ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : cancelCooldownRemaining > 0 ? (
+                        <Clock className="h-3 w-3" />
                       ) : (
                         <X className="h-3 w-3" />
                       )}
-                      Batalkan
+                      {cancelCooldownRemaining > 0 ? `Batalkan (${formatCooldown(cancelCooldownRemaining)})` : "Batalkan"}
                     </Button>
                   </div>
                 </div>
