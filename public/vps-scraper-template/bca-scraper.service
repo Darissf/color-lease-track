@@ -1,5 +1,5 @@
 [Unit]
-Description=BCA Scraper Daemon - Persistent Browser Mode
+Description=BCA Scraper v4.0.0 - Ultra-Robust Mode
 After=network-online.target
 Wants=network-online.target
 Requires=network-online.target
@@ -13,7 +13,7 @@ Type=simple
 WorkingDirectory=/root/bca-scraper
 
 # Pre-start checks
-ExecStartPre=/bin/bash -c 'echo "=== BCA Scraper Service Starting ===" >> /var/log/bca-scraper.log'
+ExecStartPre=/bin/bash -c 'echo "=== BCA Scraper v4.0.0 Starting ===" >> /var/log/bca-scraper.log'
 ExecStartPre=/bin/bash -c 'echo "Timestamp: $(date -Iseconds)" >> /var/log/bca-scraper.log'
 ExecStartPre=/bin/bash -c 'test -f /root/bca-scraper/config.env || (echo "ERROR: config.env not found" >> /var/log/bca-scraper.log && exit 1)'
 ExecStartPre=/bin/bash -c 'test -f /root/bca-scraper/bca-scraper.js || (echo "ERROR: bca-scraper.js not found" >> /var/log/bca-scraper.log && exit 1)'
@@ -53,10 +53,9 @@ Environment=NODE_OPTIONS=--max-old-space-size=4096
 Environment=TZ=Asia/Jakarta
 EnvironmentFile=/root/bca-scraper/config.env
 
-# Security
-PrivateTmp=true
-ProtectSystem=strict
-ReadWritePaths=/root/bca-scraper /var/log /tmp
+# Security - Chromium needs full system access
+PrivateTmp=false
+ProtectSystem=false
 
 # Timeouts
 TimeoutStartSec=60

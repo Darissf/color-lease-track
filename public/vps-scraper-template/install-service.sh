@@ -172,8 +172,8 @@ Group=root
 WorkingDirectory=${SCRIPT_DIR}
 
 # Pre-start checks
-ExecStartPre=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] ========================================" >> ${LOG_FILE}'
-ExecStartPre=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] Starting BCA Scraper v3.0.0 (Persistent Browser Mode)..." >> ${LOG_FILE}'
+ExecStartPre=/bin/bash -c 'echo "[$(date +"%Y-%m-%d %H:%M:%S")] ========================================" >> ${LOG_FILE}'
+ExecStartPre=/bin/bash -c 'echo "[$(date +"%Y-%m-%d %H:%M:%S")] Starting BCA Scraper v4.0.0 Ultra-Robust Mode..." >> ${LOG_FILE}'
 ExecStartPre=/bin/bash -c 'pkill -f "chromium.*puppeteer" 2>/dev/null || true'
 ExecStartPre=/bin/sleep 5
 
@@ -181,7 +181,7 @@ ExecStartPre=/bin/sleep 5
 ExecStart=/usr/bin/node ${SCRIPT_DIR}/bca-scraper.js
 
 # Post-stop logging and cleanup
-ExecStopPost=/bin/bash -c 'echo "[$(date +\"%%Y-%%m-%%d %%H:%%M:%%S\")] BCA Scraper stopped (exit: \$EXIT_STATUS)" >> ${LOG_FILE}'
+ExecStopPost=/bin/bash -c 'echo "[$(date +"%Y-%m-%d %H:%M:%S")] BCA Scraper stopped (exit: \$EXIT_STATUS)" >> ${LOG_FILE}'
 ExecStopPost=/bin/bash -c 'pkill -f "chromium.*puppeteer" 2>/dev/null || true'
 
 # Auto-restart configuration
@@ -206,11 +206,10 @@ Environment=NODE_OPTIONS="--max-old-space-size=4096"
 Environment=TZ=Asia/Jakarta
 EnvironmentFile=-${SCRIPT_DIR}/config.env
 
-# Security
+# Security - Chromium needs full system access
 NoNewPrivileges=false
-PrivateTmp=true
-ProtectSystem=strict
-ReadWritePaths=${SCRIPT_DIR} /var/log /tmp
+PrivateTmp=false
+ProtectSystem=false
 
 # Timeouts
 TimeoutStartSec=120
