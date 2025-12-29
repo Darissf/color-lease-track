@@ -11,6 +11,7 @@ import {
   CreditCard, 
   Loader2, 
   AlertCircle, 
+  AlertTriangle,
   Clock, 
   Copy, 
   CheckCircle, 
@@ -87,7 +88,9 @@ export function PaymentRequestGenerator({
   const [globalLock, setGlobalLock] = useState<{
     locked: boolean;
     secondsRemaining: number;
-  }>({ locked: false, secondsRemaining: 0 });
+    isOwner: boolean;
+    ownerRequestId?: string;
+  }>({ locked: false, secondsRemaining: 0, isOwner: false });
   
   // Use ref to track confetti state to avoid stale closure and dependency issues
   const hasTriggeredConfettiRef = useRef(false);
@@ -298,7 +301,7 @@ export function PaymentRequestGenerator({
     const fetchGlobalLock = async () => {
       const { data: settings } = await supabase
         .from("payment_provider_settings")
-        .select("burst_global_locked_at")
+        .select("burst_global_locked_at, burst_request_id")
         .eq("provider", "vps_scraper")
         .eq("is_active", true)
         .maybeSingle();
@@ -307,9 +310,12 @@ export function PaymentRequestGenerator({
         const lockedAt = new Date(settings.burst_global_locked_at).getTime();
         const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
         if (remaining > 0) {
+          const isOwner = pendingRequest?.id === settings.burst_request_id;
           setGlobalLock({
             locked: true,
-            secondsRemaining: Math.ceil(remaining / 1000)
+            secondsRemaining: Math.ceil(remaining / 1000),
+            isOwner,
+            ownerRequestId: settings.burst_request_id
           });
         }
       }
@@ -331,9 +337,12 @@ export function PaymentRequestGenerator({
           if (payload.new?.burst_global_locked_at) {
             const lockedAt = new Date(payload.new.burst_global_locked_at).getTime();
             const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
+            const isOwner = pendingRequest?.id === payload.new?.burst_request_id;
             setGlobalLock({
               locked: remaining > 0,
-              secondsRemaining: Math.ceil(remaining / 1000)
+              secondsRemaining: Math.ceil(remaining / 1000),
+              isOwner,
+              ownerRequestId: payload.new?.burst_request_id
             });
           }
         }
@@ -343,7 +352,7 @@ export function PaymentRequestGenerator({
     return () => {
       supabase.removeChannel(settingsChannel);
     };
-  }, []);
+  }, [pendingRequest?.id]);
 
   // Global lock countdown effect
   useEffect(() => {
@@ -353,7 +362,7 @@ export function PaymentRequestGenerator({
       setGlobalLock(prev => {
         const newSeconds = prev.secondsRemaining - 1;
         if (newSeconds <= 0) {
-          return { locked: false, secondsRemaining: 0 };
+          return { locked: false, secondsRemaining: 0, isOwner: false };
         }
         return { ...prev, secondsRemaining: newSeconds };
       });
@@ -562,11 +571,18 @@ export function PaymentRequestGenerator({
       
       // Handle global lock response
       if (!data?.success && data?.global_locked) {
+        const isOwner = data.burst_request_id === pendingRequest.id;
         setGlobalLock({
           locked: true,
-          secondsRemaining: data.seconds_remaining || 360
+          secondsRemaining: data.seconds_remaining || 360,
+          isOwner,
+          ownerRequestId: data.burst_request_id
         });
-        toast.error(data.error);
+        if (!isOwner) {
+          toast.error("Ada pengecekan dari user lain. Tunggu hingga selesai.");
+        } else {
+          toast.info("Pengecekan sedang berjalan, mohon tunggu.");
+        }
         return;
       }
       
@@ -578,11 +594,13 @@ export function PaymentRequestGenerator({
         burst_triggered_at: new Date().toISOString()
       } : null);
       
-      // Set global lock on success (6 minutes)
+      // Set global lock on success (6 minutes) - this user is the owner
       if (data?.burst_global_locked_at) {
         setGlobalLock({
           locked: true,
-          secondsRemaining: data.global_cooldown_seconds || 360
+          secondsRemaining: data.global_cooldown_seconds || 360,
+          isOwner: true,
+          ownerRequestId: pendingRequest.id
         });
       }
       
@@ -653,21 +671,44 @@ export function PaymentRequestGenerator({
         
         <div className="flex items-center gap-2 flex-wrap">
           {(globalLock.secondsRemaining > 0 || cooldownRemaining > 0) ? (
-            <Badge 
-              variant="outline" 
+            <div 
               className={cn(
-                "gap-1.5 py-1.5 px-3 flex-1 sm:flex-none justify-center",
+                "flex-1 flex flex-col gap-1 py-2 px-3 rounded-md border text-sm",
                 globalLock.secondsRemaining > 0
-                  ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
+                  ? globalLock.isOwner
+                    ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                    : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
                   : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
               )}
             >
-              {globalLock.secondsRemaining > 0 ? <Ban className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-              {globalLock.secondsRemaining > 0 
-                ? `Sistem memproses. Tunggu ${formatCooldown(globalLock.secondsRemaining)}`
-                : `Tunggu ${formatCooldown(cooldownRemaining)}`
-              }
-            </Badge>
+              <div className="flex items-center gap-1.5">
+                {globalLock.secondsRemaining > 0 ? (
+                  globalLock.isOwner ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <AlertTriangle className="h-3 w-3" />
+                  )
+                ) : (
+                  <Clock className="h-3 w-3" />
+                )}
+                <span className="font-medium">
+                  {globalLock.secondsRemaining > 0 
+                    ? globalLock.isOwner
+                      ? "Pengecekan sedang dilakukan..."
+                      : "JANGAN TRANSFER DULU!"
+                    : `Tunggu ${formatCooldown(cooldownRemaining)}`
+                  }
+                </span>
+              </div>
+              {globalLock.secondsRemaining > 0 && (
+                <span className="text-xs opacity-80">
+                  {globalLock.isOwner 
+                    ? `Mohon tunggu, sistem memverifikasi pembayaran Anda. (${formatCooldown(globalLock.secondsRemaining)})`
+                    : `Ada pengecekan dari user lain. Tunggu hingga tombol tersedia. (${formatCooldown(globalLock.secondsRemaining)})`
+                  }
+                </span>
+              )}
+            </div>
           ) : pendingRequest?.burst_triggered_at ? (
             <Button
               variant="default"
