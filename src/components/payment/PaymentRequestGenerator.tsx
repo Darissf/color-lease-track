@@ -664,11 +664,6 @@ export function PaymentRequestGenerator({
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          <span>Menunggu transfer masuk...</span>
-        </div>
-        
         <div className="flex items-center gap-2 flex-wrap">
           {(globalLock.secondsRemaining > 0 || cooldownRemaining > 0) ? (
             <div 
@@ -676,25 +671,17 @@ export function PaymentRequestGenerator({
                 "flex-1 flex flex-col gap-1 py-2 px-3 rounded-md border text-sm",
                 globalLock.secondsRemaining > 0
                   ? globalLock.isOwner
-                    ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                    ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
                     : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
                   : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
               )}
             >
               <div className="flex items-center gap-1.5">
-                {globalLock.secondsRemaining > 0 ? (
-                  globalLock.isOwner ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <AlertTriangle className="h-3 w-3" />
-                  )
-                ) : (
-                  <Clock className="h-3 w-3" />
-                )}
+                <AlertTriangle className="h-3 w-3" />
                 <span className="font-medium">
                   {globalLock.secondsRemaining > 0 
                     ? globalLock.isOwner
-                      ? "Pengecekan sedang dilakukan..."
+                      ? "Transfer dulu sebelum klik!"
                       : "JANGAN TRANSFER DULU!"
                     : `Tunggu ${formatCooldown(cooldownRemaining)}`
                   }
@@ -703,8 +690,8 @@ export function PaymentRequestGenerator({
               {globalLock.secondsRemaining > 0 && (
                 <span className="text-xs opacity-80">
                   {globalLock.isOwner 
-                    ? `Mohon tunggu, sistem memverifikasi pembayaran Anda. (${formatCooldown(globalLock.secondsRemaining)})`
-                    : `Ada pengecekan dari user lain. Tunggu hingga tombol tersedia. (${formatCooldown(globalLock.secondsRemaining)})`
+                    ? `Pastikan Anda sudah transfer SEBELUM klik tombol ini. Jika belum transfer, tunggu ${formatCooldown(globalLock.secondsRemaining)} lagi.`
+                    : `Ada proses pengecekan dari user lain. Jangan transfer sampai tombol tersedia lagi dalam ${formatCooldown(globalLock.secondsRemaining)}.`
                   }
                 </span>
               )}
