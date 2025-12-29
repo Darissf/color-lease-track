@@ -577,11 +577,12 @@ async function main() {
       const command = await pollCommand();
       
       if (command && command.command) {
-        log(`Received command: ${command.command}`);
+        const cmd = command.command.toUpperCase(); // Normalize to uppercase
+        log(`Received command: ${cmd}`);
         
-        if (command.command === 'grab_initial') {
+        if (cmd === 'GRAB_INITIAL') {
           await handleGrabInitial(command.session_id);
-        } else if (command.command === 'check_loop') {
+        } else if (cmd === 'CHECK_LOOP') {
           await handleCheckLoop(
             command.session_id,
             command.expected_amount,
