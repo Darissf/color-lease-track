@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, Download, Terminal, Check, Zap, PlayCircle, AlertTriangle } from "lucide-react";
+import { Copy, Download, Terminal, Check, Zap, PlayCircle, AlertTriangle, RefreshCw } from "lucide-react";
 
 interface VPSScriptDownloadDialogProps {
   webhookUrl: string;
@@ -129,6 +129,18 @@ curl -sL "${fileBaseUrl}?file=config.env.template" -o config.env.template && \\
 curl -sL "${fileBaseUrl}?file=bca-scraper.service" -o bca-scraper.service && \\
 chmod +x *.sh && ./install.sh`;
 
+  // Quick Update - only update bca-scraper.js with cache-busting
+  const quickUpdateScript = `cd ~/bca-scraper && \\
+sudo systemctl stop bca-scraper && \\
+v=$(date +%s) && \\
+curl -o bca-scraper.js "${fileBaseUrl}?file=bca-scraper.js&v=$v" && \\
+sudo systemctl start bca-scraper && \\
+echo "Updated to v4.1.5!" && \\
+head -5 bca-scraper.js | grep -i version`;
+
+  // Verify version command
+  const verifyVersionScript = `head -30 ~/bca-scraper/bca-scraper.js | grep -i "SCRAPER_VERSION"`;
+
   // Nohup scripts - alternatif tanpa systemd
   const nohupStartScript = `cd /root/bca-scraper && nohup node scheduler.js >> /var/log/bca-scraper.log 2>&1 &`;
   const nohupStopScript = `pkill -f "node scheduler.js" || echo "Not running"`;
@@ -171,12 +183,80 @@ chmod +x *.sh && ./install.sh`;
           </div>
         </div>
 
-        <Tabs defaultValue="full" className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="update" className="flex-1 overflow-hidden flex flex-col">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="update">Quick Update</TabsTrigger>
             <TabsTrigger value="full">Script Lengkap</TabsTrigger>
             <TabsTrigger value="quick">Quick Install</TabsTrigger>
             <TabsTrigger value="nohup">Simple (nohup)</TabsTrigger>
           </TabsList>
+
+          {/* Quick Update Tab - Update only bca-scraper.js */}
+          <TabsContent value="update" className="flex-1 overflow-hidden flex flex-col mt-4">
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <p className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Update hanya file <code className="bg-blue-500/20 px-1 rounded">bca-scraper.js</code> ke versi terbaru (v4.1.5) dengan cache-busting.
+                </p>
+              </div>
+              
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">One-liner Update (dengan cache-busting)</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(quickUpdateScript, "update")}
+                    className="gap-2"
+                  >
+                    {copied === "update" ? (
+                      <>
+                        <Check className="h-4 w-4 text-green-500" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="bg-muted rounded-lg p-4">
+                  <code className="text-xs font-mono text-foreground break-all whitespace-pre-wrap">
+                    {quickUpdateScript}
+                  </code>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Verifikasi Versi Setelah Update</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(verifyVersionScript, "verify")}
+                    className="h-7 px-2"
+                  >
+                    {copied === "verify" ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                  </Button>
+                </div>
+                <div className="bg-muted rounded p-2">
+                  <code className="text-xs font-mono text-foreground">{verifyVersionScript}</code>
+                </div>
+              </div>
+
+              <div className="space-y-2 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <h4 className="font-medium text-green-700 dark:text-green-400">v4.1.5 Changelog:</h4>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Logging detail untuk Step 5 (Navigation ke Mutasi Rekening)</li>
+                  <li>Error handling yang lebih baik jika click gagal</li>
+                  <li>Cache-busting untuk memastikan file terbaru didownload</li>
+                </ul>
+              </div>
+            </div>
+          </TabsContent>
 
           <TabsContent value="full" className="flex-1 overflow-hidden flex flex-col mt-4">
             <div className="flex justify-between items-center mb-2">
