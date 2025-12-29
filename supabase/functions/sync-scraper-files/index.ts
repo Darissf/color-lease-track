@@ -2132,8 +2132,8 @@ Deno.serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: errorCount === 0,
-      message: `Synced ${successCount}/${results.length} files (v4.1.4 Full Navigation Burst Mode)`,
-      version: '4.1.4',
+      message: `Synced ${successCount}/${results.length} files (v4.1.5 + Windows Support)`,
+      version: '4.1.5',
       results,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -23,7 +23,9 @@ import {
 } from "lucide-react";
 import { VersionHistoryPanel } from "@/components/scraper/VersionHistoryPanel";
 import { VPSScriptDownloadDialog } from "@/components/scraper/VPSScriptDownloadDialog";
+import { WindowsScriptDownloadDialog } from "@/components/scraper/WindowsScriptDownloadDialog";
 import { ScraperFileUploader } from "@/components/scraper/ScraperFileUploader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface VPSSettings {
   id: string;
@@ -704,26 +706,41 @@ LANGKAH UPDATE:
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-4 space-y-4">
-        {/* VPS Info Banner */}
-        <Card className="bg-green-500/10 border-green-500/30">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 rounded-full bg-green-500/20">
-                <Server className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-green-700 dark:text-green-400">VPS Scraper</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Jalankan scraper di VPS Eropa dengan OpenVPN Indonesia. <strong>Biaya ~$5-10/bulan</strong>.
-                  Full control, lebih reliable, dan tidak membutuhkan layanan berbayar mahal.
-                </p>
-              </div>
-              {vpsSettings?.is_active && (
-                <Badge variant="default" className="bg-green-500">Aktif</Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Platform Tabs */}
+        <Tabs defaultValue="linux" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="linux" className="gap-2">
+              <Terminal className="h-4 w-4" />
+              Linux VPS
+            </TabsTrigger>
+            <TabsTrigger value="windows" className="gap-2">
+              <Monitor className="h-4 w-4" />
+              Windows RDP
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Linux VPS Tab Content */}
+          <TabsContent value="linux" className="space-y-4 mt-0">
+            {/* VPS Info Banner */}
+            <Card className="bg-green-500/10 border-green-500/30">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-green-500/20">
+                    <Server className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-green-700 dark:text-green-400">Linux VPS Scraper</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Jalankan scraper di VPS Eropa dengan OpenVPN Indonesia. <strong>Biaya ~$5-10/bulan</strong>.
+                      Full control, lebih reliable, dan tidak membutuhkan layanan berbayar mahal.
+                    </p>
+                  </div>
+                  {vpsSettings?.is_active && (
+                    <Badge variant="default" className="bg-green-500">Aktif</Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
         <div className="grid gap-4 md:grid-cols-2">
           {/* Webhook URL Card */}
@@ -1747,6 +1764,188 @@ LANGKAH UPDATE:
             </Accordion>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          {/* Windows RDP Tab Content */}
+          <TabsContent value="windows" className="space-y-4 mt-0">
+            {/* Windows Info Banner */}
+            <Card className="bg-blue-500/10 border-blue-500/30">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-blue-500/20">
+                    <Monitor className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-blue-700 dark:text-blue-400">Windows RDP Scraper</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Jalankan scraper di Windows RDP untuk <strong>debugging visual</strong> dan cross-checking.
+                      Cocok untuk parallel testing dengan VPS Linux.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="border-blue-500 text-blue-600">Beta</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Shared Config Cards for Windows */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Webhook URL Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Webhook className="h-5 w-5" />
+                    Webhook URL
+                  </CardTitle>
+                  <CardDescription>
+                    URL yang sama dengan Linux VPS
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Webhook Endpoint</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={vpsWebhookUrl}
+                        readOnly
+                        className="font-mono text-xs"
+                      />
+                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(vpsWebhookUrl, "Webhook URL")}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Secret Key Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Key className="h-5 w-5" />
+                    Secret Key
+                  </CardTitle>
+                  <CardDescription>
+                    Key yang sama dengan Linux VPS
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {vpsSettings?.webhook_secret_encrypted ? (
+                    <div className="space-y-2">
+                      <Label>Your Secret Key</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type={showVpsSecret ? "text" : "password"}
+                          value={vpsSettings.webhook_secret_encrypted}
+                          readOnly
+                          className="font-mono text-xs"
+                        />
+                        <Button variant="ghost" size="icon" onClick={() => setShowVpsSecret(!showVpsSecret)}>
+                          {showVpsSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => copyToClipboard(vpsSettings.webhook_secret_encrypted!, "Secret Key")}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-green-600">✓ Secret key sudah dikonfigurasi</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Generate secret key di tab Linux VPS terlebih dahulu
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Windows Download Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Download Windows Scraper
+                </CardTitle>
+                <CardDescription>
+                  Package untuk Windows RDP - v4.1.5-windows
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-3">
+                  <WindowsScriptDownloadDialog 
+                    secretKey={vpsSettings?.webhook_secret_encrypted || ''} 
+                    webhookUrl={vpsWebhookUrl}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Quick Install (PowerShell)</h4>
+                  <div className="p-3 bg-zinc-900 rounded-lg font-mono text-xs text-blue-400 overflow-x-auto">
+                    <p className="text-zinc-500"># 1. Download package ke folder pilihan</p>
+                    <p>cd C:\Users\YourName\Desktop\bca-scraper</p>
+                    <p></p>
+                    <p className="text-zinc-500"># 2. Jalankan installer</p>
+                    <p>.\install-windows.bat</p>
+                    <p></p>
+                    <p className="text-zinc-500"># 3. Edit config.env dengan credentials</p>
+                    <p>notepad config.env</p>
+                    <p></p>
+                    <p className="text-zinc-500"># 4. Jalankan scraper</p>
+                    <p>.\run-windows.bat</p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <p className="text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <span>
+                      <strong>Penting:</strong> Pastikan Node.js sudah terinstall di Windows RDP. 
+                      Download dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer" className="underline">nodejs.org</a>
+                    </span>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Windows Benefits */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  Keuntungan Windows RDP
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <h4 className="font-medium text-sm mb-1">🔍 Visual Debugging</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Set HEADLESS=false untuk lihat browser langsung
+                    </p>
+                  </div>
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <h4 className="font-medium text-sm mb-1">🔄 Cross-Check</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Bandingkan hasil dengan Linux VPS
+                    </p>
+                  </div>
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <h4 className="font-medium text-sm mb-1">🛡️ Backup</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Jika VPS down, Windows tetap jalan
+                    </p>
+                  </div>
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <h4 className="font-medium text-sm mb-1">⚡ Parallel Testing</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Test burst mode di kedua environment
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -51,8 +51,11 @@ serve(async (req) => {
       );
     }
 
+    // Get platform from query params (default: linux)
+    const platform = url.searchParams.get('platform') || 'linux';
+    
     // Security: only allow specific file names (no path traversal)
-    const allowedFiles = [
+    const linuxFiles = [
       'bca-scraper.js',
       'scheduler.js',
       'config.env.template',
@@ -69,6 +72,17 @@ serve(async (req) => {
       'vpn-up.sh',
       'vpn-down.sh'
     ];
+    
+    const windowsFiles = [
+      'bca-scraper-windows.js',
+      'config.env.template',
+      'install-windows.bat',
+      'run-windows.bat',
+      'setup-autostart.bat',
+      'README-WINDOWS.md'
+    ];
+    
+    const allowedFiles = platform === 'windows' ? windowsFiles : linuxFiles;
 
     // Clean the filename - remove any path components
     const cleanFileName = fileName.split('/').pop() || '';
