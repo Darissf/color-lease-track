@@ -72,6 +72,7 @@ export default function BankScraperSettings() {
   const [generatingPackage, setGeneratingPackage] = useState(false);
   const [generatingWindowsPackage, setGeneratingWindowsPackage] = useState(false);
   const [generatingBalancePackage, setGeneratingBalancePackage] = useState(false);
+  const [generatingLinuxSaldoPackage, setGeneratingLinuxSaldoPackage] = useState(false);
   const [downloadingScraperOnly, setDownloadingScraperOnly] = useState(false);
   const [downloadingUpdatePackage, setDownloadingUpdatePackage] = useState(false);
   
@@ -93,6 +94,15 @@ export default function BankScraperSettings() {
     loaded: boolean;
   } | null>(null);
   const [loadingWindowsInfo, setLoadingWindowsInfo] = useState(false);
+  
+  // Linux Saldo File Info State
+  const [linuxSaldoInfo, setLinuxSaldoInfo] = useState<{
+    version: string;
+    buildDate: string;
+    lineCount: number;
+    loaded: boolean;
+  } | null>(null);
+  const [loadingLinuxSaldoInfo, setLoadingLinuxSaldoInfo] = useState(false);
   
   // VPS Settings State
   const [vpsSettings, setVpsSettings] = useState<VPSSettings | null>(null);
@@ -225,6 +235,32 @@ export default function BankScraperSettings() {
     }
   }, []);
 
+  // Fetch Linux Saldo file info (version, line count, build date)
+  const fetchLinuxSaldoInfo = useCallback(async () => {
+    setLoadingLinuxSaldoInfo(true);
+    try {
+      const response = await fetch(`/vps-scraper-template/linuxsaldo/bca-balance-linux.js?v=${Date.now()}`);
+      const content = await response.text();
+      
+      // Parse version dari file header
+      const versionMatch = content.match(/Version:\s*([\d.]+)/);
+      const buildDateMatch = content.match(/Build Date:\s*([^\n\r*]+)/);
+      const lineCount = content.split('\n').length;
+      
+      setLinuxSaldoInfo({
+        version: versionMatch?.[1] || '1.0.0',
+        buildDate: buildDateMatch?.[1]?.trim() || 'unknown',
+        lineCount,
+        loaded: true
+      });
+    } catch (error) {
+      console.error('Failed to fetch Linux Saldo file info:', error);
+      setLinuxSaldoInfo(null);
+    } finally {
+      setLoadingLinuxSaldoInfo(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isSuperAdmin) {
       navigate("/");
@@ -233,7 +269,8 @@ export default function BankScraperSettings() {
     fetchData();
     fetchScraperFileInfo();
     fetchWindowsScraperInfo();
-  }, [isSuperAdmin, navigate, fetchData, fetchScraperFileInfo, fetchWindowsScraperInfo]);
+    fetchLinuxSaldoInfo();
+  }, [isSuperAdmin, navigate, fetchData, fetchScraperFileInfo, fetchWindowsScraperInfo, fetchLinuxSaldoInfo]);
 
   // Auto-refresh burst status
   useEffect(() => {
@@ -960,6 +997,105 @@ Lebih cepat (~15 detik) dan lebih aman dari scraping mutasi.
     }
   };
 
+  // Download Linux Saldo Package as ZIP
+  const handleDownloadLinuxSaldoPackage = async () => {
+    setGeneratingLinuxSaldoPackage(true);
+    try {
+      const zip = new JSZip();
+      const cacheBuster = `?v=${Date.now()}`;
+      const updateDate = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+      
+      // Fetch all Linux Saldo files
+      const [
+        scriptRes, configRes, installRes, runRes, 
+        serviceRes, installServiceRes, readmeRes
+      ] = await Promise.all([
+        fetch(`/vps-scraper-template/linuxsaldo/bca-balance-linux.js${cacheBuster}`),
+        fetch(`/vps-scraper-template/linuxsaldo/config.env.template${cacheBuster}`),
+        fetch(`/vps-scraper-template/linuxsaldo/install.sh${cacheBuster}`),
+        fetch(`/vps-scraper-template/linuxsaldo/run.sh${cacheBuster}`),
+        fetch(`/vps-scraper-template/linuxsaldo/bca-saldo.service${cacheBuster}`),
+        fetch(`/vps-scraper-template/linuxsaldo/install-service.sh${cacheBuster}`),
+        fetch(`/vps-scraper-template/linuxsaldo/README.md${cacheBuster}`),
+      ]);
+
+      const [scriptText, configText, installText, runText, serviceText, installServiceText, readmeText] = 
+        await Promise.all([
+          scriptRes.text(), configRes.text(), installRes.text(), runRes.text(),
+          serviceRes.text(), installServiceRes.text(), readmeRes.text()
+        ]);
+
+      // Extract version from script
+      const versionMatch = scriptText.match(/Version:\s*([\d.]+)/);
+      const version = versionMatch?.[1] || '1.0.0';
+      const lineCount = scriptText.split('\n').length;
+      
+      // Modify config with secret key
+      let configContent = configText;
+      if (vpsSettings?.webhook_secret_encrypted) {
+        configContent = configContent.replace(
+          /SECRET_KEY=.*/,
+          `SECRET_KEY=${vpsSettings.webhook_secret_encrypted}`
+        );
+      }
+
+      // Add files to ZIP
+      zip.file("bca-balance-linux.js", scriptText);
+      zip.file("config.env", configContent);
+      zip.file("install.sh", installText);
+      zip.file("run.sh", runText);
+      zip.file("bca-saldo.service", serviceText);
+      zip.file("install-service.sh", installServiceText);
+      zip.file("README.md", readmeText);
+      
+      // Add VERSION.txt with metadata
+      zip.file("VERSION.txt", `BCA Balance Checker - Linux VPS v${version}
+========================================
+Tanggal Update: ${updateDate}
+Platform: Linux (Ubuntu/Debian VPS)
+Total Lines: ${lineCount.toLocaleString()}
+
+CARA INSTALL:
+1. Upload semua file ke VPS di /root/bca-saldo/
+2. chmod +x install.sh run.sh install-service.sh
+3. ./install.sh
+4. Edit config.env dengan kredensial BCA
+5. ./run.sh atau ./install-service.sh untuk service
+
+KONFIGURASI:
+- SECRET_KEY: ${vpsSettings?.webhook_secret_encrypted ? '✓ Sudah terisi' : '✗ Belum dikonfigurasi'}
+- WEBHOOK_URL: ✓ Sudah terisi
+
+CHANGELOG:
+- v1.0.0: Initial release
+  - Port dari bca-scraper.js v4.2.0
+  - Login + Get Saldo < 10 detik
+  - Full error handling dengan recovery
+  - safeFrameOperation() + retryWithBackoff()
+  - Navigasi submenu dari menu frame (FIXED)
+`);
+
+      // Generate and download ZIP
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `BCA-Balance-Checker-Linux-v${version}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      
+      toast.success(`Linux Balance Checker v${version} (${lineCount.toLocaleString()} lines) berhasil di-download!`);
+    } catch (error) {
+      console.error("Error generating Linux Saldo package:", error);
+      toast.error("Gagal generate Linux Saldo package");
+    } finally {
+      setGeneratingLinuxSaldoPackage(false);
+    }
+  };
+
   // Calculate burst remaining time
   const getBurstRemainingSeconds = () => {
     if (!vpsSettings?.burst_in_progress || !vpsSettings?.burst_started_at) return 0;
@@ -1004,18 +1140,26 @@ Lebih cepat (~15 detik) dan lebih aman dari scraping mutasi.
       <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-4 space-y-4">
         {/* Platform Tabs */}
         <Tabs defaultValue="linux" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="linux" className="gap-2">
               <Terminal className="h-4 w-4" />
-              Linux VPS
+              <span className="hidden sm:inline">Linux VPS</span>
+              <span className="sm:hidden">Linux</span>
             </TabsTrigger>
             <TabsTrigger value="windows" className="gap-2">
               <Monitor className="h-4 w-4" />
-              Windows RDP
+              <span className="hidden sm:inline">Windows RDP</span>
+              <span className="sm:hidden">Windows</span>
             </TabsTrigger>
             <TabsTrigger value="balance-check" className="gap-2">
               <Wallet className="h-4 w-4" />
-              Cek Saldo
+              <span className="hidden sm:inline">Windows Saldo</span>
+              <span className="sm:hidden">Win Saldo</span>
+            </TabsTrigger>
+            <TabsTrigger value="linux-saldo" className="gap-2">
+              <Wallet className="h-4 w-4" />
+              <span className="hidden sm:inline">Linux Saldo</span>
+              <span className="sm:hidden">Lin Saldo</span>
             </TabsTrigger>
           </TabsList>
 
@@ -2729,6 +2873,264 @@ Lebih cepat (~15 detik) dan lebih aman dari scraping mutasi.
                       <h4 className="font-medium text-sm">Siap Digunakan</h4>
                       <p className="text-xs text-muted-foreground">Script akan otomatis merespon saat user klik "Generate" di Payment Request</p>
                     </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Linux Saldo Tab Content */}
+          <TabsContent value="linux-saldo" className="space-y-4 mt-0">
+            {/* Banner */}
+            <Card className="bg-teal-500/10 border-teal-500/30">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-teal-500/20">
+                    <Terminal className="h-5 w-5 text-teal-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-teal-700 dark:text-teal-400">
+                      Linux VPS - Cek Saldo v{linuxSaldoInfo?.version || '1.0.0'}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Balance-based payment verification untuk Linux VPS.
+                      Target: Login + Get Saldo &lt; 10 detik.
+                    </p>
+                  </div>
+                  <Badge variant="default" className="bg-teal-500">v{linuxSaldoInfo?.version || '1.0.0'}</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Download Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Download Linux Balance Checker
+                </CardTitle>
+                <CardDescription>
+                  Package untuk Linux VPS (Ubuntu/Debian)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Dynamic Version Info */}
+                {linuxSaldoInfo?.loaded && (
+                  <div className="p-3 bg-muted/50 rounded-lg border space-y-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Badge variant="default" className="font-mono bg-teal-600">
+                        v{linuxSaldoInfo.version}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Build: {linuxSaldoInfo.buildDate}
+                      </span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Code className="h-3 w-3" />
+                        {linuxSaldoInfo.lineCount.toLocaleString()} lines
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {loadingLinuxSaldoInfo && (
+                  <div className="p-3 bg-muted/50 rounded-lg border flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">Loading version info...</span>
+                  </div>
+                )}
+
+                {/* Download Button */}
+                <Button 
+                  onClick={handleDownloadLinuxSaldoPackage}
+                  disabled={generatingLinuxSaldoPackage || !vpsSettings?.webhook_secret_encrypted}
+                  className="w-full bg-teal-600 hover:bg-teal-700"
+                >
+                  {generatingLinuxSaldoPackage ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating ZIP...</>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download ZIP Package v{linuxSaldoInfo?.version || '1.0.0'}
+                      {linuxSaldoInfo?.loaded && ` (${linuxSaldoInfo.lineCount.toLocaleString()} lines)`}
+                    </>
+                  )}
+                </Button>
+
+                {!vpsSettings?.webhook_secret_encrypted && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <p className="text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Generate SECRET_KEY terlebih dahulu di tab "Linux VPS"
+                    </p>
+                  </div>
+                )}
+
+                <Separator />
+
+                {/* One-liner Install Commands */}
+                <div className="p-4 bg-zinc-900 rounded-lg space-y-2">
+                  <h4 className="font-medium text-sm text-zinc-300">Quick Install Command:</h4>
+                  <div className="font-mono text-xs text-green-400 overflow-x-auto">
+                    <p className="text-zinc-500"># Upload ZIP ke VPS, lalu:</p>
+                    <p>cd /root/bca-saldo && chmod +x *.sh && ./install.sh</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => copyToClipboard('cd /root/bca-saldo && chmod +x *.sh && ./install.sh', 'Install command')}
+                    className="mt-2"
+                  >
+                    <Copy className="h-3 w-3 mr-2" /> Copy Command
+                  </Button>
+                </div>
+
+                {/* ZIP Contents Preview */}
+                <div className="p-3 bg-zinc-900 border border-zinc-700 rounded-lg">
+                  <h4 className="font-medium text-sm text-zinc-300 mb-2 flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    ZIP Contents:
+                  </h4>
+                  <div className="font-mono text-xs text-green-400 space-y-0.5">
+                    <div>📁 BCA-Balance-Checker-Linux-v{linuxSaldoInfo?.version || '1.0.0'}.zip</div>
+                    <div className="pl-4">├── bca-balance-linux.js <span className="text-zinc-500">({linuxSaldoInfo?.lineCount?.toLocaleString() || '1,105'} lines)</span></div>
+                    <div className="pl-4">├── config.env <span className="text-zinc-500">(SECRET_KEY terisi)</span></div>
+                    <div className="pl-4">├── install.sh</div>
+                    <div className="pl-4">├── run.sh</div>
+                    <div className="pl-4">├── bca-saldo.service</div>
+                    <div className="pl-4">├── install-service.sh</div>
+                    <div className="pl-4">├── README.md</div>
+                    <div className="pl-4">└── VERSION.txt</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* How it works */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  Cara Kerja
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-muted/30 rounded-lg space-y-3">
+                  <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                    <li>User klik <strong>"Generate"</strong> → Script login, grab saldo awal (~8-12 detik)</li>
+                    <li>Angka unik muncul → User transfer ke BCA</li>
+                    <li>User klik <strong>"Saya Sudah Transfer"</strong> → Script loop 30x cek saldo</li>
+                    <li>Jika saldo bertambah sesuai angka unik → <strong>SUKSES!</strong></li>
+                  </ol>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 mt-4">
+                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <h4 className="font-medium text-sm text-green-700 dark:text-green-400 mb-1">✓ Keuntungan</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• ~8-12 detik login + grab saldo</li>
+                      <li>• Port dari bca-scraper.js v4.2.0</li>
+                      <li>• Full error recovery + stealth mode</li>
+                      <li>• Systemd service support</li>
+                    </ul>
+                  </div>
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <h4 className="font-medium text-sm text-amber-700 dark:text-amber-400 mb-1">⚠️ Requirement</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• Linux VPS (Ubuntu/Debian)</li>
+                      <li>• OpenVPN dengan IP Indonesia</li>
+                      <li>• Node.js 18+ terinstall</li>
+                      <li>• Script harus running saat Generate</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Installation Steps */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  Langkah Instalasi
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">1</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Download & Upload</h4>
+                      <p className="text-xs text-muted-foreground">Download ZIP dan upload ke VPS di folder /root/bca-saldo/</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">2</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Install Dependencies</h4>
+                      <p className="text-xs text-muted-foreground">Jalankan: <code className="bg-zinc-800 text-green-400 px-1 rounded">chmod +x *.sh && ./install.sh</code></p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">3</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Edit config.env</h4>
+                      <p className="text-xs text-muted-foreground">Isi BCA_USER_ID dan BCA_PIN (SECRET_KEY sudah terisi)</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">4</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Aktifkan VPN</h4>
+                      <p className="text-xs text-muted-foreground">Pastikan OpenVPN Indonesia aktif sebelum menjalankan script</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">5</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Run Script</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Manual: <code className="bg-zinc-800 text-green-400 px-1 rounded">./run.sh</code> atau 
+                        Service: <code className="bg-zinc-800 text-green-400 px-1 rounded">./install-service.sh</code>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">6</Badge>
+                    <div>
+                      <h4 className="font-medium text-sm">Siap Digunakan</h4>
+                      <p className="text-xs text-muted-foreground">Script akan otomatis merespon saat user klik "Generate" di Payment Request</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Service Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Service Commands
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="p-3 bg-zinc-900 rounded-lg">
+                    <p className="text-xs text-zinc-500 mb-1">Cek Status</p>
+                    <code className="text-xs text-green-400">systemctl status bca-saldo</code>
+                  </div>
+                  <div className="p-3 bg-zinc-900 rounded-lg">
+                    <p className="text-xs text-zinc-500 mb-1">Lihat Log</p>
+                    <code className="text-xs text-green-400">journalctl -u bca-saldo -f</code>
+                  </div>
+                  <div className="p-3 bg-zinc-900 rounded-lg">
+                    <p className="text-xs text-zinc-500 mb-1">Stop Service</p>
+                    <code className="text-xs text-green-400">systemctl stop bca-saldo</code>
+                  </div>
+                  <div className="p-3 bg-zinc-900 rounded-lg">
+                    <p className="text-xs text-zinc-500 mb-1">Restart Service</p>
+                    <code className="text-xs text-green-400">systemctl restart bca-saldo</code>
                   </div>
                 </div>
               </CardContent>
