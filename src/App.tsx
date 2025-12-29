@@ -77,6 +77,7 @@ const InvoiceSettings = lazy(() => import("./pages/InvoiceSettings"));
 const InvoiceTemplateSettings = lazy(() => import("./pages/InvoiceTemplateSettings"));
 const PaymentAutoSettings = lazy(() => import("./pages/PaymentAutoSettings"));
 const BankScraperSettings = lazy(() => import("./pages/CloudScraperSettings"));
+const ScraperMonitoring = lazy(() => import("./pages/ScraperMonitoring"));
 
 // Client Portal Pages
 const MyContracts = lazy(() => import("./pages/MyContracts"));
@@ -205,6 +206,7 @@ const App = () => (
                                   <Route path="/settings/invoice/template" element={<InvoiceTemplateSettings />} />
                                   <Route path="/settings/payment-auto" element={<PaymentAutoSettings />} />
                                   <Route path="/settings/bank-scraper" element={<BankScraperSettings />} />
+                                  <Route path="/scraper-monitoring" element={<ScraperMonitoring />} />
                                   {/* Client Portal Routes */}
                                   <Route path="/client-dashboard" element={<ClientDashboard />} />
                                   <Route path="/my-contracts" element={<MyContracts />} />
