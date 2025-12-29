@@ -663,38 +663,36 @@ export function PaymentRequestGenerator({
         </div>
       </div>
 
+      {/* Warning - SELALU muncul */}
+      <div className="flex items-start gap-2 px-3 py-2 rounded-md text-sm border bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+        <div>
+          <span className="font-medium">Transfer dulu sebelum klik!</span>
+          <p className="text-xs opacity-80 mt-0.5">
+            Pastikan Anda sudah transfer SEBELUM klik tombol ini agar pengecekan bisa dilakukan otomatis, terimakasih.
+          </p>
+        </div>
+      </div>
+
+      {/* Warning untuk non-owner saat global lock */}
+      {globalLock.secondsRemaining > 0 && !globalLock.isOwner && (
+        <div className="flex items-start gap-2 px-3 py-2 rounded-md text-sm border bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <span className="font-medium">JANGAN TRANSFER DULU!</span>
+            <p className="text-xs opacity-80 mt-0.5">
+              Ada proses pengecekan dari user lain. Jangan transfer sampai tombol tersedia lagi dalam {formatCooldown(globalLock.secondsRemaining)}.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           {(globalLock.secondsRemaining > 0 || cooldownRemaining > 0) ? (
-            <div 
-              className={cn(
-                "flex-1 flex flex-col gap-1 py-2 px-3 rounded-md border text-sm",
-                globalLock.secondsRemaining > 0
-                  ? globalLock.isOwner
-                    ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
-                    : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
-                  : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
-              )}
-            >
-              <div className="flex items-center gap-1.5">
-                <AlertTriangle className="h-3 w-3" />
-                <span className="font-medium">
-                  {globalLock.secondsRemaining > 0 
-                    ? globalLock.isOwner
-                      ? "Transfer dulu sebelum klik!"
-                      : "JANGAN TRANSFER DULU!"
-                    : `Tunggu ${formatCooldown(cooldownRemaining)}`
-                  }
-                </span>
-              </div>
-              {globalLock.secondsRemaining > 0 && (
-                <span className="text-xs opacity-80">
-                  {globalLock.isOwner 
-                    ? `Pastikan Anda sudah transfer SEBELUM klik tombol ini. Jika belum transfer, tunggu ${formatCooldown(globalLock.secondsRemaining)} lagi.`
-                    : `Ada proses pengecekan dari user lain. Jangan transfer sampai tombol tersedia lagi dalam ${formatCooldown(globalLock.secondsRemaining)}.`
-                  }
-                </span>
-              )}
+            <div className="flex-1 flex items-center gap-1.5 py-2 px-3 rounded-md border text-sm bg-muted/50 text-muted-foreground border-muted">
+              <Clock className="h-3 w-3" />
+              <span>Tunggu {formatCooldown(globalLock.secondsRemaining > 0 ? globalLock.secondsRemaining : cooldownRemaining)} untuk cek ulang</span>
             </div>
           ) : pendingRequest?.burst_triggered_at ? (
             <Button
