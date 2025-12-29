@@ -1,5 +1,5 @@
 /**
- * BCA Balance Checker - WINDOWS RDP VERSION v1.0.0
+ * BCA Balance Checker - WINDOWS RDP VERSION v1.0.1
  * 
  * Script khusus untuk cek saldo BCA (BUKAN mutasi).
  * Digunakan untuk payment verification berbasis perubahan saldo.
@@ -20,8 +20,10 @@
  */
 
 // ============ SCRAPER VERSION ============
-const CHECKER_VERSION = "1.0.0-windows";
+const CHECKER_VERSION = "1.0.1-windows";
 const CHECKER_BUILD_DATE = "2025-12-29";
+// v1.0.1-windows: Fixed URL config - read COMMAND_URL directly from env
+// v1.0.0-windows: Initial release - speed optimized balance checking
 // =========================================
 
 // Use puppeteer-extra with stealth plugin
@@ -108,7 +110,7 @@ if (CONFIG.SECRET_KEY === 'YOUR_SECRET_KEY_HERE') {
 // Startup banner
 console.log('');
 console.log('==========================================');
-console.log('  BCA BALANCE CHECKER v1.0.0');
+console.log('  BCA BALANCE CHECKER v1.0.1');
 console.log('==========================================');
 console.log(`  Version : ${CHECKER_VERSION} (${CHECKER_BUILD_DATE})`);
 console.log(`  Headless: ${CONFIG.HEADLESS}`);
