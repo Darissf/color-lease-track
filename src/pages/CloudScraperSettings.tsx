@@ -83,6 +83,16 @@ export default function BankScraperSettings() {
   } | null>(null);
   const [loadingFileInfo, setLoadingFileInfo] = useState(false);
   
+  // Windows Scraper File Info State
+  const [windowsScraperInfo, setWindowsScraperInfo] = useState<{
+    version: string;
+    buildDate: string;
+    lineCount: number;
+    changelog: string[];
+    loaded: boolean;
+  } | null>(null);
+  const [loadingWindowsInfo, setLoadingWindowsInfo] = useState(false);
+  
   // VPS Settings State
   const [vpsSettings, setVpsSettings] = useState<VPSSettings | null>(null);
   const [showVpsSecret, setShowVpsSecret] = useState(false);
@@ -181,6 +191,39 @@ export default function BankScraperSettings() {
     }
   }, []);
 
+  // Fetch Windows scraper file info
+  const fetchWindowsScraperInfo = useCallback(async () => {
+    setLoadingWindowsInfo(true);
+    try {
+      const response = await fetch(`/windows-scraper-template/bca-scraper-windows.js?v=${Date.now()}`);
+      const content = await response.text();
+      
+      // Parse version dari file
+      const versionMatch = content.match(/SCRAPER_VERSION\s*=\s*["']([^"']+)["']/);
+      const buildDateMatch = content.match(/SCRAPER_BUILD_DATE\s*=\s*["']([^"']+)["']/);
+      const lineCount = content.split('\n').length;
+      
+      // Extract changelog from comments (lines starting with // v or * v)
+      const changelogMatches = content.match(/(?:\/\/|\*)\s*(v[\d.]+[^\n]*)/gm) || [];
+      const changelog = changelogMatches
+        .slice(0, 5)
+        .map(line => line.replace(/^(?:\/\/|\*)\s*/, '').trim());
+      
+      setWindowsScraperInfo({
+        version: versionMatch?.[1] || 'unknown',
+        buildDate: buildDateMatch?.[1] || 'unknown',
+        lineCount,
+        changelog,
+        loaded: true
+      });
+    } catch (error) {
+      console.error('Failed to fetch Windows scraper file info:', error);
+      setWindowsScraperInfo(null);
+    } finally {
+      setLoadingWindowsInfo(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isSuperAdmin) {
       navigate("/");
@@ -188,7 +231,8 @@ export default function BankScraperSettings() {
     }
     fetchData();
     fetchScraperFileInfo();
-  }, [isSuperAdmin, navigate, fetchData, fetchScraperFileInfo]);
+    fetchWindowsScraperInfo();
+  }, [isSuperAdmin, navigate, fetchData, fetchScraperFileInfo, fetchWindowsScraperInfo]);
 
   // Auto-refresh burst status
   useEffect(() => {
@@ -672,7 +716,6 @@ LANGKAH UPDATE:
     try {
       const zip = new JSZip();
       const cacheBuster = `?v=${Date.now()}`;
-      const version = "4.1.5";
       const updateDate = new Date().toLocaleDateString('id-ID', {
         day: 'numeric', month: 'long', year: 'numeric'
       });
@@ -696,6 +739,17 @@ LANGKAH UPDATE:
         readmeRes.text(),
       ]);
 
+      // Extract version from scraper file (single source of truth)
+      const versionMatch = scraperText.match(/SCRAPER_VERSION\s*=\s*["']([^"']+)["']/);
+      const version = versionMatch?.[1] || 'unknown';
+      
+      // Extract changelog from scraper file comments
+      const changelogMatches = scraperText.match(/(?:\/\/|\*)\s*(v[\d.]+[^\n]*)/gm) || [];
+      const changelogLines = changelogMatches
+        .slice(0, 10)
+        .map(line => '- ' + line.replace(/^(?:\/\/|\*)\s*/, '').trim())
+        .join('\n');
+
       // Modify config with secret key and webhook URL
       let configContent = configText;
       if (vpsSettings?.webhook_secret_encrypted) {
@@ -717,7 +771,7 @@ LANGKAH UPDATE:
       zip.file("setup-autostart.bat", autoStartText);
       zip.file("README-WINDOWS.md", readmeText);
       
-      // Add VERSION.txt with changelog
+      // Add VERSION.txt with dynamic changelog
       zip.file("VERSION.txt", `BCA Scraper Windows v${version}
 ========================================
 Tanggal Update: ${updateDate}
@@ -730,20 +784,8 @@ CARA INSTALL:
 4. Connect VPN Indonesia
 5. Jalankan run-windows.bat
 
-CHANGELOG v4.1.5:
-- Step 5 Navigation Logging untuk debug
-- Detailed frame debugging
-- Click tracking dengan error handling
-
-CHANGELOG v4.1.4:
-- Full navigation loop di Burst Mode
-- Stop on match detection
-- Re-grab ATM frame setelah klik Lihat
-
-CHANGELOG v4.1.3:
-- Windows path handling improvements
-- Auto Chrome detection
-- Removed systemd dependencies
+CHANGELOG:
+${changelogLines || '- Initial release'}
 
 KONFIGURASI:
 - SECRET_KEY: ${vpsSettings?.webhook_secret_encrypted ? '✓ Sudah terisi' : '✗ Belum dikonfigurasi'}
@@ -1973,11 +2015,51 @@ dan set HEADLESS=false untuk debug visual.
                   <Download className="h-5 w-5" />
                   Download Windows Scraper
                 </CardTitle>
-                <CardDescription>
-                  Package untuk Windows RDP - v4.1.5-windows
+                <CardDescription className="flex items-center gap-2">
+                  Package untuk Windows RDP - 
+                  {loadingWindowsInfo ? (
+                    <Loader2 className="h-3 w-3 animate-spin inline" />
+                  ) : windowsScraperInfo?.loaded ? (
+                    <Badge variant="outline" className="font-mono text-xs">
+                      v{windowsScraperInfo.version}
+                    </Badge>
+                  ) : (
+                    'loading...'
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Version Info Panel */}
+                {windowsScraperInfo?.loaded && (
+                  <div className="p-3 bg-muted/50 rounded-lg border space-y-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Badge variant="default" className="font-mono">
+                        v{windowsScraperInfo.version}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Build: {windowsScraperInfo.buildDate}
+                      </span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Code className="h-3 w-3" />
+                        {windowsScraperInfo.lineCount.toLocaleString()} lines
+                      </span>
+                    </div>
+                    {windowsScraperInfo.changelog.length > 0 && (
+                      <details className="text-xs">
+                        <summary className="cursor-pointer hover:text-primary text-muted-foreground">
+                          Lihat Changelog ({windowsScraperInfo.changelog.length} entries)
+                        </summary>
+                        <ul className="mt-2 space-y-1 text-muted-foreground pl-4">
+                          {windowsScraperInfo.changelog.map((line, idx) => (
+                            <li key={idx} className="list-disc">{line}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
+                )}
+
                 {/* Primary: ZIP Download */}
                 <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                   <div className="flex items-start gap-4">
@@ -1998,7 +2080,11 @@ dan set HEADLESS=false untuk debug visual.
                         {generatingWindowsPackage ? (
                           <><RefreshCw className="h-4 w-4 animate-spin" /> Generating ZIP...</>
                         ) : (
-                          <><Download className="h-4 w-4" /> Download Windows Package v4.1.5</>
+                          <>
+                            <Download className="h-4 w-4" /> 
+                            Download Windows Package 
+                            {windowsScraperInfo?.loaded && ` v${windowsScraperInfo.version}`}
+                          </>
                         )}
                       </Button>
                       {!vpsSettings?.webhook_secret_encrypted && (
