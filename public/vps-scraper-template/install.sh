@@ -1,12 +1,13 @@
 #!/bin/bash
 # ============================================================
 # BCA VPS Scraper - All-in-One Installer
-# ULTRA-ROBUST MODE v4.0.0
+# STEALTH MODE v4.2.0
 # ============================================================
 # Script ini akan:
 # 1. Install semua dependencies (Node.js, OpenVPN, Puppeteer)
-# 2. Setup OpenVPN dengan file .ovpn yang tersedia (jika ada)
-# 3. Setup systemd service untuk persistent browser daemon
+# 2. Install puppeteer-extra + stealth plugin (anti-detection)
+# 3. Setup OpenVPN dengan file .ovpn yang tersedia (jika ada)
+# 4. Setup systemd service untuk persistent browser daemon
 #
 # CATATAN: Script ini TIDAK akan prompt/tanya apapun
 # Semua berjalan otomatis. Jika ada file yang sudah ada,
@@ -16,7 +17,7 @@
 set -e
 
 echo "============================================================"
-echo "    BCA VPS Scraper - ULTRA-ROBUST MODE v4.0.0"
+echo "    BCA VPS Scraper - STEALTH MODE v4.2.0"
 echo "============================================================"
 echo ""
 
@@ -206,14 +207,14 @@ fi
 # STEP 4: Install npm dependencies
 # ============================================================
 echo ""
-echo "STEP 4: Installing npm packages..."
+echo "STEP 4: Installing npm packages (with Stealth Plugin)..."
 
 if [ ! -f "package.json" ]; then
     npm init -y
 fi
 
-npm install puppeteer dotenv
-print_success "npm packages installed"
+npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth dotenv
+print_success "npm packages installed (including stealth plugin)"
 
 # ============================================================
 # STEP 5: Setup OpenVPN (if .ovpn file exists)
@@ -320,7 +321,7 @@ sudo chmod 644 /var/log/bca-scraper-error.log 2>/dev/null || true
 # ============================================================
 echo ""
 echo "============================================================"
-echo -e "${GREEN}    INSTALASI SELESAI! (v4.0.0 - Ultra-Robust Mode)${NC}"
+echo -e "${GREEN}    INSTALASI SELESAI! (v4.2.0 - Stealth Mode)${NC}"
 echo "============================================================"
 echo ""
 echo "LANGKAH SELANJUTNYA:"
@@ -356,32 +357,28 @@ fi
 echo ""
 echo "5. Cek log:"
 echo "   tail -f /var/log/bca-scraper.log"
-echo "   # atau"
-echo "   sudo journalctl -u bca-scraper -f"
 echo ""
 echo "============================================================"
 echo ""
-echo "ULTRA-ROBUST MODE v4.0.0:"
+echo "STEALTH MODE v4.2.0 FEATURES:"
 echo ""
-echo "Daemon akan:"
-echo "- Browser di-launch saat startup, standby 24/7"
-echo "- Smart Chromium fallback (apt -> snap -> puppeteer bundled)"
+echo "Anti-Detection:"
+echo "- puppeteer-extra-plugin-stealth (11+ evasions)"
+echo "- Human-like mouse movement (Bezier curves)"
+echo "- Random delays (Gaussian distribution)"
+echo "- WebGL/Canvas fingerprint spoofing"
+echo "- Random viewport size"
+echo ""
+echo "Ultra-Robust:"
+echo "- Browser standby 24/7"
 echo "- Global timeout 2 menit per scrape"
 echo "- Session expired detection & auto-recovery"
-echo "- Browser restart setiap 10 scrape atau 2 jam"
+echo "- Browser restart setiap 50 scrape atau 2 jam"
 echo "- Heartbeat reporting setiap 5 menit"
-echo "- Retry with exponential backoff (3x)"
-echo ""
-echo "SERVICE FEATURES:"
-echo "- Auto-restart jika crash (30 detik delay)"
-echo "- Auto-start saat server reboot"
-echo "- Full system access untuk Chromium"
-echo "- No resource limits (high-spec VPS)"
 echo ""
 echo "SERVICE MANAGEMENT:"
 echo "  Status:    sudo systemctl status bca-scraper"
 echo "  Restart:   sudo systemctl restart bca-scraper"
 echo "  Logs:      tail -f /var/log/bca-scraper.log"
-echo "  Uninstall: sudo ./install-service.sh --uninstall"
 echo ""
 echo "============================================================"
