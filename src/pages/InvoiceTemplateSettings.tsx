@@ -273,7 +273,7 @@ const InvoiceTemplateSettings = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 min-h-[calc(100vh-65px)]">
+      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-0 min-h-[calc(100vh-65px)]">
         <div className="border-r overflow-y-auto max-h-[calc(100vh-65px)]">
           <div className="p-4 space-y-4">
             <Accordion type="multiple" defaultValue={['branding', 'colors']} className="space-y-3">
@@ -341,36 +341,32 @@ const InvoiceTemplateSettings = () => {
                 <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
               </TabsList>
               <TabsContent value="invoice">
-                <Card className="shadow-lg overflow-auto">
-                  <CardContent className="p-0">
-                    <div className="flex justify-center py-4">
-                      <InvoiceTemplatePreview 
-                        settings={settings}
-                        customTextElements={customTextElements}
-                        selectedElementId={selectedElementId}
-                        onSelectElement={setSelectedElementId}
-                        onUpdateElement={handleUpdateTextElement}
-                        isEditing={isEditingMode}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="flex justify-center py-4">
+                  <div className="origin-top" style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
+                    <InvoiceTemplatePreview 
+                      settings={settings}
+                      customTextElements={customTextElements}
+                      selectedElementId={selectedElementId}
+                      onSelectElement={setSelectedElementId}
+                      onUpdateElement={handleUpdateTextElement}
+                      isEditing={isEditingMode}
+                    />
+                  </div>
+                </div>
               </TabsContent>
               <TabsContent value="receipt">
-                <Card className="shadow-lg overflow-auto">
-                  <CardContent className="p-0">
-                    <div className="flex justify-center py-4">
-                      <ReceiptTemplatePreview 
-                        settings={settings}
-                        customTextElements={customTextElements}
-                        selectedElementId={selectedElementId}
-                        onSelectElement={setSelectedElementId}
-                        onUpdateElement={handleUpdateTextElement}
-                        isEditing={isEditingMode}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="flex justify-center py-4">
+                  <div className="origin-top" style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
+                    <ReceiptTemplatePreview 
+                      settings={settings}
+                      customTextElements={customTextElements}
+                      selectedElementId={selectedElementId}
+                      onSelectElement={setSelectedElementId}
+                      onUpdateElement={handleUpdateTextElement}
+                      isEditing={isEditingMode}
+                    />
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
