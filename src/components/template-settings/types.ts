@@ -89,6 +89,7 @@ export interface TemplateSettings {
   signer_title: string;
   signature_position: string;
   signature_label: string;
+  signature_scale: number;
   show_stamp: boolean;
   custom_stamp_url: string | null;
   stamp_text: string;
@@ -259,6 +260,7 @@ export const defaultSettings: TemplateSettings = {
   signer_title: '',
   signature_position: 'right',
   signature_label: 'Hormat Kami,',
+  signature_scale: 100,
   show_stamp: true,
   custom_stamp_url: null,
   stamp_text: 'LUNAS',
