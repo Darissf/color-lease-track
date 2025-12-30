@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2, Stamp, PenTool, Wallet, TypeIcon } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2, Stamp, PenTool, Wallet, TypeIcon, TextCursor } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageCropper } from '@/components/ImageCropper';
 import { SignatureCropper } from '@/components/SignatureCropper';
@@ -37,6 +37,7 @@ const InvoiceTemplateSettings = () => {
   const [uploading, setUploading] = useState(false);
   const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [isEditingMode, setIsEditingMode] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -256,6 +257,14 @@ const InvoiceTemplateSettings = () => {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant={isEditingMode ? "default" : "outline"} 
+              size="sm" 
+              onClick={() => setIsEditingMode(!isEditingMode)}
+            >
+              <TextCursor className="h-4 w-4 mr-1" />
+              {isEditingMode ? 'Selesai Edit' : 'Edit Mode'}
+            </Button>
             <Button variant="outline" size="sm" onClick={handleReset}><RotateCcw className="h-4 w-4 mr-1" />Reset</Button>
             <Button size="sm" onClick={handleSave} disabled={isSaving}>
               {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}Simpan
@@ -334,11 +343,12 @@ const InvoiceTemplateSettings = () => {
               <TabsContent value="invoice">
                 <Card className="shadow-lg"><CardContent className="p-0"><div className="transform scale-[0.6] origin-top-left" style={{ width: '166.67%' }}>
                   <InvoiceTemplatePreview 
-                    settings={settings} 
+                    settings={settings}
                     customTextElements={customTextElements}
                     selectedElementId={selectedElementId}
                     onSelectElement={setSelectedElementId}
                     onUpdateElement={handleUpdateTextElement}
+                    isEditing={isEditingMode}
                   />
                 </div></CardContent></Card>
               </TabsContent>
@@ -350,6 +360,7 @@ const InvoiceTemplateSettings = () => {
                     selectedElementId={selectedElementId}
                     onSelectElement={setSelectedElementId}
                     onUpdateElement={handleUpdateTextElement}
+                    isEditing={isEditingMode}
                   />
                 </div></CardContent></Card>
               </TabsContent>
