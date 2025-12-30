@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { InvoiceTemplate } from './InvoiceTemplate';
@@ -57,18 +56,12 @@ export function PublicDocumentPreviewModal({
 }: PublicDocumentPreviewModalProps) {
   const documentRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
-  const [mounted, setMounted] = useState(false);
   const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
   const [bankInfo, setBankInfo] = useState<{ bank_name: string; account_number: string; account_holder_name?: string } | null>(null);
   const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
 
   useEffect(() => {
     if (open) {
@@ -168,79 +161,76 @@ export function PublicDocumentPreviewModal({
   } : null;
 
   return (
-    <>
-      {/* Portal: Hidden template untuk PDF capture - ukuran A4 asli tanpa transforms */}
-      {mounted && open && !isLoading && verificationCode && createPortal(
-        <div 
-          id="pdf-hidden-container"
-          style={{
-            position: 'fixed',
-            left: '-9999px',
-            top: '0',
-            width: '210mm',
-            height: 'auto',
-            backgroundColor: '#ffffff',
-            zIndex: -9999,
-            pointerEvents: 'none',
-            visibility: 'visible',
-            opacity: 1,
-          }}
-        >
-          {documentType === 'invoice' && invoiceProps ? (
-            <InvoiceTemplate ref={documentRef} {...invoiceProps} />
-          ) : receiptProps ? (
-            <ReceiptTemplate ref={documentRef} {...receiptProps} />
-          ) : null}
-        </div>,
-        document.body
-      )}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
+        {/* Hidden template untuk PDF capture - INSIDE modal dengan opacity trick */}
+        {!isLoading && verificationCode && (
+          <div 
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: '210mm',
+              height: 'auto',
+              backgroundColor: '#ffffff',
+              pointerEvents: 'none',
+              opacity: 0,
+              zIndex: -1,
+              overflow: 'hidden',
+            }}
+          >
+            {documentType === 'invoice' && invoiceProps ? (
+              <InvoiceTemplate ref={documentRef} {...invoiceProps} />
+            ) : receiptProps ? (
+              <ReceiptTemplate ref={documentRef} {...receiptProps} />
+            ) : null}
+          </div>
+        )}
 
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
-          <DialogHeader className="pr-10">
-            <DialogTitle>
-              {documentType === 'invoice' ? 'Preview Invoice' : 'Preview Kwitansi'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {!isLoading && verificationCode && (
-            <div className="flex flex-col sm:flex-row gap-2 mb-2">
-              <DocumentPDFGenerator
-                documentRef={documentRef}
-                fileName={getFileName()}
-                showOptions={true}
-              />
-            </div>
-          )}
+        <DialogHeader className="pr-10">
+          <DialogTitle>
+            {documentType === 'invoice' ? 'Preview Invoice' : 'Preview Kwitansi'}
+          </DialogTitle>
+        </DialogHeader>
+        
+        {!isLoading && verificationCode && (
+          <div className="flex flex-col sm:flex-row gap-2 mb-2">
+            <DocumentPDFGenerator
+              documentRef={documentRef}
+              fileName={getFileName()}
+              showOptions={true}
+            />
+          </div>
+        )}
 
-          {/* Visible document - untuk display saja, tanpa ref */}
-          {isLoading || !verificationCode ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        {/* Visible document - untuk display saja, tanpa ref */}
+        {isLoading || !verificationCode ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : isMobile ? (
+          <ZoomableDocumentWrapper>
+            {documentType === 'invoice' && invoiceProps ? (
+              <InvoiceTemplate {...invoiceProps} />
+            ) : receiptProps ? (
+              <ReceiptTemplate {...receiptProps} />
+            ) : null}
+          </ZoomableDocumentWrapper>
+        ) : (
+          <ScrollArea className="h-[70vh]">
+            <div className="py-4">
+              <ResponsiveDocumentWrapper>
+                {documentType === 'invoice' && invoiceProps ? (
+                  <InvoiceTemplate {...invoiceProps} />
+                ) : receiptProps ? (
+                  <ReceiptTemplate {...receiptProps} />
+                ) : null}
+              </ResponsiveDocumentWrapper>
             </div>
-          ) : isMobile ? (
-            <ZoomableDocumentWrapper>
-              {documentType === 'invoice' && invoiceProps ? (
-                <InvoiceTemplate {...invoiceProps} />
-              ) : receiptProps ? (
-                <ReceiptTemplate {...receiptProps} />
-              ) : null}
-            </ZoomableDocumentWrapper>
-          ) : (
-            <ScrollArea className="h-[70vh]">
-              <div className="py-4">
-                <ResponsiveDocumentWrapper>
-                  {documentType === 'invoice' && invoiceProps ? (
-                    <InvoiceTemplate {...invoiceProps} />
-                  ) : receiptProps ? (
-                    <ReceiptTemplate {...receiptProps} />
-                  ) : null}
-                </ResponsiveDocumentWrapper>
-              </div>
-            </ScrollArea>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+          </ScrollArea>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

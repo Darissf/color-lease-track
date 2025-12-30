@@ -53,14 +53,18 @@ export const DocumentPDFGenerator = ({
       const element = documentRef.current;
       const container = element.parentElement;
       
-      // Simpan state original dan pindahkan ke viewport agar fully render
-      const originalLeft = container?.style.left;
+      // Simpan state original
+      const originalOpacity = container?.style.opacity;
+      const originalZIndex = container?.style.zIndex;
+      
+      // Buat visible untuk capture (opacity trick)
       if (container) {
-        container.style.left = '0';
+        container.style.opacity = '1';
+        container.style.zIndex = '9999';
       }
 
       // Tunggu browser render
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
       // Capture dengan ukuran A4 asli (793 x 1122 px at 96dpi)
       const canvas = await html2canvas(element, {
@@ -71,9 +75,10 @@ export const DocumentPDFGenerator = ({
         logging: false,
       });
 
-      // Kembalikan ke posisi hidden
-      if (container && originalLeft !== undefined) {
-        container.style.left = originalLeft;
+      // Kembalikan ke hidden state
+      if (container) {
+        container.style.opacity = originalOpacity || '0';
+        container.style.zIndex = originalZIndex || '-1';
       }
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
@@ -136,14 +141,18 @@ export const DocumentPDFGenerator = ({
       const element = documentRef.current;
       const container = element.parentElement;
       
-      // Simpan state original dan pindahkan ke viewport agar fully render
-      const originalLeft = container?.style.left;
+      // Simpan state original
+      const originalOpacity = container?.style.opacity;
+      const originalZIndex = container?.style.zIndex;
+      
+      // Buat visible untuk capture (opacity trick)
       if (container) {
-        container.style.left = '0';
+        container.style.opacity = '1';
+        container.style.zIndex = '9999';
       }
 
       // Tunggu browser render
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
       // Capture dengan ukuran A4 asli
       const canvas = await html2canvas(element, {
@@ -154,9 +163,10 @@ export const DocumentPDFGenerator = ({
         logging: false,
       });
 
-      // Kembalikan ke posisi hidden
-      if (container && originalLeft !== undefined) {
-        container.style.left = originalLeft;
+      // Kembalikan ke hidden state
+      if (container) {
+        container.style.opacity = originalOpacity || '0';
+        container.style.zIndex = originalZIndex || '-1';
       }
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
