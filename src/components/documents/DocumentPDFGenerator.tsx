@@ -50,45 +50,20 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
 
-      // Capture langsung dari visible element, reset transforms via onclone
+      // Capture PERSIS seperti yang terlihat di preview - WYSIWYG
       const canvas = await html2canvas(documentRef.current, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        onclone: (_clonedDoc, clonedElement) => {
-          // Reset semua transform dari wrappers
-          clonedElement.style.transform = 'none';
-          clonedElement.style.transformOrigin = 'top left';
-          clonedElement.style.width = '210mm';
-          clonedElement.style.height = 'auto';
-          clonedElement.style.position = 'static';
-          clonedElement.style.margin = '0';
-          clonedElement.style.maxWidth = 'none';
-          clonedElement.style.maxHeight = 'none';
-          clonedElement.style.overflow = 'visible';
-          clonedElement.style.visibility = 'visible';
-          clonedElement.style.opacity = '1';
-          
-          // Reset parent transforms
-          let parent = clonedElement.parentElement;
-          while (parent) {
-            parent.style.transform = 'none';
-            parent.style.overflow = 'visible';
-            parent = parent.parentElement;
-          }
-        }
       });
 
-      // Validasi canvas
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");
       }
 
       let imgData = canvas.toDataURL("image/png");
-      
-      // Fallback ke JPEG jika PNG invalid
       if (!imgData || imgData === 'data:,' || imgData.length < 100) {
         imgData = canvas.toDataURL("image/jpeg", 0.95);
       }
@@ -108,48 +83,19 @@ export const DocumentPDFGenerator = ({
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       
-      // Scale based on width only to maintain aspect ratio
-      const ratio = pdfWidth / imgWidth;
+      // Fit image ke halaman PDF dengan mempertahankan aspect ratio
+      const widthRatio = pdfWidth / imgWidth;
+      const heightRatio = pdfHeight / imgHeight;
+      const ratio = Math.min(widthRatio, heightRatio);
+      
+      const scaledWidth = imgWidth * ratio;
       const scaledHeight = imgHeight * ratio;
       
-      // Check if content exceeds one page
-      if (scaledHeight > pdfHeight) {
-        // Multi-page PDF
-        let remainingHeight = scaledHeight;
-        let sourceY = 0;
-        const pageHeightInPixels = pdfHeight / ratio;
-        
-        while (remainingHeight > 0) {
-          // Create a temporary canvas for this page section
-          const pageCanvas = document.createElement('canvas');
-          pageCanvas.width = imgWidth;
-          pageCanvas.height = Math.min(pageHeightInPixels, imgHeight - sourceY);
-          
-          const ctx = pageCanvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(
-              canvas,
-              0, sourceY, imgWidth, pageCanvas.height,
-              0, 0, imgWidth, pageCanvas.height
-            );
-            
-            const pageImgData = pageCanvas.toDataURL("image/png");
-            const pageScaledHeight = pageCanvas.height * ratio;
-            
-            pdf.addImage(pageImgData, "PNG", 0, 0, pdfWidth, pageScaledHeight);
-          }
-          
-          remainingHeight -= pdfHeight;
-          sourceY += pageHeightInPixels;
-          
-          if (remainingHeight > 0) {
-            pdf.addPage();
-          }
-        }
-      } else {
-        // Single page - add image at top
-        pdf.addImage(imgData, imgFormat, 0, 0, pdfWidth, scaledHeight);
-      }
+      // Center image di halaman
+      const offsetX = (pdfWidth - scaledWidth) / 2;
+      const offsetY = (pdfHeight - scaledHeight) / 2;
+
+      pdf.addImage(imgData, imgFormat, offsetX, offsetY, scaledWidth, scaledHeight);
 
       pdf.save(`${fileName}.pdf`);
 
@@ -170,32 +116,13 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
 
+      // Capture PERSIS seperti yang terlihat di preview - WYSIWYG
       const canvas = await html2canvas(documentRef.current, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        onclone: (_clonedDoc, clonedElement) => {
-          clonedElement.style.transform = 'none';
-          clonedElement.style.transformOrigin = 'top left';
-          clonedElement.style.width = '210mm';
-          clonedElement.style.height = 'auto';
-          clonedElement.style.position = 'static';
-          clonedElement.style.margin = '0';
-          clonedElement.style.maxWidth = 'none';
-          clonedElement.style.maxHeight = 'none';
-          clonedElement.style.overflow = 'visible';
-          clonedElement.style.visibility = 'visible';
-          clonedElement.style.opacity = '1';
-          
-          let parent = clonedElement.parentElement;
-          while (parent) {
-            parent.style.transform = 'none';
-            parent.style.overflow = 'visible';
-            parent = parent.parentElement;
-          }
-        }
       });
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
@@ -216,8 +143,8 @@ export const DocumentPDFGenerator = ({
               <title>${fileName}</title>
               <style>
                 @page { margin: 0; }
-                body { margin: 0; display: flex; justify-content: center; }
-                img { max-width: 100%; height: auto; }
+                body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+                img { max-width: 100%; max-height: 100vh; object-fit: contain; }
               </style>
             </head>
             <body>
