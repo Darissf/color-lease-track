@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2, Stamp, PenTool, Wallet, TypeIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageCropper } from '@/components/ImageCropper';
+import { SignatureCropper } from '@/components/SignatureCropper';
 import { InvoiceTemplatePreview } from '@/components/documents/InvoiceTemplatePreview';
 import { ReceiptTemplatePreview } from '@/components/documents/ReceiptTemplatePreview';
 import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
@@ -357,9 +358,11 @@ const InvoiceTemplateSettings = () => {
         </div>
       </div>
 
-      {cropFile && (
+      {cropFile && cropTarget === 'signature_url' ? (
+        <SignatureCropper file={cropFile} onCrop={handleCrop} onCancel={() => { setCropFile(null); setCropTarget(null); }} />
+      ) : cropFile ? (
         <ImageCropper file={cropFile} onCrop={handleCrop} onCancel={() => { setCropFile(null); setCropTarget(null); }} />
-      )}
+      ) : null}
     </div>
   );
 };
