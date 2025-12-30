@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Dialog,
   DialogContent,
@@ -60,7 +61,12 @@ export const DocumentPreviewModal = ({
   const { settings: brandSettings } = useBrandSettings();
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
   const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
   useEffect(() => {
     if (open && user) {
       fetchSettings();
@@ -227,22 +233,26 @@ export const DocumentPreviewModal = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
-        {/* Hidden template untuk PDF capture - INSIDE modal dengan opacity trick */}
+    <>
+      {/* Portal ke body - FIXED size A4, tidak terpengaruh Dialog constraints */}
+      {mounted && open && createPortal(
         <div 
+          id="pdf-capture-container"
           aria-hidden="true"
           style={{
-            position: 'absolute',
+            position: 'fixed',
             left: 0,
             top: 0,
             width: '210mm',
+            minWidth: '210mm',
+            maxWidth: '210mm',
             height: 'auto',
+            minHeight: '297mm',
             backgroundColor: '#ffffff',
+            visibility: 'hidden',
+            zIndex: -9999,
             pointerEvents: 'none',
-            opacity: 0,
-            zIndex: -1,
-            overflow: 'hidden',
+            overflow: 'visible',
           }}
         >
           {documentData.documentType === 'invoice' ? (
@@ -250,44 +260,49 @@ export const DocumentPreviewModal = ({
           ) : (
             <ReceiptTemplate ref={documentRef} {...receiptProps} />
           )}
-        </div>
+        </div>,
+        document.body
+      )}
 
-        <DialogHeader className="pr-10">
-          <DialogTitle>Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}</DialogTitle>
-        </DialogHeader>
-        
-        <div className="flex flex-col sm:flex-row gap-2 mb-2">
-          <DocumentPDFGenerator
-            documentRef={documentRef}
-            fileName={fileName}
-            onComplete={onDocumentSaved}
-            showOptions={true}
-          />
-        </div>
-        
-        {/* Visible document - untuk display saja, tanpa ref */}
-        {isMobile ? (
-          <ZoomableDocumentWrapper>
-            {documentData.documentType === 'invoice' ? (
-              <InvoiceTemplate {...invoiceProps} />
-            ) : (
-              <ReceiptTemplate {...receiptProps} />
-            )}
-          </ZoomableDocumentWrapper>
-        ) : (
-          <ScrollArea className="h-[70vh]">
-            <div className="py-4">
-              <ResponsiveDocumentWrapper>
-                {documentData.documentType === 'invoice' ? (
-                  <InvoiceTemplate {...invoiceProps} />
-                ) : (
-                  <ReceiptTemplate {...receiptProps} />
-                )}
-              </ResponsiveDocumentWrapper>
-            </div>
-          </ScrollArea>
-        )}
-      </DialogContent>
-    </Dialog>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
+          <DialogHeader className="pr-10">
+            <DialogTitle>Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-col sm:flex-row gap-2 mb-2">
+            <DocumentPDFGenerator
+              documentRef={documentRef}
+              fileName={fileName}
+              onComplete={onDocumentSaved}
+              showOptions={true}
+            />
+          </div>
+          
+          {/* Visible document - untuk display saja, tanpa ref */}
+          {isMobile ? (
+            <ZoomableDocumentWrapper>
+              {documentData.documentType === 'invoice' ? (
+                <InvoiceTemplate {...invoiceProps} />
+              ) : (
+                <ReceiptTemplate {...receiptProps} />
+              )}
+            </ZoomableDocumentWrapper>
+          ) : (
+            <ScrollArea className="h-[70vh]">
+              <div className="py-4">
+                <ResponsiveDocumentWrapper>
+                  {documentData.documentType === 'invoice' ? (
+                    <InvoiceTemplate {...invoiceProps} />
+                  ) : (
+                    <ReceiptTemplate {...receiptProps} />
+                  )}
+                </ResponsiveDocumentWrapper>
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
