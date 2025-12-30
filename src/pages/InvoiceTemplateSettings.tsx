@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2, Stamp, PenTool, Wallet, TypeIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageCropper } from '@/components/ImageCropper';
-import { SignatureCropper } from '@/components/SignatureCropper';
 import { InvoiceTemplatePreview } from '@/components/documents/InvoiceTemplatePreview';
 import { ReceiptTemplatePreview } from '@/components/documents/ReceiptTemplatePreview';
 import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
@@ -290,7 +289,7 @@ const InvoiceTemplateSettings = () => {
               </AccordionItem>
               <AccordionItem value="signature" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><PenTool className="h-4 w-4 text-primary" /><span className="font-medium">Tanda Tangan</span></div></AccordionTrigger>
-                <AccordionContent className="pb-4"><SignatureSection settings={settings} updateSetting={updateSetting} layoutSettings={currentLayoutSettings} updateLayoutSetting={updateLayoutSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
+                <AccordionContent className="pb-4"><SignatureSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
               </AccordionItem>
               <AccordionItem value="stamp" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Stamp className="h-4 w-4 text-primary" /><span className="font-medium">Stempel</span></div></AccordionTrigger>
@@ -358,11 +357,9 @@ const InvoiceTemplateSettings = () => {
         </div>
       </div>
 
-      {cropFile && cropTarget === 'signature_url' ? (
-        <SignatureCropper file={cropFile} onCrop={handleCrop} onCancel={() => { setCropFile(null); setCropTarget(null); }} />
-      ) : cropFile ? (
+      {cropFile && (
         <ImageCropper file={cropFile} onCrop={handleCrop} onCancel={() => { setCropFile(null); setCropTarget(null); }} />
-      ) : null}
+      )}
     </div>
   );
 };

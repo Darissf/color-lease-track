@@ -504,32 +504,20 @@ export function InvoiceTemplatePreview({
           </div>
         )}
 
-        {/* Signature Section - Absolute positioning with X/Y sliders */}
+        {/* Signature Section */}
         {settings.show_signature !== false && (
-          <div 
-            className="absolute pointer-events-none"
-            style={{
-              left: `${settings.invoice_layout_settings?.signature_position_x ?? 75}%`,
-              top: `${settings.invoice_layout_settings?.signature_position_y ?? 85}%`,
-              transform: 'translate(-50%, -50%)'
-            }}
-          >
-            <div 
-              className="text-center pointer-events-auto origin-center"
-              style={{
-                transform: `scale(${(settings.signature_scale ?? 100) / 100})`
-              }}
-            >
+          <div className="flex justify-end items-end mb-8">
+            {/* Signature on RIGHT */}
+            <div className="text-center">
               <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
               {settings.signature_url ? (
                 <img 
                   src={settings.signature_url} 
                   alt="Signature" 
-                  className="mx-auto object-contain"
-                  style={{ maxWidth: '300px', maxHeight: '200px' }}
+                  className="h-16 w-auto mx-auto object-contain"
                 />
               ) : (
-                <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
+                <div className="h-16 w-32 border-b border-gray-400" />
               )}
               <p className="font-semibold mt-2">{sampleData.ownerName}</p>
               {sampleData.signerTitle && (
@@ -539,14 +527,14 @@ export function InvoiceTemplatePreview({
           </div>
         )}
 
-        {/* Stamp - Absolute positioning for live preview with X/Y sliders */}
+        {/* Free-positioned Stamp - uses invoice_layout_settings */}
         {settings.show_stamp_on_invoice && (
           <div 
-            className="absolute pointer-events-none z-40"
+            className="absolute pointer-events-none"
             style={{
-              left: `${settings.invoice_layout_settings?.stamp_position_x ?? 10}%`,
-              top: `${settings.invoice_layout_settings?.stamp_position_y ?? 70}%`,
-              transform: `rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+              left: `${settings.invoice_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
+              top: `${settings.invoice_layout_settings?.stamp_position_y ?? settings.stamp_position_y ?? 70}%`,
+              transform: `translate(-50%, -50%) rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
             }}
           >
             {settings.stamp_source === 'custom' ? (

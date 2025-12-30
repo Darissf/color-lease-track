@@ -435,32 +435,20 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
-        {/* Signature Section - Absolute positioning with X/Y */}
+        {/* Signature Section */}
         {settings.show_signature !== false && (
-          <div 
-            className="absolute pointer-events-none"
-            style={{
-              left: `${settings.receipt_layout_settings?.signature_position_x ?? 75}%`,
-              top: `${settings.receipt_layout_settings?.signature_position_y ?? 85}%`,
-              transform: 'translate(-50%, -50%)'
-            }}
-          >
-            <div 
-              className="text-center pointer-events-auto origin-center"
-              style={{
-                transform: `scale(${(settings.signature_scale ?? 100) / 100})`
-              }}
-            >
+          <div className="flex justify-end items-end mb-8">
+            {/* Signature on RIGHT */}
+            <div className="text-center">
               <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
               {settings.signature_url ? (
                 <img 
                   src={settings.signature_url} 
                   alt="Signature" 
-                  className="mx-auto object-contain"
-                  style={{ maxWidth: '300px', maxHeight: '200px' }}
+                  className="h-16 w-auto mx-auto object-contain"
                 />
               ) : (
-                <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
+                <div className="h-16 w-32 border-b border-gray-400" />
               )}
               <p className="font-semibold mt-2">{sampleData.ownerName}</p>
               {sampleData.signerTitle && (

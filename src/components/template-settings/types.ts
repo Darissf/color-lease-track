@@ -11,9 +11,6 @@ export interface LayoutSettings {
   watermark_size: number;
   watermark_rotation: number;
   watermark_opacity: number;
-  // Signature positioning
-  signature_position_x: number;
-  signature_position_y: number;
 }
 
 export const defaultLayoutSettings: LayoutSettings = {
@@ -28,9 +25,6 @@ export const defaultLayoutSettings: LayoutSettings = {
   watermark_size: 300,
   watermark_rotation: -45,
   watermark_opacity: 10,
-  // Default signature at bottom-right
-  signature_position_x: 75,
-  signature_position_y: 85,
 };
 
 export interface TemplateSettings {
@@ -95,7 +89,6 @@ export interface TemplateSettings {
   signer_title: string;
   signature_position: string;
   signature_label: string;
-  signature_scale: number;
   show_stamp: boolean;
   custom_stamp_url: string | null;
   stamp_text: string;
@@ -266,7 +259,6 @@ export const defaultSettings: TemplateSettings = {
   signer_title: '',
   signature_position: 'right',
   signature_label: 'Hormat Kami,',
-  signature_scale: 100,
   show_stamp: true,
   custom_stamp_url: null,
   stamp_text: 'LUNAS',

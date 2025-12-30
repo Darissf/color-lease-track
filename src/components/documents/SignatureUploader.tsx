@@ -31,9 +31,9 @@ export const SignatureUploader = ({
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Ukuran file maksimal 10MB");
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Ukuran file maksimal 2MB");
       return;
     }
 
@@ -106,7 +106,7 @@ export const SignatureUploader = ({
               <img
                 src={preview}
                 alt="TTD Digital"
-                className="max-w-full object-contain"
+                className="max-h-32 object-contain"
               />
             </div>
             <div className="flex gap-2 justify-center">
@@ -140,7 +140,7 @@ export const SignatureUploader = ({
               Klik untuk upload gambar TTD digital
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Format: PNG, JPG (maks. 10MB)
+              Format: PNG, JPG (maks. 2MB)
             </p>
           </div>
         )}
