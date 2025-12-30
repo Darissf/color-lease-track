@@ -47,50 +47,45 @@ export const DocumentPDFGenerator = ({
       return;
     }
 
-    let captureContainer: HTMLDivElement | null = null;
+    // Store elements that we modify for restoration
+    const elementsToRestore: Array<{el: HTMLElement, original: string}> = [];
 
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
       
       const element = documentRef.current;
       
-      // 1. Clone the visible element
-      const clone = element.cloneNode(true) as HTMLElement;
+      // 1. Walk up the DOM tree and reset all transforms
+      let currentEl = element.parentElement;
+      while (currentEl && currentEl !== document.body) {
+        const computedStyle = window.getComputedStyle(currentEl);
+        if (computedStyle.transform !== 'none') {
+          elementsToRestore.push({
+            el: currentEl,
+            original: currentEl.style.cssText
+          });
+          currentEl.style.transform = 'none';
+        }
+        currentEl = currentEl.parentElement;
+      }
       
-      // 2. Create a container for the clone with FIXED A4 size
-      captureContainer = document.createElement('div');
-      captureContainer.id = 'pdf-clone-container';
-      captureContainer.style.cssText = `
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 793px;
-        height: 1122px;
-        background: white;
-        z-index: 99999;
-        overflow: visible;
-        pointer-events: none;
-      `;
+      // 2. Set element to fixed A4 size temporarily
+      const originalStyle = element.style.cssText;
+      elementsToRestore.push({ el: element, original: originalStyle });
       
-      // 3. Reset any transforms on clone and set fixed size
-      clone.style.transform = 'none';
-      clone.style.width = '793px';
-      clone.style.minWidth = '793px';
-      clone.style.maxWidth = '793px';
-      clone.style.height = 'auto';
-      clone.style.minHeight = '1122px';
+      element.style.width = '793px';
+      element.style.minWidth = '793px';
+      element.style.maxWidth = '793px';
+      element.style.height = 'auto';
+      element.style.minHeight = '1122px';
+      element.style.transform = 'none';
       
-      captureContainer.appendChild(clone);
-      document.body.appendChild(captureContainer);
-      
-      // 4. Wait for browser to render the clone
+      // 3. Force reflow and wait for browser to render
       await new Promise(resolve => setTimeout(resolve, 300));
+      element.getBoundingClientRect();
       
-      // 5. Force layout recalculation
-      clone.getBoundingClientRect();
-      
-      // 6. Capture the clone
-      const canvas = await html2canvas(clone, {
+      // 4. Capture the original element directly
+      const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
@@ -98,11 +93,14 @@ export const DocumentPDFGenerator = ({
         logging: false,
         width: 793,
         height: 1122,
+        windowWidth: 793,
+        windowHeight: 1122,
       });
       
-      // 7. Remove the clone container
-      document.body.removeChild(captureContainer);
-      captureContainer = null;
+      // 5. Restore all original styles
+      elementsToRestore.forEach(({el, original}) => {
+        el.style.cssText = original;
+      });
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");
@@ -147,10 +145,10 @@ export const DocumentPDFGenerator = ({
       toast.success("PDF berhasil dibuat!", { id: "pdf-generate" });
       onComplete?.();
     } catch (error) {
-      // Cleanup clone if exists
-      if (captureContainer && document.body.contains(captureContainer)) {
-        document.body.removeChild(captureContainer);
-      }
+      // Restore all styles on error
+      elementsToRestore.forEach(({el, original}) => {
+        el.style.cssText = original;
+      });
       console.error("Error generating PDF:", error);
       toast.error("Gagal membuat PDF", { id: "pdf-generate" });
     }
@@ -162,50 +160,45 @@ export const DocumentPDFGenerator = ({
       return;
     }
 
-    let captureContainer: HTMLDivElement | null = null;
+    // Store elements that we modify for restoration
+    const elementsToRestore: Array<{el: HTMLElement, original: string}> = [];
 
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
       
       const element = documentRef.current;
       
-      // 1. Clone the visible element
-      const clone = element.cloneNode(true) as HTMLElement;
+      // 1. Walk up the DOM tree and reset all transforms
+      let currentEl = element.parentElement;
+      while (currentEl && currentEl !== document.body) {
+        const computedStyle = window.getComputedStyle(currentEl);
+        if (computedStyle.transform !== 'none') {
+          elementsToRestore.push({
+            el: currentEl,
+            original: currentEl.style.cssText
+          });
+          currentEl.style.transform = 'none';
+        }
+        currentEl = currentEl.parentElement;
+      }
       
-      // 2. Create a container for the clone with FIXED A4 size
-      captureContainer = document.createElement('div');
-      captureContainer.id = 'print-clone-container';
-      captureContainer.style.cssText = `
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 793px;
-        height: 1122px;
-        background: white;
-        z-index: 99999;
-        overflow: visible;
-        pointer-events: none;
-      `;
+      // 2. Set element to fixed A4 size temporarily
+      const originalStyle = element.style.cssText;
+      elementsToRestore.push({ el: element, original: originalStyle });
       
-      // 3. Reset any transforms on clone and set fixed size
-      clone.style.transform = 'none';
-      clone.style.width = '793px';
-      clone.style.minWidth = '793px';
-      clone.style.maxWidth = '793px';
-      clone.style.height = 'auto';
-      clone.style.minHeight = '1122px';
+      element.style.width = '793px';
+      element.style.minWidth = '793px';
+      element.style.maxWidth = '793px';
+      element.style.height = 'auto';
+      element.style.minHeight = '1122px';
+      element.style.transform = 'none';
       
-      captureContainer.appendChild(clone);
-      document.body.appendChild(captureContainer);
-      
-      // 4. Wait for browser to render the clone
+      // 3. Force reflow and wait for browser to render
       await new Promise(resolve => setTimeout(resolve, 300));
+      element.getBoundingClientRect();
       
-      // 5. Force layout recalculation
-      clone.getBoundingClientRect();
-      
-      // 6. Capture the clone
-      const canvas = await html2canvas(clone, {
+      // 4. Capture the original element directly
+      const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
@@ -213,11 +206,14 @@ export const DocumentPDFGenerator = ({
         logging: false,
         width: 793,
         height: 1122,
+        windowWidth: 793,
+        windowHeight: 1122,
       });
       
-      // 7. Remove the clone container
-      document.body.removeChild(captureContainer);
-      captureContainer = null;
+      // 5. Restore all original styles
+      elementsToRestore.forEach(({el, original}) => {
+        el.style.cssText = original;
+      });
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");
@@ -252,10 +248,10 @@ export const DocumentPDFGenerator = ({
       toast.success("Siap untuk dicetak!", { id: "pdf-print" });
       onComplete?.();
     } catch (error) {
-      // Cleanup clone if exists
-      if (captureContainer && document.body.contains(captureContainer)) {
-        document.body.removeChild(captureContainer);
-      }
+      // Restore all styles on error
+      elementsToRestore.forEach(({el, original}) => {
+        el.style.cssText = original;
+      });
       console.error("Error printing:", error);
       toast.error("Gagal mencetak dokumen", { id: "pdf-print" });
     }
