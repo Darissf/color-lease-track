@@ -447,14 +447,14 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             </div>
           )}
 
-          {/* Free-positioned Stamp */}
+          {/* Free-positioned Stamp - uses receipt_layout_settings */}
           {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
             <div 
               className="absolute pointer-events-none"
               style={{
-                left: `${settings.stamp_position_x ?? 10}%`,
-                top: `${settings.stamp_position_y ?? 70}%`,
-                transform: `translate(-50%, -50%) rotate(${settings.stamp_rotation || 0}deg) scale(${settings.stamp_scale || 1})`
+                left: `${settings.receipt_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
+                top: `${settings.receipt_layout_settings?.stamp_position_y ?? settings.stamp_position_y ?? 70}%`,
+                transform: `translate(-50%, -50%) rotate(${settings.receipt_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.receipt_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
               }}
             >
               {settings.stamp_source === 'custom' ? (
@@ -494,7 +494,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
           {settings.show_qr_code && settings.qr_position === 'bottom-section' && (
             <div className="border-t-2 border-gray-200 pt-4 mt-4">
               <div className="flex items-center gap-4">
-                <QRCode value={verificationUrl} size={settings.qr_size || 80} />
+                <QRCode value={verificationUrl} size={settings.receipt_layout_settings?.qr_size ?? settings.qr_size ?? 80} />
                 <div className="text-sm">
                   <p className="text-gray-500">Scan untuk verifikasi dokumen</p>
                   <p className="font-mono text-xs text-gray-400 mt-1">
@@ -509,7 +509,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
           {/* Positioned QR Code */}
           {settings.show_qr_code && settings.qr_position !== 'bottom-section' && (
             <div className={getQRPosition()}>
-              <QRCode value={verificationUrl} size={settings.qr_size || 80} />
+              <QRCode value={verificationUrl} size={settings.receipt_layout_settings?.qr_size ?? settings.qr_size ?? 80} />
             </div>
           )}
         </div>
