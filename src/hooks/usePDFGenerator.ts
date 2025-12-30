@@ -23,6 +23,7 @@ interface InvoicePDFData {
     account_holder_name?: string;
   };
   accessCode?: string;
+  customTextElements?: CustomTextElement[];
 }
 
 interface ReceiptPDFData {
