@@ -148,8 +148,11 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <img 
                   src={settings.signature_url} 
                   alt="Signature" 
-                  className="w-auto mx-auto object-contain"
-                  style={{ maxHeight: `${(settings.signature_scale ?? 100) * 2}px` }}
+                  className="mx-auto object-contain"
+                  style={{ 
+                    maxWidth: `${(settings.signature_scale ?? 100) * 3}px`,
+                    maxHeight: `${(settings.signature_scale ?? 100) * 2}px`
+                  }}
                 />
               ) : (
                 <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
