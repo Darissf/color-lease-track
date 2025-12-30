@@ -7,12 +7,26 @@ import QRCode from "react-qr-code";
 import { TemplateSettings } from "@/components/template-settings/types";
 import { DynamicStamp } from "./DynamicStamp";
 import { CustomStampRenderer } from "./CustomStampRenderer";
+import { DraggableTextBox } from "@/components/custom-text/DraggableTextBox";
+import { CustomTextElement } from "@/components/custom-text/types";
+import { useRef } from "react";
 
 interface ReceiptTemplatePreviewProps {
   settings: TemplateSettings;
+  customTextElements?: CustomTextElement[];
+  selectedElementId?: string | null;
+  onSelectElement?: (id: string | null) => void;
+  onUpdateElement?: (id: string, updates: Partial<CustomTextElement>) => void;
 }
 
-export function ReceiptTemplatePreview({ settings }: ReceiptTemplatePreviewProps) {
+export function ReceiptTemplatePreview({ 
+  settings,
+  customTextElements = [],
+  selectedElementId,
+  onSelectElement,
+  onUpdateElement
+}: ReceiptTemplatePreviewProps) {
+  const documentRef = useRef<HTMLDivElement>(null);
   const sampleData = {
     documentNumber: `${settings.receipt_prefix || 'KWT'}-2025-0001`,
     verificationCode: "XYZ789ABC",
@@ -83,6 +97,7 @@ export function ReceiptTemplatePreview({ settings }: ReceiptTemplatePreviewProps
 
   return (
     <div
+      ref={documentRef}
       className="bg-white text-gray-900 p-8 w-[210mm] min-h-[297mm] mx-auto shadow-lg relative overflow-hidden"
       style={{ 
         fontFamily: getFontFamily(),
@@ -502,6 +517,19 @@ export function ReceiptTemplatePreview({ settings }: ReceiptTemplatePreviewProps
             <QRCode value={verificationUrl} size={settings.receipt_layout_settings?.qr_size ?? settings.qr_size ?? 80} />
           </div>
         )}
+
+        {/* Custom Text Elements */}
+        {customTextElements.filter(el => el.is_visible).map(element => (
+          <DraggableTextBox
+            key={element.id}
+            element={element}
+            isSelected={selectedElementId === element.id}
+            onSelect={() => onSelectElement?.(element.id)}
+            onUpdate={(updates) => onUpdateElement?.(element.id, updates)}
+            onDelete={() => {}}
+            containerRef={documentRef}
+          />
+        ))}
       </div>
     </div>
   );
