@@ -435,20 +435,30 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
-        {/* Signature Section */}
+        {/* Spacer for signature area */}
+        <div className="mb-8" style={{ minHeight: '80px' }} />
+
+        {/* Signature - Absolute Positioned like Watermark */}
         {settings.show_signature !== false && (
-          <div className="flex justify-end items-end mb-8">
-            {/* Signature on RIGHT */}
+          <div 
+            className="absolute pointer-events-none z-30"
+            style={{
+              left: `${settings.receipt_layout_settings?.signature_position_x ?? 80}%`,
+              top: `${settings.receipt_layout_settings?.signature_position_y ?? 85}%`,
+              transform: `translate(-50%, -50%) scale(${settings.receipt_layout_settings?.signature_scale ?? 1})`,
+              opacity: (settings.receipt_layout_settings?.signature_opacity ?? 100) / 100,
+            }}
+          >
             <div className="text-center">
               <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
               {settings.signature_url ? (
                 <img 
                   src={settings.signature_url} 
                   alt="Signature" 
-                  className="h-16 w-auto mx-auto object-contain"
+                  className="max-w-[200px] max-h-[100px] object-contain mx-auto"
                 />
               ) : (
-                <div className="h-16 w-32 border-b border-gray-400" />
+                <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
               )}
               <p className="font-semibold mt-2">{sampleData.ownerName}</p>
               {sampleData.signerTitle && (
@@ -461,7 +471,7 @@ export function ReceiptTemplatePreview({
         {/* Free-positioned Stamp - uses receipt_layout_settings */}
         {settings.show_stamp_on_receipt !== false && (
           <div 
-            className="absolute pointer-events-none"
+            className="absolute pointer-events-none z-40"
             style={{
               left: `${settings.receipt_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
               top: `${settings.receipt_layout_settings?.stamp_position_y ?? settings.stamp_position_y ?? 70}%`,
