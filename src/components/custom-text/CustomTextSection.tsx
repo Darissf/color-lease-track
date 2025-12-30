@@ -196,7 +196,7 @@ export const CustomTextSection: React.FC<CustomTextSectionProps> = ({
                 value={[selectedElement.position_x]}
                 onValueChange={([value]) => onUpdate(selectedElement.id, { position_x: value })}
                 min={0}
-                max={100}
+                max={300}
                 step={1}
               />
             </div>
@@ -206,7 +206,7 @@ export const CustomTextSection: React.FC<CustomTextSectionProps> = ({
                 value={[selectedElement.position_y]}
                 onValueChange={([value]) => onUpdate(selectedElement.id, { position_y: value })}
                 min={0}
-                max={120}
+                max={300}
                 step={1}
               />
             </div>
