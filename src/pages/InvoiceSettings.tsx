@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, FileImage, Hash, Palette, ScrollText, FileSignature, ChevronRight } from "lucide-react";
+import { ArrowLeft, FileText, FileImage, Hash, Palette, ScrollText, FileSignature, ChevronRight, Stamp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -36,6 +36,14 @@ const InvoiceSettings = () => {
       color: "bg-blue-600",
       comingSoon: false,
       href: "/vip/settings/invoice/template",
+    },
+    {
+      icon: Stamp,
+      title: "Custom Stempel",
+      description: "Kustomisasi stempel dokumen (font, tipe, posisi, warna)",
+      color: "bg-rose-600",
+      comingSoon: false,
+      href: "/vip/settings/custom-stamp",
     },
     {
       icon: FileImage,

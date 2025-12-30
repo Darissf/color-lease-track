@@ -193,7 +193,7 @@ const CustomStampSettings = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/vip/settings/admin")}
+            onClick={() => navigate("/vip/settings/invoice")}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
