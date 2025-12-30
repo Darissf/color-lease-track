@@ -43,7 +43,7 @@ const InvoiceSettings = () => {
       description: "Custom template design untuk kwitansi",
       color: "bg-violet-600",
       comingSoon: false,
-      href: "/vip/settings/receipt/template",
+      href: "/vip/settings/invoice/template?tab=receipt",
     },
     {
       icon: FileEdit,

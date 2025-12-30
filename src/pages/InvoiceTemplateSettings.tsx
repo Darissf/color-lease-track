@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,10 +28,12 @@ type CropTarget = 'invoice_logo_url' | 'icon_maps_url' | 'icon_whatsapp_url' | '
 
 const InvoiceTemplateSettings = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') === 'receipt' ? 'receipt' : 'invoice';
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState<TemplateSettings>(defaultSettings);
-  const [activeTab, setActiveTab] = useState<'invoice' | 'receipt'>('invoice');
+  const [activeTab, setActiveTab] = useState<'invoice' | 'receipt'>(defaultTab);
   const [cropTarget, setCropTarget] = useState<CropTarget>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -252,8 +254,8 @@ const InvoiceTemplateSettings = () => {
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
             <div>
-              <h1 className="text-lg font-semibold">Template Invoice & Kwitansi</h1>
-              <p className="text-xs text-muted-foreground">Kustomisasi dokumen profesional</p>
+              <h1 className="text-lg font-semibold">Template Dokumen</h1>
+              <p className="text-xs text-muted-foreground">Kustomisasi template invoice dan kwitansi</p>
             </div>
           </div>
           <div className="flex gap-2">

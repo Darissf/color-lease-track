@@ -33,7 +33,7 @@ const ReceiptSettings = () => {
       title: "Template Kwitansi",
       description: "Custom template design untuk kwitansi",
       color: "bg-blue-600",
-      href: "/vip/settings/receipt/template",
+      href: "/vip/settings/invoice/template?tab=receipt",
     },
     {
       icon: Stamp,
