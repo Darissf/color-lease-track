@@ -50,37 +50,36 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
 
-      // Clone element untuk capture yang bersih
-      const clone = documentRef.current.cloneNode(true) as HTMLElement;
-      
-      // Set clone styles untuk visible capture
-      clone.style.position = 'fixed';
-      clone.style.left = '0';
-      clone.style.top = '0';
-      clone.style.width = '210mm';
-      clone.style.visibility = 'visible';
-      clone.style.opacity = '1';
-      clone.style.transform = 'none';
-      clone.style.zIndex = '99999';
-      clone.style.backgroundColor = '#ffffff';
-      clone.style.pointerEvents = 'none';
-      
-      // Append ke body
-      document.body.appendChild(clone);
-      
-      // Tunggu browser render
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(clone, {
+      // Capture langsung dari visible element, reset transforms via onclone
+      const canvas = await html2canvas(documentRef.current, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
+        onclone: (_clonedDoc, clonedElement) => {
+          // Reset semua transform dari wrappers
+          clonedElement.style.transform = 'none';
+          clonedElement.style.transformOrigin = 'top left';
+          clonedElement.style.width = '210mm';
+          clonedElement.style.height = 'auto';
+          clonedElement.style.position = 'static';
+          clonedElement.style.margin = '0';
+          clonedElement.style.maxWidth = 'none';
+          clonedElement.style.maxHeight = 'none';
+          clonedElement.style.overflow = 'visible';
+          clonedElement.style.visibility = 'visible';
+          clonedElement.style.opacity = '1';
+          
+          // Reset parent transforms
+          let parent = clonedElement.parentElement;
+          while (parent) {
+            parent.style.transform = 'none';
+            parent.style.overflow = 'visible';
+            parent = parent.parentElement;
+          }
+        }
       });
-      
-      // Hapus clone
-      document.body.removeChild(clone);
 
       // Validasi canvas
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
@@ -171,32 +170,33 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
 
-      // Clone element untuk capture yang bersih
-      const clone = documentRef.current.cloneNode(true) as HTMLElement;
-      
-      clone.style.position = 'fixed';
-      clone.style.left = '0';
-      clone.style.top = '0';
-      clone.style.width = '210mm';
-      clone.style.visibility = 'visible';
-      clone.style.opacity = '1';
-      clone.style.transform = 'none';
-      clone.style.zIndex = '99999';
-      clone.style.backgroundColor = '#ffffff';
-      clone.style.pointerEvents = 'none';
-      
-      document.body.appendChild(clone);
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(clone, {
+      const canvas = await html2canvas(documentRef.current, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
+        onclone: (_clonedDoc, clonedElement) => {
+          clonedElement.style.transform = 'none';
+          clonedElement.style.transformOrigin = 'top left';
+          clonedElement.style.width = '210mm';
+          clonedElement.style.height = 'auto';
+          clonedElement.style.position = 'static';
+          clonedElement.style.margin = '0';
+          clonedElement.style.maxWidth = 'none';
+          clonedElement.style.maxHeight = 'none';
+          clonedElement.style.overflow = 'visible';
+          clonedElement.style.visibility = 'visible';
+          clonedElement.style.opacity = '1';
+          
+          let parent = clonedElement.parentElement;
+          while (parent) {
+            parent.style.transform = 'none';
+            parent.style.overflow = 'visible';
+            parent = parent.parentElement;
+          }
+        }
       });
-      
-      document.body.removeChild(clone);
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");

@@ -233,23 +233,6 @@ export const DocumentPreviewModal = ({
           <DialogTitle>Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}</DialogTitle>
         </DialogHeader>
         
-        {/* Hidden document for PDF generation - visibility hidden agar tetap di-render */}
-        <div 
-          className="fixed pointer-events-none"
-          style={{ 
-            width: '210mm',
-            left: '-9999px',
-            top: '0',
-            visibility: 'hidden',
-          }}
-        >
-          {documentData.documentType === 'invoice' ? (
-            <InvoiceTemplate ref={documentRef} {...invoiceProps} />
-          ) : (
-            <ReceiptTemplate ref={documentRef} {...receiptProps} />
-          )}
-        </div>
-        
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <DocumentPDFGenerator
             documentRef={documentRef}
@@ -259,13 +242,13 @@ export const DocumentPreviewModal = ({
           />
         </div>
         
-        {/* Visible document for display - with wrappers */}
+        {/* Visible document - ref langsung di template untuk PDF capture */}
         {isMobile ? (
           <ZoomableDocumentWrapper>
             {documentData.documentType === 'invoice' ? (
-              <InvoiceTemplate {...invoiceProps} />
+              <InvoiceTemplate ref={documentRef} {...invoiceProps} />
             ) : (
-              <ReceiptTemplate {...receiptProps} />
+              <ReceiptTemplate ref={documentRef} {...receiptProps} />
             )}
           </ZoomableDocumentWrapper>
         ) : (
@@ -273,9 +256,9 @@ export const DocumentPreviewModal = ({
             <div className="py-4">
               <ResponsiveDocumentWrapper>
                 {documentData.documentType === 'invoice' ? (
-                  <InvoiceTemplate {...invoiceProps} />
+                  <InvoiceTemplate ref={documentRef} {...invoiceProps} />
                 ) : (
-                  <ReceiptTemplate {...receiptProps} />
+                  <ReceiptTemplate ref={documentRef} {...receiptProps} />
                 )}
               </ResponsiveDocumentWrapper>
             </div>
