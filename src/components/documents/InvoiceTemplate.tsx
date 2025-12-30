@@ -104,22 +104,34 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
           fontSize: `${settings.font_size_base || 14}px`
         }}
       >
-        {/* Watermark */}
+        {/* Watermark - uses invoice_layout_settings */}
         {settings.show_watermark && (
           <div 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
-            style={{ opacity: (settings.watermark_opacity || 10) / 100 }}
+            className="absolute pointer-events-none z-50"
+            style={{ 
+              left: `${settings.invoice_layout_settings?.watermark_position_x ?? settings.watermark_position_x ?? 50}%`,
+              top: `${settings.invoice_layout_settings?.watermark_position_y ?? settings.watermark_position_y ?? 50}%`,
+              transform: `translate(-50%, -50%) rotate(${settings.invoice_layout_settings?.watermark_rotation ?? settings.watermark_rotation ?? -45}deg)`,
+              opacity: (settings.invoice_layout_settings?.watermark_opacity ?? settings.watermark_opacity ?? 10) / 100
+            }}
           >
             {settings.watermark_type === 'logo' && settings.invoice_logo_url ? (
               <img 
                 src={settings.invoice_logo_url} 
                 alt="" 
-                className="w-96 h-96 object-contain transform rotate-[-15deg]" 
+                style={{ 
+                  width: `${settings.invoice_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`,
+                  height: 'auto'
+                }}
+                className="object-contain" 
               />
             ) : (
               <span 
-                className="text-9xl font-bold text-gray-300 transform rotate-[-45deg] whitespace-nowrap"
-                style={{ fontFamily: getHeadingFontFamily() }}
+                className="font-bold text-gray-300 whitespace-nowrap"
+                style={{ 
+                  fontFamily: getHeadingFontFamily(),
+                  fontSize: `${settings.invoice_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`
+                }}
               >
                 {settings.watermark_text || 'DRAFT'}
               </span>
@@ -412,26 +424,47 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
 
-        {/* Bank Info Section - prioritize contract bank info over settings */}
-          {settings.show_bank_info && (contractBankInfo?.bank_name || settings.bank_name) && !settings.use_payment_link && (
+          {/* Payment Transfer Section - prioritize contract bank info over settings */}
+          {settings.show_payment_section !== false && (
             <div 
               className="mb-6 p-4 rounded-lg"
-              style={{
+              style={{ 
                 backgroundColor: `${settings.accent_color}08`,
                 border: `1px solid ${settings.border_color}` 
               }}
             >
-              <h3 className="text-sm font-semibold mb-2" style={{ color: settings.header_color_primary }}>
-                {settings.label_bank_transfer || 'Transfer ke:'}
+              <h3 className="text-sm font-semibold mb-3" style={{ color: settings.header_color_primary }}>
+                Pembayaran Transfer
               </h3>
-              <div className="flex items-center gap-3">
-                {settings.bank_logo_url && (
-                  <img src={settings.bank_logo_url} alt="" className="h-10 object-contain" />
+              <div className="flex gap-4">
+                {/* QR Code for Payment */}
+                {settings.payment_qr_enabled !== false && (
+                  <div className="flex-shrink-0 text-center">
+                    <QRCode value={verificationUrl} size={80} />
+                    <p className="text-xs mt-1 text-gray-500">Scan untuk verifikasi</p>
+                  </div>
                 )}
-                <div>
-                  <p className="font-medium">{contractBankInfo?.bank_name || settings.bank_name}</p>
-                  <p className="text-sm font-mono">{contractBankInfo?.account_number || settings.bank_account_number}</p>
-                  <p className="text-sm text-gray-600">a/n {contractBankInfo?.account_holder_name || settings.bank_account_name}</p>
+                {/* Instructions */}
+                <div className="flex-1 text-sm">
+                  <p className="text-gray-600 mb-2">
+                    {settings.payment_instruction_text || 'Silahkan scan barcode ini atau buka link untuk pengecekan pembayaran otomatis. Apabila transfer manual, silahkan transfer ke rekening berikut dan konfirmasi via WhatsApp.'}
+                  </p>
+                  <div className="mt-2">
+                    <p className="font-medium">Bank {contractBankInfo?.bank_name || settings.bank_name || 'BCA'}</p>
+                    <p>No. Rek: {contractBankInfo?.account_number || settings.bank_account_number}</p>
+                    <p>a.n {contractBankInfo?.account_holder_name || settings.bank_account_name}</p>
+                  </div>
+                  {settings.payment_wa_hyperlink_enabled !== false && settings.payment_wa_number && (
+                    <p className="mt-2">
+                      Konfirmasi: 
+                      <a 
+                        href={`https://wa.me/${settings.payment_wa_number.replace(/\D/g, '')}`} 
+                        className="text-blue-600 underline ml-1"
+                      >
+                        {settings.payment_wa_number}
+                      </a>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
