@@ -92,7 +92,7 @@ export function ReceiptTemplatePreview({ settings }: ReceiptTemplatePreviewProps
       {/* Watermark */}
       {settings.show_watermark && (
         <div 
-          className="absolute pointer-events-none z-0"
+          className="absolute pointer-events-none z-50"
           style={{ 
             left: `${settings.watermark_position_x ?? 50}%`,
             top: `${settings.watermark_position_y ?? 50}%`,

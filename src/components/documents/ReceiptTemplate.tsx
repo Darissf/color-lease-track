@@ -104,7 +104,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
         {/* Watermark */}
         {settings.show_watermark && (
           <div 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
             style={{ opacity: (settings.watermark_opacity || 10) / 100 }}
           >
             {settings.watermark_type === 'logo' && settings.invoice_logo_url ? (
