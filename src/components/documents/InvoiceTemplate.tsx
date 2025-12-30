@@ -20,6 +20,11 @@ interface InvoiceTemplateProps {
   contractInvoice?: string;
   period?: string;
   settings?: TemplateSettings;
+  contractBankInfo?: {
+    bank_name: string;
+    account_number: string;
+    account_holder_name?: string;
+  };
 }
 
 export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
@@ -35,6 +40,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
       contractInvoice,
       period,
       settings: propSettings,
+      contractBankInfo,
     },
     ref
   ) => {
@@ -406,8 +412,8 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
 
-          {/* Bank Info Section */}
-          {settings.show_bank_info && settings.bank_name && !settings.use_payment_link && (
+        {/* Bank Info Section - prioritize contract bank info over settings */}
+          {settings.show_bank_info && (contractBankInfo?.bank_name || settings.bank_name) && !settings.use_payment_link && (
             <div 
               className="mb-6 p-4 rounded-lg"
               style={{
@@ -423,9 +429,9 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                   <img src={settings.bank_logo_url} alt="" className="h-10 object-contain" />
                 )}
                 <div>
-                  <p className="font-medium">{settings.bank_name}</p>
-                  <p className="text-sm font-mono">{settings.bank_account_number}</p>
-                  <p className="text-sm text-gray-600">a/n {settings.bank_account_name}</p>
+                  <p className="font-medium">{contractBankInfo?.bank_name || settings.bank_name}</p>
+                  <p className="text-sm font-mono">{contractBankInfo?.account_number || settings.bank_account_number}</p>
+                  <p className="text-sm text-gray-600">a/n {contractBankInfo?.account_holder_name || settings.bank_account_name}</p>
                 </div>
               </div>
             </div>

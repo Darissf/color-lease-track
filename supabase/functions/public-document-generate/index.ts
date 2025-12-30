@@ -60,7 +60,7 @@ serve(async (req) => {
       );
     }
 
-    // Get contract details
+    // Get contract details with bank account
     const { data: contractData, error: contractError } = await supabase
       .from('rental_contracts')
       .select(`
@@ -72,7 +72,13 @@ serve(async (req) => {
         tanggal,
         tagihan,
         tagihan_belum_bayar,
-        client_group_id
+        client_group_id,
+        bank_account_id,
+        bank_accounts (
+          bank_name,
+          account_number,
+          account_holder_name
+        )
       `)
       .eq('id', linkData.contract_id)
       .single();
@@ -176,6 +182,11 @@ serve(async (req) => {
       template_settings: mergedTemplateSettings,
       payment: paymentData,
       document_type,
+      bank_info: contractData.bank_accounts ? {
+        bank_name: (contractData.bank_accounts as any).bank_name,
+        account_number: (contractData.bank_accounts as any).account_number,
+        account_holder_name: (contractData.bank_accounts as any).account_holder_name,
+      } : null,
     };
 
     console.log(`Successfully generated ${document_type} data`);

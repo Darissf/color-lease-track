@@ -99,6 +99,7 @@ interface Contract {
   bank_accounts?: {
     bank_name: string;
     account_number: string;
+    account_holder_name?: string;
   };
   inventory_items?: {
     id: string;
@@ -244,7 +245,8 @@ export default function ContractDetail() {
         ),
         bank_accounts (
           bank_name,
-          account_number
+          account_number,
+          account_holder_name
         ),
         inventory_items!rental_contracts_inventory_item_id_fkey (
           id,
@@ -726,6 +728,11 @@ export default function ContractDetail() {
       contractInvoice: contract.invoice,
       period: `${format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - ${format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}`,
       contractId: contract.id,
+      contractBankInfo: contract.bank_accounts ? {
+        bank_name: contract.bank_accounts.bank_name,
+        account_number: contract.bank_accounts.account_number,
+        account_holder_name: contract.bank_accounts.account_holder_name,
+      } : undefined,
     });
     setDocumentPreviewOpen(true);
   };
