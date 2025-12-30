@@ -473,7 +473,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
               transform: `translate(-50%, -50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
             }}
           >
-            <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
               <QRCode 
                 value={verificationUrl} 
                 size={layoutSettings?.qr_size ?? settings.qr_size ?? 80} 
