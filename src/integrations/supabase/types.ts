@@ -1932,10 +1932,13 @@ export type Database = {
           stamp_color: string | null
           stamp_color_belum_lunas: string | null
           stamp_color_lunas: string | null
+          stamp_custom_text: string | null
           stamp_font_family: string | null
           stamp_font_size: number | null
           stamp_opacity: number | null
           stamp_position: string | null
+          stamp_position_x: number | null
+          stamp_position_y: number | null
           stamp_rotation: number | null
           stamp_show_company_name: boolean | null
           stamp_show_date: boolean | null
@@ -1943,6 +1946,7 @@ export type Database = {
           stamp_size: string | null
           stamp_text: string | null
           stamp_type: string | null
+          stamp_use_custom_text: boolean | null
           table_alternating_color: string | null
           table_alternating_rows: boolean | null
           table_border_style: string | null
@@ -2053,10 +2057,13 @@ export type Database = {
           stamp_color?: string | null
           stamp_color_belum_lunas?: string | null
           stamp_color_lunas?: string | null
+          stamp_custom_text?: string | null
           stamp_font_family?: string | null
           stamp_font_size?: number | null
           stamp_opacity?: number | null
           stamp_position?: string | null
+          stamp_position_x?: number | null
+          stamp_position_y?: number | null
           stamp_rotation?: number | null
           stamp_show_company_name?: boolean | null
           stamp_show_date?: boolean | null
@@ -2064,6 +2071,7 @@ export type Database = {
           stamp_size?: string | null
           stamp_text?: string | null
           stamp_type?: string | null
+          stamp_use_custom_text?: boolean | null
           table_alternating_color?: string | null
           table_alternating_rows?: boolean | null
           table_border_style?: string | null
@@ -2174,10 +2182,13 @@ export type Database = {
           stamp_color?: string | null
           stamp_color_belum_lunas?: string | null
           stamp_color_lunas?: string | null
+          stamp_custom_text?: string | null
           stamp_font_family?: string | null
           stamp_font_size?: number | null
           stamp_opacity?: number | null
           stamp_position?: string | null
+          stamp_position_x?: number | null
+          stamp_position_y?: number | null
           stamp_rotation?: number | null
           stamp_show_company_name?: boolean | null
           stamp_show_date?: boolean | null
@@ -2185,6 +2196,7 @@ export type Database = {
           stamp_size?: string | null
           stamp_text?: string | null
           stamp_type?: string | null
+          stamp_use_custom_text?: boolean | null
           table_alternating_color?: string | null
           table_alternating_rows?: boolean | null
           table_border_style?: string | null

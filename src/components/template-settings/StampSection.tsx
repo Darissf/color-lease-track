@@ -82,22 +82,91 @@ export const StampSection: React.FC<StampSectionProps> = ({
                 <SelectItem value="circle">Lingkaran</SelectItem>
                 <SelectItem value="oval">Oval</SelectItem>
               </SelectContent>
-            </Select>
+          </Select>
           </div>
 
-          {/* Position */}
+          {/* Custom Text Toggle */}
+          <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Gunakan Teks Kustom</Label>
+              <Switch
+                checked={settings.stamp_use_custom_text || false}
+                onCheckedChange={(checked) => updateSetting('stamp_use_custom_text', checked)}
+              />
+            </div>
+            {settings.stamp_use_custom_text && (
+              <div className="space-y-2">
+                <Label className="text-xs">Teks Stempel</Label>
+                <Input
+                  value={settings.stamp_custom_text || 'LUNAS'}
+                  onChange={(e) => updateSetting('stamp_custom_text', e.target.value.toUpperCase())}
+                  placeholder="Masukkan teks stempel"
+                  maxLength={20}
+                />
+                <p className="text-xs text-muted-foreground">Contoh: LUNAS, DIBAYAR, APPROVED, VERIFIED</p>
+              </div>
+            )}
+          </div>
+
+          {/* Free Positioning (X/Y) */}
+          <div className="space-y-4 p-3 rounded-lg border bg-muted/30">
+            <Label className="text-xs font-medium text-muted-foreground">Posisi Bebas di Dokumen:</Label>
+            
+            {/* Horizontal Position */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Label className="text-xs">Posisi Horizontal (X)</Label>
+                <span className="text-sm">{settings.stamp_position_x ?? 10}%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Kiri</span>
+                <Slider
+                  value={[settings.stamp_position_x ?? 10]}
+                  onValueChange={([value]) => updateSetting('stamp_position_x', value)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground">Kanan</span>
+              </div>
+            </div>
+
+            {/* Vertical Position */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Label className="text-xs">Posisi Vertikal (Y)</Label>
+                <span className="text-sm">{settings.stamp_position_y ?? 70}%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Atas</span>
+                <Slider
+                  value={[settings.stamp_position_y ?? 70]}
+                  onValueChange={([value]) => updateSetting('stamp_position_y', value)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground">Bawah</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Size */}
           <div className="space-y-2">
-            <Label className="text-xs">Posisi Stempel</Label>
+            <Label className="text-xs">Ukuran Stempel</Label>
             <Select
-              value={settings.stamp_position || 'left'}
-              onValueChange={(value) => updateSetting('stamp_position', value)}
+              value={settings.stamp_size || 'md'}
+              onValueChange={(value) => updateSetting('stamp_size', value)}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="left">Kiri</SelectItem>
-                <SelectItem value="right">Kanan</SelectItem>
+                <SelectItem value="sm">Kecil</SelectItem>
+                <SelectItem value="md">Sedang</SelectItem>
+                <SelectItem value="lg">Besar</SelectItem>
               </SelectContent>
             </Select>
           </div>

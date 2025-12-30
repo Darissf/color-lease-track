@@ -53,13 +53,21 @@ const CustomStampSettings = () => {
           stamp_show_document_number: data.stamp_show_document_number ?? prev.stamp_show_document_number,
           stamp_show_company_name: data.stamp_show_company_name ?? prev.stamp_show_company_name,
           stamp_color: data.stamp_color || prev.stamp_color,
+          stamp_color_lunas: data.stamp_color_lunas || prev.stamp_color_lunas,
+          stamp_color_belum_lunas: data.stamp_color_belum_lunas || prev.stamp_color_belum_lunas,
           stamp_size: data.stamp_size || prev.stamp_size,
           stamp_position: data.stamp_position || prev.stamp_position,
           stamp_opacity: data.stamp_opacity ?? prev.stamp_opacity,
+          show_stamp: data.show_stamp ?? prev.show_stamp,
           show_stamp_on_invoice: data.show_stamp_on_invoice ?? prev.show_stamp_on_invoice,
           show_stamp_on_receipt: data.show_stamp_on_receipt ?? prev.show_stamp_on_receipt,
           custom_stamp_url: data.custom_stamp_url || prev.custom_stamp_url,
           company_name: data.company_name || prev.company_name,
+          // New fields
+          stamp_custom_text: data.stamp_custom_text || prev.stamp_custom_text,
+          stamp_use_custom_text: data.stamp_use_custom_text ?? prev.stamp_use_custom_text,
+          stamp_position_x: data.stamp_position_x ?? prev.stamp_position_x,
+          stamp_position_y: data.stamp_position_y ?? prev.stamp_position_y,
         }));
       }
     } catch (error) {
@@ -125,13 +133,21 @@ const CustomStampSettings = () => {
         stamp_show_document_number: settings.stamp_show_document_number,
         stamp_show_company_name: settings.stamp_show_company_name,
         stamp_color: settings.stamp_color,
+        stamp_color_lunas: settings.stamp_color_lunas,
+        stamp_color_belum_lunas: settings.stamp_color_belum_lunas,
         stamp_size: settings.stamp_size,
         stamp_position: settings.stamp_position,
         stamp_opacity: settings.stamp_opacity,
+        show_stamp: settings.show_stamp,
         show_stamp_on_invoice: settings.show_stamp_on_invoice,
         show_stamp_on_receipt: settings.show_stamp_on_receipt,
         custom_stamp_url: settings.custom_stamp_url,
         company_name: settings.company_name,
+        // New fields
+        stamp_custom_text: settings.stamp_custom_text,
+        stamp_use_custom_text: settings.stamp_use_custom_text,
+        stamp_position_x: settings.stamp_position_x,
+        stamp_position_y: settings.stamp_position_y,
       };
 
       const { error } = await supabase
@@ -162,12 +178,20 @@ const CustomStampSettings = () => {
       stamp_show_document_number: defaultSettings.stamp_show_document_number,
       stamp_show_company_name: defaultSettings.stamp_show_company_name,
       stamp_color: defaultSettings.stamp_color,
+      stamp_color_lunas: defaultSettings.stamp_color_lunas,
+      stamp_color_belum_lunas: defaultSettings.stamp_color_belum_lunas,
       stamp_size: defaultSettings.stamp_size,
       stamp_position: defaultSettings.stamp_position,
       stamp_opacity: defaultSettings.stamp_opacity,
+      show_stamp: defaultSettings.show_stamp,
       show_stamp_on_invoice: defaultSettings.show_stamp_on_invoice,
       show_stamp_on_receipt: defaultSettings.show_stamp_on_receipt,
       custom_stamp_url: defaultSettings.custom_stamp_url,
+      // New fields
+      stamp_custom_text: defaultSettings.stamp_custom_text,
+      stamp_use_custom_text: defaultSettings.stamp_use_custom_text,
+      stamp_position_x: defaultSettings.stamp_position_x,
+      stamp_position_y: defaultSettings.stamp_position_y,
     }));
     toast.info("Pengaturan direset ke default");
   };
@@ -235,39 +259,99 @@ const CustomStampSettings = () => {
             <CardTitle>Preview Stempel</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* LUNAS Preview */}
+            {/* Document Preview with Free Position */}
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Stempel LUNAS (Kwitansi)</p>
-              <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg border-2 border-dashed">
-                <DynamicStamp
-                  status="LUNAS"
-                  documentNumber="KWT-2024-001"
-                  companyName={settings.company_name || "Nama Perusahaan"}
-                  date={format(new Date(), "dd/MM/yyyy")}
-                  settings={settings}
-                />
+              <p className="text-sm font-medium text-muted-foreground">Preview Posisi di Dokumen</p>
+              <div 
+                className="relative bg-white border rounded-lg overflow-hidden"
+                style={{ aspectRatio: '210 / 297', minHeight: '400px' }}
+              >
+                {/* Simulated document content */}
+                <div className="absolute inset-4 border-2 border-dashed border-muted-foreground/20 rounded flex flex-col">
+                  {/* Header area */}
+                  <div className="h-16 bg-muted/20 border-b border-dashed border-muted-foreground/20 flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">Header Invoice/Kwitansi</span>
+                  </div>
+                  {/* Content area */}
+                  <div className="flex-1 p-4">
+                    <div className="space-y-2">
+                      <div className="h-3 bg-muted/30 rounded w-1/3"></div>
+                      <div className="h-3 bg-muted/30 rounded w-1/2"></div>
+                      <div className="h-3 bg-muted/30 rounded w-2/5"></div>
+                      <div className="h-20 bg-muted/20 rounded mt-4"></div>
+                    </div>
+                  </div>
+                  {/* Footer area */}
+                  <div className="h-20 bg-muted/20 border-t border-dashed border-muted-foreground/20 flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">Signature Area</span>
+                  </div>
+                </div>
+                
+                {/* Free-positioned stamp */}
+                {settings.show_stamp && (
+                  <div 
+                    className="absolute pointer-events-none z-10"
+                    style={{
+                      left: `${settings.stamp_position_x ?? 10}%`,
+                      top: `${settings.stamp_position_y ?? 70}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  >
+                    <DynamicStamp
+                      status={settings.stamp_use_custom_text ? 'CUSTOM' : 'LUNAS'}
+                      customText={settings.stamp_custom_text}
+                      documentNumber="DOC-2024-001"
+                      companyName={settings.company_name || "Nama Perusahaan"}
+                      date={format(new Date(), "dd/MM/yyyy")}
+                      settings={settings}
+                    />
+                  </div>
+                )}
               </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Gunakan slider untuk mengatur posisi stempel
+              </p>
             </div>
 
-            {/* BELUM LUNAS Preview */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Stempel BELUM LUNAS (Invoice)</p>
-              <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg border-2 border-dashed">
-                <DynamicStamp
-                  status="BELUM_LUNAS"
-                  documentNumber="INV-2024-001"
-                  companyName={settings.company_name || "Nama Perusahaan"}
-                  date={format(new Date(), "dd/MM/yyyy")}
-                  settings={settings}
-                />
+            {/* Stamp Variants Preview */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Custom/LUNAS Preview */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground text-center">
+                  {settings.stamp_use_custom_text ? 'Custom Teks' : 'LUNAS'}
+                </p>
+                <div className="flex items-center justify-center p-4 bg-muted/30 rounded-lg border">
+                  <DynamicStamp
+                    status={settings.stamp_use_custom_text ? 'CUSTOM' : 'LUNAS'}
+                    customText={settings.stamp_custom_text}
+                    documentNumber="KWT-2024-001"
+                    companyName={settings.company_name || "Nama Perusahaan"}
+                    date={format(new Date(), "dd/MM/yyyy")}
+                    settings={settings}
+                  />
+                </div>
+              </div>
+
+              {/* BELUM LUNAS Preview */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground text-center">BELUM LUNAS</p>
+                <div className="flex items-center justify-center p-4 bg-muted/30 rounded-lg border">
+                  <DynamicStamp
+                    status="BELUM_LUNAS"
+                    documentNumber="INV-2024-001"
+                    companyName={settings.company_name || "Nama Perusahaan"}
+                    date={format(new Date(), "dd/MM/yyyy")}
+                    settings={settings}
+                  />
+                </div>
               </div>
             </div>
 
             {/* Info */}
             <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t">
-              <p>• Stempel LUNAS ditampilkan di kwitansi (jika diaktifkan)</p>
-              <p>• Stempel BELUM LUNAS ditampilkan di invoice (jika diaktifkan)</p>
-              <p>• Posisi stempel: {settings.stamp_position === 'left' ? 'Kiri' : 'Kanan'}</p>
+              <p>• Stempel ditampilkan di posisi X: {settings.stamp_position_x ?? 10}%, Y: {settings.stamp_position_y ?? 70}%</p>
+              <p>• {settings.stamp_use_custom_text ? `Teks kustom: "${settings.stamp_custom_text}"` : 'Menggunakan teks default (LUNAS/BELUM LUNAS)'}</p>
+              <p>• Invoice: {settings.show_stamp_on_invoice ? 'Aktif' : 'Nonaktif'} | Kwitansi: {settings.show_stamp_on_receipt ? 'Aktif' : 'Nonaktif'}</p>
             </div>
           </CardContent>
         </Card>
