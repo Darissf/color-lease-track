@@ -1957,6 +1957,8 @@ export type Database = {
           qr_include_amount: boolean | null
           qr_position: string | null
           qr_size: number | null
+          qr_verification_label: string | null
+          qr_verification_title: string | null
           receipt_layout_settings: Json | null
           receipt_prefix: string | null
           receipt_title: string | null
@@ -1977,6 +1979,7 @@ export type Database = {
           show_npwp: boolean | null
           show_payment_section: boolean | null
           show_qr_code: boolean | null
+          show_qr_verification_url: boolean | null
           show_signature: boolean | null
           show_stamp: boolean | null
           show_stamp_on_invoice: boolean | null
@@ -2099,6 +2102,8 @@ export type Database = {
           qr_include_amount?: boolean | null
           qr_position?: string | null
           qr_size?: number | null
+          qr_verification_label?: string | null
+          qr_verification_title?: string | null
           receipt_layout_settings?: Json | null
           receipt_prefix?: string | null
           receipt_title?: string | null
@@ -2119,6 +2124,7 @@ export type Database = {
           show_npwp?: boolean | null
           show_payment_section?: boolean | null
           show_qr_code?: boolean | null
+          show_qr_verification_url?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
           show_stamp_on_invoice?: boolean | null
@@ -2241,6 +2247,8 @@ export type Database = {
           qr_include_amount?: boolean | null
           qr_position?: string | null
           qr_size?: number | null
+          qr_verification_label?: string | null
+          qr_verification_title?: string | null
           receipt_layout_settings?: Json | null
           receipt_prefix?: string | null
           receipt_title?: string | null
@@ -2261,6 +2269,7 @@ export type Database = {
           show_npwp?: boolean | null
           show_payment_section?: boolean | null
           show_qr_code?: boolean | null
+          show_qr_verification_url?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
           show_stamp_on_invoice?: boolean | null
