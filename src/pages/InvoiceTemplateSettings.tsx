@@ -341,31 +341,27 @@ const InvoiceTemplateSettings = () => {
                 <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
               </TabsList>
               <TabsContent value="invoice">
-                <div className="flex justify-center py-4">
-                  <div className="origin-top" style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
-                    <InvoiceTemplatePreview 
-                      settings={settings}
-                      customTextElements={customTextElements}
-                      selectedElementId={selectedElementId}
-                      onSelectElement={setSelectedElementId}
-                      onUpdateElement={handleUpdateTextElement}
-                      isEditing={isEditingMode}
-                    />
-                  </div>
+                <div className="flex justify-center py-4 overflow-auto">
+                  <InvoiceTemplatePreview 
+                    settings={settings}
+                    customTextElements={customTextElements}
+                    selectedElementId={selectedElementId}
+                    onSelectElement={setSelectedElementId}
+                    onUpdateElement={handleUpdateTextElement}
+                    isEditing={isEditingMode}
+                  />
                 </div>
               </TabsContent>
               <TabsContent value="receipt">
-                <div className="flex justify-center py-4">
-                  <div className="origin-top" style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
-                    <ReceiptTemplatePreview 
-                      settings={settings}
-                      customTextElements={customTextElements}
-                      selectedElementId={selectedElementId}
-                      onSelectElement={setSelectedElementId}
-                      onUpdateElement={handleUpdateTextElement}
-                      isEditing={isEditingMode}
-                    />
-                  </div>
+                <div className="flex justify-center py-4 overflow-auto">
+                  <ReceiptTemplatePreview 
+                    settings={settings}
+                    customTextElements={customTextElements}
+                    selectedElementId={selectedElementId}
+                    onSelectElement={setSelectedElementId}
+                    onUpdateElement={handleUpdateTextElement}
+                    isEditing={isEditingMode}
+                  />
                 </div>
               </TabsContent>
             </Tabs>
