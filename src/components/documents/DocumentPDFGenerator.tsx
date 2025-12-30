@@ -50,14 +50,31 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
 
-      // Capture PERSIS seperti yang terlihat di preview - WYSIWYG
-      const canvas = await html2canvas(documentRef.current, {
+      const element = documentRef.current;
+      const container = element.parentElement;
+      
+      // Simpan state original dan pindahkan ke viewport agar fully render
+      const originalLeft = container?.style.left;
+      if (container) {
+        container.style.left = '0';
+      }
+
+      // Tunggu browser render
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Capture dengan ukuran A4 asli (793 x 1122 px at 96dpi)
+      const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
+
+      // Kembalikan ke posisi hidden
+      if (container && originalLeft !== undefined) {
+        container.style.left = originalLeft;
+      }
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");
@@ -116,14 +133,31 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
 
-      // Capture PERSIS seperti yang terlihat di preview - WYSIWYG
-      const canvas = await html2canvas(documentRef.current, {
+      const element = documentRef.current;
+      const container = element.parentElement;
+      
+      // Simpan state original dan pindahkan ke viewport agar fully render
+      const originalLeft = container?.style.left;
+      if (container) {
+        container.style.left = '0';
+      }
+
+      // Tunggu browser render
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Capture dengan ukuran A4 asli
+      const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
+
+      // Kembalikan ke posisi hidden
+      if (container && originalLeft !== undefined) {
+        container.style.left = originalLeft;
+      }
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");
@@ -142,9 +176,9 @@ export const DocumentPDFGenerator = ({
             <head>
               <title>${fileName}</title>
               <style>
-                @page { margin: 0; }
-                body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-                img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+                @page { margin: 0; size: A4; }
+                body { margin: 0; display: flex; justify-content: center; align-items: flex-start; }
+                img { width: 100%; height: auto; }
               </style>
             </head>
             <body>
