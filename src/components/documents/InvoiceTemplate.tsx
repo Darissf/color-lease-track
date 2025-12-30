@@ -505,17 +505,19 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                 transform: 'translate(-50%, -50%)'
               }}
             >
-              <div className="text-center pointer-events-auto">
+              <div 
+                className="text-center pointer-events-auto origin-center"
+                style={{
+                  transform: `scale(${(settings.signature_scale ?? 100) / 100})`
+                }}
+              >
                 <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
                 {settings.signature_url ? (
                   <img 
                     src={settings.signature_url} 
                     alt="Signature" 
                     className="mx-auto object-contain"
-                    style={{ 
-                      maxWidth: `${(settings.signature_scale ?? 100) * 3}px`,
-                      maxHeight: `${(settings.signature_scale ?? 100) * 2}px`
-                    }}
+                    style={{ maxWidth: '300px', maxHeight: '200px' }}
                   />
                 ) : (
                   <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
