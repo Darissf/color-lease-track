@@ -47,38 +47,43 @@ export const DocumentPDFGenerator = ({
       return;
     }
 
+    const element = documentRef.current;
+    const container = element.parentElement;
+
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
-
-      const element = documentRef.current;
-      const container = element.parentElement;
       
       // Simpan state original
-      const originalOpacity = container?.style.opacity;
+      const originalVisibility = container?.style.visibility;
       const originalZIndex = container?.style.zIndex;
       
-      // Buat visible untuk capture (opacity trick)
+      // Buat visible untuk capture (visibility trick untuk mobile)
       if (container) {
-        container.style.opacity = '1';
+        container.style.visibility = 'visible';
         container.style.zIndex = '9999';
       }
 
-      // Tunggu browser render
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Tunggu browser fully render (penting untuk mobile)
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Capture dengan ukuran A4 asli (793 x 1122 px at 96dpi)
+      // Force browser to recalculate layout
+      element.getBoundingClientRect();
+
+      // Capture - biarkan html2canvas capture actual size dari fixed A4 container
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
+        windowWidth: 793,  // A4 width in px at 96dpi
+        windowHeight: 1122, // A4 height in px at 96dpi
       });
 
       // Kembalikan ke hidden state
       if (container) {
-        container.style.opacity = originalOpacity || '0';
-        container.style.zIndex = originalZIndex || '-1';
+        container.style.visibility = originalVisibility || 'hidden';
+        container.style.zIndex = originalZIndex || '-9999';
       }
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
@@ -124,6 +129,11 @@ export const DocumentPDFGenerator = ({
       toast.success("PDF berhasil dibuat!", { id: "pdf-generate" });
       onComplete?.();
     } catch (error) {
+      // Pastikan selalu kembalikan ke hidden meski error
+      if (container) {
+        container.style.visibility = 'hidden';
+        container.style.zIndex = '-9999';
+      }
       console.error("Error generating PDF:", error);
       toast.error("Gagal membuat PDF", { id: "pdf-generate" });
     }
@@ -135,38 +145,43 @@ export const DocumentPDFGenerator = ({
       return;
     }
 
+    const element = documentRef.current;
+    const container = element.parentElement;
+
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
-
-      const element = documentRef.current;
-      const container = element.parentElement;
       
       // Simpan state original
-      const originalOpacity = container?.style.opacity;
+      const originalVisibility = container?.style.visibility;
       const originalZIndex = container?.style.zIndex;
       
-      // Buat visible untuk capture (opacity trick)
+      // Buat visible untuk capture (visibility trick untuk mobile)
       if (container) {
-        container.style.opacity = '1';
+        container.style.visibility = 'visible';
         container.style.zIndex = '9999';
       }
 
-      // Tunggu browser render
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Tunggu browser fully render (penting untuk mobile)
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Capture dengan ukuran A4 asli
+      // Force browser to recalculate layout
+      element.getBoundingClientRect();
+
+      // Capture - biarkan html2canvas capture actual size
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
+        windowWidth: 793,
+        windowHeight: 1122,
       });
 
       // Kembalikan ke hidden state
       if (container) {
-        container.style.opacity = originalOpacity || '0';
-        container.style.zIndex = originalZIndex || '-1';
+        container.style.visibility = originalVisibility || 'hidden';
+        container.style.zIndex = originalZIndex || '-9999';
       }
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
@@ -202,6 +217,11 @@ export const DocumentPDFGenerator = ({
       toast.success("Siap untuk dicetak!", { id: "pdf-print" });
       onComplete?.();
     } catch (error) {
+      // Pastikan selalu kembalikan ke hidden meski error
+      if (container) {
+        container.style.visibility = 'hidden';
+        container.style.zIndex = '-9999';
+      }
       console.error("Error printing:", error);
       toast.error("Gagal mencetak dokumen", { id: "pdf-print" });
     }
