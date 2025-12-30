@@ -233,10 +233,15 @@ export const DocumentPreviewModal = ({
           <DialogTitle>Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}</DialogTitle>
         </DialogHeader>
         
-        {/* Hidden document for PDF generation - no transforms, fixed position */}
+        {/* Hidden document for PDF generation - visibility hidden agar tetap di-render */}
         <div 
-          className="fixed left-0 top-0 pointer-events-none"
-          style={{ width: '210mm', opacity: 0, zIndex: -9999 }}
+          className="fixed pointer-events-none"
+          style={{ 
+            width: '210mm',
+            left: '-9999px',
+            top: '0',
+            visibility: 'hidden',
+          }}
         >
           {documentData.documentType === 'invoice' ? (
             <InvoiceTemplate ref={documentRef} {...invoiceProps} />

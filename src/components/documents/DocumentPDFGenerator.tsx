@@ -50,22 +50,51 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
 
-      // Direct capture - documentRef now points to a clean element without transforms
-      const canvas = await html2canvas(documentRef.current, {
+      // Clone element untuk capture yang bersih
+      const clone = documentRef.current.cloneNode(true) as HTMLElement;
+      
+      // Set clone styles untuk visible capture
+      clone.style.position = 'fixed';
+      clone.style.left = '0';
+      clone.style.top = '0';
+      clone.style.width = '210mm';
+      clone.style.visibility = 'visible';
+      clone.style.opacity = '1';
+      clone.style.transform = 'none';
+      clone.style.zIndex = '99999';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.pointerEvents = 'none';
+      
+      // Append ke body
+      document.body.appendChild(clone);
+      
+      // Tunggu browser render
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        onclone: (_clonedDoc, element) => {
-          // Ensure element is visible in clone
-          element.style.opacity = '1';
-          element.style.position = 'static';
-          element.style.transform = 'none';
-        },
       });
+      
+      // Hapus clone
+      document.body.removeChild(clone);
 
-      const imgData = canvas.toDataURL("image/png");
+      // Validasi canvas
+      if (!canvas || canvas.width === 0 || canvas.height === 0) {
+        throw new Error("Canvas kosong");
+      }
+
+      let imgData = canvas.toDataURL("image/png");
+      
+      // Fallback ke JPEG jika PNG invalid
+      if (!imgData || imgData === 'data:,' || imgData.length < 100) {
+        imgData = canvas.toDataURL("image/jpeg", 0.95);
+      }
+      
+      const imgFormat = imgData.includes("jpeg") ? "JPEG" : "PNG";
       
       const paper = PAPER_SIZES[paperSize];
       const pdfWidth = orientation === "portrait" ? paper.width : paper.height;
@@ -120,7 +149,7 @@ export const DocumentPDFGenerator = ({
         }
       } else {
         // Single page - add image at top
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight);
+        pdf.addImage(imgData, imgFormat, 0, 0, pdfWidth, scaledHeight);
       }
 
       pdf.save(`${fileName}.pdf`);
@@ -142,21 +171,41 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
 
-      // Direct capture - documentRef now points to a clean element without transforms
-      const canvas = await html2canvas(documentRef.current, {
+      // Clone element untuk capture yang bersih
+      const clone = documentRef.current.cloneNode(true) as HTMLElement;
+      
+      clone.style.position = 'fixed';
+      clone.style.left = '0';
+      clone.style.top = '0';
+      clone.style.width = '210mm';
+      clone.style.visibility = 'visible';
+      clone.style.opacity = '1';
+      clone.style.transform = 'none';
+      clone.style.zIndex = '99999';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.pointerEvents = 'none';
+      
+      document.body.appendChild(clone);
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        onclone: (_clonedDoc, element) => {
-          element.style.opacity = '1';
-          element.style.position = 'static';
-          element.style.transform = 'none';
-        },
       });
+      
+      document.body.removeChild(clone);
 
-      const imgData = canvas.toDataURL("image/png");
+      if (!canvas || canvas.width === 0 || canvas.height === 0) {
+        throw new Error("Canvas kosong");
+      }
+
+      let imgData = canvas.toDataURL("image/png");
+      if (!imgData || imgData === 'data:,' || imgData.length < 100) {
+        imgData = canvas.toDataURL("image/jpeg", 0.95);
+      }
 
       const printWindow = window.open("", "_blank");
       if (printWindow) {
