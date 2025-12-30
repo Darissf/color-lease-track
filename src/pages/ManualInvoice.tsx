@@ -153,7 +153,7 @@ const ManualInvoice = () => {
         setContent({
           ...defaultContent,
           ...data,
-          custom_qr_codes: (data.custom_qr_codes as CustomQR[]) || [],
+          custom_qr_codes: (data.custom_qr_codes as unknown as CustomQR[]) || [],
         });
       }
     } catch (error) {
@@ -176,7 +176,8 @@ const ManualInvoice = () => {
         .upsert({
           user_id: user.id,
           ...newContent,
-        }, {
+          custom_qr_codes: newContent.custom_qr_codes as unknown as Record<string, unknown>[],
+        } as any, {
           onConflict: "user_id",
         });
 
@@ -196,7 +197,8 @@ const ManualInvoice = () => {
         .upsert({
           user_id: user.id,
           ...content,
-        }, {
+          custom_qr_codes: content.custom_qr_codes as unknown as Record<string, unknown>[],
+        } as any, {
           onConflict: "user_id",
         });
 
