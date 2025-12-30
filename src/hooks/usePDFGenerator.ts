@@ -1,5 +1,5 @@
-import { useCallback, useState, createElement } from "react";
-import { pdf } from "@react-pdf/renderer";
+import { useCallback, useState, createElement, ReactElement } from "react";
+import { pdf, DocumentProps } from "@react-pdf/renderer";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { InvoicePDFTemplate } from "@/components/documents/pdf/InvoicePDFTemplate";
@@ -79,7 +79,7 @@ export function usePDFGenerator() {
           settings,
           qrCodeDataUrl,
           verificationQrDataUrl,
-        });
+        }) as unknown as ReactElement<DocumentProps>;
 
         const blob = await pdf(doc).toBlob();
 
@@ -118,7 +118,7 @@ export function usePDFGenerator() {
           ...data,
           settings,
           verificationQrDataUrl,
-        });
+        }) as unknown as ReactElement<DocumentProps>;
 
         const blob = await pdf(doc).toBlob();
 
@@ -165,7 +165,7 @@ export function usePDFGenerator() {
           settings,
           qrCodeDataUrl,
           verificationQrDataUrl,
-        });
+        }) as unknown as ReactElement<DocumentProps>;
 
         const blob = await pdf(doc).toBlob();
         const url = URL.createObjectURL(blob);
@@ -203,7 +203,7 @@ export function usePDFGenerator() {
           ...data,
           settings,
           verificationQrDataUrl,
-        });
+        }) as unknown as ReactElement<DocumentProps>;
 
         const blob = await pdf(doc).toBlob();
         const url = URL.createObjectURL(blob);
