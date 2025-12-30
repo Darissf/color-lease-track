@@ -6,6 +6,7 @@ import { DocumentPDFGenerator } from './DocumentPDFGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
+import { CustomTextElement } from '@/components/custom-text/types';
 
 interface ContractData {
   id: string;
@@ -54,6 +55,7 @@ export function PublicDocumentPreviewModal({
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
   const [bankInfo, setBankInfo] = useState<{ bank_name: string; account_number: string; account_holder_name?: string } | null>(null);
+  const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export function PublicDocumentPreviewModal({
       setVerificationCode(null);
       setPaymentData(null);
       setBankInfo(null);
+      setCustomTextElements([]);
       setIsLoading(true);
     }
   }, [open, documentType, paymentId]);
@@ -104,6 +107,10 @@ export function PublicDocumentPreviewModal({
       
       if (data.bank_info) {
         setBankInfo(data.bank_info);
+      }
+      
+      if (data.custom_text_elements) {
+        setCustomTextElements(data.custom_text_elements);
       }
     } catch (err) {
       console.error('Error:', err);
@@ -167,6 +174,7 @@ export function PublicDocumentPreviewModal({
         invoiceNumber={contractData.invoice || undefined}
         paymentDate={paymentDate}
         settings={templateSettings}
+        customTextElements={customTextElements}
       />
     );
   };

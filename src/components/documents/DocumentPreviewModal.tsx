@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
+import { CustomTextElement } from "@/components/custom-text/types";
 
 interface DocumentData {
   documentType: 'invoice' | 'kwitansi';
@@ -54,12 +55,14 @@ export const DocumentPreviewModal = ({
   const { user } = useAuth();
   const { settings: brandSettings } = useBrandSettings();
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
+  const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
 
   useEffect(() => {
     if (open && user) {
       fetchSettings();
+      fetchCustomTextElements();
     }
-  }, [open, user]);
+  }, [open, user, documentData?.documentType]);
 
   // Save document to database when modal opens
   useEffect(() => {
@@ -167,6 +170,24 @@ export const DocumentPreviewModal = ({
     }
   };
 
+  const fetchCustomTextElements = async () => {
+    if (!user || !documentData) return;
+    
+    const documentType = documentData.documentType === 'invoice' ? 'invoice' : 'receipt';
+    
+    const { data } = await supabase
+      .from("custom_text_elements")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("document_type", documentType)
+      .eq("is_visible", true)
+      .order("order_index");
+    
+    if (data) {
+      setCustomTextElements(data as CustomTextElement[]);
+    }
+  };
+
   if (!documentData) return null;
 
   const fileName = `${documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}_${documentData.documentNumber}`;
@@ -216,6 +237,7 @@ export const DocumentPreviewModal = ({
                 invoiceNumber={documentData.invoiceNumber}
                 paymentDate={documentData.paymentDate}
                 settings={templateSettings}
+                customTextElements={customTextElements}
               />
             )}
           </div>

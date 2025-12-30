@@ -156,6 +156,16 @@ serve(async (req) => {
       }
     }
 
+    // Get custom text elements for the document type
+    const customTextDocType = document_type === 'invoice' ? 'invoice' : 'receipt';
+    const { data: customTextElements } = await supabase
+      .from('custom_text_elements')
+      .select('*')
+      .eq('user_id', linkData.user_id)
+      .eq('document_type', customTextDocType)
+      .eq('is_visible', true)
+      .order('order_index');
+
     // Merge template settings with brand settings fallback for logo
     const mergedTemplateSettings = templateSettings ? {
       ...templateSettings,
@@ -188,6 +198,7 @@ serve(async (req) => {
         account_number: (contractData.bank_accounts as any).account_number,
         account_holder_name: (contractData.bank_accounts as any).account_holder_name,
       } : null,
+      custom_text_elements: customTextElements || [],
     };
 
     console.log(`Successfully generated ${document_type} data`);

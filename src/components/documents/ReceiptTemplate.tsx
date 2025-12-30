@@ -8,6 +8,7 @@ import QRCode from "react-qr-code";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
 import { DynamicStamp } from "./DynamicStamp";
 import { CustomStampRenderer } from "./CustomStampRenderer";
+import { CustomTextElement } from "@/components/custom-text/types";
 
 interface ReceiptTemplateProps {
   documentNumber: string;
@@ -20,6 +21,7 @@ interface ReceiptTemplateProps {
   invoiceNumber?: string;
   paymentDate?: Date;
   settings?: TemplateSettings;
+  customTextElements?: CustomTextElement[];
 }
 
 export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
@@ -35,6 +37,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
       invoiceNumber,
       paymentDate,
       settings: propSettings,
+      customTextElements = [],
     },
     ref
   ) => {
@@ -543,6 +546,27 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             )}
           </div>
         )}
+
+        {/* Custom Text Elements */}
+        {customTextElements.filter(el => el.is_visible).map(element => (
+          <div
+            key={element.id}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${element.position_x}%`,
+              top: `${element.position_y}%`,
+              fontSize: `${element.font_size}px`,
+              color: element.font_color,
+              fontWeight: element.font_weight,
+              fontFamily: element.font_family,
+              textAlign: element.text_align as 'left' | 'center' | 'right',
+              transform: `rotate(${element.rotation}deg)`,
+              zIndex: 35,
+            }}
+          >
+            {element.content}
+          </div>
+        ))}
       </div>
     );
   }
