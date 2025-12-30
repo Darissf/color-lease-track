@@ -5,10 +5,12 @@ import { InvoiceTemplate } from './InvoiceTemplate';
 import { ReceiptTemplate } from './ReceiptTemplate';
 import { DocumentPDFGenerator } from './DocumentPDFGenerator';
 import { ResponsiveDocumentWrapper } from './ResponsiveDocumentWrapper';
+import { ZoomableDocumentWrapper } from './ZoomableDocumentWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
 import { CustomTextElement } from '@/components/custom-text/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ContractData {
   id: string;
@@ -53,6 +55,7 @@ export function PublicDocumentPreviewModal({
   paymentId,
 }: PublicDocumentPreviewModalProps) {
   const documentRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
   const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
@@ -152,11 +155,46 @@ export function PublicDocumentPreviewModal({
           </div>
         )}
 
-        <ScrollArea className="h-[75vh] sm:h-[70vh]">
-          <div className="py-2 sm:py-4">
-            {isLoading || !verificationCode ? (
-              renderLoadingState()
+        {isLoading || !verificationCode ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : isMobile ? (
+          <ZoomableDocumentWrapper>
+            {documentType === 'invoice' ? (
+              <InvoiceTemplate
+                ref={documentRef}
+                documentNumber={contractData.invoice || `INV-${contractData.id.substring(0, 8)}`}
+                verificationCode={verificationCode}
+                issuedAt={contractData.tanggal ? new Date(contractData.tanggal) : new Date()}
+                clientName={clientData?.nama || 'Klien'}
+                description={contractData.keterangan || 'Sewa Scaffolding'}
+                amount={contractData.tagihan}
+                contractInvoice={contractData.invoice || undefined}
+                period={`${contractData.start_date} - ${contractData.end_date}`}
+                settings={templateSettings}
+                contractBankInfo={bankInfo || undefined}
+                accessCode={accessCode}
+              />
             ) : (
+              <ReceiptTemplate
+                ref={documentRef}
+                documentNumber={`KWT-${contractData.invoice || contractData.id.substring(0, 8)}`}
+                verificationCode={verificationCode}
+                issuedAt={contractData.tanggal ? new Date(contractData.tanggal) : new Date()}
+                clientName={clientData?.nama || 'Klien'}
+                description={`Pembayaran sewa scaffolding - ${contractData.keterangan || 'Invoice ' + contractData.invoice}`}
+                amount={paymentData?.amount || (contractData.tagihan - contractData.tagihan_belum_bayar)}
+                invoiceNumber={contractData.invoice || undefined}
+                paymentDate={paymentData?.payment_date ? new Date(paymentData.payment_date) : undefined}
+                settings={templateSettings}
+                customTextElements={customTextElements}
+              />
+            )}
+          </ZoomableDocumentWrapper>
+        ) : (
+          <ScrollArea className="h-[70vh]">
+            <div className="py-4">
               <ResponsiveDocumentWrapper>
                 {documentType === 'invoice' ? (
                   <InvoiceTemplate
@@ -189,9 +227,9 @@ export function PublicDocumentPreviewModal({
                   />
                 )}
               </ResponsiveDocumentWrapper>
-            )}
-          </div>
-        </ScrollArea>
+            </div>
+          </ScrollArea>
+        )}
       </DialogContent>
     </Dialog>
   );

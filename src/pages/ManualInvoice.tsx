@@ -16,7 +16,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { ResponsiveDocumentWrapper } from "@/components/documents/ResponsiveDocumentWrapper";
+import { DocumentWrapper } from "@/components/documents/DocumentWrapper";
 
 interface ManualInvoiceContent {
   id?: string;
@@ -390,7 +390,7 @@ const ManualInvoice = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Document Preview */}
         <div className="flex-1 overflow-auto p-2 sm:p-4 bg-muted/30">
-          <ResponsiveDocumentWrapper>
+          <DocumentWrapper>
             <Card className="bg-white shadow-lg">
               <div
                 ref={documentRef}
@@ -858,10 +858,9 @@ const ManualInvoice = () => {
                       </div>
                     )
                   ))}
-                </div>
               </div>
             </Card>
-          </ResponsiveDocumentWrapper>
+          </DocumentWrapper>
         </div>
 
         {/* Sidebar - Desktop only */}
