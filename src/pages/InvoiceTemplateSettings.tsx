@@ -27,6 +27,7 @@ const InvoiceTemplateSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState<TemplateSettings>(defaultSettings);
+  const [activeTab, setActiveTab] = useState<'invoice' | 'receipt'>('invoice');
   const [cropTarget, setCropTarget] = useState<CropTarget>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -40,7 +41,20 @@ const InvoiceTemplateSettings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase.from('document_settings').select('*').eq('user_id', user.id).maybeSingle();
-      if (data) setSettings({ ...defaultSettings, ...data });
+      if (data) {
+        // Parse JSONB layout settings
+        const parsedData = {
+          ...defaultSettings,
+          ...data,
+          invoice_layout_settings: typeof data.invoice_layout_settings === 'object' && data.invoice_layout_settings 
+            ? { ...defaultSettings.invoice_layout_settings, ...data.invoice_layout_settings }
+            : defaultSettings.invoice_layout_settings,
+          receipt_layout_settings: typeof data.receipt_layout_settings === 'object' && data.receipt_layout_settings
+            ? { ...defaultSettings.receipt_layout_settings, ...data.receipt_layout_settings }
+            : defaultSettings.receipt_layout_settings,
+        };
+        setSettings(parsedData);
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -83,12 +97,50 @@ const InvoiceTemplateSettings = () => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  // Update layout settings based on active tab
+  const updateLayoutSetting = (key: string, value: any) => {
+    if (activeTab === 'invoice') {
+      setSettings(prev => ({
+        ...prev,
+        invoice_layout_settings: {
+          ...prev.invoice_layout_settings,
+          [key]: value
+        }
+      }));
+    } else {
+      setSettings(prev => ({
+        ...prev,
+        receipt_layout_settings: {
+          ...prev.receipt_layout_settings,
+          [key]: value
+        }
+      }));
+    }
+  };
+
+  // Get current layout settings based on active tab
+  const currentLayoutSettings = activeTab === 'invoice' 
+    ? settings.invoice_layout_settings 
+    : settings.receipt_layout_settings;
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      const { error } = await supabase.from('document_settings').upsert({ user_id: user.id, ...settings, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      
+      // Prepare save data - exclude read-only fields that don't exist in DB
+      const { invoice_layout_settings, receipt_layout_settings, ...restSettings } = settings;
+      
+      const saveData = {
+        user_id: user.id,
+        ...restSettings,
+        invoice_layout_settings: invoice_layout_settings,
+        receipt_layout_settings: receipt_layout_settings,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error } = await supabase.from('document_settings').upsert(saveData as any, { onConflict: 'user_id' });
       if (error) throw error;
       toast.success('Pengaturan template berhasil disimpan');
     } catch (error) {
@@ -158,11 +210,11 @@ const InvoiceTemplateSettings = () => {
               </AccordionItem>
               <AccordionItem value="stamp" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Stamp className="h-4 w-4 text-primary" /><span className="font-medium">Stempel</span></div></AccordionTrigger>
-                <AccordionContent className="pb-4"><StampSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
+                <AccordionContent className="pb-4"><StampSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} activeTab={activeTab} layoutSettings={currentLayoutSettings} updateLayoutSetting={updateLayoutSetting} /></AccordionContent>
               </AccordionItem>
               <AccordionItem value="advanced" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-primary" /><span className="font-medium">Advanced</span></div></AccordionTrigger>
-                <AccordionContent className="pb-4"><AdvancedSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} /></AccordionContent>
+                <AccordionContent className="pb-4"><AdvancedSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} activeTab={activeTab} layoutSettings={currentLayoutSettings} updateLayoutSetting={updateLayoutSetting} /></AccordionContent>
               </AccordionItem>
             </Accordion>
           </div>
@@ -170,7 +222,7 @@ const InvoiceTemplateSettings = () => {
 
         <div className="bg-muted/30 overflow-y-auto max-h-[calc(100vh-65px)]">
           <div className="p-4">
-            <Tabs defaultValue="invoice" className="w-full">
+            <Tabs defaultValue="invoice" value={activeTab} onValueChange={(val) => setActiveTab(val as 'invoice' | 'receipt')} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="invoice">Invoice</TabsTrigger>
                 <TabsTrigger value="receipt">Kwitansi</TabsTrigger>

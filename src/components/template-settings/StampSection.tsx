@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Upload, Trash2, Image as ImageIcon, ExternalLink } from 'lucide-react';
-import { TemplateSettings, fontFamilies } from './types';
+import { TemplateSettings, LayoutSettings, fontFamilies } from './types';
 import { DynamicStamp } from '@/components/documents/DynamicStamp';
 import { CustomStampRenderer } from '@/components/documents/CustomStampRenderer';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 interface StampSectionProps {
   settings: TemplateSettings;
@@ -18,6 +19,9 @@ interface StampSectionProps {
   onFileSelect: (file: File, target: string) => void;
   onRemoveImage: (field: string) => void;
   uploading: boolean;
+  activeTab: 'invoice' | 'receipt';
+  layoutSettings: LayoutSettings;
+  updateLayoutSetting: (key: string, value: any) => void;
 }
 
 export const StampSection: React.FC<StampSectionProps> = ({
@@ -26,6 +30,9 @@ export const StampSection: React.FC<StampSectionProps> = ({
   onFileSelect,
   onRemoveImage,
   uploading,
+  activeTab,
+  layoutSettings,
+  updateLayoutSetting,
 }) => {
   const stampInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -117,7 +124,7 @@ export const StampSection: React.FC<StampSectionProps> = ({
                   <CustomStampRenderer
                     documentNumber="INV-2025-0001"
                     companyName={settings.company_name || 'Perusahaan'}
-                    scale={settings.stamp_scale || 1}
+                    scale={layoutSettings.stamp_scale || 1}
                     rotation={0}
                     opacity={settings.stamp_opacity}
                   />
@@ -169,21 +176,26 @@ export const StampSection: React.FC<StampSectionProps> = ({
             )}
           </div>
 
-          {/* Free Positioning (X/Y) */}
+          {/* Free Positioning (X/Y) - Per Document Type */}
           <div className="space-y-4 p-3 rounded-lg border bg-muted/30">
-            <Label className="text-xs font-medium text-muted-foreground">Posisi Bebas di Dokumen:</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-muted-foreground">Posisi Bebas di Dokumen:</Label>
+              <Badge variant={activeTab === 'invoice' ? 'default' : 'secondary'}>
+                {activeTab === 'invoice' ? 'Invoice' : 'Kwitansi'}
+              </Badge>
+            </div>
             
             {/* Horizontal Position */}
             <div className="space-y-2">
               <div className="flex justify-between">
                 <Label className="text-xs">Posisi Horizontal (X)</Label>
-                <span className="text-sm">{settings.stamp_position_x ?? 10}%</span>
+                <span className="text-sm">{layoutSettings.stamp_position_x ?? 10}%</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Kiri</span>
                 <Slider
-                  value={[settings.stamp_position_x ?? 10]}
-                  onValueChange={([value]) => updateSetting('stamp_position_x', value)}
+                  value={[layoutSettings.stamp_position_x ?? 10]}
+                  onValueChange={([value]) => updateLayoutSetting('stamp_position_x', value)}
                   min={0}
                   max={100}
                   step={1}
@@ -197,13 +209,13 @@ export const StampSection: React.FC<StampSectionProps> = ({
             <div className="space-y-2">
               <div className="flex justify-between">
                 <Label className="text-xs">Posisi Vertikal (Y)</Label>
-                <span className="text-sm">{settings.stamp_position_y ?? 70}%</span>
+                <span className="text-sm">{layoutSettings.stamp_position_y ?? 70}%</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Atas</span>
                 <Slider
-                  value={[settings.stamp_position_y ?? 70]}
-                  onValueChange={([value]) => updateSetting('stamp_position_y', value)}
+                  value={[layoutSettings.stamp_position_y ?? 70]}
+                  onValueChange={([value]) => updateLayoutSetting('stamp_position_y', value)}
                   min={0}
                   max={100}
                   step={1}
@@ -214,20 +226,35 @@ export const StampSection: React.FC<StampSectionProps> = ({
             </div>
           </div>
 
-          {/* Scale Slider */}
+          {/* Scale Slider - Per Document Type */}
           <div className="space-y-2">
             <div className="flex justify-between">
               <Label className="text-xs">Skala Stempel</Label>
-              <span className="text-sm">{(settings.stamp_scale || 1).toFixed(1)}x</span>
+              <span className="text-sm">{(layoutSettings.stamp_scale || 1).toFixed(1)}x</span>
             </div>
             <Slider
-              value={[(settings.stamp_scale || 1) * 100]}
-              onValueChange={([value]) => updateSetting('stamp_scale', value / 100)}
+              value={[(layoutSettings.stamp_scale || 1) * 100]}
+              onValueChange={([value]) => updateLayoutSetting('stamp_scale', value / 100)}
               min={50}
               max={200}
               step={10}
             />
             <p className="text-xs text-muted-foreground">0.5x (kecil) - 2.0x (besar)</p>
+          </div>
+
+          {/* Rotation - Per Document Type */}
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Label className="text-xs">Rotasi</Label>
+              <span className="text-sm">{layoutSettings.stamp_rotation || -8}°</span>
+            </div>
+            <Slider
+              value={[layoutSettings.stamp_rotation || -8]}
+              onValueChange={([value]) => updateLayoutSetting('stamp_rotation', value)}
+              min={-45}
+              max={45}
+              step={1}
+            />
           </div>
 
           {/* Size - Only for built-in */}
@@ -284,21 +311,6 @@ export const StampSection: React.FC<StampSectionProps> = ({
               onValueChange={([value]) => updateSetting('stamp_font_size', value)}
               min={12}
               max={36}
-              step={1}
-            />
-          </div>
-
-          {/* Rotation */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label className="text-xs">Rotasi</Label>
-              <span className="text-sm">{settings.stamp_rotation || -8}°</span>
-            </div>
-            <Slider
-              value={[settings.stamp_rotation || -8]}
-              onValueChange={([value]) => updateSetting('stamp_rotation', value)}
-              min={-45}
-              max={45}
               step={1}
             />
           </div>
@@ -419,22 +431,32 @@ export const StampSection: React.FC<StampSectionProps> = ({
                       <Upload className="h-3 w-3 mr-1" />
                       Ganti
                     </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => onRemoveImage('custom_stamp_url')} className="text-destructive">
+                    <Button type="button" variant="outline" size="sm" onClick={() => onRemoveImage('custom_stamp_url')}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center py-2 cursor-pointer" onClick={() => stampInputRef.current?.click()}>
-                  <ImageIcon className="h-6 w-6 text-muted-foreground mb-1" />
-                  <span className="text-xs text-muted-foreground">Upload gambar stempel (PNG dengan transparansi)</span>
+                <div
+                  className="flex flex-col items-center justify-center py-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => stampInputRef.current?.click()}
+                >
+                  <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-xs text-muted-foreground">Upload stempel custom</span>
                 </div>
               )}
+              <input
+                ref={stampInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
-            <input ref={stampInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+            <p className="text-xs text-muted-foreground">Format: PNG dengan background transparan</p>
           </div>
 
-          {/* Live Preview */}
+          {/* Preview Stamp */}
           <div className="space-y-2 p-4 rounded-lg border bg-white">
             <Label className="text-xs font-medium text-muted-foreground">Preview Stempel:</Label>
             <div className="flex justify-center py-4">
@@ -442,20 +464,22 @@ export const StampSection: React.FC<StampSectionProps> = ({
                 <CustomStampRenderer
                   documentNumber="INV-2025-0001"
                   companyName={settings.company_name || 'Perusahaan'}
-                  scale={settings.stamp_scale || 1}
-                  rotation={0}
+                  scale={layoutSettings.stamp_scale || 1}
+                  rotation={layoutSettings.stamp_rotation || -8}
                   opacity={settings.stamp_opacity}
                 />
               ) : (
-                <div style={{ transform: `scale(${settings.stamp_scale || 1})`, transformOrigin: 'center' }}>
-                  <DynamicStamp
-                    status="LUNAS"
-                    documentNumber="INV-2025-0001"
-                    companyName={settings.company_name || 'Perusahaan'}
-                    date={format(new Date(), 'dd/MM/yyyy')}
-                    settings={settings}
-                  />
-                </div>
+                <DynamicStamp
+                  status="LUNAS"
+                  date={format(new Date(), 'dd/MM/yyyy')}
+                  documentNumber="INV-2025-0001"
+                  companyName={settings.company_name || 'Perusahaan'}
+                  settings={{
+                    ...settings,
+                    stamp_rotation: layoutSettings.stamp_rotation,
+                    stamp_scale: layoutSettings.stamp_scale,
+                  }}
+                />
               )}
             </div>
           </div>

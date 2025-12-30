@@ -88,15 +88,15 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
         fontSize: `${settings.font_size_base || 14}px`
       }}
     >
-      {/* Watermark */}
+      {/* Watermark - uses invoice_layout_settings */}
       {settings.show_watermark && (
         <div 
           className="absolute pointer-events-none z-50"
           style={{ 
-            left: `${settings.watermark_position_x ?? 50}%`,
-            top: `${settings.watermark_position_y ?? 50}%`,
-            transform: `translate(-50%, -50%) rotate(${settings.watermark_rotation ?? -45}deg)`,
-            opacity: (settings.watermark_opacity || 10) / 100
+            left: `${settings.invoice_layout_settings?.watermark_position_x ?? settings.watermark_position_x ?? 50}%`,
+            top: `${settings.invoice_layout_settings?.watermark_position_y ?? settings.watermark_position_y ?? 50}%`,
+            transform: `translate(-50%, -50%) rotate(${settings.invoice_layout_settings?.watermark_rotation ?? settings.watermark_rotation ?? -45}deg)`,
+            opacity: (settings.invoice_layout_settings?.watermark_opacity ?? settings.watermark_opacity ?? 10) / 100
           }}
         >
           {settings.watermark_type === 'logo' && settings.invoice_logo_url ? (
@@ -104,7 +104,7 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
               src={settings.invoice_logo_url} 
               alt="" 
               style={{ 
-                width: `${settings.watermark_size ?? 300}px`,
+                width: `${settings.invoice_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`,
                 height: 'auto'
               }}
               className="object-contain" 
@@ -114,7 +114,7 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
               className="font-bold text-gray-300 whitespace-nowrap"
               style={{ 
                 fontFamily: getHeadingFontFamily(),
-                fontSize: `${settings.watermark_size ?? 300}px`
+                fontSize: `${settings.invoice_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`
               }}
             >
               {settings.watermark_text || 'DRAFT'}

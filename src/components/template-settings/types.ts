@@ -1,3 +1,32 @@
+// Layout settings that can differ between Invoice and Receipt
+export interface LayoutSettings {
+  stamp_position_x: number;
+  stamp_position_y: number;
+  stamp_rotation: number;
+  stamp_scale: number;
+  qr_position: string;
+  qr_size: number;
+  watermark_position_x: number;
+  watermark_position_y: number;
+  watermark_size: number;
+  watermark_rotation: number;
+  watermark_opacity: number;
+}
+
+export const defaultLayoutSettings: LayoutSettings = {
+  stamp_position_x: 10,
+  stamp_position_y: 70,
+  stamp_rotation: -8,
+  stamp_scale: 1.0,
+  qr_position: 'bottom-right',
+  qr_size: 80,
+  watermark_position_x: 50,
+  watermark_position_y: 50,
+  watermark_size: 300,
+  watermark_rotation: -45,
+  watermark_opacity: 10,
+};
+
 export interface TemplateSettings {
   // Basic Colors
   header_color_primary: string;
@@ -163,6 +192,10 @@ export interface TemplateSettings {
   // NEW: Payment link option
   use_payment_link: boolean;
   payment_link_text: string;
+
+  // Separate layout settings for Invoice and Receipt
+  invoice_layout_settings: LayoutSettings;
+  receipt_layout_settings: LayoutSettings;
 }
 
 export const defaultSettings: TemplateSettings = {
@@ -316,6 +349,10 @@ export const defaultSettings: TemplateSettings = {
   // Payment link
   use_payment_link: false,
   payment_link_text: 'Generate Pembayaran',
+
+  // Separate layout settings
+  invoice_layout_settings: { ...defaultLayoutSettings },
+  receipt_layout_settings: { ...defaultLayoutSettings },
 };
 
 export const colorPresets = {
