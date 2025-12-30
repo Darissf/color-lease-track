@@ -514,7 +514,7 @@ export function InvoiceTemplatePreview({
                   src={settings.signature_url} 
                   alt="Signature" 
                   className="w-auto mx-auto object-contain"
-                  style={{ maxHeight: `${(settings.signature_scale ?? 100) * 0.8}px` }}
+                  style={{ maxHeight: `${(settings.signature_scale ?? 100) * 2}px` }}
                 />
               ) : (
                 <div className="h-16 w-32 border-b border-gray-400" />
