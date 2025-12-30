@@ -476,43 +476,6 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
 
-          {/* Free-positioned Stamp - uses invoice_layout_settings */}
-          {settings.show_stamp && settings.show_stamp_on_invoice && (
-            <div 
-              className="absolute pointer-events-none"
-              style={{
-                left: `${settings.invoice_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
-                top: `${settings.invoice_layout_settings?.stamp_position_y ?? settings.stamp_position_y ?? 70}%`,
-                transform: `translate(-50%, -50%) rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
-              }}
-            >
-              {settings.stamp_source === 'custom' ? (
-                <CustomStampRenderer
-                  documentNumber={documentNumber}
-                  companyName={settings.company_name || ''}
-                  date={format(issuedAt, 'dd/MM/yyyy')}
-                  opacity={settings.stamp_opacity}
-                />
-              ) : settings.custom_stamp_url ? (
-                <img 
-                  src={settings.custom_stamp_url} 
-                  alt="Stamp" 
-                  className="h-24 w-24 object-contain"
-                  style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
-                />
-              ) : (
-                <DynamicStamp
-                  status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
-                  customText={settings.stamp_custom_text}
-                  documentNumber={documentNumber}
-                  companyName={settings.company_name || ''}
-                  date={format(issuedAt, 'dd/MM/yyyy')}
-                  settings={settings}
-                />
-              )}
-            </div>
-          )}
-
           {/* Footer */}
           {settings.show_footer !== false && settings.footer_text && (
             <div className="text-center text-sm text-gray-500 mb-4">
@@ -543,6 +506,43 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
         </div>
+
+        {/* Fixed-positioned Stamp - OUTSIDE content wrapper, uses invoice_layout_settings */}
+        {settings.show_stamp && settings.show_stamp_on_invoice && (
+          <div 
+            className="absolute pointer-events-none z-40"
+            style={{
+              left: `${settings.invoice_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
+              top: `${settings.invoice_layout_settings?.stamp_position_y ?? settings.stamp_position_y ?? 70}%`,
+              transform: `translate(-50%, -50%) rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+            }}
+          >
+            {settings.stamp_source === 'custom' ? (
+              <CustomStampRenderer
+                documentNumber={documentNumber}
+                companyName={settings.company_name || ''}
+                date={format(issuedAt, 'dd/MM/yyyy')}
+                opacity={settings.stamp_opacity}
+              />
+            ) : settings.custom_stamp_url ? (
+              <img 
+                src={settings.custom_stamp_url} 
+                alt="Stamp" 
+                className="h-24 w-24 object-contain"
+                style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+              />
+            ) : (
+              <DynamicStamp
+                status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
+                customText={settings.stamp_custom_text}
+                documentNumber={documentNumber}
+                companyName={settings.company_name || ''}
+                date={format(issuedAt, 'dd/MM/yyyy')}
+                settings={settings}
+              />
+            )}
+          </div>
+        )}
       </div>
     );
   }
