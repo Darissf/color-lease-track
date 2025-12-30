@@ -444,65 +444,14 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
-        {/* Signature Image Only - Positioned relative to content bottom */}
-        {settings.show_signature !== false && settings.signature_url && (
-          <div 
-            className="absolute pointer-events-none z-30"
-            style={{
-              left: `${settings.receipt_layout_settings?.signature_position_x ?? 80}%`,
-              bottom: settings.receipt_layout_settings?.signature_position_y !== undefined 
-                ? `${100 - settings.receipt_layout_settings.signature_position_y}%` 
-                : '15%',
-              transform: `translate(-50%, 50%) scale(${settings.receipt_layout_settings?.signature_scale ?? 1})`,
-              opacity: (settings.receipt_layout_settings?.signature_opacity ?? 100) / 100,
-            }}
-          >
-            <img 
-              src={settings.signature_url} 
-              alt="Signature" 
-              className="max-w-[200px] max-h-[100px] object-contain"
-            />
-          </div>
-        )}
-
-        {/* Free-positioned Stamp - Positioned relative to content bottom */}
-        {settings.show_stamp_on_receipt !== false && (
-          <div 
-            className="absolute pointer-events-none z-40"
-            style={{
-              left: `${settings.receipt_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
-              bottom: settings.receipt_layout_settings?.stamp_position_y !== undefined 
-                ? `${100 - settings.receipt_layout_settings.stamp_position_y}%` 
-                : '30%',
-              transform: `translate(-50%, 50%) rotate(${settings.receipt_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.receipt_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
-            }}
-          >
-            {settings.stamp_source === 'custom' ? (
-              <CustomStampRenderer
-                documentNumber={sampleData.documentNumber}
-                companyName={settings.company_name || ''}
-                date={format(new Date(), 'dd/MM/yyyy')}
-                opacity={settings.stamp_opacity}
-              />
-            ) : (
-              <DynamicStamp
-                status={settings.stamp_use_custom_text ? 'CUSTOM' : 'LUNAS'}
-                customText={settings.stamp_custom_text}
-                documentNumber={sampleData.documentNumber}
-                companyName={settings.company_name || ''}
-                date={format(new Date(), 'dd/MM/yyyy')}
-                settings={settings}
-              />
-            )}
-          </div>
-        )}
-
         {/* Footer */}
         {settings.show_footer !== false && settings.footer_text && (
           <div className="text-center text-sm text-gray-500 mb-4">
             {settings.footer_text}
           </div>
         )}
+
+        </div>
 
         {/* QR Verification - Positioned relative to content bottom */}
         {settings.show_qr_code && (
@@ -538,6 +487,65 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
+        {/* Signature Image Only - Positioned relative to content bottom */}
+        {settings.show_signature !== false && settings.signature_url && (
+          <div 
+            className="absolute pointer-events-none z-30"
+            style={{
+              left: `${settings.receipt_layout_settings?.signature_position_x ?? 80}%`,
+              bottom: settings.receipt_layout_settings?.signature_position_y !== undefined 
+                ? `${100 - settings.receipt_layout_settings.signature_position_y}%` 
+                : '15%',
+              transform: `translate(-50%, 50%) scale(${settings.receipt_layout_settings?.signature_scale ?? 1})`,
+              opacity: (settings.receipt_layout_settings?.signature_opacity ?? 100) / 100,
+            }}
+          >
+            <img 
+              src={settings.signature_url} 
+              alt="Signature" 
+              className="max-w-[200px] max-h-[100px] object-contain"
+            />
+          </div>
+        )}
+
+        {/* Fixed-positioned Stamp - Positioned relative to content bottom */}
+        {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
+          <div 
+            className="absolute pointer-events-none z-40"
+            style={{
+              left: `${settings.receipt_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
+              bottom: settings.receipt_layout_settings?.stamp_position_y !== undefined 
+                ? `${100 - settings.receipt_layout_settings.stamp_position_y}%` 
+                : '30%',
+              transform: `translate(-50%, 50%) rotate(${settings.receipt_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.receipt_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+            }}
+          >
+            {settings.stamp_source === 'custom' ? (
+              <CustomStampRenderer
+                documentNumber={sampleData.documentNumber}
+                companyName={settings.company_name || ''}
+                date={format(new Date(), 'dd/MM/yyyy')}
+                opacity={settings.stamp_opacity}
+              />
+            ) : settings.custom_stamp_url ? (
+              <img 
+                src={settings.custom_stamp_url} 
+                alt="Stamp" 
+                className="h-24 w-24 object-contain"
+                style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+              />
+            ) : (
+              <DynamicStamp
+                status="LUNAS"
+                documentNumber={sampleData.documentNumber}
+                companyName={settings.company_name || 'Perusahaan'}
+                date={format(new Date(), 'dd/MM/yyyy')}
+                settings={settings}
+              />
+            )}
+          </div>
+        )}
+
         {/* Custom Text Elements */}
         {customTextElements.filter(el => el.is_visible).map(element => (
           <DraggableTextBox
@@ -551,7 +559,6 @@ export function ReceiptTemplatePreview({
             containerRef={documentRef}
           />
         ))}
-      </div>
     </div>
   );
 }
