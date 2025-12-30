@@ -264,7 +264,7 @@ const ReceiptTemplateSettings = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 min-h-[calc(100vh-65px)]">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(450px,40%)_1fr] gap-0 min-h-[calc(100vh-65px)]">
         <div className="border-r overflow-y-auto max-h-[calc(100vh-65px)]">
           <div className="p-4 space-y-4">
             <Accordion type="multiple" defaultValue={['branding', 'colors', 'custom-text']} className="space-y-3">
@@ -319,30 +319,25 @@ const ReceiptTemplateSettings = () => {
         </div>
 
         <div className="bg-muted/30 overflow-y-auto max-h-[calc(100vh-65px)]">
-          <div className="p-4">
-            <Card className="shadow-lg">
-              <CardContent className="p-0">
-                <div 
-                  ref={documentRef}
-                  className="transform scale-[0.6] origin-top-left relative" 
-                  style={{ width: '166.67%' }}
-                  onClick={() => {
-                    if (isEditingMode) {
-                      setSelectedElementId(null);
-                    }
-                  }}
-                >
-                  <ReceiptTemplatePreview 
-                    settings={settings}
-                    customTextElements={customTextElements}
-                    selectedElementId={selectedElementId}
-                    onSelectElement={setSelectedElementId}
-                    onUpdateElement={handleUpdateCustomText}
-                    isEditing={isEditingMode}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+          <div className="flex justify-center py-4 overflow-auto">
+            <div 
+              ref={documentRef}
+              style={{ transform: 'scale(0.65)', transformOrigin: 'top center' }}
+              onClick={() => {
+                if (isEditingMode) {
+                  setSelectedElementId(null);
+                }
+              }}
+            >
+              <ReceiptTemplatePreview 
+                settings={settings}
+                customTextElements={customTextElements}
+                selectedElementId={selectedElementId}
+                onSelectElement={setSelectedElementId}
+                onUpdateElement={handleUpdateCustomText}
+                isEditing={isEditingMode}
+              />
+            </div>
           </div>
         </div>
       </div>
