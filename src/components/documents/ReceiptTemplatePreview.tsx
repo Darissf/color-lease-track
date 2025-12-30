@@ -435,11 +435,21 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
-        {/* Spacer for signature area */}
-        <div className="mb-8" style={{ minHeight: '80px' }} />
-
-        {/* Signature - Absolute Positioned like Watermark */}
+        {/* Signature Label & Signer Info - Fixed Position */}
         {settings.show_signature !== false && (
+          <div className="flex justify-end mb-8">
+            <div className="text-center" style={{ minWidth: '200px' }}>
+              <p className="text-sm text-gray-600 mb-12">{settings.signature_label || 'Hormat Kami,'}</p>
+              <p className="font-semibold">{sampleData.ownerName}</p>
+              {sampleData.signerTitle && (
+                <p className="text-sm text-gray-500">{sampleData.signerTitle}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Signature Image Only - Absolute Positioned like Watermark */}
+        {settings.show_signature !== false && settings.signature_url && (
           <div 
             className="absolute pointer-events-none z-30"
             style={{
@@ -449,22 +459,11 @@ export function ReceiptTemplatePreview({
               opacity: (settings.receipt_layout_settings?.signature_opacity ?? 100) / 100,
             }}
           >
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
-              {settings.signature_url ? (
-                <img 
-                  src={settings.signature_url} 
-                  alt="Signature" 
-                  className="max-w-[200px] max-h-[100px] object-contain mx-auto"
-                />
-              ) : (
-                <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
-              )}
-              <p className="font-semibold mt-2">{sampleData.ownerName}</p>
-              {sampleData.signerTitle && (
-                <p className="text-sm text-gray-500">{sampleData.signerTitle}</p>
-              )}
-            </div>
+            <img 
+              src={settings.signature_url} 
+              alt="Signature" 
+              className="max-w-[200px] max-h-[100px] object-contain"
+            />
           </div>
         )}
 
