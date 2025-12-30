@@ -6,6 +6,8 @@ import { MapPin, Phone, Mail, Globe } from "lucide-react";
 import QRCode from "react-qr-code";
 import { TemplateSettings } from "@/components/template-settings/types";
 import { DynamicStamp } from "./DynamicStamp";
+import { CustomStampRenderer } from "./CustomStampRenderer";
+
 interface InvoiceTemplatePreviewProps {
   settings: TemplateSettings;
 }
@@ -460,17 +462,26 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
             style={{
               left: `${settings.stamp_position_x ?? 10}%`,
               top: `${settings.stamp_position_y ?? 70}%`,
-              transform: 'translate(-50%, -50%)'
+              transform: `translate(-50%, -50%) rotate(${settings.stamp_rotation || 0}deg) scale(${settings.stamp_scale || 1})`
             }}
           >
-            <DynamicStamp
-              status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
-              customText={settings.stamp_custom_text}
-              documentNumber={sampleData.documentNumber}
-              companyName={settings.company_name || ''}
-              date={format(new Date(), 'dd/MM/yyyy')}
-              settings={settings}
-            />
+            {settings.stamp_source === 'custom' ? (
+              <CustomStampRenderer
+                documentNumber={sampleData.documentNumber}
+                companyName={settings.company_name || ''}
+                date={format(new Date(), 'dd/MM/yyyy')}
+                opacity={settings.stamp_opacity}
+              />
+            ) : (
+              <DynamicStamp
+                status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
+                customText={settings.stamp_custom_text}
+                documentNumber={sampleData.documentNumber}
+                companyName={settings.company_name || ''}
+                date={format(new Date(), 'dd/MM/yyyy')}
+                settings={settings}
+              />
+            )}
           </div>
         )}
 

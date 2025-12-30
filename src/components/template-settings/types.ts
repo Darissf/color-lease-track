@@ -89,6 +89,10 @@ export interface TemplateSettings {
   stamp_position_x: number;
   stamp_position_y: number;
   
+  // Custom stamp source and scale
+  stamp_source: string;
+  stamp_scale: number;
+  
   // Watermark
   show_watermark: boolean;
   watermark_type: string;
@@ -239,6 +243,10 @@ export const defaultSettings: TemplateSettings = {
   stamp_use_custom_text: false,
   stamp_position_x: 10,
   stamp_position_y: 70,
+  
+  // Custom stamp source and scale
+  stamp_source: 'built-in',
+  stamp_scale: 1.0,
   
   show_watermark: false,
   watermark_type: 'logo',

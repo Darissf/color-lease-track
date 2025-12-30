@@ -5,10 +5,12 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Upload, Trash2, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { TemplateSettings, fontFamilies } from './types';
 import { DynamicStamp } from '@/components/documents/DynamicStamp';
+import { CustomStampRenderer } from '@/components/documents/CustomStampRenderer';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 interface StampSectionProps {
   settings: TemplateSettings;
@@ -26,6 +28,7 @@ export const StampSection: React.FC<StampSectionProps> = ({
   uploading,
 }) => {
   const stampInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,23 +70,81 @@ export const StampSection: React.FC<StampSectionProps> = ({
             </div>
           </div>
 
-          {/* Stamp Type */}
-          <div className="space-y-2">
-            <Label className="text-xs">Tipe Stempel</Label>
-            <Select
-              value={settings.stamp_type || 'rectangle'}
-              onValueChange={(value) => updateSetting('stamp_type', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rectangle">Persegi Panjang</SelectItem>
-                <SelectItem value="circle">Lingkaran</SelectItem>
-                <SelectItem value="oval">Oval</SelectItem>
-              </SelectContent>
-          </Select>
+          {/* Stamp Source Toggle */}
+          <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
+            <Label className="text-xs font-medium text-muted-foreground">Sumber Stempel:</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={settings.stamp_source !== 'custom' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => updateSetting('stamp_source', 'built-in')}
+                className="w-full"
+              >
+                Stempel Bawaan
+              </Button>
+              <Button
+                type="button"
+                variant={settings.stamp_source === 'custom' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => updateSetting('stamp_source', 'custom')}
+                className="w-full"
+              >
+                Custom Stempel
+              </Button>
+            </div>
+            
+            {settings.stamp_source === 'custom' && (
+              <div className="mt-3 p-3 bg-background rounded border">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs font-medium">Custom Stempel Designer</Label>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs"
+                    onClick={() => navigate('/vip/settings/custom-stamp')}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Edit Stempel
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Stempel yang Anda desain di Custom Stamp Designer akan ditampilkan di dokumen.
+                </p>
+                {/* Preview of custom stamp */}
+                <div className="flex justify-center py-3 bg-white rounded border">
+                  <CustomStampRenderer
+                    documentNumber="INV-2025-0001"
+                    companyName={settings.company_name || 'Perusahaan'}
+                    scale={settings.stamp_scale || 1}
+                    rotation={0}
+                    opacity={settings.stamp_opacity}
+                  />
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Stamp Type - Only show for built-in */}
+          {settings.stamp_source !== 'custom' && (
+            <div className="space-y-2">
+              <Label className="text-xs">Tipe Stempel</Label>
+              <Select
+                value={settings.stamp_type || 'rectangle'}
+                onValueChange={(value) => updateSetting('stamp_type', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rectangle">Persegi Panjang</SelectItem>
+                  <SelectItem value="circle">Lingkaran</SelectItem>
+                  <SelectItem value="oval">Oval</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Custom Text Toggle */}
           <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
@@ -153,41 +214,41 @@ export const StampSection: React.FC<StampSectionProps> = ({
             </div>
           </div>
 
-          {/* Size */}
+          {/* Scale Slider */}
           <div className="space-y-2">
-            <Label className="text-xs">Ukuran Stempel</Label>
-            <Select
-              value={settings.stamp_size || 'md'}
-              onValueChange={(value) => updateSetting('stamp_size', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sm">Kecil</SelectItem>
-                <SelectItem value="md">Sedang</SelectItem>
-                <SelectItem value="lg">Besar</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex justify-between">
+              <Label className="text-xs">Skala Stempel</Label>
+              <span className="text-sm">{(settings.stamp_scale || 1).toFixed(1)}x</span>
+            </div>
+            <Slider
+              value={[(settings.stamp_scale || 1) * 100]}
+              onValueChange={([value]) => updateSetting('stamp_scale', value / 100)}
+              min={50}
+              max={200}
+              step={10}
+            />
+            <p className="text-xs text-muted-foreground">0.5x (kecil) - 2.0x (besar)</p>
           </div>
 
-          {/* Size */}
-          <div className="space-y-2">
-            <Label className="text-xs">Ukuran Stempel</Label>
-            <Select
-              value={settings.stamp_size || 'md'}
-              onValueChange={(value) => updateSetting('stamp_size', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sm">Kecil</SelectItem>
-                <SelectItem value="md">Sedang</SelectItem>
-                <SelectItem value="lg">Besar</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Size - Only for built-in */}
+          {settings.stamp_source !== 'custom' && (
+            <div className="space-y-2">
+              <Label className="text-xs">Ukuran Preset</Label>
+              <Select
+                value={settings.stamp_size || 'md'}
+                onValueChange={(value) => updateSetting('stamp_size', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sm">Kecil</SelectItem>
+                  <SelectItem value="md">Sedang</SelectItem>
+                  <SelectItem value="lg">Besar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Font Family */}
           <div className="space-y-2">
@@ -377,13 +438,25 @@ export const StampSection: React.FC<StampSectionProps> = ({
           <div className="space-y-2 p-4 rounded-lg border bg-white">
             <Label className="text-xs font-medium text-muted-foreground">Preview Stempel:</Label>
             <div className="flex justify-center py-4">
-              <DynamicStamp
-                status="LUNAS"
-                documentNumber="INV-2025-0001"
-                companyName={settings.company_name || 'Perusahaan'}
-                date={format(new Date(), 'dd/MM/yyyy')}
-                settings={settings}
-              />
+              {settings.stamp_source === 'custom' ? (
+                <CustomStampRenderer
+                  documentNumber="INV-2025-0001"
+                  companyName={settings.company_name || 'Perusahaan'}
+                  scale={settings.stamp_scale || 1}
+                  rotation={0}
+                  opacity={settings.stamp_opacity}
+                />
+              ) : (
+                <div style={{ transform: `scale(${settings.stamp_scale || 1})`, transformOrigin: 'center' }}>
+                  <DynamicStamp
+                    status="LUNAS"
+                    documentNumber="INV-2025-0001"
+                    companyName={settings.company_name || 'Perusahaan'}
+                    date={format(new Date(), 'dd/MM/yyyy')}
+                    settings={settings}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </>

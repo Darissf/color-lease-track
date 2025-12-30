@@ -1943,10 +1943,12 @@ export type Database = {
           stamp_position_x: number | null
           stamp_position_y: number | null
           stamp_rotation: number | null
+          stamp_scale: number | null
           stamp_show_company_name: boolean | null
           stamp_show_date: boolean | null
           stamp_show_document_number: boolean | null
           stamp_size: string | null
+          stamp_source: string | null
           stamp_text: string | null
           stamp_type: string | null
           stamp_use_custom_text: boolean | null
@@ -2071,10 +2073,12 @@ export type Database = {
           stamp_position_x?: number | null
           stamp_position_y?: number | null
           stamp_rotation?: number | null
+          stamp_scale?: number | null
           stamp_show_company_name?: boolean | null
           stamp_show_date?: boolean | null
           stamp_show_document_number?: boolean | null
           stamp_size?: string | null
+          stamp_source?: string | null
           stamp_text?: string | null
           stamp_type?: string | null
           stamp_use_custom_text?: boolean | null
@@ -2199,10 +2203,12 @@ export type Database = {
           stamp_position_x?: number | null
           stamp_position_y?: number | null
           stamp_rotation?: number | null
+          stamp_scale?: number | null
           stamp_show_company_name?: boolean | null
           stamp_show_date?: boolean | null
           stamp_show_document_number?: boolean | null
           stamp_size?: string | null
+          stamp_source?: string | null
           stamp_text?: string | null
           stamp_type?: string | null
           stamp_use_custom_text?: boolean | null
