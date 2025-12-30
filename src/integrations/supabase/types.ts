@@ -1988,6 +1988,7 @@ export type Database = {
           signature_image_url: string | null
           signature_label: string | null
           signature_position: string | null
+          signature_scale: number | null
           signature_url: string | null
           signer_name: string | null
           signer_title: string | null
@@ -2129,6 +2130,7 @@ export type Database = {
           signature_image_url?: string | null
           signature_label?: string | null
           signature_position?: string | null
+          signature_scale?: number | null
           signature_url?: string | null
           signer_name?: string | null
           signer_title?: string | null
@@ -2270,6 +2272,7 @@ export type Database = {
           signature_image_url?: string | null
           signature_label?: string | null
           signature_position?: string | null
+          signature_scale?: number | null
           signature_url?: string | null
           signer_name?: string | null
           signer_title?: string | null
