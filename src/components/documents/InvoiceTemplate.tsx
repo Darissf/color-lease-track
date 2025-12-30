@@ -495,67 +495,72 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
 
-          {/* Signature & Stamp Section - Stamp positioned relative to signature */}
+          {/* Signature & Stamp Section - Flexbox layout with stamp next to signature */}
           {settings.show_signature !== false && (
             <div 
-              className={`mb-8 relative ${settings.signature_position === 'left' ? 'text-left' : 'text-right'}`}
-              style={{ minHeight: '140px' }}
+              className={`mb-8 ${settings.signature_position === 'left' ? 'text-left' : 'text-right'}`}
             >
-              {/* Stamp - Absolute positioning INSIDE signature section, using saved X/Y as offset */}
-              {settings.show_stamp && settings.show_stamp_on_invoice && (
-                <div 
-                  className="absolute pointer-events-none z-40"
-                  style={{
-                    // Convert saved percentage to offset from signature position
-                    // X: saved value is 0-100%, we offset from right edge of signature
-                    left: `${(settings.invoice_layout_settings?.stamp_position_x ?? 10) - 60}%`,
-                    // Y: saved value is percentage, offset from top of signature section
-                    top: `${(settings.invoice_layout_settings?.stamp_position_y ?? 70) - 65}%`,
-                    transform: `rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
-                  }}
-                >
-                  {settings.stamp_source === 'custom' ? (
-                    <CustomStampRenderer
-                      documentNumber={documentNumber}
-                      companyName={settings.company_name || ''}
-                      date={format(issuedAt, 'dd/MM/yyyy')}
-                      opacity={settings.stamp_opacity}
-                    />
-                  ) : settings.custom_stamp_url ? (
+              {/* Wrapper untuk stamp + signature dalam satu baris */}
+              <div className={`inline-flex items-end gap-4 ${settings.signature_position === 'left' ? 'flex-row' : 'flex-row-reverse'}`}>
+                {/* Signature */}
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
+                  {settings.signature_url ? (
                     <img 
-                      src={settings.custom_stamp_url} 
-                      alt="Stamp" 
-                      className="h-24 w-24 object-contain"
-                      style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+                      src={settings.signature_url} 
+                      alt="Signature" 
+                      className="h-16 w-auto mx-auto object-contain"
                     />
                   ) : (
-                    <DynamicStamp
-                      status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
-                      customText={settings.stamp_custom_text}
-                      documentNumber={documentNumber}
-                      companyName={settings.company_name || ''}
-                      date={format(issuedAt, 'dd/MM/yyyy')}
-                      settings={settings}
-                    />
+                    <div className="h-16 w-32 border-b border-gray-400" />
+                  )}
+                  <p className="font-semibold mt-2">{settings.signer_name || settings.company_name}</p>
+                  {settings.signer_title && (
+                    <p className="text-sm text-gray-500">{settings.signer_title}</p>
                   )}
                 </div>
-              )}
 
-              {/* Signature */}
-              <div className={`inline-block text-center ${settings.signature_position === 'left' ? '' : 'ml-auto'}`}>
-                <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
-                {settings.signature_url ? (
-                  <img 
-                    src={settings.signature_url} 
-                    alt="Signature" 
-                    className="h-16 w-auto mx-auto object-contain"
-                  />
-                ) : (
-                  <div className="h-16 w-32 border-b border-gray-400" />
-                )}
-                <p className="font-semibold mt-2">{settings.signer_name || settings.company_name}</p>
-                {settings.signer_title && (
-                  <p className="text-sm text-gray-500">{settings.signer_title}</p>
+                {/* Stamp - positioned next to signature with margin offset */}
+                {settings.show_stamp && settings.show_stamp_on_invoice && (
+                  <div 
+                    className="pointer-events-none"
+                    style={{
+                      // Use margin for fine-tuning relative to signature
+                      marginLeft: settings.signature_position === 'left' 
+                        ? `${((settings.invoice_layout_settings?.stamp_position_x ?? 50) - 50) * 0.8}px`
+                        : undefined,
+                      marginRight: settings.signature_position !== 'left'
+                        ? `${(80 - (settings.invoice_layout_settings?.stamp_position_x ?? 50)) * 0.8}px`
+                        : undefined,
+                      marginTop: `${((settings.invoice_layout_settings?.stamp_position_y ?? 50) - 80) * 0.3}px`,
+                      transform: `rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+                    }}
+                  >
+                    {settings.stamp_source === 'custom' ? (
+                      <CustomStampRenderer
+                        documentNumber={documentNumber}
+                        companyName={settings.company_name || ''}
+                        date={format(issuedAt, 'dd/MM/yyyy')}
+                        opacity={settings.stamp_opacity}
+                      />
+                    ) : settings.custom_stamp_url ? (
+                      <img 
+                        src={settings.custom_stamp_url} 
+                        alt="Stamp" 
+                        className="h-24 w-24 object-contain"
+                        style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+                      />
+                    ) : (
+                      <DynamicStamp
+                        status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
+                        customText={settings.stamp_custom_text}
+                        documentNumber={documentNumber}
+                        companyName={settings.company_name || ''}
+                        date={format(issuedAt, 'dd/MM/yyyy')}
+                        settings={settings}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             </div>
