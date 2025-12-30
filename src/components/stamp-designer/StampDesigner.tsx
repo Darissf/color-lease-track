@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { StampElement, defaultStampElements } from './types';
+import { StampElement, CanvasSettings, defaultStampElements, defaultCanvasSettings } from './types';
 import { DraggableElement } from './DraggableElement';
 import { ElementProperties } from './ElementProperties';
 import { ElementList } from './ElementList';
 import { DesignerToolbar } from './DesignerToolbar';
+import { CanvasSettings as CanvasSettingsPanel } from './CanvasSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export const StampDesigner: React.FC = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>(defaultCanvasSettings);
   
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -264,6 +266,80 @@ export const StampDesigner: React.FC = () => {
     );
   }
 
+  const handleCanvasSettingsChange = (newSettings: CanvasSettings) => {
+    setCanvasSettings(newSettings);
+    setHasChanges(true);
+  };
+
+  const handleShapeChange = (shape: 'rectangle' | 'circle' | 'oval') => {
+    setCanvasSettings(prev => ({
+      ...prev,
+      shape,
+      height: shape === 'circle' ? prev.width : prev.height,
+    }));
+    setHasChanges(true);
+  };
+
+  // Render canvas with shape
+  const renderCanvasShape = () => {
+    const { shape, width, height, borderWidth, borderStyle, borderColor, rotation } = canvasSettings;
+    const canvasHeight = shape === 'circle' ? width : height;
+
+    const borderStyles = {
+      borderWidth: `${borderWidth}px`,
+      borderStyle,
+      borderColor,
+    };
+
+    const commonClasses = "relative bg-white overflow-hidden";
+
+    return (
+      <div 
+        className="flex items-center justify-center p-6 bg-muted/20 rounded-lg min-h-[280px]"
+        onClick={() => setSelectedId(null)}
+      >
+        <div style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s ease' }}>
+          <div
+            ref={canvasRef}
+            className={commonClasses}
+            style={{
+              width: `${width}px`,
+              height: `${canvasHeight}px`,
+              ...borderStyles,
+              borderRadius: shape === 'rectangle' ? '8px' : '50%',
+              cursor: isDragging ? 'grabbing' : 'default',
+            }}
+          >
+            {/* Grid overlay */}
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-10"
+              style={{
+                backgroundImage: `linear-gradient(to right, ${borderColor} 1px, transparent 1px), linear-gradient(to bottom, ${borderColor} 1px, transparent 1px)`,
+                backgroundSize: '20% 20%',
+              }}
+            />
+
+            {/* Render elements */}
+            {elements.map((element) => (
+              <DraggableElement
+                key={element.id}
+                element={element}
+                isSelected={selectedId === element.id}
+                onSelect={() => setSelectedId(element.id)}
+                onDragStart={handleDragStart}
+                containerRef={canvasRef}
+              />
+            ))}
+
+            {/* Center guides */}
+            <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-primary/20 pointer-events-none" />
+            <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-primary/20 pointer-events-none" />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <DesignerToolbar
@@ -272,6 +348,8 @@ export const StampDesigner: React.FC = () => {
         onSave={handleSave}
         saving={saving}
         hasChanges={hasChanges}
+        canvasShape={canvasSettings.shape}
+        onShapeChange={handleShapeChange}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -282,46 +360,18 @@ export const StampDesigner: React.FC = () => {
               <CardTitle className="text-sm font-medium">Canvas Stempel</CardTitle>
             </CardHeader>
             <CardContent>
-              <div
-                ref={canvasRef}
-                className="relative bg-white border-2 border-dashed border-primary/30 rounded-lg overflow-hidden"
-                style={{
-                  aspectRatio: '4/3',
-                  cursor: isDragging ? 'grabbing' : 'default',
-                }}
-                onClick={() => setSelectedId(null)}
-              >
-                {/* Grid overlay */}
-                <div 
-                  className="absolute inset-0 pointer-events-none opacity-10"
-                  style={{
-                    backgroundImage: 'linear-gradient(to right, #047857 1px, transparent 1px), linear-gradient(to bottom, #047857 1px, transparent 1px)',
-                    backgroundSize: '10% 10%',
-                  }}
-                />
-
-                {/* Render elements */}
-                {elements.map((element) => (
-                  <DraggableElement
-                    key={element.id}
-                    element={element}
-                    isSelected={selectedId === element.id}
-                    onSelect={() => setSelectedId(element.id)}
-                    onDragStart={handleDragStart}
-                    containerRef={canvasRef}
-                  />
-                ))}
-
-                {/* Center guides */}
-                <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-primary/20 pointer-events-none" />
-                <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-primary/20 pointer-events-none" />
-              </div>
+              {renderCanvasShape()}
             </CardContent>
           </Card>
         </div>
 
-        {/* Properties & List */}
+        {/* Properties & Settings */}
         <div className="space-y-4">
+          <CanvasSettingsPanel
+            settings={canvasSettings}
+            onChange={handleCanvasSettingsChange}
+          />
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Properti Elemen</CardTitle>

@@ -16,6 +16,26 @@ export interface StampElement {
   updated_at?: string;
 }
 
+export interface CanvasSettings {
+  shape: 'rectangle' | 'circle' | 'oval';
+  width: number;
+  height: number;
+  borderWidth: number;
+  borderStyle: 'solid' | 'dashed' | 'dotted' | 'double';
+  borderColor: string;
+  rotation: number;
+}
+
+export const defaultCanvasSettings: CanvasSettings = {
+  shape: 'oval',
+  width: 220,
+  height: 120,
+  borderWidth: 3,
+  borderStyle: 'solid',
+  borderColor: '#047857',
+  rotation: -8,
+};
+
 export const defaultStampElements: Omit<StampElement, 'id' | 'user_id' | 'created_at' | 'updated_at'>[] = [
   {
     element_type: 'text',
