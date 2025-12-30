@@ -50,13 +50,31 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
 
-      const canvas = await html2canvas(documentRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
+      // Clone element to avoid transform issues
+      const clone = documentRef.current.cloneNode(true) as HTMLElement;
+      clone.style.position = 'absolute';
+      clone.style.left = '0';
+      clone.style.top = '0';
+      clone.style.transform = 'none';
+      clone.style.transformOrigin = 'top left';
+      clone.style.width = '210mm';
+      clone.style.zIndex = '-9999';
+      clone.style.pointerEvents = 'none';
+      clone.style.opacity = '1';
+      document.body.appendChild(clone);
+
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await html2canvas(clone, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+        });
+      } finally {
+        document.body.removeChild(clone);
+      }
 
       const imgData = canvas.toDataURL("image/png");
       
@@ -135,13 +153,31 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
 
-      const canvas = await html2canvas(documentRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
+      // Clone element to avoid transform issues
+      const clone = documentRef.current.cloneNode(true) as HTMLElement;
+      clone.style.position = 'absolute';
+      clone.style.left = '0';
+      clone.style.top = '0';
+      clone.style.transform = 'none';
+      clone.style.transformOrigin = 'top left';
+      clone.style.width = '210mm';
+      clone.style.zIndex = '-9999';
+      clone.style.pointerEvents = 'none';
+      clone.style.opacity = '1';
+      document.body.appendChild(clone);
+
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await html2canvas(clone, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+        });
+      } finally {
+        document.body.removeChild(clone);
+      }
 
       const imgData = canvas.toDataURL("image/png");
 
