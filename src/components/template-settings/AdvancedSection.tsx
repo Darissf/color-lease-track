@@ -31,7 +31,7 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
         </div>
 
         {settings.show_watermark && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Select
               value={settings.watermark_type}
               onValueChange={(value) => updateSetting('watermark_type', value)}
@@ -53,6 +53,75 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
               />
             )}
 
+            {/* Ukuran Watermark */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Ukuran</Label>
+                <span className="text-sm">{settings.watermark_size ?? 300}px</span>
+              </div>
+              <Slider
+                value={[settings.watermark_size ?? 300]}
+                onValueChange={([value]) => updateSetting('watermark_size', value)}
+                min={50}
+                max={500}
+                step={10}
+              />
+            </div>
+
+            {/* Rotasi Watermark */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Rotasi</Label>
+                <span className="text-sm">{settings.watermark_rotation ?? -45}°</span>
+              </div>
+              <Slider
+                value={[settings.watermark_rotation ?? -45]}
+                onValueChange={([value]) => updateSetting('watermark_rotation', value)}
+                min={-180}
+                max={180}
+                step={5}
+              />
+            </div>
+
+            {/* Posisi X Watermark */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Posisi Horizontal</Label>
+                <span className="text-sm">{settings.watermark_position_x ?? 50}%</span>
+              </div>
+              <Slider
+                value={[settings.watermark_position_x ?? 50]}
+                onValueChange={([value]) => updateSetting('watermark_position_x', value)}
+                min={0}
+                max={100}
+                step={1}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>Kiri</span>
+                <span>Kanan</span>
+              </div>
+            </div>
+
+            {/* Posisi Y Watermark */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Posisi Vertikal</Label>
+                <span className="text-sm">{settings.watermark_position_y ?? 50}%</span>
+              </div>
+              <Slider
+                value={[settings.watermark_position_y ?? 50]}
+                onValueChange={([value]) => updateSetting('watermark_position_y', value)}
+                min={0}
+                max={100}
+                step={1}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>Atas</span>
+                <span>Bawah</span>
+              </div>
+            </div>
+
+            {/* Opacity Watermark */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Opacity</Label>
@@ -62,7 +131,7 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
                 value={[settings.watermark_opacity]}
                 onValueChange={([value]) => updateSetting('watermark_opacity', value)}
                 min={1}
-                max={15}
+                max={30}
                 step={1}
               />
             </div>
