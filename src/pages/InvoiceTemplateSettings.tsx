@@ -341,7 +341,7 @@ const InvoiceTemplateSettings = () => {
                 <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
               </TabsList>
               <TabsContent value="invoice">
-                <Card className="shadow-lg"><CardContent className="p-0"><div className="transform scale-[0.6] origin-top-left" style={{ width: '166.67%' }}>
+                <Card className="shadow-lg overflow-auto"><CardContent className="p-0">
                   <InvoiceTemplatePreview 
                     settings={settings}
                     customTextElements={customTextElements}
@@ -350,10 +350,10 @@ const InvoiceTemplateSettings = () => {
                     onUpdateElement={handleUpdateTextElement}
                     isEditing={isEditingMode}
                   />
-                </div></CardContent></Card>
+                </CardContent></Card>
               </TabsContent>
               <TabsContent value="receipt">
-                <Card className="shadow-lg"><CardContent className="p-0"><div className="transform scale-[0.6] origin-top-left" style={{ width: '166.67%' }}>
+                <Card className="shadow-lg overflow-auto"><CardContent className="p-0">
                   <ReceiptTemplatePreview 
                     settings={settings}
                     customTextElements={customTextElements}
@@ -362,7 +362,7 @@ const InvoiceTemplateSettings = () => {
                     onUpdateElement={handleUpdateTextElement}
                     isEditing={isEditingMode}
                   />
-                </div></CardContent></Card>
+                </CardContent></Card>
               </TabsContent>
             </Tabs>
           </div>
