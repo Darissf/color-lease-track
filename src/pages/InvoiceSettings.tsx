@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, FileImage, Hash, Palette, ScrollText, FileSignature, ChevronRight, Stamp } from "lucide-react";
+import { ArrowLeft, FileText, FileImage, Hash, Palette, ScrollText, FileSignature, ChevronRight, Stamp, FileEdit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -44,6 +44,22 @@ const InvoiceSettings = () => {
       color: "bg-violet-600",
       comingSoon: false,
       href: "/vip/settings/receipt/template",
+    },
+    {
+      icon: FileEdit,
+      title: "Manual Invoice",
+      description: "Edit invoice langsung dengan live inline editing",
+      color: "bg-cyan-600",
+      comingSoon: false,
+      href: "/vip/settings/invoice/manual",
+    },
+    {
+      icon: FileEdit,
+      title: "Manual Kwitansi",
+      description: "Edit kwitansi langsung dengan live inline editing",
+      color: "bg-teal-600",
+      comingSoon: false,
+      href: "/vip/settings/receipt/manual",
     },
     {
       icon: Stamp,
