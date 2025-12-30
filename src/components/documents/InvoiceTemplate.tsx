@@ -6,6 +6,7 @@ import { terbilang } from "@/lib/terbilang";
 import { MapPin, Phone, Mail, Globe } from "lucide-react";
 import QRCode from "react-qr-code";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
+import { CustomTextElement } from "@/components/custom-text/types";
 import { DynamicStamp } from "./DynamicStamp";
 import { CustomStampRenderer } from "./CustomStampRenderer";
 
@@ -27,6 +28,7 @@ interface InvoiceTemplateProps {
   };
   accessCode?: string; // For public contract link (payment QR)
   forPdfCapture?: boolean; // When true, use exact pixel dimensions for PDF
+  customTextElements?: CustomTextElement[];
 }
 
 export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
@@ -45,6 +47,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
       contractBankInfo,
       accessCode,
       forPdfCapture,
+      customTextElements = [],
     },
     ref
   ) => {
@@ -604,6 +607,27 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             )}
           </div>
         )}
+
+        {/* Custom Text Elements */}
+        {customTextElements.filter(el => el.is_visible).map(element => (
+          <div
+            key={element.id}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${element.position_x}%`,
+              top: `${element.position_y}%`,
+              fontSize: `${element.font_size}px`,
+              color: element.font_color,
+              fontWeight: element.font_weight,
+              fontFamily: element.font_family,
+              textAlign: element.text_align as 'left' | 'center' | 'right',
+              transform: `translate(-50%, -50%) rotate(${element.rotation}deg)`,
+              zIndex: 35,
+            }}
+          >
+            {element.content}
+          </div>
+        ))}
       </div>
     );
   }

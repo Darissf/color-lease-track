@@ -209,6 +209,7 @@ export const DocumentPreviewModal = ({
     settings: templateSettings,
     contractBankInfo: documentData.contractBankInfo,
     accessCode: documentData.accessCode,
+    customTextElements: customTextElements,
   };
 
   const receiptProps = {

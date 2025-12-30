@@ -10,6 +10,7 @@ import {
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
+import { CustomTextElement } from "@/components/custom-text/types";
 
 // Register fonts with all variants
 Font.register({
@@ -388,6 +389,7 @@ interface InvoicePDFTemplateProps {
   accessCode?: string;
   qrCodeDataUrl?: string; // Pre-generated QR code as data URL
   verificationQrDataUrl?: string; // Pre-generated verification QR
+  customTextElements?: CustomTextElement[];
 }
 
 // Helper function to format currency
@@ -460,6 +462,7 @@ export const InvoicePDFTemplate = ({
   accessCode,
   qrCodeDataUrl,
   verificationQrDataUrl,
+  customTextElements = [],
 }: InvoicePDFTemplateProps) => {
   const settings = { ...defaultSettings, ...propSettings };
   const formattedDate = format(issuedAt, "dd MMMM yyyy", { locale: localeId });
@@ -771,6 +774,26 @@ export const InvoicePDFTemplate = ({
             ]}
           />
         )}
+
+        {/* Custom Text Elements */}
+        {customTextElements.filter(el => el.is_visible).map(element => (
+          <Text
+            key={element.id}
+            style={{
+              position: 'absolute',
+              left: (element.position_x / 100) * A4_WIDTH,
+              top: (element.position_y / 100) * A4_HEIGHT,
+              fontSize: element.font_size,
+              color: element.font_color,
+              fontWeight: element.font_weight === 'bold' ? 700 : 400,
+              fontFamily: 'Inter',
+              textAlign: element.text_align as 'left' | 'center' | 'right',
+              transform: `rotate(${element.rotation}deg)`,
+            }}
+          >
+            {element.content}
+          </Text>
+        ))}
       </Page>
     </Document>
   );
