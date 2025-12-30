@@ -1927,8 +1927,11 @@ export type Database = {
           signature_url: string | null
           signer_name: string | null
           signer_title: string | null
+          stamp_border_color: string | null
           stamp_border_style: string | null
           stamp_border_width: number | null
+          stamp_canvas_height: number | null
+          stamp_canvas_width: number | null
           stamp_color: string | null
           stamp_color_belum_lunas: string | null
           stamp_color_lunas: string | null
@@ -2052,8 +2055,11 @@ export type Database = {
           signature_url?: string | null
           signer_name?: string | null
           signer_title?: string | null
+          stamp_border_color?: string | null
           stamp_border_style?: string | null
           stamp_border_width?: number | null
+          stamp_canvas_height?: number | null
+          stamp_canvas_width?: number | null
           stamp_color?: string | null
           stamp_color_belum_lunas?: string | null
           stamp_color_lunas?: string | null
@@ -2177,8 +2183,11 @@ export type Database = {
           signature_url?: string | null
           signer_name?: string | null
           signer_title?: string | null
+          stamp_border_color?: string | null
           stamp_border_style?: string | null
           stamp_border_width?: number | null
+          stamp_canvas_height?: number | null
+          stamp_canvas_width?: number | null
           stamp_color?: string | null
           stamp_color_belum_lunas?: string | null
           stamp_color_lunas?: string | null
