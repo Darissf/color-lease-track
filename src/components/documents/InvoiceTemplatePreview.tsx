@@ -93,7 +93,7 @@ export function InvoiceTemplatePreview({
   return (
     <div
       ref={documentRef}
-      className="bg-white text-gray-900 p-8 pb-24 w-[210mm] min-h-[297mm] mx-auto shadow-lg relative overflow-visible"
+      className="bg-white text-gray-900 p-8 pb-12 w-[210mm] min-h-[297mm] mx-auto shadow-lg relative overflow-visible"
       style={{ 
         fontFamily: getFontFamily(),
         fontSize: `${settings.font_size_base || 14}px`
