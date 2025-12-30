@@ -785,7 +785,7 @@ export default function ContractDetail() {
     
     setDocumentData({
       documentType: 'kwitansi',
-      documentNumber: String(payment.payment_number).padStart(6, '0'),
+      documentNumber: contract.invoice || contract.id.slice(0, 6).toUpperCase(),
       issuedAt: validPaymentDate,
       clientName: contract.client_groups?.nama || 'Client',
       clientAddress: '',
