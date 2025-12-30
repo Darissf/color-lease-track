@@ -504,10 +504,17 @@ export function InvoiceTemplatePreview({
           </div>
         )}
 
-        {/* Signature Section */}
+        {/* Signature Section - Absolute positioning with X/Y sliders */}
         {settings.show_signature !== false && (
-          <div className={`flex items-end mb-8 ${settings.signature_position === 'left' ? 'justify-start' : 'justify-end'}`}>
-            <div className="text-center">
+          <div 
+            className="absolute pointer-events-none"
+            style={{
+              left: `${settings.invoice_layout_settings?.signature_position_x ?? 75}%`,
+              top: `${settings.invoice_layout_settings?.signature_position_y ?? 85}%`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <div className="text-center pointer-events-auto">
               <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
               {settings.signature_url ? (
                 <img 
@@ -520,7 +527,7 @@ export function InvoiceTemplatePreview({
                   }}
                 />
               ) : (
-                <div className="h-16 w-32 border-b border-gray-400" />
+                <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
               )}
               <p className="font-semibold mt-2">{sampleData.ownerName}</p>
               {sampleData.signerTitle && (
