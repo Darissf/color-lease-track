@@ -11,15 +11,24 @@ import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
 
-// Register fonts
+// Register fonts with all variants
 Font.register({
   family: "Inter",
-  src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2",
-});
-
-Font.register({
-  family: "Inter-Bold",
-  src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2",
+  fonts: [
+    {
+      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2",
+      fontWeight: 400,
+    },
+    {
+      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2",
+      fontWeight: 700,
+    },
+    {
+      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hiJ-Ek-_EeAmM.woff2",
+      fontWeight: 400,
+      fontStyle: "italic",
+    },
+  ],
 });
 
 // A4 dimensions in points (72 points = 1 inch, A4 = 210mm x 297mm)
@@ -71,7 +80,8 @@ const styles = StyleSheet.create({
   },
   companyName: {
     fontSize: 16,
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
     marginBottom: 3,
   },
   tagline: {
@@ -92,7 +102,8 @@ const styles = StyleSheet.create({
   },
   documentTitle: {
     fontSize: 14,
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
     marginBottom: 8,
   },
   documentNumberBox: {
@@ -109,7 +120,8 @@ const styles = StyleSheet.create({
   },
   documentNumber: {
     fontSize: 12,
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
   },
   documentDate: {
     fontSize: 8,
@@ -129,7 +141,8 @@ const styles = StyleSheet.create({
   },
   clientName: {
     fontSize: 12,
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
     marginBottom: 2,
   },
   clientAddress: {
@@ -146,7 +159,8 @@ const styles = StyleSheet.create({
   tableHeaderCell: {
     padding: 8,
     fontSize: 9,
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
     color: "#374151",
   },
   tableHeaderCellDesc: {
@@ -177,7 +191,8 @@ const styles = StyleSheet.create({
     textAlign: "right",
     borderWidth: 1,
     borderColor: "#bfdbfe",
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
   },
   tableFooter: {
     flexDirection: "row",
@@ -186,7 +201,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     textAlign: "right",
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
     borderWidth: 1,
     borderColor: "#bfdbfe",
   },
@@ -194,7 +210,8 @@ const styles = StyleSheet.create({
     width: 120,
     padding: 10,
     textAlign: "right",
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
     fontSize: 11,
     borderWidth: 1,
     borderColor: "#bfdbfe",
@@ -214,7 +231,8 @@ const styles = StyleSheet.create({
   },
   paymentTitle: {
     fontSize: 9,
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
     marginBottom: 8,
   },
   paymentContent: {
@@ -237,7 +255,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   bankName: {
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
   },
   termsSection: {
     marginBottom: 15,
@@ -249,7 +268,8 @@ const styles = StyleSheet.create({
   },
   termsTitle: {
     fontSize: 9,
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
     marginBottom: 4,
   },
   termsText: {
@@ -283,7 +303,8 @@ const styles = StyleSheet.create({
   },
   signerName: {
     fontSize: 10,
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
   },
   signerTitle: {
     fontSize: 8,
@@ -335,7 +356,8 @@ const styles = StyleSheet.create({
   },
   qrVerificationCode: {
     fontSize: 6,
-    fontFamily: "Inter-Bold",
+    fontFamily: "Inter",
+    fontWeight: 700,
     color: "#9ca3af",
     marginTop: 2,
   },
@@ -593,7 +615,7 @@ export const InvoicePDFTemplate = ({
 
             <View style={styles.tableRow}>
               <View style={[styles.tableCell, styles.tableCellDesc, { borderColor: settings.border_color }]}>
-                <Text style={{ fontFamily: "Inter-Bold" }}>{description}</Text>
+                <Text style={{ fontFamily: "Inter", fontWeight: 700 }}>{description}</Text>
                 {contractInvoice && (
                   <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 3 }}>
                     No. Invoice: {contractInvoice}
