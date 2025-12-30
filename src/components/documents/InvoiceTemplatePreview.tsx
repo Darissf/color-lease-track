@@ -5,7 +5,7 @@ import { terbilang } from "@/lib/terbilang";
 import { MapPin, Phone, Mail, Globe } from "lucide-react";
 import QRCode from "react-qr-code";
 import { TemplateSettings } from "@/components/template-settings/types";
-
+import { DynamicStamp } from "./DynamicStamp";
 interface InvoiceTemplatePreviewProps {
   settings: TemplateSettings;
 }
@@ -430,11 +430,26 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
           </div>
         )}
 
-        {/* Signature & Stamp Section */}
+        {/* Signature Section - No stamp on invoice by default */}
         {settings.show_signature !== false && (
           <div className="flex justify-between items-end mb-8">
+            {/* Stamp on LEFT (only if show_stamp_on_invoice is true) */}
+            {settings.show_stamp_on_invoice && (
+              <DynamicStamp
+                status="BELUM_LUNAS"
+                documentNumber={sampleData.documentNumber}
+                companyName={settings.company_name || ''}
+                date={format(new Date(), 'dd/MM/yyyy')}
+                settings={settings}
+              />
+            )}
+            
+            {/* Spacer if no stamp */}
+            {!settings.show_stamp_on_invoice && <div />}
+            
+            {/* Signature on RIGHT */}
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-2">Hormat Kami,</p>
+              <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
               {settings.signature_url ? (
                 <img 
                   src={settings.signature_url} 
@@ -449,33 +464,6 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
                 <p className="text-sm text-gray-500">{sampleData.signerTitle}</p>
               )}
             </div>
-
-            {/* Stamp */}
-            {settings.show_stamp && (
-              <div 
-                className="flex items-center justify-center"
-                style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
-              >
-                {settings.custom_stamp_url ? (
-                  <img 
-                    src={settings.custom_stamp_url} 
-                    alt="Stamp" 
-                    className="h-24 w-24 object-contain"
-                  />
-                ) : (
-                  <div 
-                    className="w-24 h-24 border-4 rounded-full flex flex-col items-center justify-center transform rotate-[-15deg]"
-                    style={{ 
-                      borderColor: settings.stamp_color || '#22c55e',
-                      color: settings.stamp_color || '#22c55e'
-                    }}
-                  >
-                    <span className="text-xs font-bold">{settings.stamp_text || 'LUNAS'}</span>
-                    <span className="text-[8px] mt-0.5">{format(new Date(), 'dd/MM/yyyy')}</span>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 
