@@ -16,11 +16,15 @@ import {
 interface MultiSelectPropertiesProps {
   elements: StampElement[];
   onUpdate: (updates: Partial<StampElement>) => void;
+  onRotationDelta: (delta: number) => void;
+  onScale: (scalePercent: number) => void;
 }
 
 export const MultiSelectProperties: React.FC<MultiSelectPropertiesProps> = ({
   elements,
   onUpdate,
+  onRotationDelta,
+  onScale,
 }) => {
   const [rotationDelta, setRotationDelta] = useState(0);
   const [scaleDelta, setScaleDelta] = useState(100);
@@ -30,23 +34,21 @@ export const MultiSelectProperties: React.FC<MultiSelectPropertiesProps> = ({
     ? elements[0]?.color 
     : undefined;
 
-  const handleRotateAll = (delta: number) => {
-    elements.forEach(el => {
-      const newRotation = el.rotation + delta;
-      // We need individual updates, so we'll use the parent's updateElement
-    });
-    // For simplicity, we'll set all to the same delta from their current
-    setRotationDelta(delta);
+  const handleRotationChange = (value: number) => {
+    setRotationDelta(value);
+    onRotationDelta(value);
   };
 
-  const handleApplyRotation = () => {
-    onUpdate({ rotation: rotationDelta });
+  const handleScaleChange = (value: number) => {
+    setScaleDelta(value);
+    onScale(value);
   };
 
-  const handleApplyScale = () => {
-    // Scale applies as percentage of current font size
-    const scaleFactor = scaleDelta / 100;
-    // This will multiply current font sizes - handled in parent
+  const handleReset = () => {
+    setRotationDelta(0);
+    setScaleDelta(100);
+    onRotationDelta(0);
+    onScale(100);
   };
 
   return (
@@ -58,7 +60,7 @@ export const MultiSelectProperties: React.FC<MultiSelectPropertiesProps> = ({
         </p>
       </div>
 
-      {/* Rotate All */}
+      {/* Live Rotate All */}
       <div className="space-y-2">
         <Label className="text-xs flex items-center gap-1">
           <RotateCcw className="h-3 w-3" />
@@ -69,19 +71,14 @@ export const MultiSelectProperties: React.FC<MultiSelectPropertiesProps> = ({
           min={-180}
           max={180}
           step={5}
-          onValueChange={([value]) => setRotationDelta(value)}
+          onValueChange={([value]) => handleRotationChange(value)}
         />
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full"
-          onClick={() => onUpdate({ rotation: rotationDelta })}
-        >
-          Terapkan Rotasi ke Semua
-        </Button>
+        <p className="text-xs text-muted-foreground">
+          Geser slider untuk memutar semua elemen
+        </p>
       </div>
 
-      {/* Scale All */}
+      {/* Live Scale All */}
       <div className="space-y-2">
         <Label className="text-xs flex items-center gap-1">
           <Type className="h-3 w-3" />
@@ -91,21 +88,12 @@ export const MultiSelectProperties: React.FC<MultiSelectPropertiesProps> = ({
           value={[scaleDelta]}
           min={50}
           max={200}
-          step={10}
-          onValueChange={([value]) => setScaleDelta(value)}
+          step={5}
+          onValueChange={([value]) => handleScaleChange(value)}
         />
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full"
-          onClick={() => {
-            const avgFontSize = elements.reduce((acc, el) => acc + el.font_size, 0) / elements.length;
-            const newSize = Math.round(avgFontSize * (scaleDelta / 100));
-            onUpdate({ font_size: Math.max(8, Math.min(48, newSize)) });
-          }}
-        >
-          Terapkan Skala ke Semua
-        </Button>
+        <p className="text-xs text-muted-foreground">
+          Geser slider untuk mengubah ukuran font
+        </p>
       </div>
 
       {/* Change Color All */}
@@ -185,10 +173,7 @@ export const MultiSelectProperties: React.FC<MultiSelectPropertiesProps> = ({
         variant="ghost" 
         size="sm" 
         className="w-full text-muted-foreground"
-        onClick={() => {
-          setRotationDelta(0);
-          setScaleDelta(100);
-        }}
+        onClick={handleReset}
       >
         <RotateCcw className="h-3 w-3 mr-1" />
         Reset Pengaturan Grup

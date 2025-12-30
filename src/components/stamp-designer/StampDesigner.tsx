@@ -23,6 +23,9 @@ export const StampDesigner: React.FC = () => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>(defaultCanvasSettings);
   
+  // Track original values for delta-based operations
+  const [originalValues, setOriginalValues] = useState<Record<string, { rotation: number; fontSize: number }>>({});
+  
   const canvasRef = useRef<HTMLDivElement>(null);
   
   // Single selected element (for backward compatibility)
@@ -101,6 +104,12 @@ export const StampDesigner: React.FC = () => {
   const handleSelectAll = useCallback(() => {
     const allIds = new Set(elements.filter(el => el.is_visible).map(el => el.id));
     setSelectedIds(allIds);
+    // Store original values for delta calculations
+    const originals: Record<string, { rotation: number; fontSize: number }> = {};
+    elements.forEach(el => {
+      originals[el.id] = { rotation: el.rotation, fontSize: el.font_size };
+    });
+    setOriginalValues(originals);
   }, [elements]);
 
   const handleElementSelect = useCallback((id: string, e?: React.MouseEvent) => {
@@ -119,7 +128,13 @@ export const StampDesigner: React.FC = () => {
       // Normal click: single select
       setSelectedIds(new Set([id]));
     }
-  }, []);
+    // Store original values
+    const originals: Record<string, { rotation: number; fontSize: number }> = {};
+    elements.forEach(el => {
+      originals[el.id] = { rotation: el.rotation, fontSize: el.font_size };
+    });
+    setOriginalValues(originals);
+  }, [elements]);
 
   const initializeDefaultElements = async () => {
     if (!user) return;
@@ -172,6 +187,35 @@ export const StampDesigner: React.FC = () => {
     );
     setHasChanges(true);
   }, []);
+
+  // Live delta rotation for multi-select
+  const updateMultipleRotationDelta = useCallback((ids: string[], delta: number) => {
+    setElements((prev) =>
+      prev.map((el) => {
+        if (ids.includes(el.id)) {
+          const original = originalValues[el.id]?.rotation ?? el.rotation;
+          return { ...el, rotation: original + delta };
+        }
+        return el;
+      })
+    );
+    setHasChanges(true);
+  }, [originalValues]);
+
+  // Live scale for multi-select
+  const updateMultipleScale = useCallback((ids: string[], scalePercent: number) => {
+    setElements((prev) =>
+      prev.map((el) => {
+        if (ids.includes(el.id)) {
+          const original = originalValues[el.id]?.fontSize ?? el.font_size;
+          const newSize = Math.round(original * (scalePercent / 100));
+          return { ...el, font_size: Math.max(8, Math.min(72, newSize)) };
+        }
+        return el;
+      })
+    );
+    setHasChanges(true);
+  }, [originalValues]);
 
   const addTextElement = useCallback(() => {
     if (!user) return;
@@ -487,6 +531,8 @@ export const StampDesigner: React.FC = () => {
                 <MultiSelectProperties
                   elements={selectedElements}
                   onUpdate={(updates) => updateMultipleElements(Array.from(selectedIds), updates)}
+                  onRotationDelta={(delta) => updateMultipleRotationDelta(Array.from(selectedIds), delta)}
+                  onScale={(scale) => updateMultipleScale(Array.from(selectedIds), scale)}
                 />
               ) : (
                 <ElementProperties
