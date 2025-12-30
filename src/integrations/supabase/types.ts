@@ -3312,6 +3312,303 @@ export type Database = {
           },
         ]
       }
+      manual_invoice_content: {
+        Row: {
+          amount_value: number | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          border_color: string | null
+          client_address: string | null
+          client_label: string | null
+          client_name: string | null
+          client_phone: string | null
+          company_address: string | null
+          company_email: string | null
+          company_name: string | null
+          company_npwp: string | null
+          company_phone: string | null
+          company_tagline: string | null
+          company_website: string | null
+          created_at: string | null
+          custom_note: string | null
+          custom_qr_codes: Json | null
+          description_details: string | null
+          description_text: string | null
+          document_date: string | null
+          document_number: string | null
+          document_title: string | null
+          due_date: string | null
+          footer_text: string | null
+          id: string
+          logo_url: string | null
+          payment_instruction: string | null
+          payment_qr_link: string | null
+          payment_section_title: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          show_footer: boolean | null
+          show_payment_qr: boolean | null
+          show_payment_section: boolean | null
+          show_signature: boolean | null
+          show_stamp: boolean | null
+          signature_image_url: string | null
+          signature_label: string | null
+          signer_name: string | null
+          signer_title: string | null
+          stamp_color: string | null
+          stamp_text: string | null
+          table_header_amount: string | null
+          table_header_description: string | null
+          terbilang_label: string | null
+          terms_text: string | null
+          total_label: string | null
+          updated_at: string | null
+          user_id: string
+          wa_confirmation_text: string | null
+          wa_number: string | null
+        }
+        Insert: {
+          amount_value?: number | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          border_color?: string | null
+          client_address?: string | null
+          client_label?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_name?: string | null
+          company_npwp?: string | null
+          company_phone?: string | null
+          company_tagline?: string | null
+          company_website?: string | null
+          created_at?: string | null
+          custom_note?: string | null
+          custom_qr_codes?: Json | null
+          description_details?: string | null
+          description_text?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_title?: string | null
+          due_date?: string | null
+          footer_text?: string | null
+          id?: string
+          logo_url?: string | null
+          payment_instruction?: string | null
+          payment_qr_link?: string | null
+          payment_section_title?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          show_footer?: boolean | null
+          show_payment_qr?: boolean | null
+          show_payment_section?: boolean | null
+          show_signature?: boolean | null
+          show_stamp?: boolean | null
+          signature_image_url?: string | null
+          signature_label?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          stamp_color?: string | null
+          stamp_text?: string | null
+          table_header_amount?: string | null
+          table_header_description?: string | null
+          terbilang_label?: string | null
+          terms_text?: string | null
+          total_label?: string | null
+          updated_at?: string | null
+          user_id: string
+          wa_confirmation_text?: string | null
+          wa_number?: string | null
+        }
+        Update: {
+          amount_value?: number | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          border_color?: string | null
+          client_address?: string | null
+          client_label?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_name?: string | null
+          company_npwp?: string | null
+          company_phone?: string | null
+          company_tagline?: string | null
+          company_website?: string | null
+          created_at?: string | null
+          custom_note?: string | null
+          custom_qr_codes?: Json | null
+          description_details?: string | null
+          description_text?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_title?: string | null
+          due_date?: string | null
+          footer_text?: string | null
+          id?: string
+          logo_url?: string | null
+          payment_instruction?: string | null
+          payment_qr_link?: string | null
+          payment_section_title?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          show_footer?: boolean | null
+          show_payment_qr?: boolean | null
+          show_payment_section?: boolean | null
+          show_signature?: boolean | null
+          show_stamp?: boolean | null
+          signature_image_url?: string | null
+          signature_label?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          stamp_color?: string | null
+          stamp_text?: string | null
+          table_header_amount?: string | null
+          table_header_description?: string | null
+          terbilang_label?: string | null
+          terms_text?: string | null
+          total_label?: string | null
+          updated_at?: string | null
+          user_id?: string
+          wa_confirmation_text?: string | null
+          wa_number?: string | null
+        }
+        Relationships: []
+      }
+      manual_receipt_content: {
+        Row: {
+          amount_value: number | null
+          border_color: string | null
+          client_address: string | null
+          client_label: string | null
+          client_name: string | null
+          company_address: string | null
+          company_email: string | null
+          company_name: string | null
+          company_phone: string | null
+          company_tagline: string | null
+          company_website: string | null
+          created_at: string | null
+          custom_note: string | null
+          custom_qr_codes: Json | null
+          description_details: string | null
+          description_text: string | null
+          document_date: string | null
+          document_number: string | null
+          document_title: string | null
+          footer_text: string | null
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          show_footer: boolean | null
+          show_signature: boolean | null
+          show_stamp: boolean | null
+          signature_image_url: string | null
+          signature_label: string | null
+          signer_name: string | null
+          signer_title: string | null
+          stamp_color: string | null
+          stamp_date: string | null
+          stamp_text: string | null
+          table_header_amount: string | null
+          table_header_description: string | null
+          terbilang_label: string | null
+          total_label: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_value?: number | null
+          border_color?: string | null
+          client_address?: string | null
+          client_label?: string | null
+          client_name?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          company_tagline?: string | null
+          company_website?: string | null
+          created_at?: string | null
+          custom_note?: string | null
+          custom_qr_codes?: Json | null
+          description_details?: string | null
+          description_text?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_title?: string | null
+          footer_text?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          show_footer?: boolean | null
+          show_signature?: boolean | null
+          show_stamp?: boolean | null
+          signature_image_url?: string | null
+          signature_label?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          stamp_color?: string | null
+          stamp_date?: string | null
+          stamp_text?: string | null
+          table_header_amount?: string | null
+          table_header_description?: string | null
+          terbilang_label?: string | null
+          total_label?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_value?: number | null
+          border_color?: string | null
+          client_address?: string | null
+          client_label?: string | null
+          client_name?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          company_tagline?: string | null
+          company_website?: string | null
+          created_at?: string | null
+          custom_note?: string | null
+          custom_qr_codes?: Json | null
+          description_details?: string | null
+          description_text?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_title?: string | null
+          footer_text?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          show_footer?: boolean | null
+          show_signature?: boolean | null
+          show_stamp?: boolean | null
+          signature_image_url?: string | null
+          signature_label?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          stamp_color?: string | null
+          stamp_date?: string | null
+          stamp_text?: string | null
+          table_header_amount?: string | null
+          table_header_description?: string | null
+          terbilang_label?: string | null
+          total_label?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       meta_ads_settings: {
         Row: {
           access_token: string | null
