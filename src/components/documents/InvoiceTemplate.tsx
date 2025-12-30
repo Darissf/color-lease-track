@@ -53,7 +53,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
     const verificationUrl = `https://sewascaffoldingbali.com/verify/${verificationCode}`;
     // Payment URL for QR in Payment Transfer section - links to public contract page
     const paymentUrl = accessCode 
-      ? `https://sewascaffoldingbali.com/contracts/public/${accessCode}` 
+      ? `https://sewascaffoldingbali.com/contract/${accessCode}` 
       : verificationUrl;
 
     const getFontFamily = () => {
