@@ -7,11 +7,11 @@ import { Input } from '@/components/ui/input';
 interface DraggableTextBoxProps {
   element: CustomTextElement;
   isSelected: boolean;
-  isEditing: boolean;
+  isEditing?: boolean;
   onSelect: () => void;
   onUpdate: (updates: Partial<CustomTextElement>) => void;
   onDelete: () => void;
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export const DraggableTextBox: React.FC<DraggableTextBoxProps> = ({

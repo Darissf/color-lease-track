@@ -7,12 +7,26 @@ import QRCode from "react-qr-code";
 import { TemplateSettings } from "@/components/template-settings/types";
 import { DynamicStamp } from "./DynamicStamp";
 import { CustomStampRenderer } from "./CustomStampRenderer";
+import { DraggableTextBox } from "@/components/custom-text/DraggableTextBox";
+import { CustomTextElement } from "@/components/custom-text/types";
+import { useRef } from "react";
 
 interface InvoiceTemplatePreviewProps {
   settings: TemplateSettings;
+  customTextElements?: CustomTextElement[];
+  selectedElementId?: string | null;
+  onSelectElement?: (id: string | null) => void;
+  onUpdateElement?: (id: string, updates: Partial<CustomTextElement>) => void;
 }
 
-export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps) {
+export function InvoiceTemplatePreview({ 
+  settings,
+  customTextElements = [],
+  selectedElementId,
+  onSelectElement,
+  onUpdateElement
+}: InvoiceTemplatePreviewProps) {
+  const documentRef = useRef<HTMLDivElement>(null);
   const sampleData = {
     documentNumber: `${settings.invoice_prefix || 'INV'}-2025-0001`,
     verificationCode: "ABC123XYZ",
@@ -82,6 +96,7 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
 
   return (
     <div
+      ref={documentRef}
       className="bg-white text-gray-900 p-8 w-[210mm] min-h-[297mm] mx-auto shadow-lg relative overflow-hidden"
       style={{ 
         fontFamily: getFontFamily(),
@@ -429,7 +444,52 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
           </div>
         )}
 
-        {/* Terms & Conditions */}
+        {/* Payment Transfer Section */}
+        {settings.show_payment_section !== false && (
+          <div 
+            className="mb-6 p-4 rounded-lg"
+            style={{ 
+              backgroundColor: `${settings.accent_color}08`,
+              border: `1px solid ${settings.border_color}` 
+            }}
+          >
+            <h3 className="text-sm font-semibold mb-3" style={{ color: settings.header_color_primary }}>
+              Pembayaran Transfer
+            </h3>
+            <div className="flex gap-4">
+              {/* QR Code for Payment */}
+              {settings.payment_qr_enabled !== false && (
+                <div className="flex-shrink-0 text-center">
+                  <QRCode value={verificationUrl} size={80} />
+                  <p className="text-xs mt-1 text-gray-500">Scan untuk verifikasi</p>
+                </div>
+              )}
+              {/* Instructions */}
+              <div className="flex-1 text-sm">
+                <p className="text-gray-600 mb-2">
+                  {settings.payment_instruction_text || 'Silahkan scan barcode ini atau buka link untuk pengecekan pembayaran otomatis. Apabila transfer manual, silahkan transfer ke rekening berikut dan konfirmasi via WhatsApp.'}
+                </p>
+                <div className="mt-2">
+                  <p className="font-medium">Bank {settings.bank_name || 'BCA'}</p>
+                  <p>No. Rek: {settings.bank_account_number || '7445130885'}</p>
+                  <p>a.n {settings.bank_account_name || 'Daris Farostian'}</p>
+                </div>
+                {settings.payment_wa_hyperlink_enabled !== false && (
+                  <p className="mt-2">
+                    Konfirmasi: 
+                    <a 
+                      href={`https://wa.me/${(settings.payment_wa_number || '+6289666666632').replace(/\D/g, '')}`} 
+                      className="text-blue-600 underline ml-1"
+                    >
+                      {settings.payment_wa_number || '+62 896 6666 6632'}
+                    </a>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {settings.show_terms !== false && settings.terms_conditions && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Syarat & Ketentuan:</h3>
@@ -526,6 +586,19 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
             <QRCode value={verificationUrl} size={settings.invoice_layout_settings?.qr_size ?? settings.qr_size ?? 80} />
           </div>
         )}
+
+        {/* Custom Text Elements */}
+        {customTextElements.filter(el => el.is_visible).map(element => (
+          <DraggableTextBox
+            key={element.id}
+            element={element}
+            isSelected={selectedElementId === element.id}
+            onSelect={() => onSelectElement?.(element.id)}
+            onUpdate={(updates) => onUpdateElement?.(element.id, updates)}
+            onDelete={() => {}}
+            containerRef={documentRef}
+          />
+        ))}
       </div>
     </div>
   );

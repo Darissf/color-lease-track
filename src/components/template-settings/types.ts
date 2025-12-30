@@ -193,6 +193,13 @@ export interface TemplateSettings {
   use_payment_link: boolean;
   payment_link_text: string;
 
+  // Payment Section Settings
+  show_payment_section?: boolean;
+  payment_instruction_text?: string;
+  payment_qr_enabled?: boolean;
+  payment_wa_number?: string;
+  payment_wa_hyperlink_enabled?: boolean;
+
   // Separate layout settings for Invoice and Receipt
   invoice_layout_settings: LayoutSettings;
   receipt_layout_settings: LayoutSettings;
@@ -349,6 +356,13 @@ export const defaultSettings: TemplateSettings = {
   // Payment link
   use_payment_link: false,
   payment_link_text: 'Generate Pembayaran',
+
+  // Payment Section Settings
+  show_payment_section: true,
+  payment_instruction_text: 'Silahkan scan barcode ini atau buka link untuk pengecekan pembayaran otomatis. Apabila transfer manual, silahkan transfer ke rekening berikut dan konfirmasi via WhatsApp.',
+  payment_qr_enabled: true,
+  payment_wa_number: '+6289666666632',
+  payment_wa_hyperlink_enabled: true,
 
   // Separate layout settings
   invoice_layout_settings: { ...defaultLayoutSettings },

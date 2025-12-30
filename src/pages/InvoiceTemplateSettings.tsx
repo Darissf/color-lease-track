@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2, Stamp, PenTool } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2, Stamp, PenTool, Wallet, TypeIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageCropper } from '@/components/ImageCropper';
 import { InvoiceTemplatePreview } from '@/components/documents/InvoiceTemplatePreview';
@@ -19,6 +19,9 @@ import { ContentSection } from '@/components/template-settings/ContentSection';
 import { AdvancedSection } from '@/components/template-settings/AdvancedSection';
 import { StampSection } from '@/components/template-settings/StampSection';
 import { SignatureSection } from '@/components/template-settings/SignatureSection';
+import { PaymentSection } from '@/components/template-settings/PaymentSection';
+import { CustomTextSection } from '@/components/custom-text/CustomTextSection';
+import { CustomTextElement } from '@/components/custom-text/types';
 
 type CropTarget = 'invoice_logo_url' | 'icon_maps_url' | 'icon_whatsapp_url' | 'icon_email_url' | 'icon_website_url' | 'bank_logo_url' | 'signature_url' | 'custom_stamp_url' | null;
 
@@ -31,10 +34,17 @@ const InvoiceTemplateSettings = () => {
   const [cropTarget, setCropTarget] = useState<CropTarget>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSettings();
+    fetchCustomTextElements();
   }, []);
+
+  useEffect(() => {
+    fetchCustomTextElements();
+  }, [activeTab]);
 
   const fetchSettings = async () => {
     try {
@@ -59,6 +69,79 @@ const InvoiceTemplateSettings = () => {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCustomTextElements = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('custom_text_elements')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('document_type', activeTab)
+        .order('order_index', { ascending: true });
+      if (data) {
+        setCustomTextElements(data as CustomTextElement[]);
+      }
+    } catch (error) {
+      console.error('Error fetching custom text elements:', error);
+    }
+  };
+
+  const handleAddTextElement = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const newElement = {
+        user_id: user.id,
+        document_type: activeTab,
+        content: 'Teks Kustom',
+        position_x: 50,
+        position_y: 80,
+        rotation: 0,
+        font_size: 14,
+        font_family: 'Arial',
+        font_weight: 'normal',
+        font_color: '#000000',
+        text_align: 'left',
+        is_visible: true,
+        order_index: customTextElements.length
+      };
+      const { data, error } = await supabase.from('custom_text_elements').insert(newElement).select().single();
+      if (error) throw error;
+      if (data) {
+        setCustomTextElements(prev => [...prev, data as CustomTextElement]);
+        setSelectedElementId(data.id);
+        toast.success('Text box ditambahkan');
+      }
+    } catch (error) {
+      console.error('Error adding text element:', error);
+      toast.error('Gagal menambahkan text box');
+    }
+  };
+
+  const handleUpdateTextElement = async (id: string, updates: Partial<CustomTextElement>) => {
+    try {
+      const { error } = await supabase.from('custom_text_elements').update(updates).eq('id', id);
+      if (error) throw error;
+      setCustomTextElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
+    } catch (error) {
+      console.error('Error updating text element:', error);
+    }
+  };
+
+  const handleDeleteTextElement = async (id: string) => {
+    try {
+      const { error } = await supabase.from('custom_text_elements').delete().eq('id', id);
+      if (error) throw error;
+      setCustomTextElements(prev => prev.filter(el => el.id !== id));
+      if (selectedElementId === id) setSelectedElementId(null);
+      toast.success('Text box dihapus');
+    } catch (error) {
+      console.error('Error deleting text element:', error);
+      toast.error('Gagal menghapus text box');
     }
   };
 
@@ -212,6 +295,26 @@ const InvoiceTemplateSettings = () => {
                 <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Stamp className="h-4 w-4 text-primary" /><span className="font-medium">Stempel</span></div></AccordionTrigger>
                 <AccordionContent className="pb-4"><StampSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} activeTab={activeTab} layoutSettings={currentLayoutSettings} updateLayoutSetting={updateLayoutSetting} /></AccordionContent>
               </AccordionItem>
+              {activeTab === 'invoice' && (
+                <AccordionItem value="payment" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Wallet className="h-4 w-4 text-primary" /><span className="font-medium">Pembayaran Transfer</span></div></AccordionTrigger>
+                  <AccordionContent className="pb-4"><PaymentSection settings={settings} updateSetting={updateSetting} /></AccordionContent>
+                </AccordionItem>
+              )}
+              <AccordionItem value="custom-text" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><TypeIcon className="h-4 w-4 text-primary" /><span className="font-medium">Custom Text Box</span></div></AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <CustomTextSection
+                    elements={customTextElements}
+                    selectedElementId={selectedElementId}
+                    documentType={activeTab}
+                    onAdd={handleAddTextElement}
+                    onUpdate={handleUpdateTextElement}
+                    onDelete={handleDeleteTextElement}
+                    onSelect={setSelectedElementId}
+                  />
+                </AccordionContent>
+              </AccordionItem>
               <AccordionItem value="advanced" className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-primary" /><span className="font-medium">Advanced</span></div></AccordionTrigger>
                 <AccordionContent className="pb-4"><AdvancedSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} activeTab={activeTab} layoutSettings={currentLayoutSettings} updateLayoutSetting={updateLayoutSetting} /></AccordionContent>
@@ -228,10 +331,26 @@ const InvoiceTemplateSettings = () => {
                 <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
               </TabsList>
               <TabsContent value="invoice">
-                <Card className="shadow-lg"><CardContent className="p-0"><div className="transform scale-[0.6] origin-top-left" style={{ width: '166.67%' }}><InvoiceTemplatePreview settings={settings} /></div></CardContent></Card>
+                <Card className="shadow-lg"><CardContent className="p-0"><div className="transform scale-[0.6] origin-top-left" style={{ width: '166.67%' }}>
+                  <InvoiceTemplatePreview 
+                    settings={settings} 
+                    customTextElements={customTextElements}
+                    selectedElementId={selectedElementId}
+                    onSelectElement={setSelectedElementId}
+                    onUpdateElement={handleUpdateTextElement}
+                  />
+                </div></CardContent></Card>
               </TabsContent>
               <TabsContent value="receipt">
-                <Card className="shadow-lg"><CardContent className="p-0"><div className="transform scale-[0.6] origin-top-left" style={{ width: '166.67%' }}><ReceiptTemplatePreview settings={settings} /></div></CardContent></Card>
+                <Card className="shadow-lg"><CardContent className="p-0"><div className="transform scale-[0.6] origin-top-left" style={{ width: '166.67%' }}>
+                  <ReceiptTemplatePreview 
+                    settings={settings}
+                    customTextElements={customTextElements}
+                    selectedElementId={selectedElementId}
+                    onSelectElement={setSelectedElementId}
+                    onUpdateElement={handleUpdateTextElement}
+                  />
+                </div></CardContent></Card>
               </TabsContent>
             </Tabs>
           </div>
