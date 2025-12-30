@@ -495,16 +495,14 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
 
-          {/* Signature & Stamp Section - Stamp position locked relative to signature */}
+          {/* Signature & Stamp Section - Using flexbox for consistent positioning */}
           {settings.show_signature !== false && (
-            <div className={`flex items-end mb-8 relative ${settings.signature_position === 'left' ? 'justify-start' : 'justify-end'}`}>
-              {/* Stamp - positioned relative to signature section */}
+            <div className={`flex items-end mb-8 gap-6 ${settings.signature_position === 'left' ? 'justify-start' : 'justify-end'}`}>
+              {/* Stamp - positioned next to signature using flexbox */}
               {settings.show_stamp && settings.show_stamp_on_invoice && (
                 <div 
-                  className="absolute pointer-events-none z-40"
+                  className="flex-shrink-0 pointer-events-none"
                   style={{
-                    right: '140px',
-                    top: '0px',
                     transform: `rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
                   }}
                 >
@@ -536,7 +534,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
               )}
 
               {/* Signature */}
-              <div className="text-center">
+              <div className="text-center flex-shrink-0">
                 <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
                 {settings.signature_url ? (
                   <img 
