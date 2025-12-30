@@ -138,6 +138,34 @@ export function PublicDocumentPreviewModal({
     </div>
   );
 
+  // Reusable template props
+  const invoiceProps = verificationCode ? {
+    documentNumber: contractData.invoice || `INV-${contractData.id.substring(0, 8)}`,
+    verificationCode: verificationCode,
+    issuedAt: contractData.tanggal ? new Date(contractData.tanggal) : new Date(),
+    clientName: clientData?.nama || 'Klien',
+    description: contractData.keterangan || 'Sewa Scaffolding',
+    amount: contractData.tagihan,
+    contractInvoice: contractData.invoice || undefined,
+    period: `${contractData.start_date} - ${contractData.end_date}`,
+    settings: templateSettings,
+    contractBankInfo: bankInfo || undefined,
+    accessCode: accessCode,
+  } : null;
+
+  const receiptProps = verificationCode ? {
+    documentNumber: `KWT-${contractData.invoice || contractData.id.substring(0, 8)}`,
+    verificationCode: verificationCode,
+    issuedAt: contractData.tanggal ? new Date(contractData.tanggal) : new Date(),
+    clientName: clientData?.nama || 'Klien',
+    description: `Pembayaran sewa scaffolding - ${contractData.keterangan || 'Invoice ' + contractData.invoice}`,
+    amount: paymentData?.amount || (contractData.tagihan - contractData.tagihan_belum_bayar),
+    invoiceNumber: contractData.invoice || undefined,
+    paymentDate: paymentData?.payment_date ? new Date(paymentData.payment_date) : undefined,
+    settings: templateSettings,
+    customTextElements: customTextElements,
+  } : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
@@ -146,11 +174,24 @@ export function PublicDocumentPreviewModal({
             {documentType === 'invoice' ? 'Preview Invoice' : 'Preview Kwitansi'}
           </DialogTitle>
         </DialogHeader>
+        
+        {/* Hidden document for PDF generation - no transforms applied */}
+        {!isLoading && verificationCode && (
+          <div className="absolute left-[-9999px] top-0 opacity-0 pointer-events-none">
+            {documentType === 'invoice' && invoiceProps ? (
+              <InvoiceTemplate ref={documentRef} {...invoiceProps} />
+            ) : receiptProps ? (
+              <ReceiptTemplate ref={documentRef} {...receiptProps} />
+            ) : null}
+          </div>
+        )}
+        
         {!isLoading && verificationCode && (
           <div className="flex flex-col sm:flex-row gap-2 mb-2">
             <DocumentPDFGenerator
               documentRef={documentRef}
               fileName={getFileName()}
+              showOptions={true}
             />
           </div>
         )}
@@ -161,71 +202,21 @@ export function PublicDocumentPreviewModal({
           </div>
         ) : isMobile ? (
           <ZoomableDocumentWrapper>
-            {documentType === 'invoice' ? (
-              <InvoiceTemplate
-                ref={documentRef}
-                documentNumber={contractData.invoice || `INV-${contractData.id.substring(0, 8)}`}
-                verificationCode={verificationCode}
-                issuedAt={contractData.tanggal ? new Date(contractData.tanggal) : new Date()}
-                clientName={clientData?.nama || 'Klien'}
-                description={contractData.keterangan || 'Sewa Scaffolding'}
-                amount={contractData.tagihan}
-                contractInvoice={contractData.invoice || undefined}
-                period={`${contractData.start_date} - ${contractData.end_date}`}
-                settings={templateSettings}
-                contractBankInfo={bankInfo || undefined}
-                accessCode={accessCode}
-              />
-            ) : (
-              <ReceiptTemplate
-                ref={documentRef}
-                documentNumber={`KWT-${contractData.invoice || contractData.id.substring(0, 8)}`}
-                verificationCode={verificationCode}
-                issuedAt={contractData.tanggal ? new Date(contractData.tanggal) : new Date()}
-                clientName={clientData?.nama || 'Klien'}
-                description={`Pembayaran sewa scaffolding - ${contractData.keterangan || 'Invoice ' + contractData.invoice}`}
-                amount={paymentData?.amount || (contractData.tagihan - contractData.tagihan_belum_bayar)}
-                invoiceNumber={contractData.invoice || undefined}
-                paymentDate={paymentData?.payment_date ? new Date(paymentData.payment_date) : undefined}
-                settings={templateSettings}
-                customTextElements={customTextElements}
-              />
-            )}
+            {documentType === 'invoice' && invoiceProps ? (
+              <InvoiceTemplate {...invoiceProps} />
+            ) : receiptProps ? (
+              <ReceiptTemplate {...receiptProps} />
+            ) : null}
           </ZoomableDocumentWrapper>
         ) : (
           <ScrollArea className="h-[70vh]">
             <div className="py-4">
               <ResponsiveDocumentWrapper>
-                {documentType === 'invoice' ? (
-                  <InvoiceTemplate
-                    ref={documentRef}
-                    documentNumber={contractData.invoice || `INV-${contractData.id.substring(0, 8)}`}
-                    verificationCode={verificationCode}
-                    issuedAt={contractData.tanggal ? new Date(contractData.tanggal) : new Date()}
-                    clientName={clientData?.nama || 'Klien'}
-                    description={contractData.keterangan || 'Sewa Scaffolding'}
-                    amount={contractData.tagihan}
-                    contractInvoice={contractData.invoice || undefined}
-                    period={`${contractData.start_date} - ${contractData.end_date}`}
-                    settings={templateSettings}
-                    contractBankInfo={bankInfo || undefined}
-                    accessCode={accessCode}
-                  />
-                ) : (
-                  <ReceiptTemplate
-                    ref={documentRef}
-                    documentNumber={`KWT-${contractData.invoice || contractData.id.substring(0, 8)}`}
-                    verificationCode={verificationCode}
-                    issuedAt={contractData.tanggal ? new Date(contractData.tanggal) : new Date()}
-                    clientName={clientData?.nama || 'Klien'}
-                    description={`Pembayaran sewa scaffolding - ${contractData.keterangan || 'Invoice ' + contractData.invoice}`}
-                    amount={paymentData?.amount || (contractData.tagihan - contractData.tagihan_belum_bayar)}
-                    invoiceNumber={contractData.invoice || undefined}
-                    paymentDate={paymentData?.payment_date ? new Date(paymentData.payment_date) : undefined}
-                    settings={templateSettings}
-                    customTextElements={customTextElements}
-                  />
-                )}
+                {documentType === 'invoice' && invoiceProps ? (
+                  <InvoiceTemplate {...invoiceProps} />
+                ) : receiptProps ? (
+                  <ReceiptTemplate {...receiptProps} />
+                ) : null}
               </ResponsiveDocumentWrapper>
             </div>
           </ScrollArea>

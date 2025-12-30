@@ -196,53 +196,68 @@ export const DocumentPreviewModal = ({
 
   const fileName = `${documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}_${documentData.documentNumber}`;
 
+  // Render template props for reuse
+  const invoiceProps = {
+    documentNumber: documentData.documentNumber,
+    verificationCode: documentData.verificationCode,
+    issuedAt: documentData.issuedAt,
+    clientName: documentData.clientName,
+    clientAddress: documentData.clientAddress,
+    description: documentData.description,
+    amount: documentData.amount,
+    contractInvoice: documentData.contractInvoice,
+    period: documentData.period,
+    settings: templateSettings,
+    contractBankInfo: documentData.contractBankInfo,
+    accessCode: documentData.accessCode,
+  };
+
+  const receiptProps = {
+    documentNumber: documentData.documentNumber,
+    verificationCode: documentData.verificationCode,
+    issuedAt: documentData.issuedAt,
+    clientName: documentData.clientName,
+    clientAddress: documentData.clientAddress,
+    description: documentData.description,
+    amount: documentData.amount,
+    invoiceNumber: documentData.invoiceNumber,
+    paymentDate: documentData.paymentDate,
+    settings: templateSettings,
+    customTextElements: customTextElements,
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
         <DialogHeader className="pr-10">
           <DialogTitle>Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}</DialogTitle>
         </DialogHeader>
+        
+        {/* Hidden document for PDF generation - no transforms applied */}
+        <div className="absolute left-[-9999px] top-0 opacity-0 pointer-events-none">
+          {documentData.documentType === 'invoice' ? (
+            <InvoiceTemplate ref={documentRef} {...invoiceProps} />
+          ) : (
+            <ReceiptTemplate ref={documentRef} {...receiptProps} />
+          )}
+        </div>
+        
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <DocumentPDFGenerator
             documentRef={documentRef}
             fileName={fileName}
             onComplete={onDocumentSaved}
+            showOptions={true}
           />
         </div>
         
+        {/* Visible document for display - can be zoomed/scaled */}
         {isMobile ? (
           <ZoomableDocumentWrapper>
             {documentData.documentType === 'invoice' ? (
-              <InvoiceTemplate
-                ref={documentRef}
-                documentNumber={documentData.documentNumber}
-                verificationCode={documentData.verificationCode}
-                issuedAt={documentData.issuedAt}
-                clientName={documentData.clientName}
-                clientAddress={documentData.clientAddress}
-                description={documentData.description}
-                amount={documentData.amount}
-                contractInvoice={documentData.contractInvoice}
-                period={documentData.period}
-                settings={templateSettings}
-                contractBankInfo={documentData.contractBankInfo}
-                accessCode={documentData.accessCode}
-              />
+              <InvoiceTemplate {...invoiceProps} />
             ) : (
-              <ReceiptTemplate
-                ref={documentRef}
-                documentNumber={documentData.documentNumber}
-                verificationCode={documentData.verificationCode}
-                issuedAt={documentData.issuedAt}
-                clientName={documentData.clientName}
-                clientAddress={documentData.clientAddress}
-                description={documentData.description}
-                amount={documentData.amount}
-                invoiceNumber={documentData.invoiceNumber}
-                paymentDate={documentData.paymentDate}
-                settings={templateSettings}
-                customTextElements={customTextElements}
-              />
+              <ReceiptTemplate {...receiptProps} />
             )}
           </ZoomableDocumentWrapper>
         ) : (
@@ -250,36 +265,9 @@ export const DocumentPreviewModal = ({
             <div className="py-4">
               <ResponsiveDocumentWrapper>
                 {documentData.documentType === 'invoice' ? (
-                  <InvoiceTemplate
-                    ref={documentRef}
-                    documentNumber={documentData.documentNumber}
-                    verificationCode={documentData.verificationCode}
-                    issuedAt={documentData.issuedAt}
-                    clientName={documentData.clientName}
-                    clientAddress={documentData.clientAddress}
-                    description={documentData.description}
-                    amount={documentData.amount}
-                    contractInvoice={documentData.contractInvoice}
-                    period={documentData.period}
-                    settings={templateSettings}
-                    contractBankInfo={documentData.contractBankInfo}
-                    accessCode={documentData.accessCode}
-                  />
+                  <InvoiceTemplate {...invoiceProps} />
                 ) : (
-                  <ReceiptTemplate
-                    ref={documentRef}
-                    documentNumber={documentData.documentNumber}
-                    verificationCode={documentData.verificationCode}
-                    issuedAt={documentData.issuedAt}
-                    clientName={documentData.clientName}
-                    clientAddress={documentData.clientAddress}
-                    description={documentData.description}
-                    amount={documentData.amount}
-                    invoiceNumber={documentData.invoiceNumber}
-                    paymentDate={documentData.paymentDate}
-                    settings={templateSettings}
-                    customTextElements={customTextElements}
-                  />
+                  <ReceiptTemplate {...receiptProps} />
                 )}
               </ResponsiveDocumentWrapper>
             </div>
