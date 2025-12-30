@@ -858,6 +858,7 @@ const ManualInvoice = () => {
                       </div>
                     )
                   ))}
+                </div>
               </div>
             </Card>
           </DocumentWrapper>
