@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, RotateCcw, Save, Loader2, Square, Circle } from 'lucide-react';
+import { Plus, RotateCcw, Save, Loader2, Square, Circle, MousePointerClick } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Badge } from '@/components/ui/badge';
 
 interface DesignerToolbarProps {
   onAddText: () => void;
@@ -11,6 +12,8 @@ interface DesignerToolbarProps {
   hasChanges: boolean;
   canvasShape: 'rectangle' | 'circle' | 'oval';
   onShapeChange: (shape: 'rectangle' | 'circle' | 'oval') => void;
+  onSelectAll?: () => void;
+  selectedCount?: number;
 }
 
 export const DesignerToolbar: React.FC<DesignerToolbarProps> = ({
@@ -21,14 +24,28 @@ export const DesignerToolbar: React.FC<DesignerToolbarProps> = ({
   hasChanges,
   canvasShape,
   onShapeChange,
+  onSelectAll,
+  selectedCount = 0,
 }) => {
   return (
     <div className="flex items-center justify-between gap-2 p-3 border-b bg-muted/30 flex-wrap">
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={onAddText}>
+        <Button variant="default" size="sm" onClick={onAddText}>
           <Plus className="h-4 w-4 mr-1" />
-          Tambah Teks
+          Tambah Text Box
         </Button>
+        
+        {onSelectAll && (
+          <Button variant="outline" size="sm" onClick={onSelectAll}>
+            <MousePointerClick className="h-4 w-4 mr-1" />
+            Pilih Semua
+            {selectedCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                {selectedCount}
+              </Badge>
+            )}
+          </Button>
+        )}
         
         <Button variant="ghost" size="sm" onClick={onReset}>
           <RotateCcw className="h-4 w-4 mr-1" />

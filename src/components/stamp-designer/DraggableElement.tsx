@@ -1,11 +1,11 @@
 import React from 'react';
 import { StampElement } from './types';
-import { Eye, EyeOff, GripVertical } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 
 export interface DraggableElementProps {
   element: StampElement;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect: (e?: React.MouseEvent) => void;
   onDrag?: (e: React.MouseEvent) => void;
   onDragStart?: (e: React.MouseEvent) => void;
   containerRef?: React.RefObject<HTMLDivElement>;
@@ -39,11 +39,11 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
       }}
       onClick={(e) => {
         e.stopPropagation();
-        onSelect();
+        onSelect(e);
       }}
       onMouseDown={(e) => {
         e.stopPropagation();
-        onSelect();
+        onSelect(e);
         onDragStart?.(e);
       }}
       onMouseMove={(e) => {
