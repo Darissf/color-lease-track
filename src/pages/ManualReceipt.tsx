@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Save, RotateCcw, Download, Loader2, MapPin, Phone, Mail, Globe } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Download, Loader2, MapPin, Phone, Mail, Globe, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,6 +14,9 @@ import { CustomQR } from "@/components/inline-edit/CustomQRManager";
 import QRCode from "react-qr-code";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ResponsiveDocumentWrapper } from "@/components/documents/ResponsiveDocumentWrapper";
 
 interface ManualReceiptContent {
   id?: string;
@@ -152,6 +155,7 @@ const defaultContent: ManualReceiptContent = {
 const ManualReceipt = () => {
   const navigate = useNavigate();
   const { user, isSuperAdmin } = useAuth();
+  const isMobile = useIsMobile();
   const [content, setContent] = useState<ManualReceiptContent>(defaultContent);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -292,33 +296,52 @@ const ManualReceipt = () => {
   return (
     <div className="h-[calc(100vh-104px)] flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b bg-background">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/vip/settings/invoice")}>
+      <div className="shrink-0 px-2 sm:px-4 py-3 border-b bg-background">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/vip/settings/invoice")} className="shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent truncate">
                 Manual Kwitansi
               </h1>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground hidden sm:block">
                 Klik langsung pada teks untuk mengedit
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              <RotateCcw className="h-4 w-4 mr-1" />
-              Reset
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Mobile: Settings Sheet Trigger */}
+            {isMobile && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline">Settings</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] p-0">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle>Pengaturan Kwitansi</SheetTitle>
+                  </SheetHeader>
+                  <div className="h-[calc(100vh-60px)]">
+                    <ManualDocumentSidebar content={content} onUpdate={updateField} documentType="receipt" />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
+            <Button variant="outline" size="sm" onClick={handleReset} className="gap-1">
+              <RotateCcw className="h-4 w-4" />
+              <span className="hidden sm:inline">Reset</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
-              <Download className="h-4 w-4 mr-1" />
-              PDF
+            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="gap-1">
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">PDF</span>
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-              Simpan
+            <Button size="sm" onClick={handleSave} disabled={isSaving} className="gap-1">
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              <span className="hidden sm:inline">Simpan</span>
             </Button>
           </div>
         </div>
@@ -327,8 +350,8 @@ const ManualReceipt = () => {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Document Preview */}
-        <div className="flex-1 overflow-auto p-4 bg-muted/30">
-          <div className="max-w-[210mm] mx-auto">
+        <div className="flex-1 overflow-auto p-2 sm:p-4 bg-muted/30">
+          <ResponsiveDocumentWrapper documentRef={documentRef}>
             <Card className="bg-white shadow-lg">
               <div
                 ref={documentRef}
@@ -535,13 +558,15 @@ const ManualReceipt = () => {
                 </div>
               </div>
             </Card>
-          </div>
+          </ResponsiveDocumentWrapper>
         </div>
 
-        {/* Sidebar */}
-        <div className="w-80 border-l bg-background shrink-0">
-          <ManualDocumentSidebar content={content} onUpdate={updateField} documentType="receipt" />
-        </div>
+        {/* Sidebar - Desktop only */}
+        {!isMobile && (
+          <div className="w-80 border-l bg-background shrink-0">
+            <ManualDocumentSidebar content={content} onUpdate={updateField} documentType="receipt" />
+          </div>
+        )}
       </div>
     </div>
   );
