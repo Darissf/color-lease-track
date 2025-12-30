@@ -1,18 +1,16 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { InvoiceTemplate } from './InvoiceTemplate';
 import { ReceiptTemplate } from './ReceiptTemplate';
 import { ResponsiveDocumentWrapper } from './ResponsiveDocumentWrapper';
 import { ZoomableDocumentWrapper } from './ZoomableDocumentWrapper';
+import { DocumentPDFGenerator } from './DocumentPDFGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
 import { CustomTextElement } from '@/components/custom-text/types';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { usePDFGenerator } from '@/hooks/usePDFGenerator';
-import { Download, Printer } from 'lucide-react';
 
 interface ContractData {
   id: string;
@@ -58,7 +56,6 @@ export function PublicDocumentPreviewModal({
 }: PublicDocumentPreviewModalProps) {
   const documentRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
-  const { isGenerating, generateInvoicePDF, generateReceiptPDF, printInvoicePDF, printReceiptPDF } = usePDFGenerator();
   const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
@@ -163,25 +160,6 @@ export function PublicDocumentPreviewModal({
     customTextElements: customTextElements,
   } : null;
 
-  const handleDownload = async () => {
-    if (!invoiceProps && !receiptProps) return;
-    const fileName = getFileName();
-    if (documentType === 'invoice' && invoiceProps) {
-      await generateInvoicePDF(invoiceProps, templateSettings, fileName);
-    } else if (receiptProps) {
-      await generateReceiptPDF(receiptProps, templateSettings, fileName);
-    }
-  };
-
-  const handlePrint = async () => {
-    if (!invoiceProps && !receiptProps) return;
-    if (documentType === 'invoice' && invoiceProps) {
-      await printInvoicePDF(invoiceProps, templateSettings);
-    } else if (receiptProps) {
-      await printReceiptPDF(receiptProps, templateSettings);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
@@ -191,16 +169,15 @@ export function PublicDocumentPreviewModal({
           </DialogTitle>
         </DialogHeader>
         
-        {!isLoading && verificationCode && (
+        {!isLoading && verificationCode && invoiceProps && receiptProps && (
           <div className="flex flex-col sm:flex-row gap-2 mb-2">
-            <Button onClick={handleDownload} disabled={isGenerating} className="gap-2">
-              <Download className="h-4 w-4" />
-              {isGenerating ? 'Generating...' : 'Download PDF'}
-            </Button>
-            <Button variant="outline" onClick={handlePrint} disabled={isGenerating} className="gap-2">
-              <Printer className="h-4 w-4" />
-              Cetak
-            </Button>
+            <DocumentPDFGenerator
+              documentRef={documentRef}
+              fileName={getFileName()}
+              showOptions={false}
+              documentType={documentType === 'invoice' ? 'invoice' : 'kwitansi'}
+              templateProps={documentType === 'invoice' ? invoiceProps : receiptProps}
+            />
           </div>
         )}
 
