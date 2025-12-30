@@ -5,9 +5,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { InvoiceTemplate } from "./InvoiceTemplate";
 import { ReceiptTemplate } from "./ReceiptTemplate";
-import { DocumentPDFGenerator } from "./DocumentPDFGenerator";
 import { ResponsiveDocumentWrapper } from "./ResponsiveDocumentWrapper";
 import { ZoomableDocumentWrapper } from "./ZoomableDocumentWrapper";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,8 +15,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { usePDFGenerator } from "@/hooks/usePDFGenerator";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
 import { CustomTextElement } from "@/components/custom-text/types";
+import { Download, Printer } from "lucide-react";
 
 interface DocumentData {
   documentType: 'invoice' | 'kwitansi';
@@ -58,6 +60,7 @@ export const DocumentPreviewModal = ({
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const { settings: brandSettings } = useBrandSettings();
+  const { isGenerating, generateInvoicePDF, generateReceiptPDF, printInvoicePDF, printReceiptPDF } = usePDFGenerator();
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
   const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
   useEffect(() => {
@@ -225,6 +228,23 @@ export const DocumentPreviewModal = ({
     customTextElements: customTextElements,
   };
 
+  const handleDownload = async () => {
+    if (documentData.documentType === 'invoice') {
+      await generateInvoicePDF(invoiceProps, templateSettings, fileName);
+    } else {
+      await generateReceiptPDF(receiptProps, templateSettings, fileName);
+    }
+    onDocumentSaved?.();
+  };
+
+  const handlePrint = async () => {
+    if (documentData.documentType === 'invoice') {
+      await printInvoicePDF(invoiceProps, templateSettings);
+    } else {
+      await printReceiptPDF(receiptProps, templateSettings);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
@@ -233,14 +253,14 @@ export const DocumentPreviewModal = ({
         </DialogHeader>
         
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
-          <DocumentPDFGenerator
-            documentRef={documentRef}
-            fileName={fileName}
-            onComplete={onDocumentSaved}
-            showOptions={true}
-            documentType={documentData.documentType}
-            templateProps={documentData.documentType === 'invoice' ? invoiceProps : receiptProps}
-          />
+          <Button onClick={handleDownload} disabled={isGenerating} className="gap-2">
+            <Download className="h-4 w-4" />
+            {isGenerating ? 'Generating...' : 'Download PDF'}
+          </Button>
+          <Button variant="outline" onClick={handlePrint} disabled={isGenerating} className="gap-2">
+            <Printer className="h-4 w-4" />
+            Cetak
+          </Button>
         </div>
         
         {/* Visible document dengan ref - akan di-clone saat capture PDF */}
