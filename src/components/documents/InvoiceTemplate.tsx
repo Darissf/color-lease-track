@@ -26,6 +26,7 @@ interface InvoiceTemplateProps {
     account_holder_name?: string;
   };
   accessCode?: string; // For public contract link (payment QR)
+  forPdfCapture?: boolean; // When true, use exact pixel dimensions for PDF
 }
 
 export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
@@ -43,6 +44,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
       settings: propSettings,
       contractBankInfo,
       accessCode,
+      forPdfCapture,
     },
     ref
   ) => {
@@ -95,14 +97,27 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
     // Get layout settings for QR verification
     const layoutSettings = settings.invoice_layout_settings;
 
+    // Override dimensions for PDF capture to ensure exact pixel match
+    const containerStyle = forPdfCapture 
+      ? {
+          fontFamily: getFontFamily(),
+          fontSize: `${settings.font_size_base || 14}px`,
+          width: '793px',
+          height: '1122px',
+          minWidth: '793px',
+          minHeight: '1122px',
+          maxWidth: '793px',
+        }
+      : {
+          fontFamily: getFontFamily(),
+          fontSize: `${settings.font_size_base || 14}px`
+        };
+
     return (
       <div
         ref={ref}
         className="bg-white text-gray-900 p-8 pb-12 w-[210mm] h-[297mm] mx-auto shadow-lg relative overflow-visible"
-        style={{ 
-          fontFamily: getFontFamily(),
-          fontSize: `${settings.font_size_base || 14}px`
-        }}
+        style={containerStyle}
       >
         {/* Watermark - uses invoice_layout_settings */}
         {settings.show_watermark && (

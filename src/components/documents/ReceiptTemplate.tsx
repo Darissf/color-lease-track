@@ -22,6 +22,7 @@ interface ReceiptTemplateProps {
   paymentDate?: Date;
   settings?: TemplateSettings;
   customTextElements?: CustomTextElement[];
+  forPdfCapture?: boolean; // When true, use exact pixel dimensions for PDF
 }
 
 export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
@@ -38,6 +39,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
       paymentDate,
       settings: propSettings,
       customTextElements = [],
+      forPdfCapture,
     },
     ref
   ) => {
@@ -89,14 +91,27 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
     // Get layout settings for QR verification
     const layoutSettings = settings.receipt_layout_settings;
 
+    // Override dimensions for PDF capture to ensure exact pixel match
+    const containerStyle = forPdfCapture 
+      ? {
+          fontFamily: getFontFamily(),
+          fontSize: `${settings.font_size_base || 14}px`,
+          width: '793px',
+          height: '1122px',
+          minWidth: '793px',
+          minHeight: '1122px',
+          maxWidth: '793px',
+        }
+      : {
+          fontFamily: getFontFamily(),
+          fontSize: `${settings.font_size_base || 14}px`
+        };
+
     return (
       <div
         ref={ref}
         className="bg-white text-gray-900 p-8 pb-12 w-[210mm] h-[297mm] mx-auto shadow-lg relative overflow-visible"
-        style={{ 
-          fontFamily: getFontFamily(),
-          fontSize: `${settings.font_size_base || 14}px`
-        }}
+        style={containerStyle}
       >
         {/* Watermark - uses receipt_layout_settings */}
         {settings.show_watermark && (
