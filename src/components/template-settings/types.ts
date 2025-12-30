@@ -16,6 +16,10 @@ export interface LayoutSettings {
   signature_position_y: number;
   signature_scale: number;
   signature_opacity: number;
+  // QR Verification position settings
+  qr_verification_position_x: number;
+  qr_verification_position_y: number;
+  qr_verification_scale: number;
 }
 
 export const defaultLayoutSettings: LayoutSettings = {
@@ -35,6 +39,10 @@ export const defaultLayoutSettings: LayoutSettings = {
   signature_position_y: 85,
   signature_scale: 1.0,
   signature_opacity: 100,
+  // QR Verification defaults - bottom right
+  qr_verification_position_x: 85,
+  qr_verification_position_y: 92,
+  qr_verification_scale: 1.0,
 };
 
 export interface TemplateSettings {
@@ -146,6 +154,11 @@ export interface TemplateSettings {
   qr_size: number;
   qr_position: string;
   qr_include_amount: boolean;
+  
+  // QR Verification Custom Text
+  qr_verification_title: string;
+  qr_verification_label: string;
+  show_qr_verification_url: boolean;
   
   // Document Numbering
   invoice_prefix: string;
@@ -314,6 +327,11 @@ export const defaultSettings: TemplateSettings = {
   qr_size: 80,
   qr_position: 'bottom-section',
   qr_include_amount: false,
+  
+  // QR Verification Custom Text
+  qr_verification_title: 'Scan untuk verifikasi dokumen',
+  qr_verification_label: 'Kode:',
+  show_qr_verification_url: true,
   
   invoice_prefix: 'INV',
   receipt_prefix: 'KWT',

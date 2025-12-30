@@ -83,14 +83,8 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
       }
     };
 
-    const getQRPosition = () => {
-      switch (settings.qr_position) {
-        case "top-right": return "absolute top-8 right-8";
-        case "bottom-right": return "absolute bottom-8 right-8";
-        case "bottom-left": return "absolute bottom-8 left-8";
-        default: return "";
-      }
-    };
+    // Get layout settings for QR verification
+    const layoutSettings = settings.receipt_layout_settings;
 
     return (
       <div
@@ -456,30 +450,39 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             </div>
           )}
 
-          {/* QR Verification */}
-          {settings.show_qr_code && settings.qr_position === 'bottom-section' && (
-            <div className="border-t-2 border-gray-200 pt-4 mt-4">
-              <div className="flex items-center gap-4">
-                <QRCode value={verificationUrl} size={settings.receipt_layout_settings?.qr_size ?? settings.qr_size ?? 80} />
-                <div className="text-sm">
-                  <p className="text-gray-500">Scan untuk verifikasi dokumen</p>
-                  <p className="font-mono text-xs text-gray-400 mt-1">
-                    Kode: {verificationCode}
-                  </p>
-                  <p className="text-xs text-blue-600 break-all">{verificationUrl}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Positioned QR Code */}
-          {settings.show_qr_code && settings.qr_position !== 'bottom-section' && (
-            <div className={getQRPosition()}>
-              <QRCode value={verificationUrl} size={settings.receipt_layout_settings?.qr_size ?? settings.qr_size ?? 80} />
-            </div>
-          )}
         </div>
 
+        {/* QR Verification - Absolute Positioned */}
+        {settings.show_qr_code && (
+          <div 
+            className="absolute pointer-events-none z-20"
+            style={{
+              left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
+              top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
+              transform: `translate(-50%, -50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
+            }}
+          >
+            <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100">
+              <QRCode 
+                value={verificationUrl} 
+                size={layoutSettings?.qr_size ?? settings.qr_size ?? 80} 
+              />
+              <div className="text-sm">
+                <p className="text-gray-500">
+                  {settings.qr_verification_title || 'Scan untuk verifikasi dokumen'}
+                </p>
+                <p className="font-mono text-xs text-gray-400 mt-1">
+                  {settings.qr_verification_label || 'Kode:'} {verificationCode}
+                </p>
+                {settings.show_qr_verification_url !== false && (
+                  <p className="text-xs text-blue-600 break-all max-w-[150px]">
+                    {verificationUrl}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         {/* Signature Image Only - Absolute Positioned like Watermark */}
         {settings.show_signature !== false && settings.signature_url && (
           <div 

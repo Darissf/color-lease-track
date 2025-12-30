@@ -157,7 +157,7 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
       {/* QR Code */}
       <div className="space-y-4 p-4 rounded-lg border bg-card/50">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Kode QR</Label>
+          <Label className="text-sm font-medium">Kode QR Verifikasi</Label>
           <Switch
             checked={settings.show_qr_code}
             onCheckedChange={(checked) => updateSetting('show_qr_code', checked)}
@@ -174,6 +174,34 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
               </Badge>
             </div>
 
+            {/* Custom Text Inputs */}
+            <div className="space-y-2">
+              <Label className="text-xs">Judul QR Verifikasi</Label>
+              <Input
+                value={settings.qr_verification_title || 'Scan untuk verifikasi dokumen'}
+                onChange={(e) => updateSetting('qr_verification_title', e.target.value)}
+                placeholder="Scan untuk verifikasi dokumen"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-xs">Label Kode</Label>
+              <Input
+                value={settings.qr_verification_label || 'Kode:'}
+                onChange={(e) => updateSetting('qr_verification_label', e.target.value)}
+                placeholder="Kode:"
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Tampilkan URL</Label>
+              <Switch
+                checked={settings.show_qr_verification_url !== false}
+                onCheckedChange={(checked) => updateSetting('show_qr_verification_url', checked)}
+              />
+            </div>
+
+            {/* Ukuran QR */}
             <div className="space-y-2">
               <div className="flex justify-between">
                 <Label className="text-xs">Ukuran QR</Label>
@@ -188,20 +216,58 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
               />
             </div>
 
-            <Select
-              value={layoutSettings.qr_position ?? 'bottom-section'}
-              onValueChange={(value) => updateLayoutSetting('qr_position', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Posisi QR" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bottom-section">Bagian Bawah</SelectItem>
-                <SelectItem value="bottom-left">Kiri Bawah</SelectItem>
-                <SelectItem value="bottom-right">Kanan Bawah</SelectItem>
-                <SelectItem value="top-right">Kanan Atas</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Posisi X */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Posisi Horizontal</Label>
+                <span className="text-sm">{layoutSettings.qr_verification_position_x ?? 85}%</span>
+              </div>
+              <Slider
+                value={[layoutSettings.qr_verification_position_x ?? 85]}
+                onValueChange={([value]) => updateLayoutSetting('qr_verification_position_x', value)}
+                min={0}
+                max={100}
+                step={1}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>Kiri</span>
+                <span>Kanan</span>
+              </div>
+            </div>
+            
+            {/* Posisi Y */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Posisi Vertikal</Label>
+                <span className="text-sm">{layoutSettings.qr_verification_position_y ?? 92}%</span>
+              </div>
+              <Slider
+                value={[layoutSettings.qr_verification_position_y ?? 92]}
+                onValueChange={([value]) => updateLayoutSetting('qr_verification_position_y', value)}
+                min={0}
+                max={100}
+                step={1}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>Atas</span>
+                <span>Bawah</span>
+              </div>
+            </div>
+            
+            {/* Scale */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Skala</Label>
+                <span className="text-sm">{Math.round((layoutSettings.qr_verification_scale ?? 1) * 100)}%</span>
+              </div>
+              <Slider
+                value={[(layoutSettings.qr_verification_scale ?? 1) * 100]}
+                onValueChange={([value]) => updateLayoutSetting('qr_verification_scale', value / 100)}
+                min={50}
+                max={150}
+                step={5}
+              />
+            </div>
 
             <div className="flex items-center justify-between">
               <Label className="text-xs">Sertakan nominal di QR</Label>
