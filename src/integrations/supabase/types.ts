@@ -1616,6 +1616,63 @@ export type Database = {
           },
         ]
       }
+      custom_text_elements: {
+        Row: {
+          content: string
+          created_at: string | null
+          document_type: string
+          font_color: string
+          font_family: string
+          font_size: number
+          font_weight: string
+          id: string
+          is_visible: boolean
+          order_index: number
+          position_x: number
+          position_y: number
+          rotation: number
+          text_align: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string | null
+          document_type: string
+          font_color?: string
+          font_family?: string
+          font_size?: number
+          font_weight?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          position_x?: number
+          position_y?: number
+          rotation?: number
+          text_align?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          document_type?: string
+          font_color?: string
+          font_family?: string
+          font_size?: number
+          font_weight?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          position_x?: number
+          position_y?: number
+          rotation?: number
+          text_align?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       database_backups: {
         Row: {
           backup_size_kb: number | null
@@ -1892,7 +1949,11 @@ export type Database = {
           number_format: string | null
           owner_name: string | null
           paper_size: string | null
+          payment_instruction_text: string | null
           payment_link_text: string | null
+          payment_qr_enabled: boolean | null
+          payment_wa_hyperlink_enabled: boolean | null
+          payment_wa_number: string | null
           qr_include_amount: boolean | null
           qr_position: string | null
           qr_size: number | null
@@ -1914,6 +1975,7 @@ export type Database = {
           show_footer: boolean | null
           show_header_stripe: boolean | null
           show_npwp: boolean | null
+          show_payment_section: boolean | null
           show_qr_code: boolean | null
           show_signature: boolean | null
           show_stamp: boolean | null
@@ -2028,7 +2090,11 @@ export type Database = {
           number_format?: string | null
           owner_name?: string | null
           paper_size?: string | null
+          payment_instruction_text?: string | null
           payment_link_text?: string | null
+          payment_qr_enabled?: boolean | null
+          payment_wa_hyperlink_enabled?: boolean | null
+          payment_wa_number?: string | null
           qr_include_amount?: boolean | null
           qr_position?: string | null
           qr_size?: number | null
@@ -2050,6 +2116,7 @@ export type Database = {
           show_footer?: boolean | null
           show_header_stripe?: boolean | null
           show_npwp?: boolean | null
+          show_payment_section?: boolean | null
           show_qr_code?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
@@ -2164,7 +2231,11 @@ export type Database = {
           number_format?: string | null
           owner_name?: string | null
           paper_size?: string | null
+          payment_instruction_text?: string | null
           payment_link_text?: string | null
+          payment_qr_enabled?: boolean | null
+          payment_wa_hyperlink_enabled?: boolean | null
+          payment_wa_number?: string | null
           qr_include_amount?: boolean | null
           qr_position?: string | null
           qr_size?: number | null
@@ -2186,6 +2257,7 @@ export type Database = {
           show_footer?: boolean | null
           show_header_stripe?: boolean | null
           show_npwp?: boolean | null
+          show_payment_section?: boolean | null
           show_qr_code?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
