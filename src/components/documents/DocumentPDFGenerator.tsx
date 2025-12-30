@@ -156,17 +156,79 @@ function restoreNaturalSize(element: HTMLElement, saved: SavedStyles): void {
   element.style.margin = saved.margin;
 }
 
-// ========== LAYER 7: Computed Style Preservation ==========
+// ========== LAYER 7: Critical Inline Styles (Before Capture) ==========
 
-function preserveComputedStyles(_doc: Document, clonedElement: HTMLElement): void {
-  const allElements = clonedElement.querySelectorAll('*');
-  
+interface SavedElementStyle {
+  element: HTMLElement;
+  originalStyle: string;
+}
+
+interface SavedSvgStyle {
+  element: SVGElement;
+  originalStyle: string;
+  originalWidth: string | null;
+  originalHeight: string | null;
+}
+
+interface SavedPathStyle {
+  element: SVGElement;
+  originalStroke: string | null;
+  originalFill: string | null;
+  originalStrokeWidth: string | null;
+}
+
+function applyCriticalInlineStyles(container: HTMLElement): {
+  elements: SavedElementStyle[];
+  svgs: SavedSvgStyle[];
+  paths: SavedPathStyle[];
+} {
+  const savedElements: SavedElementStyle[] = [];
+  const savedSvgs: SavedSvgStyle[] = [];
+  const savedPaths: SavedPathStyle[] = [];
+
+  // Apply inline styles to ALL elements
+  const allElements = container.querySelectorAll('*');
   allElements.forEach((el) => {
     if (!(el instanceof HTMLElement)) return;
-    
+
+    // Save original style attribute
+    savedElements.push({
+      element: el,
+      originalStyle: el.getAttribute('style') || '',
+    });
+
     const computed = window.getComputedStyle(el);
-    
-    // Force critical styles as inline
+
+    // === BORDERS (Critical for invoice number box) ===
+    const borderWidth = computed.borderWidth;
+    if (borderWidth && borderWidth !== '0px') {
+      el.style.borderWidth = borderWidth;
+      el.style.borderStyle = computed.borderStyle;
+      el.style.borderColor = computed.borderColor;
+      el.style.borderTopWidth = computed.borderTopWidth;
+      el.style.borderRightWidth = computed.borderRightWidth;
+      el.style.borderBottomWidth = computed.borderBottomWidth;
+      el.style.borderLeftWidth = computed.borderLeftWidth;
+      el.style.borderTopStyle = computed.borderTopStyle;
+      el.style.borderRightStyle = computed.borderRightStyle;
+      el.style.borderBottomStyle = computed.borderBottomStyle;
+      el.style.borderLeftStyle = computed.borderLeftStyle;
+      el.style.borderTopColor = computed.borderTopColor;
+      el.style.borderRightColor = computed.borderRightColor;
+      el.style.borderBottomColor = computed.borderBottomColor;
+      el.style.borderLeftColor = computed.borderLeftColor;
+    }
+    el.style.borderRadius = computed.borderRadius;
+
+    // === BACKGROUNDS ===
+    if (computed.backgroundColor !== 'rgba(0, 0, 0, 0)' && computed.backgroundColor !== 'transparent') {
+      el.style.backgroundColor = computed.backgroundColor;
+    }
+    if (computed.backgroundImage !== 'none') {
+      el.style.backgroundImage = computed.backgroundImage;
+    }
+
+    // === FONTS ===
     el.style.fontFamily = computed.fontFamily;
     el.style.fontSize = computed.fontSize;
     el.style.fontWeight = computed.fontWeight;
@@ -174,37 +236,186 @@ function preserveComputedStyles(_doc: Document, clonedElement: HTMLElement): voi
     el.style.lineHeight = computed.lineHeight;
     el.style.letterSpacing = computed.letterSpacing;
     el.style.color = computed.color;
-    el.style.backgroundColor = computed.backgroundColor;
-    el.style.borderColor = computed.borderColor;
-    el.style.borderWidth = computed.borderWidth;
-    el.style.borderStyle = computed.borderStyle;
-    el.style.borderRadius = computed.borderRadius;
-    el.style.padding = computed.padding;
-    el.style.margin = computed.margin;
     el.style.textAlign = computed.textAlign;
     el.style.textDecoration = computed.textDecoration;
+    el.style.textTransform = computed.textTransform;
+    el.style.whiteSpace = computed.whiteSpace;
+    el.style.wordBreak = computed.wordBreak;
+
+    // === LAYOUT ===
     el.style.display = computed.display;
     el.style.flexDirection = computed.flexDirection;
+    el.style.flexWrap = computed.flexWrap;
     el.style.justifyContent = computed.justifyContent;
     el.style.alignItems = computed.alignItems;
+    el.style.alignContent = computed.alignContent;
     el.style.gap = computed.gap;
+    el.style.rowGap = computed.rowGap;
+    el.style.columnGap = computed.columnGap;
+
+    // === SIZING ===
     el.style.width = computed.width;
     el.style.height = computed.height;
     el.style.minWidth = computed.minWidth;
     el.style.minHeight = computed.minHeight;
     el.style.maxWidth = computed.maxWidth;
     el.style.maxHeight = computed.maxHeight;
+
+    // === SPACING ===
+    el.style.padding = computed.padding;
+    el.style.paddingTop = computed.paddingTop;
+    el.style.paddingRight = computed.paddingRight;
+    el.style.paddingBottom = computed.paddingBottom;
+    el.style.paddingLeft = computed.paddingLeft;
+    el.style.margin = computed.margin;
+    el.style.marginTop = computed.marginTop;
+    el.style.marginRight = computed.marginRight;
+    el.style.marginBottom = computed.marginBottom;
+    el.style.marginLeft = computed.marginLeft;
+
+    // === POSITIONING ===
     el.style.position = computed.position;
     el.style.top = computed.top;
-    el.style.left = computed.left;
     el.style.right = computed.right;
     el.style.bottom = computed.bottom;
+    el.style.left = computed.left;
     el.style.zIndex = computed.zIndex;
+
+    // === EFFECTS ===
     el.style.opacity = computed.opacity;
-    el.style.overflow = computed.overflow;
     el.style.boxShadow = computed.boxShadow;
-    el.style.transform = computed.transform;
-    el.style.transformOrigin = computed.transformOrigin;
+    el.style.overflow = computed.overflow;
+    el.style.visibility = computed.visibility;
+  });
+
+  // === SVG ICONS (Critical for lucide-react icons) ===
+  const svgs = container.querySelectorAll('svg');
+  svgs.forEach((svg) => {
+    if (!(svg instanceof SVGElement)) return;
+
+    // Save original attributes
+    savedSvgs.push({
+      element: svg,
+      originalStyle: svg.getAttribute('style') || '',
+      originalWidth: svg.getAttribute('width'),
+      originalHeight: svg.getAttribute('height'),
+    });
+
+    const computed = window.getComputedStyle(svg);
+    const width = computed.width;
+    const height = computed.height;
+    const color = computed.color;
+
+    // Force explicit dimensions
+    (svg as unknown as HTMLElement).style.width = width;
+    (svg as unknown as HTMLElement).style.height = height;
+    (svg as unknown as HTMLElement).style.minWidth = width;
+    (svg as unknown as HTMLElement).style.minHeight = height;
+    (svg as unknown as HTMLElement).style.maxWidth = width;
+    (svg as unknown as HTMLElement).style.maxHeight = height;
+    (svg as unknown as HTMLElement).style.display = 'inline-block';
+    (svg as unknown as HTMLElement).style.flexShrink = '0';
+    (svg as unknown as HTMLElement).style.verticalAlign = 'middle';
+    (svg as unknown as HTMLElement).style.color = color;
+
+    // Set explicit width/height attributes
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+
+    // Handle paths, circles, lines inside SVG
+    const paths = svg.querySelectorAll('path, circle, rect, line, polyline, polygon, ellipse');
+    paths.forEach((path) => {
+      if (!(path instanceof SVGElement)) return;
+
+      savedPaths.push({
+        element: path,
+        originalStroke: path.getAttribute('stroke'),
+        originalFill: path.getAttribute('fill'),
+        originalStrokeWidth: path.getAttribute('stroke-width'),
+      });
+
+      const pathComputed = window.getComputedStyle(path);
+      
+      // Force stroke and fill colors
+      const stroke = pathComputed.stroke;
+      const fill = pathComputed.fill;
+      const strokeWidth = pathComputed.strokeWidth;
+
+      if (stroke && stroke !== 'none') {
+        path.setAttribute('stroke', stroke === 'currentcolor' || stroke === 'currentColor' ? color : stroke);
+      } else {
+        path.setAttribute('stroke', 'currentColor');
+      }
+      
+      if (fill && fill !== 'none' && fill !== 'rgba(0, 0, 0, 0)') {
+        path.setAttribute('fill', fill === 'currentcolor' || fill === 'currentColor' ? color : fill);
+      }
+      
+      if (strokeWidth) {
+        path.setAttribute('stroke-width', strokeWidth);
+      }
+
+      // Also set stroke-linecap and stroke-linejoin for clean icons
+      path.setAttribute('stroke-linecap', pathComputed.strokeLinecap || 'round');
+      path.setAttribute('stroke-linejoin', pathComputed.strokeLinejoin || 'round');
+    });
+  });
+
+  return { elements: savedElements, svgs: savedSvgs, paths: savedPaths };
+}
+
+function restoreCriticalInlineStyles(saved: {
+  elements: SavedElementStyle[];
+  svgs: SavedSvgStyle[];
+  paths: SavedPathStyle[];
+}): void {
+  // Restore HTML elements
+  saved.elements.forEach(({ element, originalStyle }) => {
+    if (originalStyle) {
+      element.setAttribute('style', originalStyle);
+    } else {
+      element.removeAttribute('style');
+    }
+  });
+
+  // Restore SVG elements
+  saved.svgs.forEach(({ element, originalStyle, originalWidth, originalHeight }) => {
+    if (originalStyle) {
+      element.setAttribute('style', originalStyle);
+    } else {
+      element.removeAttribute('style');
+    }
+    if (originalWidth !== null) {
+      element.setAttribute('width', originalWidth);
+    } else {
+      element.removeAttribute('width');
+    }
+    if (originalHeight !== null) {
+      element.setAttribute('height', originalHeight);
+    } else {
+      element.removeAttribute('height');
+    }
+  });
+
+  // Restore path elements
+  saved.paths.forEach(({ element, originalStroke, originalFill, originalStrokeWidth }) => {
+    if (originalStroke !== null) {
+      element.setAttribute('stroke', originalStroke);
+    } else {
+      element.removeAttribute('stroke');
+    }
+    if (originalFill !== null) {
+      element.setAttribute('fill', originalFill);
+    } else {
+      element.removeAttribute('fill');
+    }
+    if (originalStrokeWidth !== null) {
+      element.setAttribute('stroke-width', originalStrokeWidth);
+    } else {
+      element.removeAttribute('stroke-width');
+    }
+    element.removeAttribute('stroke-linecap');
+    element.removeAttribute('stroke-linejoin');
   });
 }
 
@@ -252,11 +463,15 @@ export const DocumentPDFGenerator = ({
       // LAYER 5: Force natural size
       const savedStyles = forceNaturalSize(targetElement);
 
-      // Force browser reflow
-      targetElement.getBoundingClientRect();
-      await sleep(100);
+      // LAYER 6: Apply critical inline styles BEFORE capture
+      toast.loading("Menerapkan styles...", { id: toastId });
+      const savedInlineStyles = applyCriticalInlineStyles(targetElement);
 
-      // LAYER 6: Capture with high-fidelity settings
+      // Force browser reflow after inline styles applied
+      targetElement.getBoundingClientRect();
+      await sleep(150);
+
+      // LAYER 7: Capture with high-fidelity settings
       toast.loading("Membuat gambar...", { id: toastId });
       
       const canvas = await html2canvas(targetElement, {
@@ -270,10 +485,10 @@ export const DocumentPDFGenerator = ({
         foreignObjectRendering: false,
         windowWidth: targetElement.scrollWidth,
         windowHeight: targetElement.scrollHeight,
-        onclone: preserveComputedStyles,
       });
 
-      // LAYER 7: Restore everything
+      // LAYER 8: Restore everything
+      restoreCriticalInlineStyles(savedInlineStyles);
       restoreNaturalSize(targetElement, savedStyles);
       restoreParentTransforms(savedTransforms);
 
@@ -363,8 +578,11 @@ export const DocumentPDFGenerator = ({
       const savedTransforms = normalizeParentTransforms(targetElement);
       const savedStyles = forceNaturalSize(targetElement);
 
+      // Apply critical inline styles
+      const savedInlineStyles = applyCriticalInlineStyles(targetElement);
+
       targetElement.getBoundingClientRect();
-      await sleep(100);
+      await sleep(150);
 
       toast.loading("Membuat gambar...", { id: toastId });
 
@@ -379,9 +597,9 @@ export const DocumentPDFGenerator = ({
         foreignObjectRendering: false,
         windowWidth: targetElement.scrollWidth,
         windowHeight: targetElement.scrollHeight,
-        onclone: preserveComputedStyles,
       });
 
+      restoreCriticalInlineStyles(savedInlineStyles);
       restoreNaturalSize(targetElement, savedStyles);
       restoreParentTransforms(savedTransforms);
 
