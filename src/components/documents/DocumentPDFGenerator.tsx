@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
-import { Download, Printer } from "lucide-react";
+import { Download, Printer, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   Select,
@@ -136,11 +136,13 @@ function forceNaturalSize(element: HTMLElement): SavedStyles {
     margin: element.style.margin,
   };
   
-  // Force A4 dimensions at 96 DPI
-  element.style.width = '210mm';
-  element.style.minHeight = '297mm';
-  element.style.maxWidth = '210mm';
-  element.style.transform = 'none';
+  // Force A4 dimensions at 96 DPI - USE PIXEL UNITS (793px x 1122px)
+  // This fixes mobile scaling issues from ResponsiveDocumentWrapper
+  element.style.width = '793px';
+  element.style.height = 'auto';
+  element.style.minHeight = '1122px';
+  element.style.maxWidth = '793px';
+  element.style.transform = 'none'; // CRITICAL: Remove any mobile scaling
   element.style.margin = '0';
   
   return saved;
@@ -695,6 +697,85 @@ export const DocumentPDFGenerator = ({
     }
   }, [documentRef, fileName, onComplete]);
 
+  const generatePNG = useCallback(async () => {
+    if (!documentRef.current) {
+      toast.error("Dokumen tidak ditemukan");
+      return;
+    }
+
+    setIsGenerating(true);
+    const toastId = toast.loading("Menyiapkan gambar PNG...");
+
+    try {
+      const targetElement = documentRef.current;
+
+      // Apply all protective layers (same as PDF)
+      await waitForFonts();
+      await preloadAllImages(targetElement);
+      await waitForSvgRender();
+
+      const savedTransforms = normalizeParentTransforms(targetElement);
+      const savedStyles = forceNaturalSize(targetElement);
+      const savedInlineStyles = applyCriticalInlineStyles(targetElement);
+
+      targetElement.getBoundingClientRect();
+      await sleep(150);
+
+      toast.loading("Membuat gambar...", { id: toastId });
+
+      const canvas = await html2canvas(targetElement, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        imageTimeout: 15000,
+        removeContainer: false,
+        foreignObjectRendering: false,
+        windowWidth: targetElement.scrollWidth,
+        windowHeight: targetElement.scrollHeight,
+      });
+
+      // Restore everything
+      restoreCriticalInlineStyles(savedInlineStyles);
+      restoreNaturalSize(targetElement, savedStyles);
+      restoreParentTransforms(savedTransforms);
+
+      if (!canvas || canvas.width === 0 || canvas.height === 0) {
+        throw new Error("Canvas kosong");
+      }
+
+      // Convert canvas to PNG blob and download
+      toast.loading("Mengunduh PNG...", { id: toastId });
+
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast.error("Gagal membuat PNG", { id: toastId });
+          setIsGenerating(false);
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${fileName}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        toast.success("PNG berhasil diunduh!", { id: toastId });
+        setIsGenerating(false);
+        onComplete?.();
+      }, 'image/png', 1.0);
+
+    } catch (error) {
+      console.error("Error generating PNG:", error);
+      toast.error("Gagal membuat PNG: " + (error as Error).message, { id: toastId });
+      setIsGenerating(false);
+    }
+  }, [documentRef, fileName, onComplete]);
+
   return (
     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
       {showOptions && (
@@ -726,6 +807,11 @@ export const DocumentPDFGenerator = ({
         <Download className="h-4 w-4" />
         <span className="hidden sm:inline">Download PDF</span>
         <span className="sm:hidden">PDF</span>
+      </Button>
+      <Button variant="outline" onClick={generatePNG} className="gap-2" disabled={isGenerating}>
+        <ImageIcon className="h-4 w-4" />
+        <span className="hidden sm:inline">Download PNG</span>
+        <span className="sm:hidden">PNG</span>
       </Button>
       <Button variant="outline" onClick={printDocument} className="gap-2" disabled={isGenerating}>
         <Printer className="h-4 w-4" />
