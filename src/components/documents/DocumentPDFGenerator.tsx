@@ -147,14 +147,14 @@ export const DocumentPDFGenerator = ({
   }, [documentRef, fileName, onComplete]);
 
   return (
-    <div className="flex gap-2">
-      <Button onClick={generatePDF} className="gap-2">
+    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+      <Button onClick={generatePDF} className="gap-2 w-full sm:w-auto">
         <Download className="h-4 w-4" />
-        Download PDF
+        <span className="sm:inline">Download PDF</span>
       </Button>
-      <Button variant="outline" onClick={printDocument} className="gap-2">
+      <Button variant="outline" onClick={printDocument} className="gap-2 w-full sm:w-auto">
         <Printer className="h-4 w-4" />
-        Cetak
+        <span className="sm:inline">Cetak</span>
       </Button>
     </div>
   );

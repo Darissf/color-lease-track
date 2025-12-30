@@ -8,6 +8,7 @@ import {
 import { InvoiceTemplate } from "./InvoiceTemplate";
 import { ReceiptTemplate } from "./ReceiptTemplate";
 import { DocumentPDFGenerator } from "./DocumentPDFGenerator";
+import { ResponsiveDocumentWrapper } from "./ResponsiveDocumentWrapper";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -194,52 +195,50 @@ export const DocumentPreviewModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}</span>
-            <DocumentPDFGenerator
-              documentRef={documentRef}
-              fileName={fileName}
-              onComplete={onDocumentSaved}
-            />
-          </DialogTitle>
+      <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-2 sm:p-6">
+        <DialogHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <DialogTitle>Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}</DialogTitle>
+          <DocumentPDFGenerator
+            documentRef={documentRef}
+            fileName={fileName}
+            onComplete={onDocumentSaved}
+          />
         </DialogHeader>
         
-        <ScrollArea className="h-[70vh]">
-          <div className="flex justify-center py-4">
-          {documentData.documentType === 'invoice' ? (
-              <InvoiceTemplate
-                ref={documentRef}
-                documentNumber={documentData.documentNumber}
-                verificationCode={documentData.verificationCode}
-                issuedAt={documentData.issuedAt}
-                clientName={documentData.clientName}
-                clientAddress={documentData.clientAddress}
-                description={documentData.description}
-                amount={documentData.amount}
-                contractInvoice={documentData.contractInvoice}
-                period={documentData.period}
-                settings={templateSettings}
-                contractBankInfo={documentData.contractBankInfo}
-                accessCode={documentData.accessCode}
-              />
-            ) : (
-              <ReceiptTemplate
-                ref={documentRef}
-                documentNumber={documentData.documentNumber}
-                verificationCode={documentData.verificationCode}
-                issuedAt={documentData.issuedAt}
-                clientName={documentData.clientName}
-                clientAddress={documentData.clientAddress}
-                description={documentData.description}
-                amount={documentData.amount}
-                invoiceNumber={documentData.invoiceNumber}
-                paymentDate={documentData.paymentDate}
-                settings={templateSettings}
-                customTextElements={customTextElements}
-              />
-            )}
+        <ScrollArea className="h-[75vh] sm:h-[70vh]">
+          <div className="py-2 sm:py-4">
+            <ResponsiveDocumentWrapper documentRef={documentRef}>
+              {documentData.documentType === 'invoice' ? (
+                <InvoiceTemplate
+                  documentNumber={documentData.documentNumber}
+                  verificationCode={documentData.verificationCode}
+                  issuedAt={documentData.issuedAt}
+                  clientName={documentData.clientName}
+                  clientAddress={documentData.clientAddress}
+                  description={documentData.description}
+                  amount={documentData.amount}
+                  contractInvoice={documentData.contractInvoice}
+                  period={documentData.period}
+                  settings={templateSettings}
+                  contractBankInfo={documentData.contractBankInfo}
+                  accessCode={documentData.accessCode}
+                />
+              ) : (
+                <ReceiptTemplate
+                  documentNumber={documentData.documentNumber}
+                  verificationCode={documentData.verificationCode}
+                  issuedAt={documentData.issuedAt}
+                  clientName={documentData.clientName}
+                  clientAddress={documentData.clientAddress}
+                  description={documentData.description}
+                  amount={documentData.amount}
+                  invoiceNumber={documentData.invoiceNumber}
+                  paymentDate={documentData.paymentDate}
+                  settings={templateSettings}
+                  customTextElements={customTextElements}
+                />
+              )}
+            </ResponsiveDocumentWrapper>
           </div>
         </ScrollArea>
       </DialogContent>

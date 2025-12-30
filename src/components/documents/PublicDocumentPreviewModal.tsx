@@ -1,8 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { InvoiceTemplate } from './InvoiceTemplate';
 import { ReceiptTemplate } from './ReceiptTemplate';
 import { DocumentPDFGenerator } from './DocumentPDFGenerator';
+import { ResponsiveDocumentWrapper } from './ResponsiveDocumentWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
@@ -142,7 +144,6 @@ export function PublicDocumentPreviewModal({
       const period = `${contractData.start_date} - ${contractData.end_date}`;
       return (
         <InvoiceTemplate
-          ref={documentRef}
           documentNumber={contractData.invoice || `INV-${contractData.id.substring(0, 8)}`}
           verificationCode={verificationCode}
           issuedAt={issuedAt}
@@ -164,7 +165,6 @@ export function PublicDocumentPreviewModal({
     
     return (
       <ReceiptTemplate
-        ref={documentRef}
         documentNumber={`KWT-${contractData.invoice || contractData.id.substring(0, 8)}`}
         verificationCode={verificationCode}
         issuedAt={issuedAt}
@@ -181,27 +181,26 @@ export function PublicDocumentPreviewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-2 sm:p-6">
+        <DialogHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <DialogTitle>
             {documentType === 'invoice' ? 'Preview Invoice' : 'Preview Kwitansi'}
           </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Document Preview */}
-          <div className="border rounded-lg p-4 bg-white overflow-x-auto">
-            {renderDocument()}
-          </div>
-
-          {/* PDF Generator Buttons */}
           {!isLoading && verificationCode && (
             <DocumentPDFGenerator
               documentRef={documentRef}
               fileName={getFileName()}
             />
           )}
-        </div>
+        </DialogHeader>
+
+        <ScrollArea className="h-[75vh] sm:h-[70vh]">
+          <div className="py-2 sm:py-4">
+            <ResponsiveDocumentWrapper documentRef={documentRef}>
+              {renderDocument()}
+            </ResponsiveDocumentWrapper>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
