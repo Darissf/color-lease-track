@@ -96,13 +96,13 @@ export const DocumentPDFGenerator = ({
           if (documentType === 'invoice') {
             root!.render(
               <div style={wrapperStyle}>
-                <InvoiceTemplate {...(templateProps as any)} />
+                <InvoiceTemplate {...(templateProps as any)} forPdfCapture={true} />
               </div>
             );
           } else {
             root!.render(
               <div style={wrapperStyle}>
-                <ReceiptTemplate {...(templateProps as any)} />
+                <ReceiptTemplate {...(templateProps as any)} forPdfCapture={true} />
               </div>
             );
           }
@@ -242,13 +242,13 @@ export const DocumentPDFGenerator = ({
           if (documentType === 'invoice') {
             root!.render(
               <div style={wrapperStyle}>
-                <InvoiceTemplate {...(templateProps as any)} />
+                <InvoiceTemplate {...(templateProps as any)} forPdfCapture={true} />
               </div>
             );
           } else {
             root!.render(
               <div style={wrapperStyle}>
-                <ReceiptTemplate {...(templateProps as any)} />
+                <ReceiptTemplate {...(templateProps as any)} forPdfCapture={true} />
               </div>
             );
           }
