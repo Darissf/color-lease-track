@@ -233,6 +233,18 @@ export const DocumentPreviewModal = ({
           <DialogTitle>Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}</DialogTitle>
         </DialogHeader>
         
+        {/* Hidden document for PDF generation - no transforms, fixed position */}
+        <div 
+          className="fixed left-0 top-0 pointer-events-none"
+          style={{ width: '210mm', opacity: 0, zIndex: -9999 }}
+        >
+          {documentData.documentType === 'invoice' ? (
+            <InvoiceTemplate ref={documentRef} {...invoiceProps} />
+          ) : (
+            <ReceiptTemplate ref={documentRef} {...receiptProps} />
+          )}
+        </div>
+        
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <DocumentPDFGenerator
             documentRef={documentRef}
@@ -242,12 +254,13 @@ export const DocumentPreviewModal = ({
           />
         </div>
         
+        {/* Visible document for display - with wrappers */}
         {isMobile ? (
           <ZoomableDocumentWrapper>
             {documentData.documentType === 'invoice' ? (
-              <InvoiceTemplate ref={documentRef} {...invoiceProps} />
+              <InvoiceTemplate {...invoiceProps} />
             ) : (
-              <ReceiptTemplate ref={documentRef} {...receiptProps} />
+              <ReceiptTemplate {...receiptProps} />
             )}
           </ZoomableDocumentWrapper>
         ) : (
@@ -255,9 +268,9 @@ export const DocumentPreviewModal = ({
             <div className="py-4">
               <ResponsiveDocumentWrapper>
                 {documentData.documentType === 'invoice' ? (
-                  <InvoiceTemplate ref={documentRef} {...invoiceProps} />
+                  <InvoiceTemplate {...invoiceProps} />
                 ) : (
-                  <ReceiptTemplate ref={documentRef} {...receiptProps} />
+                  <ReceiptTemplate {...receiptProps} />
                 )}
               </ResponsiveDocumentWrapper>
             </div>

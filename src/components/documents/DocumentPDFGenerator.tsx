@@ -50,31 +50,20 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
 
-      // Clone element to avoid transform issues
-      const clone = documentRef.current.cloneNode(true) as HTMLElement;
-      clone.style.position = 'absolute';
-      clone.style.left = '0';
-      clone.style.top = '0';
-      clone.style.transform = 'none';
-      clone.style.transformOrigin = 'top left';
-      clone.style.width = '210mm';
-      clone.style.zIndex = '-9999';
-      clone.style.pointerEvents = 'none';
-      clone.style.opacity = '1';
-      document.body.appendChild(clone);
-
-      let canvas: HTMLCanvasElement;
-      try {
-        canvas = await html2canvas(clone, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-          logging: false,
-        });
-      } finally {
-        document.body.removeChild(clone);
-      }
+      // Direct capture - documentRef now points to a clean element without transforms
+      const canvas = await html2canvas(documentRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        onclone: (_clonedDoc, element) => {
+          // Ensure element is visible in clone
+          element.style.opacity = '1';
+          element.style.position = 'static';
+          element.style.transform = 'none';
+        },
+      });
 
       const imgData = canvas.toDataURL("image/png");
       
@@ -153,31 +142,19 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
 
-      // Clone element to avoid transform issues
-      const clone = documentRef.current.cloneNode(true) as HTMLElement;
-      clone.style.position = 'absolute';
-      clone.style.left = '0';
-      clone.style.top = '0';
-      clone.style.transform = 'none';
-      clone.style.transformOrigin = 'top left';
-      clone.style.width = '210mm';
-      clone.style.zIndex = '-9999';
-      clone.style.pointerEvents = 'none';
-      clone.style.opacity = '1';
-      document.body.appendChild(clone);
-
-      let canvas: HTMLCanvasElement;
-      try {
-        canvas = await html2canvas(clone, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-          logging: false,
-        });
-      } finally {
-        document.body.removeChild(clone);
-      }
+      // Direct capture - documentRef now points to a clean element without transforms
+      const canvas = await html2canvas(documentRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        onclone: (_clonedDoc, element) => {
+          element.style.opacity = '1';
+          element.style.position = 'static';
+          element.style.transform = 'none';
+        },
+      });
 
       const imgData = canvas.toDataURL("image/png");
 
