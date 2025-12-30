@@ -4492,6 +4492,60 @@ export type Database = {
         }
         Relationships: []
       }
+      stamp_elements: {
+        Row: {
+          color: string
+          content: string
+          created_at: string
+          element_type: string
+          font_family: string
+          font_size: number
+          font_weight: string
+          id: string
+          is_visible: boolean
+          order_index: number
+          position_x: number
+          position_y: number
+          rotation: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          content?: string
+          created_at?: string
+          element_type?: string
+          font_family?: string
+          font_size?: number
+          font_weight?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          position_x?: number
+          position_y?: number
+          rotation?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          content?: string
+          created_at?: string
+          element_type?: string
+          font_family?: string
+          font_size?: number
+          font_weight?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          position_x?: number
+          position_y?: number
+          rotation?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       temporary_access_codes: {
         Row: {
           attempts_count: number | null
