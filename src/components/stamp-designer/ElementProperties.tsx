@@ -130,7 +130,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({
           <Slider
             value={[element.position_x]}
             min={0}
-            max={100}
+            max={300}
             step={1}
             onValueChange={([value]) => onUpdate(element.id, { position_x: value })}
           />
@@ -141,7 +141,7 @@ export const ElementProperties: React.FC<ElementPropertiesProps> = ({
           <Slider
             value={[element.position_y]}
             min={0}
-            max={100}
+            max={300}
             step={1}
             onValueChange={([value]) => onUpdate(element.id, { position_y: value })}
           />

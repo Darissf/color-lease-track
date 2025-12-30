@@ -110,7 +110,7 @@ const CustomQRManager: React.FC<CustomQRManagerProps> = ({ qrCodes, onChange }) 
                 value={[qr.position_x]}
                 onValueChange={([val]) => updateQRCode(qr.id, { position_x: val })}
                 min={0}
-                max={100}
+                max={300}
                 step={1}
                 className="w-full"
               />
@@ -123,7 +123,7 @@ const CustomQRManager: React.FC<CustomQRManagerProps> = ({ qrCodes, onChange }) 
                 value={[qr.position_y]}
                 onValueChange={([val]) => updateQRCode(qr.id, { position_y: val })}
                 min={0}
-                max={100}
+                max={300}
                 step={1}
                 className="w-full"
               />
