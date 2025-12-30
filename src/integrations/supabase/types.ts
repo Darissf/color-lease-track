@@ -3317,6 +3317,7 @@ export type Database = {
           amount_value: number | null
           bank_account_name: string | null
           bank_account_number: string | null
+          bank_logo_url: string | null
           bank_name: string | null
           border_color: string | null
           client_address: string | null
@@ -3325,6 +3326,7 @@ export type Database = {
           client_phone: string | null
           company_address: string | null
           company_email: string | null
+          company_info_color: string | null
           company_name: string | null
           company_npwp: string | null
           company_phone: string | null
@@ -3339,39 +3341,68 @@ export type Database = {
           document_number: string | null
           document_title: string | null
           due_date: string | null
+          font_family: string | null
+          font_size_base: number | null
           footer_text: string | null
+          header_color_primary: string | null
+          header_color_secondary: string | null
+          header_stripe_height: number | null
+          heading_font_family: string | null
+          icon_email_url: string | null
+          icon_maps_url: string | null
+          icon_website_url: string | null
+          icon_whatsapp_url: string | null
           id: string
           logo_url: string | null
           payment_instruction: string | null
           payment_qr_link: string | null
           payment_section_title: string | null
           primary_color: string | null
+          qr_position: string | null
+          qr_size: number | null
           secondary_color: string | null
           show_footer: boolean | null
+          show_header_stripe: boolean | null
           show_payment_qr: boolean | null
           show_payment_section: boolean | null
           show_signature: boolean | null
           show_stamp: boolean | null
+          show_terbilang: boolean | null
+          show_verification_qr: boolean | null
+          show_watermark: boolean | null
           signature_image_url: string | null
           signature_label: string | null
+          signature_position: string | null
           signer_name: string | null
           signer_title: string | null
           stamp_color: string | null
+          stamp_opacity: number | null
+          stamp_position_x: number | null
+          stamp_position_y: number | null
+          stamp_rotation: number | null
+          stamp_scale: number | null
           stamp_text: string | null
           table_header_amount: string | null
+          table_header_bg: string | null
           table_header_description: string | null
+          table_header_text_color: string | null
           terbilang_label: string | null
           terms_text: string | null
           total_label: string | null
           updated_at: string | null
           user_id: string
+          verification_qr_link: string | null
           wa_confirmation_text: string | null
           wa_number: string | null
+          watermark_opacity: number | null
+          watermark_text: string | null
+          watermark_type: string | null
         }
         Insert: {
           amount_value?: number | null
           bank_account_name?: string | null
           bank_account_number?: string | null
+          bank_logo_url?: string | null
           bank_name?: string | null
           border_color?: string | null
           client_address?: string | null
@@ -3380,6 +3411,7 @@ export type Database = {
           client_phone?: string | null
           company_address?: string | null
           company_email?: string | null
+          company_info_color?: string | null
           company_name?: string | null
           company_npwp?: string | null
           company_phone?: string | null
@@ -3394,39 +3426,68 @@ export type Database = {
           document_number?: string | null
           document_title?: string | null
           due_date?: string | null
+          font_family?: string | null
+          font_size_base?: number | null
           footer_text?: string | null
+          header_color_primary?: string | null
+          header_color_secondary?: string | null
+          header_stripe_height?: number | null
+          heading_font_family?: string | null
+          icon_email_url?: string | null
+          icon_maps_url?: string | null
+          icon_website_url?: string | null
+          icon_whatsapp_url?: string | null
           id?: string
           logo_url?: string | null
           payment_instruction?: string | null
           payment_qr_link?: string | null
           payment_section_title?: string | null
           primary_color?: string | null
+          qr_position?: string | null
+          qr_size?: number | null
           secondary_color?: string | null
           show_footer?: boolean | null
+          show_header_stripe?: boolean | null
           show_payment_qr?: boolean | null
           show_payment_section?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
+          show_terbilang?: boolean | null
+          show_verification_qr?: boolean | null
+          show_watermark?: boolean | null
           signature_image_url?: string | null
           signature_label?: string | null
+          signature_position?: string | null
           signer_name?: string | null
           signer_title?: string | null
           stamp_color?: string | null
+          stamp_opacity?: number | null
+          stamp_position_x?: number | null
+          stamp_position_y?: number | null
+          stamp_rotation?: number | null
+          stamp_scale?: number | null
           stamp_text?: string | null
           table_header_amount?: string | null
+          table_header_bg?: string | null
           table_header_description?: string | null
+          table_header_text_color?: string | null
           terbilang_label?: string | null
           terms_text?: string | null
           total_label?: string | null
           updated_at?: string | null
           user_id: string
+          verification_qr_link?: string | null
           wa_confirmation_text?: string | null
           wa_number?: string | null
+          watermark_opacity?: number | null
+          watermark_text?: string | null
+          watermark_type?: string | null
         }
         Update: {
           amount_value?: number | null
           bank_account_name?: string | null
           bank_account_number?: string | null
+          bank_logo_url?: string | null
           bank_name?: string | null
           border_color?: string | null
           client_address?: string | null
@@ -3435,6 +3496,7 @@ export type Database = {
           client_phone?: string | null
           company_address?: string | null
           company_email?: string | null
+          company_info_color?: string | null
           company_name?: string | null
           company_npwp?: string | null
           company_phone?: string | null
@@ -3449,46 +3511,76 @@ export type Database = {
           document_number?: string | null
           document_title?: string | null
           due_date?: string | null
+          font_family?: string | null
+          font_size_base?: number | null
           footer_text?: string | null
+          header_color_primary?: string | null
+          header_color_secondary?: string | null
+          header_stripe_height?: number | null
+          heading_font_family?: string | null
+          icon_email_url?: string | null
+          icon_maps_url?: string | null
+          icon_website_url?: string | null
+          icon_whatsapp_url?: string | null
           id?: string
           logo_url?: string | null
           payment_instruction?: string | null
           payment_qr_link?: string | null
           payment_section_title?: string | null
           primary_color?: string | null
+          qr_position?: string | null
+          qr_size?: number | null
           secondary_color?: string | null
           show_footer?: boolean | null
+          show_header_stripe?: boolean | null
           show_payment_qr?: boolean | null
           show_payment_section?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
+          show_terbilang?: boolean | null
+          show_verification_qr?: boolean | null
+          show_watermark?: boolean | null
           signature_image_url?: string | null
           signature_label?: string | null
+          signature_position?: string | null
           signer_name?: string | null
           signer_title?: string | null
           stamp_color?: string | null
+          stamp_opacity?: number | null
+          stamp_position_x?: number | null
+          stamp_position_y?: number | null
+          stamp_rotation?: number | null
+          stamp_scale?: number | null
           stamp_text?: string | null
           table_header_amount?: string | null
+          table_header_bg?: string | null
           table_header_description?: string | null
+          table_header_text_color?: string | null
           terbilang_label?: string | null
           terms_text?: string | null
           total_label?: string | null
           updated_at?: string | null
           user_id?: string
+          verification_qr_link?: string | null
           wa_confirmation_text?: string | null
           wa_number?: string | null
+          watermark_opacity?: number | null
+          watermark_text?: string | null
+          watermark_type?: string | null
         }
         Relationships: []
       }
       manual_receipt_content: {
         Row: {
           amount_value: number | null
+          bank_logo_url: string | null
           border_color: string | null
           client_address: string | null
           client_label: string | null
           client_name: string | null
           company_address: string | null
           company_email: string | null
+          company_info_color: string | null
           company_name: string | null
           company_phone: string | null
           company_tagline: string | null
@@ -3501,36 +3593,66 @@ export type Database = {
           document_date: string | null
           document_number: string | null
           document_title: string | null
+          font_family: string | null
+          font_size_base: number | null
           footer_text: string | null
+          header_color_primary: string | null
+          header_color_secondary: string | null
+          header_stripe_height: number | null
+          heading_font_family: string | null
+          icon_email_url: string | null
+          icon_maps_url: string | null
+          icon_website_url: string | null
+          icon_whatsapp_url: string | null
           id: string
           logo_url: string | null
           primary_color: string | null
+          qr_position: string | null
+          qr_size: number | null
           secondary_color: string | null
           show_footer: boolean | null
+          show_header_stripe: boolean | null
           show_signature: boolean | null
           show_stamp: boolean | null
+          show_terbilang: boolean | null
+          show_verification_qr: boolean | null
+          show_watermark: boolean | null
           signature_image_url: string | null
           signature_label: string | null
+          signature_position: string | null
           signer_name: string | null
           signer_title: string | null
           stamp_color: string | null
           stamp_date: string | null
+          stamp_opacity: number | null
+          stamp_position_x: number | null
+          stamp_position_y: number | null
+          stamp_rotation: number | null
+          stamp_scale: number | null
           stamp_text: string | null
           table_header_amount: string | null
+          table_header_bg: string | null
           table_header_description: string | null
+          table_header_text_color: string | null
           terbilang_label: string | null
           total_label: string | null
           updated_at: string | null
           user_id: string
+          verification_qr_link: string | null
+          watermark_opacity: number | null
+          watermark_text: string | null
+          watermark_type: string | null
         }
         Insert: {
           amount_value?: number | null
+          bank_logo_url?: string | null
           border_color?: string | null
           client_address?: string | null
           client_label?: string | null
           client_name?: string | null
           company_address?: string | null
           company_email?: string | null
+          company_info_color?: string | null
           company_name?: string | null
           company_phone?: string | null
           company_tagline?: string | null
@@ -3543,36 +3665,66 @@ export type Database = {
           document_date?: string | null
           document_number?: string | null
           document_title?: string | null
+          font_family?: string | null
+          font_size_base?: number | null
           footer_text?: string | null
+          header_color_primary?: string | null
+          header_color_secondary?: string | null
+          header_stripe_height?: number | null
+          heading_font_family?: string | null
+          icon_email_url?: string | null
+          icon_maps_url?: string | null
+          icon_website_url?: string | null
+          icon_whatsapp_url?: string | null
           id?: string
           logo_url?: string | null
           primary_color?: string | null
+          qr_position?: string | null
+          qr_size?: number | null
           secondary_color?: string | null
           show_footer?: boolean | null
+          show_header_stripe?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
+          show_terbilang?: boolean | null
+          show_verification_qr?: boolean | null
+          show_watermark?: boolean | null
           signature_image_url?: string | null
           signature_label?: string | null
+          signature_position?: string | null
           signer_name?: string | null
           signer_title?: string | null
           stamp_color?: string | null
           stamp_date?: string | null
+          stamp_opacity?: number | null
+          stamp_position_x?: number | null
+          stamp_position_y?: number | null
+          stamp_rotation?: number | null
+          stamp_scale?: number | null
           stamp_text?: string | null
           table_header_amount?: string | null
+          table_header_bg?: string | null
           table_header_description?: string | null
+          table_header_text_color?: string | null
           terbilang_label?: string | null
           total_label?: string | null
           updated_at?: string | null
           user_id: string
+          verification_qr_link?: string | null
+          watermark_opacity?: number | null
+          watermark_text?: string | null
+          watermark_type?: string | null
         }
         Update: {
           amount_value?: number | null
+          bank_logo_url?: string | null
           border_color?: string | null
           client_address?: string | null
           client_label?: string | null
           client_name?: string | null
           company_address?: string | null
           company_email?: string | null
+          company_info_color?: string | null
           company_name?: string | null
           company_phone?: string | null
           company_tagline?: string | null
@@ -3585,27 +3737,55 @@ export type Database = {
           document_date?: string | null
           document_number?: string | null
           document_title?: string | null
+          font_family?: string | null
+          font_size_base?: number | null
           footer_text?: string | null
+          header_color_primary?: string | null
+          header_color_secondary?: string | null
+          header_stripe_height?: number | null
+          heading_font_family?: string | null
+          icon_email_url?: string | null
+          icon_maps_url?: string | null
+          icon_website_url?: string | null
+          icon_whatsapp_url?: string | null
           id?: string
           logo_url?: string | null
           primary_color?: string | null
+          qr_position?: string | null
+          qr_size?: number | null
           secondary_color?: string | null
           show_footer?: boolean | null
+          show_header_stripe?: boolean | null
           show_signature?: boolean | null
           show_stamp?: boolean | null
+          show_terbilang?: boolean | null
+          show_verification_qr?: boolean | null
+          show_watermark?: boolean | null
           signature_image_url?: string | null
           signature_label?: string | null
+          signature_position?: string | null
           signer_name?: string | null
           signer_title?: string | null
           stamp_color?: string | null
           stamp_date?: string | null
+          stamp_opacity?: number | null
+          stamp_position_x?: number | null
+          stamp_position_y?: number | null
+          stamp_rotation?: number | null
+          stamp_scale?: number | null
           stamp_text?: string | null
           table_header_amount?: string | null
+          table_header_bg?: string | null
           table_header_description?: string | null
+          table_header_text_color?: string | null
           terbilang_label?: string | null
           total_label?: string | null
           updated_at?: string | null
           user_id?: string
+          verification_qr_link?: string | null
+          watermark_opacity?: number | null
+          watermark_text?: string | null
+          watermark_type?: string | null
         }
         Relationships: []
       }
