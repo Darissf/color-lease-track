@@ -98,6 +98,10 @@ export interface TemplateSettings {
   watermark_type: string;
   watermark_text: string;
   watermark_opacity: number;
+  watermark_size: number;
+  watermark_rotation: number;
+  watermark_position_x: number;
+  watermark_position_y: number;
   
   // QR Code
   qr_size: number;
@@ -252,6 +256,10 @@ export const defaultSettings: TemplateSettings = {
   watermark_type: 'logo',
   watermark_text: 'DRAFT',
   watermark_opacity: 10,
+  watermark_size: 300,
+  watermark_rotation: -45,
+  watermark_position_x: 50,
+  watermark_position_y: 50,
   
   qr_size: 80,
   qr_position: 'bottom-section',

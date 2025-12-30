@@ -91,19 +91,31 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
       {/* Watermark */}
       {settings.show_watermark && (
         <div 
-          className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-          style={{ opacity: (settings.watermark_opacity || 10) / 100 }}
+          className="absolute pointer-events-none z-0"
+          style={{ 
+            left: `${settings.watermark_position_x ?? 50}%`,
+            top: `${settings.watermark_position_y ?? 50}%`,
+            transform: `translate(-50%, -50%) rotate(${settings.watermark_rotation ?? -45}deg)`,
+            opacity: (settings.watermark_opacity || 10) / 100
+          }}
         >
           {settings.watermark_type === 'logo' && settings.invoice_logo_url ? (
             <img 
               src={settings.invoice_logo_url} 
               alt="" 
-              className="w-96 h-96 object-contain transform rotate-[-15deg]" 
+              style={{ 
+                width: `${settings.watermark_size ?? 300}px`,
+                height: 'auto'
+              }}
+              className="object-contain" 
             />
           ) : (
             <span 
-              className="text-9xl font-bold text-gray-300 transform rotate-[-45deg] whitespace-nowrap"
-              style={{ fontFamily: getHeadingFontFamily() }}
+              className="font-bold text-gray-300 whitespace-nowrap"
+              style={{ 
+                fontFamily: getHeadingFontFamily(),
+                fontSize: `${settings.watermark_size ?? 300}px`
+              }}
             >
               {settings.watermark_text || 'DRAFT'}
             </span>

@@ -1965,6 +1965,10 @@ export type Database = {
           user_id: string
           value_color: string | null
           watermark_opacity: number | null
+          watermark_position_x: number | null
+          watermark_position_y: number | null
+          watermark_rotation: number | null
+          watermark_size: number | null
           watermark_text: string | null
           watermark_type: string | null
         }
@@ -2095,6 +2099,10 @@ export type Database = {
           user_id: string
           value_color?: string | null
           watermark_opacity?: number | null
+          watermark_position_x?: number | null
+          watermark_position_y?: number | null
+          watermark_rotation?: number | null
+          watermark_size?: number | null
           watermark_text?: string | null
           watermark_type?: string | null
         }
@@ -2225,6 +2233,10 @@ export type Database = {
           user_id?: string
           value_color?: string | null
           watermark_opacity?: number | null
+          watermark_position_x?: number | null
+          watermark_position_y?: number | null
+          watermark_rotation?: number | null
+          watermark_size?: number | null
           watermark_text?: string | null
           watermark_type?: string | null
         }
