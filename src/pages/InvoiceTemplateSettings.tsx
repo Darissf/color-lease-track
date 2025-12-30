@@ -25,6 +25,7 @@ import { CustomTextSection } from '@/components/custom-text/CustomTextSection';
 import { CustomTextElement } from '@/components/custom-text/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ResponsiveDocumentWrapper } from '@/components/documents/ResponsiveDocumentWrapper';
+import { ZoomableDocumentWrapper } from '@/components/documents/ZoomableDocumentWrapper';
 
 type CropTarget = 'invoice_logo_url' | 'icon_maps_url' | 'icon_whatsapp_url' | 'icon_email_url' | 'icon_website_url' | 'bank_logo_url' | 'signature_url' | 'custom_stamp_url' | null;
 
@@ -371,7 +372,7 @@ const InvoiceTemplateSettings = () => {
                   <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
                 </TabsList>
                 <TabsContent value="invoice">
-                  <ResponsiveDocumentWrapper>
+                  <ZoomableDocumentWrapper>
                     <InvoiceTemplatePreview 
                       settings={settings}
                       customTextElements={customTextElements}
@@ -380,10 +381,10 @@ const InvoiceTemplateSettings = () => {
                       onUpdateElement={handleUpdateTextElement}
                       isEditing={isEditingMode}
                     />
-                  </ResponsiveDocumentWrapper>
+                  </ZoomableDocumentWrapper>
                 </TabsContent>
                 <TabsContent value="receipt">
-                  <ResponsiveDocumentWrapper>
+                  <ZoomableDocumentWrapper>
                     <ReceiptTemplatePreview 
                       settings={settings}
                       customTextElements={customTextElements}
@@ -392,7 +393,7 @@ const InvoiceTemplateSettings = () => {
                       onUpdateElement={handleUpdateTextElement}
                       isEditing={isEditingMode}
                     />
-                  </ResponsiveDocumentWrapper>
+                  </ZoomableDocumentWrapper>
                 </TabsContent>
               </Tabs>
             </div>
