@@ -17,6 +17,7 @@ interface InvoiceTemplatePreviewProps {
   selectedElementId?: string | null;
   onSelectElement?: (id: string | null) => void;
   onUpdateElement?: (id: string, updates: Partial<CustomTextElement>) => void;
+  isEditing?: boolean;
 }
 
 export function InvoiceTemplatePreview({ 
@@ -24,7 +25,8 @@ export function InvoiceTemplatePreview({
   customTextElements = [],
   selectedElementId,
   onSelectElement,
-  onUpdateElement
+  onUpdateElement,
+  isEditing = false
 }: InvoiceTemplatePreviewProps) {
   const documentRef = useRef<HTMLDivElement>(null);
   const sampleData = {
@@ -605,6 +607,7 @@ export function InvoiceTemplatePreview({
             key={element.id}
             element={element}
             isSelected={selectedElementId === element.id}
+            isEditing={isEditing}
             onSelect={() => onSelectElement?.(element.id)}
             onUpdate={(updates) => onUpdateElement?.(element.id, updates)}
             onDelete={() => {}}
