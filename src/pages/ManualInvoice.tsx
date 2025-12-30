@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Save, RotateCcw, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Download, Loader2, MapPin, Phone, Mail, Globe } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -67,6 +67,37 @@ interface ManualInvoiceContent {
   primary_color: string;
   secondary_color: string;
   border_color: string;
+  // New template-matching fields
+  header_color_primary: string;
+  header_color_secondary: string;
+  show_header_stripe: boolean;
+  header_stripe_height: number;
+  icon_maps_url: string;
+  icon_whatsapp_url: string;
+  icon_email_url: string;
+  icon_website_url: string;
+  bank_logo_url: string;
+  show_watermark: boolean;
+  watermark_text: string;
+  watermark_opacity: number;
+  watermark_type: string;
+  verification_qr_link: string;
+  qr_position: string;
+  qr_size: number;
+  show_verification_qr: boolean;
+  stamp_position_x: number;
+  stamp_position_y: number;
+  stamp_rotation: number;
+  stamp_scale: number;
+  stamp_opacity: number;
+  signature_position: string;
+  show_terbilang: boolean;
+  company_info_color: string;
+  table_header_bg: string;
+  table_header_text_color: string;
+  font_family: string;
+  heading_font_family: string;
+  font_size_base: number;
 }
 
 const defaultContent: ManualInvoiceContent = {
@@ -108,8 +139,8 @@ const defaultContent: ManualInvoiceContent = {
   signer_title: "Jabatan",
   signature_image_url: "",
   show_stamp: false,
-  stamp_text: "LUNAS",
-  stamp_color: "#22c55e",
+  stamp_text: "BELUM LUNAS",
+  stamp_color: "#ef4444",
   show_footer: true,
   footer_text: "Terima kasih atas kepercayaan Anda",
   terms_text: "",
@@ -119,6 +150,37 @@ const defaultContent: ManualInvoiceContent = {
   primary_color: "#0369a1",
   secondary_color: "#f0f9ff",
   border_color: "#e2e8f0",
+  // New template-matching defaults
+  header_color_primary: "#0369a1",
+  header_color_secondary: "#0ea5e9",
+  show_header_stripe: true,
+  header_stripe_height: 12,
+  icon_maps_url: "",
+  icon_whatsapp_url: "",
+  icon_email_url: "",
+  icon_website_url: "",
+  bank_logo_url: "",
+  show_watermark: false,
+  watermark_text: "DRAFT",
+  watermark_opacity: 10,
+  watermark_type: "text",
+  verification_qr_link: "",
+  qr_position: "bottom-section",
+  qr_size: 80,
+  show_verification_qr: true,
+  stamp_position_x: 10,
+  stamp_position_y: 70,
+  stamp_rotation: -15,
+  stamp_scale: 1,
+  stamp_opacity: 80,
+  signature_position: "right",
+  show_terbilang: true,
+  company_info_color: "#4b5563",
+  table_header_bg: "#f3f4f6",
+  table_header_text_color: "#374151",
+  font_family: "default",
+  heading_font_family: "default",
+  font_size_base: 14,
 };
 
 const ManualInvoice = () => {
@@ -241,6 +303,15 @@ const ManualInvoice = () => {
     }
   };
 
+  const getQRPosition = () => {
+    switch (content.qr_position) {
+      case "top-right": return "absolute top-8 right-8";
+      case "bottom-right": return "absolute bottom-8 right-8";
+      case "bottom-left": return "absolute bottom-8 left-8";
+      default: return "";
+    }
+  };
+
   if (!isSuperAdmin) return null;
 
   if (isLoading) {
@@ -250,6 +321,8 @@ const ManualInvoice = () => {
       </div>
     );
   }
+
+  const verificationUrl = content.verification_qr_link || `https://sewascaffoldingbali.com/verify/${content.document_number}`;
 
   return (
     <div className="h-[calc(100vh-104px)] flex flex-col overflow-hidden">
@@ -294,85 +367,162 @@ const ManualInvoice = () => {
             <Card className="bg-white shadow-lg">
               <div
                 ref={documentRef}
-                className="p-8 min-h-[297mm]"
-                style={{ backgroundColor: "white" }}
+                className="p-8 min-h-[297mm] relative overflow-hidden"
+                style={{ 
+                  backgroundColor: "white",
+                  fontSize: `${content.font_size_base || 14}px`
+                }}
               >
-                {/* Header */}
-                <div className="flex justify-between items-start mb-6 pb-4 border-b-2" style={{ borderColor: content.primary_color }}>
-                  <div className="flex items-start gap-4">
-                    {content.logo_url && (
-                      <img src={content.logo_url} alt="Logo" className="h-16 object-contain" />
+                {/* Watermark */}
+                {content.show_watermark && (
+                  <div 
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
+                    style={{ opacity: (content.watermark_opacity || 10) / 100 }}
+                  >
+                    {content.watermark_type === 'logo' && content.logo_url ? (
+                      <img 
+                        src={content.logo_url} 
+                        alt="" 
+                        className="w-96 h-96 object-contain transform rotate-[-15deg]" 
+                      />
+                    ) : (
+                      <span className="text-9xl font-bold text-gray-300 transform rotate-[-45deg] whitespace-nowrap">
+                        {content.watermark_text || 'DRAFT'}
+                      </span>
                     )}
-                    <div>
-                      <InlineEditableText
-                        value={content.company_name}
-                        onSave={(val) => updateField("company_name", val)}
-                        className="text-xl font-bold block"
-                        style={{ color: content.primary_color }}
-                        as="h1"
-                      />
-                      <InlineEditableText
-                        value={content.company_tagline}
-                        onSave={(val) => updateField("company_tagline", val)}
-                        className="text-sm text-muted-foreground"
-                        placeholder="Tagline..."
-                      />
-                      <div className="mt-2 text-sm space-y-0.5">
-                        <div className="flex items-center gap-1">
-                          <span>📍</span>
-                          <InlineEditableText
-                            value={content.company_address}
-                            onSave={(val) => updateField("company_address", val)}
-                          />
+                  </div>
+                )}
+
+                {/* Content wrapper */}
+                <div className="relative z-10">
+                  {/* Header Stripe Bar */}
+                  {content.show_header_stripe && (
+                    <div
+                      className="-mx-8 -mt-8 mb-6"
+                      style={{ 
+                        height: `${content.header_stripe_height || 12}px`,
+                        background: `linear-gradient(to right, ${content.header_color_primary}, ${content.header_color_secondary})` 
+                      }}
+                    />
+                  )}
+
+                  {/* Header */}
+                  <div 
+                    className="flex items-start justify-between pb-4 mb-6 border-b-2"
+                    style={{ borderColor: content.border_color }}
+                  >
+                    <div className="flex items-start gap-4">
+                      {content.logo_url ? (
+                        <img 
+                          src={content.logo_url} 
+                          alt="Company Logo" 
+                          className="h-20 w-20 object-contain rounded-lg"
+                        />
+                      ) : (
+                        <div className="h-20 w-20 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs">
+                          Logo
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span>📞</span>
-                          <InlineEditableText
-                            value={content.company_phone}
-                            onSave={(val) => updateField("company_phone", val)}
-                          />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span>✉️</span>
-                          <InlineEditableText
-                            value={content.company_email}
-                            onSave={(val) => updateField("company_email", val)}
-                          />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span>🌐</span>
-                          <InlineEditableText
-                            value={content.company_website}
-                            onSave={(val) => updateField("company_website", val)}
-                          />
+                      )}
+                      <div>
+                        <InlineEditableText
+                          value={content.company_name}
+                          onSave={(val) => updateField("company_name", val)}
+                          className="text-2xl font-bold tracking-wide block"
+                          style={{ color: content.header_color_primary }}
+                          as="h1"
+                        />
+                        <InlineEditableText
+                          value={content.company_tagline}
+                          onSave={(val) => updateField("company_tagline", val)}
+                          className="text-sm italic"
+                          style={{ color: '#6b7280' }}
+                          placeholder="Tagline..."
+                        />
+                        <div className="mt-2 text-sm space-y-1">
+                          <div className="flex items-center gap-1" style={{ color: content.company_info_color }}>
+                            {content.icon_maps_url ? (
+                              <img src={content.icon_maps_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                            ) : (
+                              <MapPin className="h-3 w-3 flex-shrink-0" style={{ color: content.header_color_primary }} />
+                            )}
+                            <InlineEditableText
+                              value={content.company_address}
+                              onSave={(val) => updateField("company_address", val)}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1" style={{ color: content.company_info_color }}>
+                            {content.icon_whatsapp_url ? (
+                              <img src={content.icon_whatsapp_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                            ) : (
+                              <Phone className="h-3 w-3 flex-shrink-0 text-green-500" />
+                            )}
+                            <InlineEditableText
+                              value={content.company_phone}
+                              onSave={(val) => updateField("company_phone", val)}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1" style={{ color: content.company_info_color }}>
+                            {content.icon_email_url ? (
+                              <img src={content.icon_email_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                            ) : (
+                              <Mail className="h-3 w-3 flex-shrink-0" style={{ color: content.header_color_primary }} />
+                            )}
+                            <InlineEditableText
+                              value={content.company_email}
+                              onSave={(val) => updateField("company_email", val)}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1" style={{ color: content.company_info_color }}>
+                            {content.icon_website_url ? (
+                              <img src={content.icon_website_url} alt="" className="h-3 w-3 flex-shrink-0 object-contain" />
+                            ) : (
+                              <Globe className="h-3 w-3 flex-shrink-0" style={{ color: content.header_color_primary }} />
+                            )}
+                            <InlineEditableText
+                              value={content.company_website}
+                              onSave={(val) => updateField("company_website", val)}
+                            />
+                          </div>
+                          {content.company_npwp && (
+                            <div style={{ color: content.company_info_color }}>
+                              NPWP: <InlineEditableText
+                                value={content.company_npwp}
+                                onSave={(val) => updateField("company_npwp", val)}
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <InlineEditableText
-                      value={content.document_title}
-                      onSave={(val) => updateField("document_title", val)}
-                      className="text-2xl font-bold"
-                      style={{ color: content.primary_color }}
-                      as="h2"
-                    />
-                    <div className="mt-2 text-sm space-y-1">
-                      <div>
-                        No: <InlineEditableText
+                    
+                    {/* Document Type & Number */}
+                    <div className="text-right">
+                      <InlineEditableText
+                        value={content.document_title}
+                        onSave={(val) => updateField("document_title", val)}
+                        className="text-xl font-bold mb-2"
+                        style={{ color: content.header_color_primary }}
+                        as="h2"
+                      />
+                      <div 
+                        className="px-4 py-1 inline-block border-2"
+                        style={{ borderColor: content.header_color_primary }}
+                      >
+                        <span className="text-sm text-gray-500">NO.</span>
+                        <InlineEditableText
                           value={content.document_number}
                           onSave={(val) => updateField("document_number", val)}
-                          className="font-medium"
+                          className="text-lg font-bold ml-2"
                         />
                       </div>
-                      <div>
-                        Tanggal: <InlineEditableText
+                      <div className="text-sm text-gray-500 mt-2">
+                        <InlineEditableText
                           value={content.document_date}
                           onSave={(val) => updateField("document_date", val)}
                         />
                       </div>
                       {content.due_date && (
-                        <div>
+                        <div className="text-sm text-gray-500">
                           Jatuh Tempo: <InlineEditableText
                             value={content.due_date}
                             onSave={(val) => updateField("due_date", val)}
@@ -381,236 +531,307 @@ const ManualInvoice = () => {
                       )}
                     </div>
                   </div>
-                </div>
 
-                {/* Client Info */}
-                <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: content.secondary_color }}>
-                  <InlineEditableText
-                    value={content.client_label}
-                    onSave={(val) => updateField("client_label", val)}
-                    className="text-sm text-muted-foreground"
-                  />
-                  <InlineEditableText
-                    value={content.client_name}
-                    onSave={(val) => updateField("client_name", val)}
-                    className="text-lg font-semibold block"
-                    as="div"
-                  />
-                  <InlineEditableText
-                    value={content.client_address}
-                    onSave={(val) => updateField("client_address", val)}
-                    className="text-sm"
-                    multiline
-                  />
-                </div>
+                  {/* Client Info */}
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <InlineEditableText
+                      value={content.client_label}
+                      onSave={(val) => updateField("client_label", val)}
+                      className="text-sm mb-1"
+                      style={{ color: '#6b7280' }}
+                    />
+                    <InlineEditableText
+                      value={content.client_name}
+                      onSave={(val) => updateField("client_name", val)}
+                      className="font-semibold text-lg block"
+                      as="div"
+                    />
+                    <InlineEditableText
+                      value={content.client_address}
+                      onSave={(val) => updateField("client_address", val)}
+                      className="text-sm"
+                      style={{ color: content.company_info_color }}
+                      multiline
+                    />
+                  </div>
 
-                {/* Table */}
-                <table className="w-full mb-6 border-collapse" style={{ borderColor: content.border_color }}>
-                  <thead>
-                    <tr style={{ backgroundColor: content.primary_color }}>
-                      <th className="p-3 text-left text-white border" style={{ borderColor: content.border_color }}>
+                  {/* Invoice Details Table */}
+                  <div className="mb-8">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr style={{ 
+                          backgroundColor: content.table_header_bg,
+                          color: content.table_header_text_color
+                        }}>
+                          <th 
+                            className="px-4 py-2 text-left border"
+                            style={{ borderColor: content.border_color }}
+                          >
+                            <InlineEditableText
+                              value={content.table_header_description}
+                              onSave={(val) => updateField("table_header_description", val)}
+                            />
+                          </th>
+                          <th 
+                            className="px-4 py-2 text-right w-48 border"
+                            style={{ borderColor: content.border_color }}
+                          >
+                            <InlineEditableText
+                              value={content.table_header_amount}
+                              onSave={(val) => updateField("table_header_amount", val)}
+                            />
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td 
+                            className="px-4 py-3 border"
+                            style={{ borderColor: content.border_color }}
+                          >
+                            <InlineEditableText
+                              value={content.description_text}
+                              onSave={(val) => updateField("description_text", val)}
+                              className="font-medium block"
+                              as="div"
+                            />
+                            <InlineEditableText
+                              value={content.description_details}
+                              onSave={(val) => updateField("description_details", val)}
+                              className="text-sm text-gray-500 whitespace-pre-wrap"
+                              multiline
+                              placeholder="Detail keterangan..."
+                            />
+                          </td>
+                          <td 
+                            className="px-4 py-3 text-right font-semibold border"
+                            style={{ borderColor: content.border_color }}
+                          >
+                            <InlineEditableNumber
+                              value={content.amount_value}
+                              onSave={(val) => updateField("amount_value", val)}
+                            />
+                          </td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr style={{ backgroundColor: `${content.primary_color}15` }}>
+                          <td 
+                            className="px-4 py-3 text-right font-bold border"
+                            style={{ borderColor: content.border_color }}
+                          >
+                            <InlineEditableText
+                              value={content.total_label}
+                              onSave={(val) => updateField("total_label", val)}
+                            />
+                          </td>
+                          <td 
+                            className="px-4 py-3 text-right font-bold text-lg border"
+                            style={{ borderColor: content.border_color }}
+                          >
+                            <InlineEditableNumber
+                              value={content.amount_value}
+                              onSave={(val) => updateField("amount_value", val)}
+                            />
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+
+                    {/* Terbilang */}
+                    {content.show_terbilang && (
+                      <p className="mt-2 text-sm italic text-gray-600">
                         <InlineEditableText
-                          value={content.table_header_description}
-                          onSave={(val) => updateField("table_header_description", val)}
-                          style={{ color: "white" }}
+                          value={content.terbilang_label}
+                          onSave={(val) => updateField("terbilang_label", val)}
+                          className="font-medium"
+                        />{" "}
+                        <span className="font-medium">{terbilang(content.amount_value)}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Payment Section */}
+                  {content.show_payment_section && (
+                    <div 
+                      className="mb-6 p-4 rounded-lg"
+                      style={{ 
+                        backgroundColor: `${content.primary_color}08`,
+                        border: `1px solid ${content.border_color}` 
+                      }}
+                    >
+                      <InlineEditableText
+                        value={content.payment_section_title}
+                        onSave={(val) => updateField("payment_section_title", val)}
+                        className="text-sm font-semibold mb-2 block"
+                        style={{ color: content.header_color_primary }}
+                        as="h3"
+                      />
+                      <div className="flex items-center gap-3">
+                        {content.bank_logo_url && (
+                          <img src={content.bank_logo_url} alt="" className="h-10 object-contain" />
+                        )}
+                        {content.show_payment_qr && content.payment_qr_link && (
+                          <div className="flex-shrink-0">
+                            <QRCode value={content.payment_qr_link} size={80} />
+                          </div>
+                        )}
+                        <div className="flex-1 text-sm space-y-1">
+                          <InlineEditableText
+                            value={content.payment_instruction}
+                            onSave={(val) => updateField("payment_instruction", val)}
+                            className="text-gray-600"
+                            multiline
+                          />
+                          <p className="font-medium">
+                            <InlineEditableText
+                              value={content.bank_name}
+                              onSave={(val) => updateField("bank_name", val)}
+                            />
+                          </p>
+                          <p className="font-mono">
+                            <InlineEditableText
+                              value={content.bank_account_number}
+                              onSave={(val) => updateField("bank_account_number", val)}
+                            />
+                          </p>
+                          <p className="text-gray-600">
+                            a/n <InlineEditableText
+                              value={content.bank_account_name}
+                              onSave={(val) => updateField("bank_account_name", val)}
+                            />
+                          </p>
+                          {content.wa_number && (
+                            <div>
+                              <InlineEditableText
+                                value={content.wa_confirmation_text}
+                                onSave={(val) => updateField("wa_confirmation_text", val)}
+                              />{" "}
+                              <a
+                                href={`https://wa.me/${content.wa_number.replace(/\D/g, "")}`}
+                                className="text-primary underline"
+                              >
+                                <InlineEditableText
+                                  value={content.wa_number}
+                                  onSave={(val) => updateField("wa_number", val)}
+                                />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Signature Section */}
+                  {content.show_signature && (
+                    <div className={`flex items-end mb-8 ${content.signature_position === 'left' ? 'justify-start' : 'justify-end'}`}>
+                      <div className="text-center">
+                        <InlineEditableText
+                          value={content.signature_label}
+                          onSave={(val) => updateField("signature_label", val)}
+                          className="text-sm text-gray-600 mb-2"
                         />
-                      </th>
-                      <th className="p-3 text-right text-white border w-40" style={{ borderColor: content.border_color }}>
+                        {content.signature_image_url ? (
+                          <img 
+                            src={content.signature_image_url} 
+                            alt="Signature" 
+                            className="h-16 w-auto mx-auto object-contain"
+                          />
+                        ) : (
+                          <div className="h-16 w-32 border-b border-gray-400" />
+                        )}
                         <InlineEditableText
-                          value={content.table_header_amount}
-                          onSave={(val) => updateField("table_header_amount", val)}
-                          style={{ color: "white" }}
-                        />
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="p-3 border align-top" style={{ borderColor: content.border_color }}>
-                        <InlineEditableText
-                          value={content.description_text}
-                          onSave={(val) => updateField("description_text", val)}
-                          className="font-medium block"
+                          value={content.signer_name}
+                          onSave={(val) => updateField("signer_name", val)}
+                          className="font-semibold mt-2 block"
                           as="div"
                         />
                         <InlineEditableText
-                          value={content.description_details}
-                          onSave={(val) => updateField("description_details", val)}
-                          className="text-sm text-muted-foreground whitespace-pre-wrap"
-                          multiline
-                          placeholder="Detail keterangan..."
+                          value={content.signer_title}
+                          onSave={(val) => updateField("signer_title", val)}
+                          className="text-sm text-gray-500"
                         />
-                      </td>
-                      <td className="p-3 border text-right align-top" style={{ borderColor: content.border_color }}>
-                        <InlineEditableNumber
-                          value={content.amount_value}
-                          onSave={(val) => updateField("amount_value", val)}
-                          className="font-medium"
-                        />
-                      </td>
-                    </tr>
-                    <tr style={{ backgroundColor: content.secondary_color }}>
-                      <td className="p-3 border text-right font-bold" style={{ borderColor: content.border_color }}>
-                        <InlineEditableText
-                          value={content.total_label}
-                          onSave={(val) => updateField("total_label", val)}
-                        />
-                      </td>
-                      <td className="p-3 border text-right font-bold" style={{ borderColor: content.border_color, color: content.primary_color }}>
-                        <InlineEditableNumber
-                          value={content.amount_value}
-                          onSave={(val) => updateField("amount_value", val)}
-                        />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                {/* Terbilang */}
-                <div className="mb-6 p-3 rounded-lg italic text-sm" style={{ backgroundColor: content.secondary_color }}>
-                  <InlineEditableText
-                    value={content.terbilang_label}
-                    onSave={(val) => updateField("terbilang_label", val)}
-                    className="font-medium"
-                  />{" "}
-                  <span className="font-semibold">{terbilang(content.amount_value)}</span>
-                </div>
-
-                {/* Payment Section */}
-                {content.show_payment_section && (
-                  <div className="mb-6 p-4 rounded-lg border" style={{ borderColor: content.border_color, backgroundColor: `${content.primary_color}08` }}>
-                    <InlineEditableText
-                      value={content.payment_section_title}
-                      onSave={(val) => updateField("payment_section_title", val)}
-                      className="font-bold mb-3 block"
-                      style={{ color: content.primary_color }}
-                      as="h3"
-                    />
-                    <div className="flex gap-4">
-                      {content.show_payment_qr && content.payment_qr_link && (
-                        <div className="flex-shrink-0">
-                          <QRCode value={content.payment_qr_link} size={80} />
-                        </div>
-                      )}
-                      <div className="flex-1 text-sm space-y-2">
-                        <InlineEditableText
-                          value={content.payment_instruction}
-                          onSave={(val) => updateField("payment_instruction", val)}
-                          className="text-muted-foreground"
-                          multiline
-                        />
-                        <div className="font-medium">
-                          <InlineEditableText
-                            value={content.bank_name}
-                            onSave={(val) => updateField("bank_name", val)}
-                          />
-                        </div>
-                        <div>
-                          No. Rek: <InlineEditableText
-                            value={content.bank_account_number}
-                            onSave={(val) => updateField("bank_account_number", val)}
-                            className="font-medium"
-                          />
-                        </div>
-                        <div>
-                          a.n <InlineEditableText
-                            value={content.bank_account_name}
-                            onSave={(val) => updateField("bank_account_name", val)}
-                            className="font-medium"
-                          />
-                        </div>
-                        <div>
-                          <InlineEditableText
-                            value={content.wa_confirmation_text}
-                            onSave={(val) => updateField("wa_confirmation_text", val)}
-                          />{" "}
-                          <a
-                            href={`https://wa.me/${content.wa_number.replace(/\D/g, "")}`}
-                            className="text-primary underline"
-                          >
-                            <InlineEditableText
-                              value={content.wa_number}
-                              onSave={(val) => updateField("wa_number", val)}
-                            />
-                          </a>
-                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Signature & Stamp */}
-                <div className="flex justify-end items-end relative mt-8">
+                  {/* Free-positioned Stamp */}
                   {content.show_stamp && (
-                    <div
-                      className="absolute right-40 top-0 px-4 py-2 border-4 rounded-lg font-bold text-xl transform rotate-[-15deg] opacity-80"
+                    <div 
+                      className="absolute pointer-events-none"
                       style={{
-                        borderColor: content.stamp_color,
-                        color: content.stamp_color,
+                        left: `${content.stamp_position_x}%`,
+                        top: `${content.stamp_position_y}%`,
+                        transform: `translate(-50%, -50%) rotate(${content.stamp_rotation}deg) scale(${content.stamp_scale})`,
+                        opacity: (content.stamp_opacity || 80) / 100
                       }}
                     >
-                      {content.stamp_text}
-                    </div>
-                  )}
-                  
-                  {content.show_signature && (
-                    <div className="text-center">
-                      <InlineEditableText
-                        value={content.signature_label}
-                        onSave={(val) => updateField("signature_label", val)}
-                        className="text-sm"
-                      />
-                      <div className="h-16 flex items-center justify-center my-2">
-                        {content.signature_image_url ? (
-                          <img src={content.signature_image_url} alt="Signature" className="max-h-16" />
-                        ) : (
-                          <div className="text-muted-foreground text-sm">[Tanda Tangan]</div>
-                        )}
+                      <div 
+                        className="px-6 py-3 border-4 rounded-lg font-bold text-2xl"
+                        style={{
+                          borderColor: content.stamp_color,
+                          color: content.stamp_color,
+                        }}
+                      >
+                        {content.stamp_text}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  {content.show_footer && (
+                    <div className="text-center text-sm text-gray-500 mb-4">
                       <InlineEditableText
-                        value={content.signer_name}
-                        onSave={(val) => updateField("signer_name", val)}
-                        className="font-semibold block"
-                        as="div"
-                      />
-                      <InlineEditableText
-                        value={content.signer_title}
-                        onSave={(val) => updateField("signer_title", val)}
-                        className="text-sm text-muted-foreground"
+                        value={content.footer_text}
+                        onSave={(val) => updateField("footer_text", val)}
                       />
                     </div>
                   )}
+
+                  {/* QR Verification - Bottom Section */}
+                  {content.show_verification_qr && content.qr_position === 'bottom-section' && (
+                    <div className="border-t-2 border-gray-200 pt-4 mt-4">
+                      <div className="flex items-center gap-4">
+                        <QRCode value={verificationUrl} size={content.qr_size || 80} />
+                        <div className="text-sm">
+                          <p className="text-gray-500">Scan untuk verifikasi dokumen</p>
+                          <p className="font-mono text-xs text-gray-400 mt-1">
+                            Kode: {content.document_number}
+                          </p>
+                          <p className="text-xs text-blue-600 break-all">{verificationUrl}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Positioned QR Code */}
+                  {content.show_verification_qr && content.qr_position !== 'bottom-section' && (
+                    <div className={getQRPosition()}>
+                      <QRCode value={verificationUrl} size={content.qr_size || 80} />
+                    </div>
+                  )}
+
+                  {/* Custom QR Codes */}
+                  {content.custom_qr_codes?.map((qr) => (
+                    qr.url && (
+                      <div
+                        key={qr.id}
+                        className="absolute"
+                        style={{
+                          left: `${qr.position_x}%`,
+                          top: `${qr.position_y}%`,
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      >
+                        <div className="text-center">
+                          <QRCode value={qr.url} size={qr.size} />
+                          <p className="text-xs mt-1">{qr.label}</p>
+                        </div>
+                      </div>
+                    )
+                  ))}
                 </div>
-
-                {/* Custom QR Codes */}
-                {content.custom_qr_codes?.map((qr) => (
-                  qr.url && (
-                    <div
-                      key={qr.id}
-                      className="absolute"
-                      style={{
-                        left: `${qr.position_x}%`,
-                        top: `${qr.position_y}%`,
-                        transform: "translate(-50%, -50%)",
-                      }}
-                    >
-                      <div className="text-center">
-                        <QRCode value={qr.url} size={qr.size} />
-                        <p className="text-xs mt-1">{qr.label}</p>
-                      </div>
-                    </div>
-                  )
-                ))}
-
-                {/* Footer */}
-                {content.show_footer && (
-                  <div className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground" style={{ borderColor: content.border_color }}>
-                    <InlineEditableText
-                      value={content.footer_text}
-                      onSave={(val) => updateField("footer_text", val)}
-                    />
-                  </div>
-                )}
               </div>
             </Card>
           </div>
