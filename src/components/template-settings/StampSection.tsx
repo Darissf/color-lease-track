@@ -217,7 +217,7 @@ export const StampSection: React.FC<StampSectionProps> = ({
                   value={[layoutSettings.stamp_position_y ?? 70]}
                   onValueChange={([value]) => updateLayoutSetting('stamp_position_y', value)}
                   min={0}
-                  max={100}
+                  max={120}
                   step={1}
                   className="flex-1"
                 />

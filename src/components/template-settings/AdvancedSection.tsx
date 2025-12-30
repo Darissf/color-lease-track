@@ -127,7 +127,7 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
                 value={[layoutSettings.watermark_position_y ?? 50]}
                 onValueChange={([value]) => updateLayoutSetting('watermark_position_y', value)}
                 min={0}
-                max={100}
+                max={120}
                 step={1}
               />
               <div className="flex justify-between text-[10px] text-muted-foreground">

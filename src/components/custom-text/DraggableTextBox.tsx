@@ -49,7 +49,7 @@ export const DraggableTextBox: React.FC<DraggableTextBoxProps> = ({
     
     onUpdate({
       position_x: Math.max(0, Math.min(100, newX)),
-      position_y: Math.max(0, Math.min(100, newY)),
+      position_y: Math.max(0, Math.min(120, newY)),
     });
   };
 

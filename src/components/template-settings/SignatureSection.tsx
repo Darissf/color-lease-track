@@ -111,7 +111,7 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   value={[posY]}
                   onValueChange={([value]) => updateLayoutSetting('signature_position_y', value)}
                   min={20}
-                  max={95}
+                  max={120}
                   step={1}
                 />
               </div>
