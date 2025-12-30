@@ -191,6 +191,18 @@ function applyCriticalInlineStyles(container: HTMLElement): {
   allElements.forEach((el) => {
     if (!(el instanceof HTMLElement)) return;
 
+    // ===== TARGETED EXCLUSION CHECK =====
+    const tagName = el.tagName.toUpperCase();
+    const isQrContainer = el.closest('.qr-code-container') !== null || 
+                          el.classList.contains('qr-code-container') ||
+                          el.closest('[data-qr]') !== null ||
+                          el.closest('[class*="qr"]') !== null;
+    const isCanvas = tagName === 'CANVAS';
+    const isImage = tagName === 'IMG';
+    
+    // Flag to skip background styles for QR/Canvas/Image to prevent black QR codes
+    const shouldSkipBackgrounds = isQrContainer || isCanvas || isImage;
+
     // Save original style attribute
     savedElements.push({
       element: el,
@@ -220,12 +232,14 @@ function applyCriticalInlineStyles(container: HTMLElement): {
     }
     el.style.borderRadius = computed.borderRadius;
 
-    // === BACKGROUNDS ===
-    if (computed.backgroundColor !== 'rgba(0, 0, 0, 0)' && computed.backgroundColor !== 'transparent') {
-      el.style.backgroundColor = computed.backgroundColor;
-    }
-    if (computed.backgroundImage !== 'none') {
-      el.style.backgroundImage = computed.backgroundImage;
+    // === BACKGROUNDS (SKIP for QR/Canvas/Image to prevent black QR codes) ===
+    if (!shouldSkipBackgrounds) {
+      if (computed.backgroundColor !== 'rgba(0, 0, 0, 0)' && computed.backgroundColor !== 'transparent') {
+        el.style.backgroundColor = computed.backgroundColor;
+      }
+      if (computed.backgroundImage !== 'none') {
+        el.style.backgroundImage = computed.backgroundImage;
+      }
     }
 
     // === FONTS ===
@@ -292,6 +306,12 @@ function applyCriticalInlineStyles(container: HTMLElement): {
   const svgs = container.querySelectorAll('svg');
   svgs.forEach((svg) => {
     if (!(svg instanceof SVGElement)) return;
+
+    // ===== SKIP SVG inside QR containers =====
+    const isQrSvg = svg.closest('.qr-code-container') !== null ||
+                    svg.closest('[data-qr]') !== null ||
+                    svg.closest('[class*="qr"]') !== null;
+    if (isQrSvg) return; // Skip QR SVGs entirely
 
     // Save original attributes
     savedSvgs.push({
