@@ -273,7 +273,7 @@ const InvoiceTemplateSettings = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-0 min-h-[calc(100vh-65px)]">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(450px,40%)_1fr] gap-0 min-h-[calc(100vh-65px)]">
         <div className="border-r overflow-y-auto max-h-[calc(100vh-65px)]">
           <div className="p-4 space-y-4">
             <Accordion type="multiple" defaultValue={['branding', 'colors']} className="space-y-3">
@@ -342,26 +342,30 @@ const InvoiceTemplateSettings = () => {
               </TabsList>
               <TabsContent value="invoice">
                 <div className="flex justify-center py-4 overflow-auto">
-                  <InvoiceTemplatePreview 
-                    settings={settings}
-                    customTextElements={customTextElements}
-                    selectedElementId={selectedElementId}
-                    onSelectElement={setSelectedElementId}
-                    onUpdateElement={handleUpdateTextElement}
-                    isEditing={isEditingMode}
-                  />
+                  <div style={{ transform: 'scale(0.65)', transformOrigin: 'top center' }}>
+                    <InvoiceTemplatePreview 
+                      settings={settings}
+                      customTextElements={customTextElements}
+                      selectedElementId={selectedElementId}
+                      onSelectElement={setSelectedElementId}
+                      onUpdateElement={handleUpdateTextElement}
+                      isEditing={isEditingMode}
+                    />
+                  </div>
                 </div>
               </TabsContent>
               <TabsContent value="receipt">
                 <div className="flex justify-center py-4 overflow-auto">
-                  <ReceiptTemplatePreview 
-                    settings={settings}
-                    customTextElements={customTextElements}
-                    selectedElementId={selectedElementId}
-                    onSelectElement={setSelectedElementId}
-                    onUpdateElement={handleUpdateTextElement}
-                    isEditing={isEditingMode}
-                  />
+                  <div style={{ transform: 'scale(0.65)', transformOrigin: 'top center' }}>
+                    <ReceiptTemplatePreview 
+                      settings={settings}
+                      customTextElements={customTextElements}
+                      selectedElementId={selectedElementId}
+                      onSelectElement={setSelectedElementId}
+                      onUpdateElement={handleUpdateTextElement}
+                      isEditing={isEditingMode}
+                    />
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
