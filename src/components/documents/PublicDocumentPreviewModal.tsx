@@ -171,11 +171,13 @@ export function PublicDocumentPreviewModal({
         
         {!isLoading && verificationCode && (
           <div className="flex flex-col sm:flex-row gap-2 mb-2">
-            <DocumentPDFGenerator
-              documentRef={documentRef}
-              fileName={getFileName()}
-              showOptions={true}
-            />
+          <DocumentPDFGenerator
+            documentRef={documentRef}
+            fileName={getFileName()}
+            showOptions={true}
+            documentType={documentType}
+            templateProps={documentType === 'invoice' ? invoiceProps : receiptProps}
+          />
           </div>
         )}
 

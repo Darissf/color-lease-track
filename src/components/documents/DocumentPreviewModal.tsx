@@ -238,6 +238,8 @@ export const DocumentPreviewModal = ({
             fileName={fileName}
             onComplete={onDocumentSaved}
             showOptions={true}
+            documentType={documentData.documentType}
+            templateProps={documentData.documentType === 'invoice' ? invoiceProps : receiptProps}
           />
         </div>
         
