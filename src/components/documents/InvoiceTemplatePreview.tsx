@@ -504,39 +504,10 @@ export function InvoiceTemplatePreview({
           </div>
         )}
 
-        {/* Signature & Stamp Section - Using flexbox for consistent positioning */}
+        {/* Signature Section */}
         {settings.show_signature !== false && (
-          <div className={`flex items-end mb-8 gap-6 ${settings.signature_position === 'left' ? 'justify-start' : 'justify-end'}`}>
-            {/* Stamp - positioned next to signature using flexbox */}
-            {settings.show_stamp_on_invoice && (
-              <div 
-                className="flex-shrink-0 pointer-events-none"
-                style={{
-                  transform: `rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
-                }}
-              >
-                {settings.stamp_source === 'custom' ? (
-                  <CustomStampRenderer
-                    documentNumber={sampleData.documentNumber}
-                    companyName={settings.company_name || ''}
-                    date={format(new Date(), 'dd/MM/yyyy')}
-                    opacity={settings.stamp_opacity}
-                  />
-                ) : (
-                  <DynamicStamp
-                    status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
-                    customText={settings.stamp_custom_text}
-                    documentNumber={sampleData.documentNumber}
-                    companyName={settings.company_name || ''}
-                    date={format(new Date(), 'dd/MM/yyyy')}
-                    settings={settings}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Signature on RIGHT */}
-            <div className="text-center flex-shrink-0">
+          <div className={`flex items-end mb-8 ${settings.signature_position === 'left' ? 'justify-start' : 'justify-end'}`}>
+            <div className="text-center">
               <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
               {settings.signature_url ? (
                 <img 
@@ -552,6 +523,36 @@ export function InvoiceTemplatePreview({
                 <p className="text-sm text-gray-500">{sampleData.signerTitle}</p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Stamp - Absolute positioning for live preview with X/Y sliders */}
+        {settings.show_stamp_on_invoice && (
+          <div 
+            className="absolute pointer-events-none z-40"
+            style={{
+              left: `${settings.invoice_layout_settings?.stamp_position_x ?? 10}%`,
+              top: `${settings.invoice_layout_settings?.stamp_position_y ?? 70}%`,
+              transform: `rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+            }}
+          >
+            {settings.stamp_source === 'custom' ? (
+              <CustomStampRenderer
+                documentNumber={sampleData.documentNumber}
+                companyName={settings.company_name || ''}
+                date={format(new Date(), 'dd/MM/yyyy')}
+                opacity={settings.stamp_opacity}
+              />
+            ) : (
+              <DynamicStamp
+                status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
+                customText={settings.stamp_custom_text}
+                documentNumber={sampleData.documentNumber}
+                companyName={settings.company_name || ''}
+                date={format(new Date(), 'dd/MM/yyyy')}
+                settings={settings}
+              />
+            )}
           </div>
         )}
 
