@@ -175,25 +175,6 @@ export function PublicDocumentPreviewModal({
           </DialogTitle>
         </DialogHeader>
         
-        {/* Hidden document for PDF generation - visibility hidden agar tetap di-render */}
-        {!isLoading && verificationCode && (
-          <div 
-            className="fixed pointer-events-none"
-            style={{ 
-              width: '210mm',
-              left: '-9999px',
-              top: '0',
-              visibility: 'hidden',
-            }}
-          >
-            {documentType === 'invoice' && invoiceProps ? (
-              <InvoiceTemplate ref={documentRef} {...invoiceProps} />
-            ) : receiptProps ? (
-              <ReceiptTemplate ref={documentRef} {...receiptProps} />
-            ) : null}
-          </div>
-        )}
-        
         {!isLoading && verificationCode && (
           <div className="flex flex-col sm:flex-row gap-2 mb-2">
             <DocumentPDFGenerator
@@ -204,6 +185,7 @@ export function PublicDocumentPreviewModal({
           </div>
         )}
 
+        {/* Visible document - ref langsung di template untuk PDF capture */}
         {isLoading || !verificationCode ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -211,9 +193,9 @@ export function PublicDocumentPreviewModal({
         ) : isMobile ? (
           <ZoomableDocumentWrapper>
             {documentType === 'invoice' && invoiceProps ? (
-              <InvoiceTemplate {...invoiceProps} />
+              <InvoiceTemplate ref={documentRef} {...invoiceProps} />
             ) : receiptProps ? (
-              <ReceiptTemplate {...receiptProps} />
+              <ReceiptTemplate ref={documentRef} {...receiptProps} />
             ) : null}
           </ZoomableDocumentWrapper>
         ) : (
@@ -221,9 +203,9 @@ export function PublicDocumentPreviewModal({
             <div className="py-4">
               <ResponsiveDocumentWrapper>
                 {documentType === 'invoice' && invoiceProps ? (
-                  <InvoiceTemplate {...invoiceProps} />
+                  <InvoiceTemplate ref={documentRef} {...invoiceProps} />
                 ) : receiptProps ? (
-                  <ReceiptTemplate {...receiptProps} />
+                  <ReceiptTemplate ref={documentRef} {...receiptProps} />
                 ) : null}
               </ResponsiveDocumentWrapper>
             </div>
