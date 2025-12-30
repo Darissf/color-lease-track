@@ -7,6 +7,7 @@ import { MapPin, Phone, Mail, Globe } from "lucide-react";
 import QRCode from "react-qr-code";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
 import { DynamicStamp } from "./DynamicStamp";
+import { CustomStampRenderer } from "./CustomStampRenderer";
 
 interface ReceiptTemplateProps {
   documentNumber: string;
@@ -423,32 +424,9 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             </div>
           )}
 
-          {/* Signature & Stamp Section */}
+          {/* Signature Section */}
           {settings.show_signature !== false && (
-            <div className="flex justify-between items-end mb-8">
-              {/* Stamp on Left */}
-              {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
-                settings.custom_stamp_url ? (
-                  <img 
-                    src={settings.custom_stamp_url} 
-                    alt="Stamp" 
-                    className="h-24 w-24 object-contain"
-                    style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
-                  />
-                ) : (
-                  <DynamicStamp
-                    status="LUNAS"
-                    documentNumber={documentNumber}
-                    companyName={settings.company_name || 'Perusahaan'}
-                    date={format(issuedAt, 'dd/MM/yyyy')}
-                    settings={settings}
-                  />
-                )
-              )}
-              
-              {/* Empty space if no stamp */}
-              {(!settings.show_stamp || settings.show_stamp_on_receipt === false) && <div />}
-
+            <div className="flex justify-end items-end mb-8">
               {/* Signature on Right */}
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
@@ -466,6 +444,42 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                   <p className="text-sm text-gray-500">{settings.signer_title}</p>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Free-positioned Stamp */}
+          {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
+            <div 
+              className="absolute pointer-events-none"
+              style={{
+                left: `${settings.stamp_position_x ?? 10}%`,
+                top: `${settings.stamp_position_y ?? 70}%`,
+                transform: `translate(-50%, -50%) rotate(${settings.stamp_rotation || 0}deg) scale(${settings.stamp_scale || 1})`
+              }}
+            >
+              {settings.stamp_source === 'custom' ? (
+                <CustomStampRenderer
+                  documentNumber={documentNumber}
+                  companyName={settings.company_name || ''}
+                  date={format(issuedAt, 'dd/MM/yyyy')}
+                  opacity={settings.stamp_opacity}
+                />
+              ) : settings.custom_stamp_url ? (
+                <img 
+                  src={settings.custom_stamp_url} 
+                  alt="Stamp" 
+                  className="h-24 w-24 object-contain"
+                  style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+                />
+              ) : (
+                <DynamicStamp
+                  status="LUNAS"
+                  documentNumber={documentNumber}
+                  companyName={settings.company_name || 'Perusahaan'}
+                  date={format(issuedAt, 'dd/MM/yyyy')}
+                  settings={settings}
+                />
+              )}
             </div>
           )}
 

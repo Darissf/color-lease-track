@@ -6,6 +6,8 @@ import { terbilang } from "@/lib/terbilang";
 import { MapPin, Phone, Mail, Globe } from "lucide-react";
 import QRCode from "react-qr-code";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
+import { DynamicStamp } from "./DynamicStamp";
+import { CustomStampRenderer } from "./CustomStampRenderer";
 
 interface InvoiceTemplateProps {
   documentNumber: string;
@@ -465,6 +467,43 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                   <p className="text-sm text-gray-500">{settings.signer_title}</p>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Free-positioned Stamp */}
+          {settings.show_stamp && settings.show_stamp_on_invoice && (
+            <div 
+              className="absolute pointer-events-none"
+              style={{
+                left: `${settings.stamp_position_x ?? 10}%`,
+                top: `${settings.stamp_position_y ?? 70}%`,
+                transform: `translate(-50%, -50%) rotate(${settings.stamp_rotation || 0}deg) scale(${settings.stamp_scale || 1})`
+              }}
+            >
+              {settings.stamp_source === 'custom' ? (
+                <CustomStampRenderer
+                  documentNumber={documentNumber}
+                  companyName={settings.company_name || ''}
+                  date={format(issuedAt, 'dd/MM/yyyy')}
+                  opacity={settings.stamp_opacity}
+                />
+              ) : settings.custom_stamp_url ? (
+                <img 
+                  src={settings.custom_stamp_url} 
+                  alt="Stamp" 
+                  className="h-24 w-24 object-contain"
+                  style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+                />
+              ) : (
+                <DynamicStamp
+                  status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
+                  customText={settings.stamp_custom_text}
+                  documentNumber={documentNumber}
+                  companyName={settings.company_name || ''}
+                  date={format(issuedAt, 'dd/MM/yyyy')}
+                  settings={settings}
+                />
+              )}
             </div>
           )}
 
