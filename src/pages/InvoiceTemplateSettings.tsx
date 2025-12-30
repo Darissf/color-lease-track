@@ -341,28 +341,36 @@ const InvoiceTemplateSettings = () => {
                 <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
               </TabsList>
               <TabsContent value="invoice">
-                <Card className="shadow-lg overflow-auto"><CardContent className="p-0">
-                  <InvoiceTemplatePreview 
-                    settings={settings}
-                    customTextElements={customTextElements}
-                    selectedElementId={selectedElementId}
-                    onSelectElement={setSelectedElementId}
-                    onUpdateElement={handleUpdateTextElement}
-                    isEditing={isEditingMode}
-                  />
-                </CardContent></Card>
+                <Card className="shadow-lg overflow-auto">
+                  <CardContent className="p-0">
+                    <div className="flex justify-center py-4">
+                      <InvoiceTemplatePreview 
+                        settings={settings}
+                        customTextElements={customTextElements}
+                        selectedElementId={selectedElementId}
+                        onSelectElement={setSelectedElementId}
+                        onUpdateElement={handleUpdateTextElement}
+                        isEditing={isEditingMode}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
               <TabsContent value="receipt">
-                <Card className="shadow-lg overflow-auto"><CardContent className="p-0">
-                  <ReceiptTemplatePreview 
-                    settings={settings}
-                    customTextElements={customTextElements}
-                    selectedElementId={selectedElementId}
-                    onSelectElement={setSelectedElementId}
-                    onUpdateElement={handleUpdateTextElement}
-                    isEditing={isEditingMode}
-                  />
-                </CardContent></Card>
+                <Card className="shadow-lg overflow-auto">
+                  <CardContent className="p-0">
+                    <div className="flex justify-center py-4">
+                      <ReceiptTemplatePreview 
+                        settings={settings}
+                        customTextElements={customTextElements}
+                        selectedElementId={selectedElementId}
+                        onSelectElement={setSelectedElementId}
+                        onUpdateElement={handleUpdateTextElement}
+                        isEditing={isEditingMode}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>
