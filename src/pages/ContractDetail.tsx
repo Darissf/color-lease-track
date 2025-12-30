@@ -713,6 +713,17 @@ export default function ContractDetail() {
     const verificationCode = existingDoc?.verification_code 
       || `VRF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     
+    // Get active public link access code for payment QR
+    const { data: publicLink } = await supabase
+      .from('contract_public_links')
+      .select('access_code')
+      .eq('contract_id', contract.id)
+      .eq('is_active', true)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
     setDocumentData({
       documentType: 'invoice',
       documentNumber: contract.invoice || contract.id.slice(0, 6).toUpperCase(),
@@ -733,6 +744,7 @@ export default function ContractDetail() {
         account_number: contract.bank_accounts.account_number,
         account_holder_name: contract.bank_accounts.account_holder_name,
       } : undefined,
+      accessCode: publicLink?.access_code,
     });
     setDocumentPreviewOpen(true);
   };

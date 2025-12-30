@@ -168,6 +168,7 @@ serve(async (req) => {
 
     const response = {
       verification_code: verificationCode,
+      access_code: access_code, // Include access code for payment QR
       contract: {
         id: contractData.id,
         invoice: contractData.invoice,

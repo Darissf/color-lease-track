@@ -146,6 +146,7 @@ export function PublicDocumentPreviewModal({
           period={period}
           settings={templateSettings}
           contractBankInfo={bankInfo || undefined}
+          accessCode={accessCode}
         />
       );
     }
