@@ -34,6 +34,7 @@ interface DocumentData {
     account_number: string;
     account_holder_name?: string;
   };
+  accessCode?: string; // For public contract link (payment QR)
 }
 
 interface DocumentPreviewModalProps {
@@ -186,7 +187,7 @@ export const DocumentPreviewModal = ({
         
         <ScrollArea className="h-[70vh]">
           <div className="flex justify-center py-4">
-            {documentData.documentType === 'invoice' ? (
+          {documentData.documentType === 'invoice' ? (
               <InvoiceTemplate
                 ref={documentRef}
                 documentNumber={documentData.documentNumber}
@@ -200,6 +201,7 @@ export const DocumentPreviewModal = ({
                 period={documentData.period}
                 settings={templateSettings}
                 contractBankInfo={documentData.contractBankInfo}
+                accessCode={documentData.accessCode}
               />
             ) : (
               <ReceiptTemplate

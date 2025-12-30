@@ -25,6 +25,7 @@ interface InvoiceTemplateProps {
     account_number: string;
     account_holder_name?: string;
   };
+  accessCode?: string; // For public contract link (payment QR)
 }
 
 export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
@@ -41,6 +42,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
       period,
       settings: propSettings,
       contractBankInfo,
+      accessCode,
     },
     ref
   ) => {
@@ -49,6 +51,10 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
 
     const formattedDate = format(issuedAt, "dd MMMM yyyy", { locale: localeId });
     const verificationUrl = `https://sewascaffoldingbali.com/verify/${verificationCode}`;
+    // Payment URL for QR in Payment Transfer section - links to public contract page
+    const paymentUrl = accessCode 
+      ? `https://sewascaffoldingbali.com/contracts/public/${accessCode}` 
+      : verificationUrl;
 
     const getFontFamily = () => {
       switch (settings.font_family) {
@@ -437,11 +443,13 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                 Pembayaran Transfer
               </h3>
               <div className="flex gap-4">
-                {/* QR Code for Payment */}
+              {/* QR Code for Payment - links to public contract page for payment */}
                 {settings.payment_qr_enabled !== false && (
                   <div className="flex-shrink-0 text-center">
-                    <QRCode value={verificationUrl} size={80} />
-                    <p className="text-xs mt-1 text-gray-500">Scan untuk verifikasi</p>
+                    <QRCode value={paymentUrl} size={80} />
+                    <p className="text-xs mt-1 text-gray-500">
+                      {accessCode ? 'Scan untuk pembayaran' : 'Scan untuk verifikasi'}
+                    </p>
                   </div>
                 )}
                 {/* Instructions */}
