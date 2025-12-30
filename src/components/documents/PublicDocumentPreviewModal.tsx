@@ -181,18 +181,20 @@ export function PublicDocumentPreviewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-2 sm:p-6">
-        <DialogHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
+        <DialogHeader className="pr-10">
           <DialogTitle>
             {documentType === 'invoice' ? 'Preview Invoice' : 'Preview Kwitansi'}
           </DialogTitle>
-          {!isLoading && verificationCode && (
+        </DialogHeader>
+        {!isLoading && verificationCode && (
+          <div className="flex flex-col sm:flex-row gap-2 mb-2">
             <DocumentPDFGenerator
               documentRef={documentRef}
               fileName={getFileName()}
             />
-          )}
-        </DialogHeader>
+          </div>
+        )}
 
         <ScrollArea className="h-[75vh] sm:h-[70vh]">
           <div className="py-2 sm:py-4">
