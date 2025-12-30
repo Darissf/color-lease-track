@@ -495,14 +495,22 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
 
-          {/* Signature & Stamp Section - Using flexbox for consistent positioning */}
+          {/* Signature & Stamp Section - Stamp positioned relative to signature */}
           {settings.show_signature !== false && (
-            <div className={`flex items-end mb-8 gap-6 ${settings.signature_position === 'left' ? 'justify-start' : 'justify-end'}`}>
-              {/* Stamp - positioned next to signature using flexbox */}
+            <div 
+              className={`mb-8 relative ${settings.signature_position === 'left' ? 'text-left' : 'text-right'}`}
+              style={{ minHeight: '140px' }}
+            >
+              {/* Stamp - Absolute positioning INSIDE signature section, using saved X/Y as offset */}
               {settings.show_stamp && settings.show_stamp_on_invoice && (
                 <div 
-                  className="flex-shrink-0 pointer-events-none"
+                  className="absolute pointer-events-none z-40"
                   style={{
+                    // Convert saved percentage to offset from signature position
+                    // X: saved value is 0-100%, we offset from right edge of signature
+                    left: `${(settings.invoice_layout_settings?.stamp_position_x ?? 10) - 60}%`,
+                    // Y: saved value is percentage, offset from top of signature section
+                    top: `${(settings.invoice_layout_settings?.stamp_position_y ?? 70) - 65}%`,
                     transform: `rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
                   }}
                 >
@@ -534,7 +542,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
               )}
 
               {/* Signature */}
-              <div className="text-center flex-shrink-0">
+              <div className={`inline-block text-center ${settings.signature_position === 'left' ? '' : 'ml-auto'}`}>
                 <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
                 {settings.signature_url ? (
                   <img 
