@@ -55,15 +55,21 @@ export const DocumentPDFGenerator = ({
       
       const element = documentRef.current;
       
-      // 1. Walk up the DOM tree and reset all transforms
+      // 1. Walk up the DOM tree and reset ALL inline styles (not just transform)
       let currentEl = element.parentElement;
       while (currentEl && currentEl !== document.body) {
-        const computedStyle = window.getComputedStyle(currentEl);
-        if (computedStyle.transform !== 'none') {
+        // Save ALL inline styles if any exist
+        if (currentEl.style.cssText) {
           elementsToRestore.push({
             el: currentEl,
             original: currentEl.style.cssText
           });
+          // Reset ALL inline styles first
+          currentEl.style.cssText = '';
+          // Then set safe defaults
+          currentEl.style.width = 'auto';
+          currentEl.style.height = 'auto';
+          currentEl.style.overflow = 'visible';
           currentEl.style.transform = 'none';
         }
         currentEl = currentEl.parentElement;
@@ -73,32 +79,40 @@ export const DocumentPDFGenerator = ({
       const originalStyle = element.style.cssText;
       elementsToRestore.push({ el: element, original: originalStyle });
       
+      // Reset element styles first
+      element.style.cssText = '';
+      // Then set A4 dimensions
       element.style.width = '793px';
       element.style.minWidth = '793px';
       element.style.maxWidth = '793px';
       element.style.height = 'auto';
       element.style.minHeight = '1122px';
       element.style.transform = 'none';
+      element.style.transformOrigin = 'top left';
+      element.style.margin = '0';
+      element.style.position = 'static';
       
-      // 3. Force reflow and wait for browser to render
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // 3. Force reflow and wait for browser to render (longer wait)
+      await new Promise(resolve => setTimeout(resolve, 500));
       element.getBoundingClientRect();
       
-      // 4. Capture the original element directly
+      // 4. Capture the original element directly - let html2canvas auto-detect size
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        width: 793,
-        height: 1122,
         windowWidth: 793,
         windowHeight: 1122,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0,
       });
       
-      // 5. Restore all original styles
-      elementsToRestore.forEach(({el, original}) => {
+      // 5. Restore all original styles in reverse order (bottom-up)
+      elementsToRestore.reverse().forEach(({el, original}) => {
         el.style.cssText = original;
       });
 
@@ -145,8 +159,8 @@ export const DocumentPDFGenerator = ({
       toast.success("PDF berhasil dibuat!", { id: "pdf-generate" });
       onComplete?.();
     } catch (error) {
-      // Restore all styles on error
-      elementsToRestore.forEach(({el, original}) => {
+      // Restore all styles on error (reverse order)
+      elementsToRestore.reverse().forEach(({el, original}) => {
         el.style.cssText = original;
       });
       console.error("Error generating PDF:", error);
@@ -168,15 +182,21 @@ export const DocumentPDFGenerator = ({
       
       const element = documentRef.current;
       
-      // 1. Walk up the DOM tree and reset all transforms
+      // 1. Walk up the DOM tree and reset ALL inline styles (not just transform)
       let currentEl = element.parentElement;
       while (currentEl && currentEl !== document.body) {
-        const computedStyle = window.getComputedStyle(currentEl);
-        if (computedStyle.transform !== 'none') {
+        // Save ALL inline styles if any exist
+        if (currentEl.style.cssText) {
           elementsToRestore.push({
             el: currentEl,
             original: currentEl.style.cssText
           });
+          // Reset ALL inline styles first
+          currentEl.style.cssText = '';
+          // Then set safe defaults
+          currentEl.style.width = 'auto';
+          currentEl.style.height = 'auto';
+          currentEl.style.overflow = 'visible';
           currentEl.style.transform = 'none';
         }
         currentEl = currentEl.parentElement;
@@ -186,32 +206,40 @@ export const DocumentPDFGenerator = ({
       const originalStyle = element.style.cssText;
       elementsToRestore.push({ el: element, original: originalStyle });
       
+      // Reset element styles first
+      element.style.cssText = '';
+      // Then set A4 dimensions
       element.style.width = '793px';
       element.style.minWidth = '793px';
       element.style.maxWidth = '793px';
       element.style.height = 'auto';
       element.style.minHeight = '1122px';
       element.style.transform = 'none';
+      element.style.transformOrigin = 'top left';
+      element.style.margin = '0';
+      element.style.position = 'static';
       
-      // 3. Force reflow and wait for browser to render
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // 3. Force reflow and wait for browser to render (longer wait)
+      await new Promise(resolve => setTimeout(resolve, 500));
       element.getBoundingClientRect();
       
-      // 4. Capture the original element directly
+      // 4. Capture the original element directly - let html2canvas auto-detect size
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        width: 793,
-        height: 1122,
         windowWidth: 793,
         windowHeight: 1122,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0,
       });
       
-      // 5. Restore all original styles
-      elementsToRestore.forEach(({el, original}) => {
+      // 5. Restore all original styles in reverse order (bottom-up)
+      elementsToRestore.reverse().forEach(({el, original}) => {
         el.style.cssText = original;
       });
 
@@ -248,8 +276,8 @@ export const DocumentPDFGenerator = ({
       toast.success("Siap untuk dicetak!", { id: "pdf-print" });
       onComplete?.();
     } catch (error) {
-      // Restore all styles on error
-      elementsToRestore.forEach(({el, original}) => {
+      // Restore all styles on error (reverse order)
+      elementsToRestore.reverse().forEach(({el, original}) => {
         el.style.cssText = original;
       });
       console.error("Error printing:", error);
