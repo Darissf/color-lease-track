@@ -11,6 +11,11 @@ export interface LayoutSettings {
   watermark_size: number;
   watermark_rotation: number;
   watermark_opacity: number;
+  // Signature position settings (watermark-like positioning)
+  signature_position_x: number;
+  signature_position_y: number;
+  signature_scale: number;
+  signature_opacity: number;
 }
 
 export const defaultLayoutSettings: LayoutSettings = {
@@ -25,6 +30,11 @@ export const defaultLayoutSettings: LayoutSettings = {
   watermark_size: 300,
   watermark_rotation: -45,
   watermark_opacity: 10,
+  // Signature defaults - bottom right area
+  signature_position_x: 80,
+  signature_position_y: 85,
+  signature_scale: 1.0,
+  signature_opacity: 100,
 };
 
 export interface TemplateSettings {

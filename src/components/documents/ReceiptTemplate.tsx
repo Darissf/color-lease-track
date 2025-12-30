@@ -436,28 +436,8 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             </div>
           )}
 
-          {/* Signature Section */}
-          {settings.show_signature !== false && (
-            <div className="flex justify-end items-end mb-8">
-              {/* Signature on Right */}
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
-                {settings.signature_url ? (
-                  <img 
-                    src={settings.signature_url} 
-                    alt="Signature" 
-                    className="h-16 w-auto mx-auto object-contain"
-                  />
-                ) : (
-                  <div className="h-16 w-32 border-b border-gray-400" />
-                )}
-                <p className="font-semibold mt-2">{settings.signer_name || settings.company_name}</p>
-                {settings.signer_title && (
-                  <p className="text-sm text-gray-500">{settings.signer_title}</p>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Spacer for signature area */}
+          <div className="mb-8" style={{ minHeight: '80px' }} />
 
           {/* Footer */}
           {settings.show_footer !== false && settings.footer_text && (
@@ -489,6 +469,36 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             </div>
           )}
         </div>
+
+        {/* Signature - Absolute Positioned like Watermark */}
+        {settings.show_signature !== false && (
+          <div 
+            className="absolute pointer-events-none z-30"
+            style={{
+              left: `${settings.receipt_layout_settings?.signature_position_x ?? 80}%`,
+              top: `${settings.receipt_layout_settings?.signature_position_y ?? 85}%`,
+              transform: `translate(-50%, -50%) scale(${settings.receipt_layout_settings?.signature_scale ?? 1})`,
+              opacity: (settings.receipt_layout_settings?.signature_opacity ?? 100) / 100,
+            }}
+          >
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
+              {settings.signature_url ? (
+                <img 
+                  src={settings.signature_url} 
+                  alt="Signature" 
+                  className="max-w-[200px] max-h-[100px] object-contain mx-auto"
+                />
+              ) : (
+                <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
+              )}
+              <p className="font-semibold mt-2">{settings.signer_name || settings.company_name}</p>
+              {settings.signer_title && (
+                <p className="text-sm text-gray-500">{settings.signer_title}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Fixed-positioned Stamp - OUTSIDE content wrapper, uses receipt_layout_settings */}
         {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
