@@ -44,18 +44,49 @@ export const DocumentPDFGenerator = ({
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 0;
-
-      pdf.addImage(
-        imgData,
-        "PNG",
-        imgX,
-        imgY,
-        imgWidth * ratio,
-        imgHeight * ratio
-      );
+      
+      // Scale based on width only to maintain aspect ratio
+      const ratio = pdfWidth / imgWidth;
+      const scaledHeight = imgHeight * ratio;
+      
+      // Check if content exceeds one page
+      if (scaledHeight > pdfHeight) {
+        // Multi-page PDF
+        let remainingHeight = scaledHeight;
+        let sourceY = 0;
+        const pageHeightInPixels = pdfHeight / ratio;
+        
+        while (remainingHeight > 0) {
+          // Create a temporary canvas for this page section
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = imgWidth;
+          pageCanvas.height = Math.min(pageHeightInPixels, imgHeight - sourceY);
+          
+          const ctx = pageCanvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(
+              canvas,
+              0, sourceY, imgWidth, pageCanvas.height,
+              0, 0, imgWidth, pageCanvas.height
+            );
+            
+            const pageImgData = pageCanvas.toDataURL("image/png");
+            const pageScaledHeight = pageCanvas.height * ratio;
+            
+            pdf.addImage(pageImgData, "PNG", 0, 0, pdfWidth, pageScaledHeight);
+          }
+          
+          remainingHeight -= pdfHeight;
+          sourceY += pageHeightInPixels;
+          
+          if (remainingHeight > 0) {
+            pdf.addPage();
+          }
+        }
+      } else {
+        // Single page - add image at top
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight);
+      }
 
       pdf.save(`${fileName}.pdf`);
 
