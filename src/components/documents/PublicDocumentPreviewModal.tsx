@@ -129,55 +129,11 @@ export function PublicDocumentPreviewModal({
     return `${docType}-${invoice}`;
   };
 
-  const renderDocument = () => {
-    if (isLoading || !verificationCode) {
-      return (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      );
-    }
-
-    const issuedAt = contractData.tanggal ? new Date(contractData.tanggal) : new Date();
-
-    if (documentType === 'invoice') {
-      const period = `${contractData.start_date} - ${contractData.end_date}`;
-      return (
-        <InvoiceTemplate
-          documentNumber={contractData.invoice || `INV-${contractData.id.substring(0, 8)}`}
-          verificationCode={verificationCode}
-          issuedAt={issuedAt}
-          clientName={clientData?.nama || 'Klien'}
-          description={contractData.keterangan || 'Sewa Scaffolding'}
-          amount={contractData.tagihan}
-          contractInvoice={contractData.invoice || undefined}
-          period={period}
-          settings={templateSettings}
-          contractBankInfo={bankInfo || undefined}
-          accessCode={accessCode}
-        />
-      );
-    }
-
-    // Kwitansi
-    const amount = paymentData?.amount || (contractData.tagihan - contractData.tagihan_belum_bayar);
-    const paymentDate = paymentData?.payment_date ? new Date(paymentData.payment_date) : undefined;
-    
-    return (
-      <ReceiptTemplate
-        documentNumber={`KWT-${contractData.invoice || contractData.id.substring(0, 8)}`}
-        verificationCode={verificationCode}
-        issuedAt={issuedAt}
-        clientName={clientData?.nama || 'Klien'}
-        description={`Pembayaran sewa scaffolding - ${contractData.keterangan || 'Invoice ' + contractData.invoice}`}
-        amount={amount}
-        invoiceNumber={contractData.invoice || undefined}
-        paymentDate={paymentDate}
-        settings={templateSettings}
-        customTextElements={customTextElements}
-      />
-    );
-  };
+  const renderLoadingState = () => (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -198,9 +154,42 @@ export function PublicDocumentPreviewModal({
 
         <ScrollArea className="h-[75vh] sm:h-[70vh]">
           <div className="py-2 sm:py-4">
-            <ResponsiveDocumentWrapper documentRef={documentRef}>
-              {renderDocument()}
-            </ResponsiveDocumentWrapper>
+            {isLoading || !verificationCode ? (
+              renderLoadingState()
+            ) : (
+              <ResponsiveDocumentWrapper>
+                {documentType === 'invoice' ? (
+                  <InvoiceTemplate
+                    ref={documentRef}
+                    documentNumber={contractData.invoice || `INV-${contractData.id.substring(0, 8)}`}
+                    verificationCode={verificationCode}
+                    issuedAt={contractData.tanggal ? new Date(contractData.tanggal) : new Date()}
+                    clientName={clientData?.nama || 'Klien'}
+                    description={contractData.keterangan || 'Sewa Scaffolding'}
+                    amount={contractData.tagihan}
+                    contractInvoice={contractData.invoice || undefined}
+                    period={`${contractData.start_date} - ${contractData.end_date}`}
+                    settings={templateSettings}
+                    contractBankInfo={bankInfo || undefined}
+                    accessCode={accessCode}
+                  />
+                ) : (
+                  <ReceiptTemplate
+                    ref={documentRef}
+                    documentNumber={`KWT-${contractData.invoice || contractData.id.substring(0, 8)}`}
+                    verificationCode={verificationCode}
+                    issuedAt={contractData.tanggal ? new Date(contractData.tanggal) : new Date()}
+                    clientName={clientData?.nama || 'Klien'}
+                    description={`Pembayaran sewa scaffolding - ${contractData.keterangan || 'Invoice ' + contractData.invoice}`}
+                    amount={paymentData?.amount || (contractData.tagihan - contractData.tagihan_belum_bayar)}
+                    invoiceNumber={contractData.invoice || undefined}
+                    paymentDate={paymentData?.payment_date ? new Date(paymentData.payment_date) : undefined}
+                    settings={templateSettings}
+                    customTextElements={customTextElements}
+                  />
+                )}
+              </ResponsiveDocumentWrapper>
+            )}
           </div>
         </ScrollArea>
       </DialogContent>

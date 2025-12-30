@@ -390,7 +390,7 @@ const ManualInvoice = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Document Preview */}
         <div className="flex-1 overflow-auto p-2 sm:p-4 bg-muted/30">
-          <ResponsiveDocumentWrapper documentRef={documentRef}>
+          <ResponsiveDocumentWrapper>
             <Card className="bg-white shadow-lg">
               <div
                 ref={documentRef}

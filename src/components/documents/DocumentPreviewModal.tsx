@@ -209,9 +209,10 @@ export const DocumentPreviewModal = ({
         
         <ScrollArea className="h-[75vh] sm:h-[70vh]">
           <div className="py-2 sm:py-4">
-            <ResponsiveDocumentWrapper documentRef={documentRef}>
+            <ResponsiveDocumentWrapper>
               {documentData.documentType === 'invoice' ? (
                 <InvoiceTemplate
+                  ref={documentRef}
                   documentNumber={documentData.documentNumber}
                   verificationCode={documentData.verificationCode}
                   issuedAt={documentData.issuedAt}
@@ -227,6 +228,7 @@ export const DocumentPreviewModal = ({
                 />
               ) : (
                 <ReceiptTemplate
+                  ref={documentRef}
                   documentNumber={documentData.documentNumber}
                   verificationCode={documentData.verificationCode}
                   issuedAt={documentData.issuedAt}

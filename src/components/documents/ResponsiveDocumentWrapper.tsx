@@ -2,7 +2,6 @@ import { useRef, useState, useEffect, ReactNode } from "react";
 
 interface ResponsiveDocumentWrapperProps {
   children: ReactNode;
-  documentRef?: React.RefObject<HTMLDivElement>;
 }
 
 const A4_WIDTH_PX = 793; // 210mm in pixels at 96dpi
@@ -10,7 +9,6 @@ const A4_HEIGHT_PX = 1122; // 297mm in pixels at 96dpi
 
 export const ResponsiveDocumentWrapper = ({
   children,
-  documentRef,
 }: ResponsiveDocumentWrapperProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -41,7 +39,7 @@ export const ResponsiveDocumentWrapper = ({
           marginBottom: scale < 1 ? -(A4_HEIGHT_PX * (1 - scale)) : 0,
         }}
       >
-        <div ref={documentRef}>{children}</div>
+        {children}
       </div>
     </div>
   );
