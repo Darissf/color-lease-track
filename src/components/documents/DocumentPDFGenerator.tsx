@@ -47,44 +47,62 @@ export const DocumentPDFGenerator = ({
       return;
     }
 
-    const element = documentRef.current;
-    const container = element.parentElement;
+    let captureContainer: HTMLDivElement | null = null;
 
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
       
-      // Simpan state original
-      const originalVisibility = container?.style.visibility;
-      const originalZIndex = container?.style.zIndex;
+      const element = documentRef.current;
       
-      // Buat visible untuk capture (visibility trick untuk mobile)
-      if (container) {
-        container.style.visibility = 'visible';
-        container.style.zIndex = '9999';
-      }
-
-      // Tunggu browser fully render (penting untuk mobile)
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Force browser to recalculate layout
-      element.getBoundingClientRect();
-
-      // Capture - biarkan html2canvas capture actual size dari fixed A4 container
-      const canvas = await html2canvas(element, {
+      // 1. Clone the visible element
+      const clone = element.cloneNode(true) as HTMLElement;
+      
+      // 2. Create a container for the clone with FIXED A4 size
+      captureContainer = document.createElement('div');
+      captureContainer.id = 'pdf-clone-container';
+      captureContainer.style.cssText = `
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 793px;
+        height: 1122px;
+        background: white;
+        z-index: 99999;
+        overflow: visible;
+        pointer-events: none;
+      `;
+      
+      // 3. Reset any transforms on clone and set fixed size
+      clone.style.transform = 'none';
+      clone.style.width = '793px';
+      clone.style.minWidth = '793px';
+      clone.style.maxWidth = '793px';
+      clone.style.height = 'auto';
+      clone.style.minHeight = '1122px';
+      
+      captureContainer.appendChild(clone);
+      document.body.appendChild(captureContainer);
+      
+      // 4. Wait for browser to render the clone
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // 5. Force layout recalculation
+      clone.getBoundingClientRect();
+      
+      // 6. Capture the clone
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: 793,  // A4 width in px at 96dpi
-        windowHeight: 1122, // A4 height in px at 96dpi
+        width: 793,
+        height: 1122,
       });
-
-      // Kembalikan ke hidden state
-      if (container) {
-        container.style.visibility = originalVisibility || 'hidden';
-        container.style.zIndex = originalZIndex || '-9999';
-      }
+      
+      // 7. Remove the clone container
+      document.body.removeChild(captureContainer);
+      captureContainer = null;
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");
@@ -129,10 +147,9 @@ export const DocumentPDFGenerator = ({
       toast.success("PDF berhasil dibuat!", { id: "pdf-generate" });
       onComplete?.();
     } catch (error) {
-      // Pastikan selalu kembalikan ke hidden meski error
-      if (container) {
-        container.style.visibility = 'hidden';
-        container.style.zIndex = '-9999';
+      // Cleanup clone if exists
+      if (captureContainer && document.body.contains(captureContainer)) {
+        document.body.removeChild(captureContainer);
       }
       console.error("Error generating PDF:", error);
       toast.error("Gagal membuat PDF", { id: "pdf-generate" });
@@ -145,44 +162,62 @@ export const DocumentPDFGenerator = ({
       return;
     }
 
-    const element = documentRef.current;
-    const container = element.parentElement;
+    let captureContainer: HTMLDivElement | null = null;
 
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
       
-      // Simpan state original
-      const originalVisibility = container?.style.visibility;
-      const originalZIndex = container?.style.zIndex;
+      const element = documentRef.current;
       
-      // Buat visible untuk capture (visibility trick untuk mobile)
-      if (container) {
-        container.style.visibility = 'visible';
-        container.style.zIndex = '9999';
-      }
-
-      // Tunggu browser fully render (penting untuk mobile)
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Force browser to recalculate layout
-      element.getBoundingClientRect();
-
-      // Capture - biarkan html2canvas capture actual size
-      const canvas = await html2canvas(element, {
+      // 1. Clone the visible element
+      const clone = element.cloneNode(true) as HTMLElement;
+      
+      // 2. Create a container for the clone with FIXED A4 size
+      captureContainer = document.createElement('div');
+      captureContainer.id = 'print-clone-container';
+      captureContainer.style.cssText = `
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 793px;
+        height: 1122px;
+        background: white;
+        z-index: 99999;
+        overflow: visible;
+        pointer-events: none;
+      `;
+      
+      // 3. Reset any transforms on clone and set fixed size
+      clone.style.transform = 'none';
+      clone.style.width = '793px';
+      clone.style.minWidth = '793px';
+      clone.style.maxWidth = '793px';
+      clone.style.height = 'auto';
+      clone.style.minHeight = '1122px';
+      
+      captureContainer.appendChild(clone);
+      document.body.appendChild(captureContainer);
+      
+      // 4. Wait for browser to render the clone
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // 5. Force layout recalculation
+      clone.getBoundingClientRect();
+      
+      // 6. Capture the clone
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: 793,
-        windowHeight: 1122,
+        width: 793,
+        height: 1122,
       });
-
-      // Kembalikan ke hidden state
-      if (container) {
-        container.style.visibility = originalVisibility || 'hidden';
-        container.style.zIndex = originalZIndex || '-9999';
-      }
+      
+      // 7. Remove the clone container
+      document.body.removeChild(captureContainer);
+      captureContainer = null;
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");
@@ -217,10 +252,9 @@ export const DocumentPDFGenerator = ({
       toast.success("Siap untuk dicetak!", { id: "pdf-print" });
       onComplete?.();
     } catch (error) {
-      // Pastikan selalu kembalikan ke hidden meski error
-      if (container) {
-        container.style.visibility = 'hidden';
-        container.style.zIndex = '-9999';
+      // Cleanup clone if exists
+      if (captureContainer && document.body.contains(captureContainer)) {
+        document.body.removeChild(captureContainer);
       }
       console.error("Error printing:", error);
       toast.error("Gagal mencetak dokumen", { id: "pdf-print" });
