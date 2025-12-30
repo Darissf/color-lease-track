@@ -436,20 +436,30 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             </div>
           )}
 
-          {/* Signature Section */}
+          {/* Signature Section - Absolute positioning with X/Y */}
           {settings.show_signature !== false && (
-            <div className="flex justify-end items-end mb-8">
-              {/* Signature on Right */}
-              <div className="text-center">
+            <div 
+              className="absolute pointer-events-none"
+              style={{
+                left: `${settings.receipt_layout_settings?.signature_position_x ?? 75}%`,
+                top: `${settings.receipt_layout_settings?.signature_position_y ?? 85}%`,
+                transform: 'translate(-50%, -50%)'
+              }}
+            >
+              <div className="text-center pointer-events-auto">
                 <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
                 {settings.signature_url ? (
                   <img 
                     src={settings.signature_url} 
                     alt="Signature" 
-                    className="h-16 w-auto mx-auto object-contain"
+                    className="mx-auto object-contain"
+                    style={{ 
+                      maxWidth: `${(settings.signature_scale ?? 100) * 3}px`,
+                      maxHeight: `${(settings.signature_scale ?? 100) * 2}px`
+                    }}
                   />
                 ) : (
-                  <div className="h-16 w-32 border-b border-gray-400" />
+                  <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
                 )}
                 <p className="font-semibold mt-2">{settings.signer_name || settings.company_name}</p>
                 {settings.signer_title && (

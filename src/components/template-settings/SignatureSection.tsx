@@ -2,15 +2,16 @@ import React, { useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Upload, Trash2, Image as ImageIcon } from 'lucide-react';
-import { TemplateSettings } from './types';
+import { TemplateSettings, LayoutSettings } from './types';
 
 interface SignatureSectionProps {
   settings: TemplateSettings;
   updateSetting: <K extends keyof TemplateSettings>(key: K, value: TemplateSettings[K]) => void;
+  layoutSettings: LayoutSettings;
+  updateLayoutSetting: <K extends keyof LayoutSettings>(key: K, value: LayoutSettings[K]) => void;
   onFileSelect: (file: File, target: string) => void;
   onRemoveImage: (field: string) => void;
   uploading: boolean;
@@ -19,6 +20,8 @@ interface SignatureSectionProps {
 export const SignatureSection: React.FC<SignatureSectionProps> = ({
   settings,
   updateSetting,
+  layoutSettings,
+  updateLayoutSetting,
   onFileSelect,
   onRemoveImage,
   uploading,
@@ -46,21 +49,42 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
 
       {settings.show_signature !== false && (
         <>
-          {/* Position */}
+          {/* Position X */}
           <div className="space-y-2">
-            <Label className="text-xs">Posisi Tanda Tangan</Label>
-            <Select
-              value={settings.signature_position || 'right'}
-              onValueChange={(value) => updateSetting('signature_position', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="left">Kiri</SelectItem>
-                <SelectItem value="right">Kanan</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Posisi Horizontal (X)</Label>
+              <span className="text-xs text-muted-foreground">{layoutSettings.signature_position_x ?? 75}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground w-8">Kiri</span>
+              <Slider
+                value={[layoutSettings.signature_position_x ?? 75]}
+                onValueChange={([v]) => updateLayoutSetting('signature_position_x', v)}
+                min={10}
+                max={90}
+                step={1}
+              />
+              <span className="text-xs text-muted-foreground w-10">Kanan</span>
+            </div>
+          </div>
+
+          {/* Position Y */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Posisi Vertikal (Y)</Label>
+              <span className="text-xs text-muted-foreground">{layoutSettings.signature_position_y ?? 85}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground w-8">Atas</span>
+              <Slider
+                value={[layoutSettings.signature_position_y ?? 85]}
+                onValueChange={([v]) => updateLayoutSetting('signature_position_y', v)}
+                min={50}
+                max={95}
+                step={1}
+              />
+              <span className="text-xs text-muted-foreground w-10">Bawah</span>
+            </div>
           </div>
 
           {/* Label Text */}
