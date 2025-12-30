@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { TemplateSettings } from './types';
+import { TemplateSettings, LayoutSettings } from './types';
+import { Badge } from '@/components/ui/badge';
 
 interface AdvancedSectionProps {
   settings: TemplateSettings;
@@ -12,11 +13,17 @@ interface AdvancedSectionProps {
   onFileSelect: (file: File, target: string) => void;
   onRemoveImage: (field: string) => void;
   uploading: boolean;
+  activeTab: 'invoice' | 'receipt';
+  layoutSettings: LayoutSettings;
+  updateLayoutSetting: (key: string, value: any) => void;
 }
 
 export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
   settings,
   updateSetting,
+  activeTab,
+  layoutSettings,
+  updateLayoutSetting,
 }) => {
   return (
     <div className="space-y-6">
@@ -53,15 +60,23 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
               />
             )}
 
+            {/* Badge to show which document type is being edited */}
+            <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+              <span className="text-xs text-muted-foreground">Pengaturan posisi untuk:</span>
+              <Badge variant={activeTab === 'invoice' ? 'default' : 'secondary'}>
+                {activeTab === 'invoice' ? 'Invoice' : 'Kwitansi'}
+              </Badge>
+            </div>
+
             {/* Ukuran Watermark */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Ukuran</Label>
-                <span className="text-sm">{settings.watermark_size ?? 300}px</span>
+                <span className="text-sm">{layoutSettings.watermark_size ?? 300}px</span>
               </div>
               <Slider
-                value={[settings.watermark_size ?? 300]}
-                onValueChange={([value]) => updateSetting('watermark_size', value)}
+                value={[layoutSettings.watermark_size ?? 300]}
+                onValueChange={([value]) => updateLayoutSetting('watermark_size', value)}
                 min={50}
                 max={500}
                 step={10}
@@ -72,11 +87,11 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Rotasi</Label>
-                <span className="text-sm">{settings.watermark_rotation ?? -45}°</span>
+                <span className="text-sm">{layoutSettings.watermark_rotation ?? -45}°</span>
               </div>
               <Slider
-                value={[settings.watermark_rotation ?? -45]}
-                onValueChange={([value]) => updateSetting('watermark_rotation', value)}
+                value={[layoutSettings.watermark_rotation ?? -45]}
+                onValueChange={([value]) => updateLayoutSetting('watermark_rotation', value)}
                 min={-180}
                 max={180}
                 step={5}
@@ -87,11 +102,11 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Posisi Horizontal</Label>
-                <span className="text-sm">{settings.watermark_position_x ?? 50}%</span>
+                <span className="text-sm">{layoutSettings.watermark_position_x ?? 50}%</span>
               </div>
               <Slider
-                value={[settings.watermark_position_x ?? 50]}
-                onValueChange={([value]) => updateSetting('watermark_position_x', value)}
+                value={[layoutSettings.watermark_position_x ?? 50]}
+                onValueChange={([value]) => updateLayoutSetting('watermark_position_x', value)}
                 min={0}
                 max={100}
                 step={1}
@@ -106,11 +121,11 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Posisi Vertikal</Label>
-                <span className="text-sm">{settings.watermark_position_y ?? 50}%</span>
+                <span className="text-sm">{layoutSettings.watermark_position_y ?? 50}%</span>
               </div>
               <Slider
-                value={[settings.watermark_position_y ?? 50]}
-                onValueChange={([value]) => updateSetting('watermark_position_y', value)}
+                value={[layoutSettings.watermark_position_y ?? 50]}
+                onValueChange={([value]) => updateLayoutSetting('watermark_position_y', value)}
                 min={0}
                 max={100}
                 step={1}
@@ -125,11 +140,11 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Opacity</Label>
-                <span className="text-sm">{settings.watermark_opacity}%</span>
+                <span className="text-sm">{layoutSettings.watermark_opacity ?? 10}%</span>
               </div>
               <Slider
-                value={[settings.watermark_opacity]}
-                onValueChange={([value]) => updateSetting('watermark_opacity', value)}
+                value={[layoutSettings.watermark_opacity ?? 10]}
+                onValueChange={([value]) => updateLayoutSetting('watermark_opacity', value)}
                 min={1}
                 max={30}
                 step={1}
@@ -151,14 +166,22 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
 
         {settings.show_qr_code && (
           <div className="space-y-4">
+            {/* Badge to show which document type is being edited */}
+            <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+              <span className="text-xs text-muted-foreground">Pengaturan untuk:</span>
+              <Badge variant={activeTab === 'invoice' ? 'default' : 'secondary'}>
+                {activeTab === 'invoice' ? 'Invoice' : 'Kwitansi'}
+              </Badge>
+            </div>
+
             <div className="space-y-2">
               <div className="flex justify-between">
                 <Label className="text-xs">Ukuran QR</Label>
-                <span className="text-sm">{settings.qr_size}px</span>
+                <span className="text-sm">{layoutSettings.qr_size ?? 80}px</span>
               </div>
               <Slider
-                value={[settings.qr_size]}
-                onValueChange={([value]) => updateSetting('qr_size', value)}
+                value={[layoutSettings.qr_size ?? 80]}
+                onValueChange={([value]) => updateLayoutSetting('qr_size', value)}
                 min={60}
                 max={120}
                 step={10}
@@ -166,8 +189,8 @@ export const AdvancedSection: React.FC<AdvancedSectionProps> = ({
             </div>
 
             <Select
-              value={settings.qr_position}
-              onValueChange={(value) => updateSetting('qr_position', value)}
+              value={layoutSettings.qr_position ?? 'bottom-section'}
+              onValueChange={(value) => updateLayoutSetting('qr_position', value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Posisi QR" />

@@ -1877,6 +1877,7 @@ export type Database = {
           icon_website_url: string | null
           icon_whatsapp_url: string | null
           id: string
+          invoice_layout_settings: Json | null
           invoice_logo_url: string | null
           invoice_prefix: string | null
           label_amount: string | null
@@ -1895,6 +1896,7 @@ export type Database = {
           qr_include_amount: boolean | null
           qr_position: string | null
           qr_size: number | null
+          receipt_layout_settings: Json | null
           receipt_prefix: string | null
           receipt_title: string | null
           show_bank_info: boolean | null
@@ -2011,6 +2013,7 @@ export type Database = {
           icon_website_url?: string | null
           icon_whatsapp_url?: string | null
           id?: string
+          invoice_layout_settings?: Json | null
           invoice_logo_url?: string | null
           invoice_prefix?: string | null
           label_amount?: string | null
@@ -2029,6 +2032,7 @@ export type Database = {
           qr_include_amount?: boolean | null
           qr_position?: string | null
           qr_size?: number | null
+          receipt_layout_settings?: Json | null
           receipt_prefix?: string | null
           receipt_title?: string | null
           show_bank_info?: boolean | null
@@ -2145,6 +2149,7 @@ export type Database = {
           icon_website_url?: string | null
           icon_whatsapp_url?: string | null
           id?: string
+          invoice_layout_settings?: Json | null
           invoice_logo_url?: string | null
           invoice_prefix?: string | null
           label_amount?: string | null
@@ -2163,6 +2168,7 @@ export type Database = {
           qr_include_amount?: boolean | null
           qr_position?: string | null
           qr_size?: number | null
+          receipt_layout_settings?: Json | null
           receipt_prefix?: string | null
           receipt_title?: string | null
           show_bank_info?: boolean | null

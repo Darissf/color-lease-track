@@ -143,6 +143,13 @@ export const DocumentPreviewModal = ({
         ...data,
         // Use brand settings as fallback for logo
         invoice_logo_url: data.invoice_logo_url || brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || defaultSettings.invoice_logo_url,
+        // Parse JSONB layout settings
+        invoice_layout_settings: typeof data.invoice_layout_settings === 'object' && data.invoice_layout_settings
+          ? { ...defaultSettings.invoice_layout_settings, ...data.invoice_layout_settings }
+          : defaultSettings.invoice_layout_settings,
+        receipt_layout_settings: typeof data.receipt_layout_settings === 'object' && data.receipt_layout_settings
+          ? { ...defaultSettings.receipt_layout_settings, ...data.receipt_layout_settings }
+          : defaultSettings.receipt_layout_settings,
       };
       setTemplateSettings(mergedSettings);
     } else {
