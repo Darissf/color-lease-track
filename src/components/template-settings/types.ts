@@ -83,6 +83,12 @@ export interface TemplateSettings {
   show_stamp_on_invoice: boolean;
   show_stamp_on_receipt: boolean;
   
+  // Custom stamp text and free positioning
+  stamp_custom_text: string;
+  stamp_use_custom_text: boolean;
+  stamp_position_x: number;
+  stamp_position_y: number;
+  
   // Watermark
   show_watermark: boolean;
   watermark_type: string;
@@ -227,6 +233,12 @@ export const defaultSettings: TemplateSettings = {
   stamp_size: 'md',
   show_stamp_on_invoice: false,
   show_stamp_on_receipt: true,
+  
+  // Custom stamp text and free positioning
+  stamp_custom_text: 'LUNAS',
+  stamp_use_custom_text: false,
+  stamp_position_x: 10,
+  stamp_position_y: 70,
   
   show_watermark: false,
   watermark_type: 'logo',

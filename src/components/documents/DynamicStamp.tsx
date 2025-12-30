@@ -2,12 +2,13 @@ import { cn } from "@/lib/utils";
 import { TemplateSettings } from "@/components/template-settings/types";
 
 interface DynamicStampProps {
-  status: 'LUNAS' | 'BELUM_LUNAS';
+  status: 'LUNAS' | 'BELUM_LUNAS' | 'CUSTOM';
   documentNumber: string;
   companyName: string;
   date: string;
   settings?: Partial<TemplateSettings>;
   className?: string;
+  customText?: string;
 }
 
 export const DynamicStamp = ({
@@ -17,8 +18,20 @@ export const DynamicStamp = ({
   date,
   settings,
   className,
+  customText,
 }: DynamicStampProps) => {
   const isLunas = status === 'LUNAS';
+  const isCustom = status === 'CUSTOM';
+  
+  // Determine display text
+  const getDisplayText = () => {
+    if (isCustom && customText) return customText;
+    if (settings?.stamp_use_custom_text && settings?.stamp_custom_text) {
+      return settings.stamp_custom_text;
+    }
+    return isLunas ? 'LUNAS' : 'BELUM LUNAS';
+  };
+  const displayText = getDisplayText();
   
   // Get settings with defaults
   const stampType = settings?.stamp_type || 'rectangle';
@@ -137,7 +150,7 @@ export const DynamicStamp = ({
           dominantBaseline="middle"
           letterSpacing="3"
         >
-          {isLunas ? 'LUNAS' : 'BELUM LUNAS'}
+          {displayText}
         </text>
 
         {/* Document number */}
@@ -243,7 +256,7 @@ export const DynamicStamp = ({
           {/* Status text */}
           <text
             x={cx}
-            y={cy - 8}
+            y={cy}
             fontSize={dims.fontSize * 0.8}
             fill={primaryColor}
             fontWeight="900"
@@ -251,23 +264,8 @@ export const DynamicStamp = ({
             dominantBaseline="middle"
             letterSpacing="2"
           >
-            {isLunas ? 'LUNAS' : 'BELUM'}
+            {displayText}
           </text>
-          
-          {!isLunas && (
-            <text
-              x={cx}
-              y={cy + 8}
-              fontSize={dims.fontSize * 0.6}
-              fill={primaryColor}
-              fontWeight="900"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              letterSpacing="2"
-            >
-              LUNAS
-            </text>
-          )}
 
           {/* Date */}
           {showDate && (
@@ -340,7 +338,7 @@ export const DynamicStamp = ({
           dominantBaseline="middle"
           letterSpacing="3"
         >
-          {isLunas ? 'LUNAS' : 'BELUM LUNAS'}
+          {displayText}
         </text>
 
         {/* Date and company */}

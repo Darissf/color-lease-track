@@ -430,23 +430,9 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
           </div>
         )}
 
-        {/* Signature Section - No stamp on invoice by default */}
+        {/* Signature Section */}
         {settings.show_signature !== false && (
-          <div className="flex justify-between items-end mb-8">
-            {/* Stamp on LEFT (only if show_stamp_on_invoice is true) */}
-            {settings.show_stamp_on_invoice && (
-              <DynamicStamp
-                status="BELUM_LUNAS"
-                documentNumber={sampleData.documentNumber}
-                companyName={settings.company_name || ''}
-                date={format(new Date(), 'dd/MM/yyyy')}
-                settings={settings}
-              />
-            )}
-            
-            {/* Spacer if no stamp */}
-            {!settings.show_stamp_on_invoice && <div />}
-            
+          <div className="flex justify-end items-end mb-8">
             {/* Signature on RIGHT */}
             <div className="text-center">
               <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
@@ -464,6 +450,27 @@ export function InvoiceTemplatePreview({ settings }: InvoiceTemplatePreviewProps
                 <p className="text-sm text-gray-500">{sampleData.signerTitle}</p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Free-positioned Stamp */}
+        {settings.show_stamp_on_invoice && (
+          <div 
+            className="absolute pointer-events-none"
+            style={{
+              left: `${settings.stamp_position_x ?? 10}%`,
+              top: `${settings.stamp_position_y ?? 70}%`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <DynamicStamp
+              status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
+              customText={settings.stamp_custom_text}
+              documentNumber={sampleData.documentNumber}
+              companyName={settings.company_name || ''}
+              date={format(new Date(), 'dd/MM/yyyy')}
+              settings={settings}
+            />
           </div>
         )}
 
