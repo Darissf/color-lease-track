@@ -304,16 +304,63 @@ function applyCriticalInlineStyles(container: HTMLElement): {
     el.style.visibility = computed.visibility;
   });
 
+  // === HELPER: Detect QR Code SVGs (react-qr-code generates specific patterns) ===
+  function isQrCodeSvg(svg: SVGElement): boolean {
+    // Method 1: Check parent containers for QR-related markers
+    if (svg.closest('[data-qr]') || 
+        svg.closest('.qr-code-container') || 
+        svg.closest('[class*="qr"]')) {
+      return true;
+    }
+    
+    // Method 2: react-qr-code uses shape-rendering="crispEdges"
+    const shapeRendering = svg.getAttribute('shape-rendering');
+    if (shapeRendering === 'crispEdges') {
+      return true;
+    }
+    
+    // Method 3: Check if it's a square viewBox with many fill-based paths (QR pattern)
+    const viewBox = svg.getAttribute('viewBox');
+    if (viewBox) {
+      const parts = viewBox.split(' ');
+      if (parts.length === 4) {
+        const width = parseFloat(parts[2]);
+        const height = parseFloat(parts[3]);
+        // QR codes are square and typically have viewBox like "0 0 29 29"
+        if (width === height && width > 15) {
+          const paths = svg.querySelectorAll('path');
+          if (paths.length > 5) {
+            // QR code paths use fill (not stroke) - count fill-only paths
+            let fillPathCount = 0;
+            paths.forEach(path => {
+              const fill = path.getAttribute('fill');
+              const stroke = path.getAttribute('stroke');
+              if (fill && fill !== 'none' && (!stroke || stroke === 'none')) {
+                fillPathCount++;
+              }
+            });
+            // If most paths are fill-based, it's a QR code
+            if (fillPathCount > paths.length / 2) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    
+    return false;
+  }
+
   // === SVG ICONS (Critical for lucide-react icons) ===
   const svgs = container.querySelectorAll('svg');
   svgs.forEach((svg) => {
     if (!(svg instanceof SVGElement)) return;
 
-    // ===== SKIP SVG inside QR containers =====
-    const isQrSvg = svg.closest('.qr-code-container') !== null ||
-                    svg.closest('[data-qr]') !== null ||
-                    svg.closest('[class*="qr"]') !== null;
-    if (isQrSvg) return; // Skip QR SVGs entirely
+    // ===== SKIP QR Code SVGs using enhanced detection =====
+    if (isQrCodeSvg(svg)) {
+      console.log('[PDF] Skipping QR code SVG');
+      return; // Skip QR SVGs entirely - do not modify!
+    }
 
     // Save original attributes
     savedSvgs.push({
