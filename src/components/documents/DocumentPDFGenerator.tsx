@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { createRoot } from "react-dom/client";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InvoiceTemplate } from "./InvoiceTemplate";
+import { ReceiptTemplate } from "./ReceiptTemplate";
 
 type Orientation = "portrait" | "landscape";
 type PaperSize = "a4" | "letter" | "legal";
@@ -22,6 +25,9 @@ interface DocumentPDFGeneratorProps {
   showOptions?: boolean;
   defaultOrientation?: Orientation;
   defaultPaperSize?: PaperSize;
+  // New props for off-screen rendering
+  documentType?: 'invoice' | 'kwitansi';
+  templateProps?: Record<string, any>;
 }
 
 const PAPER_SIZES: Record<PaperSize, { width: number; height: number; label: string }> = {
@@ -30,6 +36,10 @@ const PAPER_SIZES: Record<PaperSize, { width: number; height: number; label: str
   legal: { width: 216, height: 356, label: "Legal" },
 };
 
+// A4 at 96 DPI
+const A4_WIDTH_PX = 793;
+const A4_HEIGHT_PX = 1122;
+
 export const DocumentPDFGenerator = ({
   documentRef,
   fileName,
@@ -37,84 +47,101 @@ export const DocumentPDFGenerator = ({
   showOptions = true,
   defaultOrientation = "portrait",
   defaultPaperSize = "a4",
+  documentType,
+  templateProps,
 }: DocumentPDFGeneratorProps) => {
   const [orientation, setOrientation] = useState<Orientation>(defaultOrientation);
   const [paperSize, setPaperSize] = useState<PaperSize>(defaultPaperSize);
 
   const generatePDF = useCallback(async () => {
-    if (!documentRef.current) {
+    // Prefer off-screen rendering if templateProps provided
+    if (!templateProps && !documentRef.current) {
       toast.error("Dokumen tidak ditemukan");
       return;
     }
 
-    // Store elements that we modify for restoration
-    const elementsToRestore: Array<{el: HTMLElement, original: string}> = [];
+    let offScreenContainer: HTMLDivElement | null = null;
+    let root: ReturnType<typeof createRoot> | null = null;
 
     try {
       toast.loading("Membuat PDF...", { id: "pdf-generate" });
-      
-      const element = documentRef.current;
-      
-      // 1. Walk up the DOM tree and reset ALL inline styles (not just transform)
-      let currentEl = element.parentElement;
-      while (currentEl && currentEl !== document.body) {
-        // Save ALL inline styles if any exist
-        if (currentEl.style.cssText) {
-          elementsToRestore.push({
-            el: currentEl,
-            original: currentEl.style.cssText
-          });
-          // Reset ALL inline styles first
-          currentEl.style.cssText = '';
-          // Then set safe defaults
-          currentEl.style.width = 'auto';
-          currentEl.style.height = 'auto';
-          currentEl.style.overflow = 'visible';
-          currentEl.style.transform = 'none';
-        }
-        currentEl = currentEl.parentElement;
+
+      // Create off-screen container with exact A4 pixel dimensions
+      offScreenContainer = document.createElement('div');
+      offScreenContainer.id = 'pdf-offscreen-container';
+      offScreenContainer.style.cssText = `
+        position: fixed;
+        left: -9999px;
+        top: 0;
+        width: ${A4_WIDTH_PX}px;
+        min-height: ${A4_HEIGHT_PX}px;
+        background: white;
+        overflow: visible;
+        z-index: -1;
+      `;
+      document.body.appendChild(offScreenContainer);
+
+      // Render template to off-screen container
+      if (templateProps && documentType) {
+        root = createRoot(offScreenContainer);
+        
+        await new Promise<void>((resolve) => {
+          const wrapperStyle = { 
+            width: `${A4_WIDTH_PX}px`,
+            minHeight: `${A4_HEIGHT_PX}px`,
+            background: 'white',
+            overflow: 'visible' as const,
+          };
+          
+          if (documentType === 'invoice') {
+            root!.render(
+              <div style={wrapperStyle}>
+                <InvoiceTemplate {...(templateProps as any)} />
+              </div>
+            );
+          } else {
+            root!.render(
+              <div style={wrapperStyle}>
+                <ReceiptTemplate {...(templateProps as any)} />
+              </div>
+            );
+          }
+          // Wait for React to finish rendering
+          setTimeout(resolve, 500);
+        });
+      } else if (documentRef.current) {
+        // Fallback: clone existing element
+        const clone = documentRef.current.cloneNode(true) as HTMLElement;
+        clone.style.cssText = `
+          width: ${A4_WIDTH_PX}px;
+          min-height: ${A4_HEIGHT_PX}px;
+          transform: none;
+          margin: 0;
+          position: static;
+        `;
+        offScreenContainer.appendChild(clone);
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
-      
-      // 2. Set element to fixed A4 size temporarily
-      const originalStyle = element.style.cssText;
-      elementsToRestore.push({ el: element, original: originalStyle });
-      
-      // Reset element styles first
-      element.style.cssText = '';
-      // Then set A4 dimensions
-      element.style.width = '793px';
-      element.style.minWidth = '793px';
-      element.style.maxWidth = '793px';
-      element.style.height = 'auto';
-      element.style.minHeight = '1122px';
-      element.style.transform = 'none';
-      element.style.transformOrigin = 'top left';
-      element.style.margin = '0';
-      element.style.position = 'static';
-      
-      // 3. Force reflow and wait for browser to render (longer wait)
-      await new Promise(resolve => setTimeout(resolve, 500));
-      element.getBoundingClientRect();
-      
-      // 4. Capture the original element directly - let html2canvas auto-detect size
-      const canvas = await html2canvas(element, {
+
+      // Force reflow
+      offScreenContainer.getBoundingClientRect();
+
+      // Capture with html2canvas
+      const canvas = await html2canvas(offScreenContainer, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: 793,
-        windowHeight: 1122,
-        scrollX: 0,
-        scrollY: 0,
-        x: 0,
-        y: 0,
+        width: A4_WIDTH_PX,
+        height: offScreenContainer.scrollHeight || A4_HEIGHT_PX,
       });
-      
-      // 5. Restore all original styles in reverse order (bottom-up)
-      elementsToRestore.reverse().forEach(({el, original}) => {
-        el.style.cssText = original;
-      });
+
+      // Cleanup
+      if (root) root.unmount();
+      if (offScreenContainer.parentNode) {
+        document.body.removeChild(offScreenContainer);
+      }
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");
@@ -140,7 +167,7 @@ export const DocumentPDFGenerator = ({
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       
-      // Fit image ke halaman PDF dengan mempertahankan aspect ratio
+      // Fit image to PDF page while maintaining aspect ratio
       const widthRatio = pdfWidth / imgWidth;
       const heightRatio = pdfHeight / imgHeight;
       const ratio = Math.min(widthRatio, heightRatio);
@@ -148,7 +175,7 @@ export const DocumentPDFGenerator = ({
       const scaledWidth = imgWidth * ratio;
       const scaledHeight = imgHeight * ratio;
       
-      // Center image di halaman
+      // Center image on page
       const offsetX = (pdfWidth - scaledWidth) / 2;
       const offsetY = (pdfHeight - scaledHeight) / 2;
 
@@ -159,89 +186,108 @@ export const DocumentPDFGenerator = ({
       toast.success("PDF berhasil dibuat!", { id: "pdf-generate" });
       onComplete?.();
     } catch (error) {
-      // Restore all styles on error (reverse order)
-      elementsToRestore.reverse().forEach(({el, original}) => {
-        el.style.cssText = original;
-      });
+      // Cleanup on error
+      if (root) {
+        try { root.unmount(); } catch {}
+      }
+      const container = document.getElementById('pdf-offscreen-container');
+      if (container?.parentNode) {
+        document.body.removeChild(container);
+      }
       console.error("Error generating PDF:", error);
       toast.error("Gagal membuat PDF", { id: "pdf-generate" });
     }
-  }, [documentRef, fileName, onComplete, orientation, paperSize]);
+  }, [documentRef, fileName, onComplete, orientation, paperSize, documentType, templateProps]);
 
   const printDocument = useCallback(async () => {
-    if (!documentRef.current) {
+    // Prefer off-screen rendering if templateProps provided
+    if (!templateProps && !documentRef.current) {
       toast.error("Dokumen tidak ditemukan");
       return;
     }
 
-    // Store elements that we modify for restoration
-    const elementsToRestore: Array<{el: HTMLElement, original: string}> = [];
+    let offScreenContainer: HTMLDivElement | null = null;
+    let root: ReturnType<typeof createRoot> | null = null;
 
     try {
       toast.loading("Menyiapkan cetak...", { id: "pdf-print" });
-      
-      const element = documentRef.current;
-      
-      // 1. Walk up the DOM tree and reset ALL inline styles (not just transform)
-      let currentEl = element.parentElement;
-      while (currentEl && currentEl !== document.body) {
-        // Save ALL inline styles if any exist
-        if (currentEl.style.cssText) {
-          elementsToRestore.push({
-            el: currentEl,
-            original: currentEl.style.cssText
-          });
-          // Reset ALL inline styles first
-          currentEl.style.cssText = '';
-          // Then set safe defaults
-          currentEl.style.width = 'auto';
-          currentEl.style.height = 'auto';
-          currentEl.style.overflow = 'visible';
-          currentEl.style.transform = 'none';
-        }
-        currentEl = currentEl.parentElement;
+
+      // Create off-screen container with exact A4 pixel dimensions
+      offScreenContainer = document.createElement('div');
+      offScreenContainer.id = 'pdf-offscreen-container';
+      offScreenContainer.style.cssText = `
+        position: fixed;
+        left: -9999px;
+        top: 0;
+        width: ${A4_WIDTH_PX}px;
+        min-height: ${A4_HEIGHT_PX}px;
+        background: white;
+        overflow: visible;
+        z-index: -1;
+      `;
+      document.body.appendChild(offScreenContainer);
+
+      // Render template to off-screen container
+      if (templateProps && documentType) {
+        root = createRoot(offScreenContainer);
+        
+        await new Promise<void>((resolve) => {
+          const wrapperStyle = { 
+            width: `${A4_WIDTH_PX}px`,
+            minHeight: `${A4_HEIGHT_PX}px`,
+            background: 'white',
+            overflow: 'visible' as const,
+          };
+          
+          if (documentType === 'invoice') {
+            root!.render(
+              <div style={wrapperStyle}>
+                <InvoiceTemplate {...(templateProps as any)} />
+              </div>
+            );
+          } else {
+            root!.render(
+              <div style={wrapperStyle}>
+                <ReceiptTemplate {...(templateProps as any)} />
+              </div>
+            );
+          }
+          // Wait for React to finish rendering
+          setTimeout(resolve, 500);
+        });
+      } else if (documentRef.current) {
+        // Fallback: clone existing element
+        const clone = documentRef.current.cloneNode(true) as HTMLElement;
+        clone.style.cssText = `
+          width: ${A4_WIDTH_PX}px;
+          min-height: ${A4_HEIGHT_PX}px;
+          transform: none;
+          margin: 0;
+          position: static;
+        `;
+        offScreenContainer.appendChild(clone);
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
-      
-      // 2. Set element to fixed A4 size temporarily
-      const originalStyle = element.style.cssText;
-      elementsToRestore.push({ el: element, original: originalStyle });
-      
-      // Reset element styles first
-      element.style.cssText = '';
-      // Then set A4 dimensions
-      element.style.width = '793px';
-      element.style.minWidth = '793px';
-      element.style.maxWidth = '793px';
-      element.style.height = 'auto';
-      element.style.minHeight = '1122px';
-      element.style.transform = 'none';
-      element.style.transformOrigin = 'top left';
-      element.style.margin = '0';
-      element.style.position = 'static';
-      
-      // 3. Force reflow and wait for browser to render (longer wait)
-      await new Promise(resolve => setTimeout(resolve, 500));
-      element.getBoundingClientRect();
-      
-      // 4. Capture the original element directly - let html2canvas auto-detect size
-      const canvas = await html2canvas(element, {
+
+      // Force reflow
+      offScreenContainer.getBoundingClientRect();
+
+      // Capture with html2canvas
+      const canvas = await html2canvas(offScreenContainer, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: 793,
-        windowHeight: 1122,
-        scrollX: 0,
-        scrollY: 0,
-        x: 0,
-        y: 0,
+        width: A4_WIDTH_PX,
+        height: offScreenContainer.scrollHeight || A4_HEIGHT_PX,
       });
-      
-      // 5. Restore all original styles in reverse order (bottom-up)
-      elementsToRestore.reverse().forEach(({el, original}) => {
-        el.style.cssText = original;
-      });
+
+      // Cleanup
+      if (root) root.unmount();
+      if (offScreenContainer.parentNode) {
+        document.body.removeChild(offScreenContainer);
+      }
 
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error("Canvas kosong");
@@ -276,14 +322,18 @@ export const DocumentPDFGenerator = ({
       toast.success("Siap untuk dicetak!", { id: "pdf-print" });
       onComplete?.();
     } catch (error) {
-      // Restore all styles on error (reverse order)
-      elementsToRestore.reverse().forEach(({el, original}) => {
-        el.style.cssText = original;
-      });
+      // Cleanup on error
+      if (root) {
+        try { root.unmount(); } catch {}
+      }
+      const container = document.getElementById('pdf-offscreen-container');
+      if (container?.parentNode) {
+        document.body.removeChild(container);
+      }
       console.error("Error printing:", error);
       toast.error("Gagal mencetak dokumen", { id: "pdf-print" });
     }
-  }, [documentRef, fileName, onComplete]);
+  }, [documentRef, fileName, onComplete, documentType, templateProps]);
 
   return (
     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
