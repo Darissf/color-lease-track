@@ -513,114 +513,114 @@ export function InvoiceTemplatePreview({
           </div>
         )}
 
-        {/* Signature Image Only - Positioned relative to content bottom */}
-        {settings.show_signature !== false && settings.signature_url && (
-          <div 
-            className="absolute pointer-events-none z-30"
-            style={{
-              left: `${settings.invoice_layout_settings?.signature_position_x ?? 80}%`,
-              bottom: settings.invoice_layout_settings?.signature_position_y !== undefined 
-                ? `${100 - settings.invoice_layout_settings.signature_position_y}%` 
-                : '15%',
-              transform: `translate(-50%, 50%) scale(${settings.invoice_layout_settings?.signature_scale ?? 1})`,
-              opacity: (settings.invoice_layout_settings?.signature_opacity ?? 100) / 100,
-            }}
-          >
-            <img 
-              src={settings.signature_url} 
-              alt="Signature" 
-              className="max-w-[200px] max-h-[100px] object-contain"
-            />
-          </div>
-        )}
-
-        {/* Free-positioned Stamp - Positioned relative to content bottom */}
-        {settings.show_stamp_on_invoice && (
-          <div 
-            className="absolute pointer-events-none z-40"
-            style={{
-              left: `${settings.invoice_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
-              bottom: settings.invoice_layout_settings?.stamp_position_y !== undefined 
-                ? `${100 - settings.invoice_layout_settings.stamp_position_y}%` 
-                : '30%',
-              transform: `translate(-50%, 50%) rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
-            }}
-          >
-            {settings.stamp_source === 'custom' ? (
-              <CustomStampRenderer
-                documentNumber={sampleData.documentNumber}
-                companyName={settings.company_name || ''}
-                date={format(new Date(), 'dd/MM/yyyy')}
-                opacity={settings.stamp_opacity}
-              />
-            ) : (
-              <DynamicStamp
-                status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
-                customText={settings.stamp_custom_text}
-                documentNumber={sampleData.documentNumber}
-                companyName={settings.company_name || ''}
-                date={format(new Date(), 'dd/MM/yyyy')}
-                settings={settings}
-              />
-            )}
-          </div>
-        )}
-
         {/* Footer */}
         {settings.show_footer !== false && settings.footer_text && (
           <div className="text-center text-sm text-gray-500 mb-4">
             {settings.footer_text}
           </div>
         )}
+      </div>
 
-        {/* QR Verification - Positioned relative to content bottom */}
-        {settings.show_qr_code && (
-          <div 
-            className="absolute pointer-events-none z-20"
-            style={{
-              left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
-              bottom: layoutSettings?.qr_verification_position_y !== undefined 
-                ? `${100 - layoutSettings.qr_verification_position_y}%` 
-                : '8%',
-              transform: `translate(-50%, 50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
-            }}
-          >
-            <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100">
-              <QRCode 
-                value={verificationUrl} 
-                size={layoutSettings?.qr_size ?? settings.qr_size ?? 80} 
-              />
-              <div className="text-sm">
-                <p className="text-gray-500">
-                  {settings.qr_verification_title || 'Scan untuk verifikasi dokumen'}
+      {/* QR Verification - OUTSIDE content wrapper, positioned relative to main container */}
+      {settings.show_qr_code && (
+        <div 
+          className="absolute pointer-events-none z-20"
+          style={{
+            left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
+            bottom: layoutSettings?.qr_verification_position_y !== undefined 
+              ? `${100 - layoutSettings.qr_verification_position_y}%` 
+              : '8%',
+            transform: `translate(-50%, 50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
+          }}
+        >
+          <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100">
+            <QRCode 
+              value={verificationUrl} 
+              size={layoutSettings?.qr_size ?? settings.qr_size ?? 80} 
+            />
+            <div className="text-sm">
+              <p className="text-gray-500">
+                {settings.qr_verification_title || 'Scan untuk verifikasi dokumen'}
+              </p>
+              <p className="font-mono text-xs text-gray-400 mt-1">
+                {settings.qr_verification_label || 'Kode:'} {sampleData.verificationCode}
+              </p>
+              {settings.show_qr_verification_url !== false && (
+                <p className="text-xs text-blue-600 break-all max-w-[150px]">
+                  {verificationUrl}
                 </p>
-                <p className="font-mono text-xs text-gray-400 mt-1">
-                  {settings.qr_verification_label || 'Kode:'} {sampleData.verificationCode}
-                </p>
-                {settings.show_qr_verification_url !== false && (
-                  <p className="text-xs text-blue-600 break-all max-w-[150px]">
-                    {verificationUrl}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Custom Text Elements */}
-        {customTextElements.filter(el => el.is_visible).map(element => (
-          <DraggableTextBox
-            key={element.id}
-            element={element}
-            isSelected={selectedElementId === element.id}
-            isEditing={isEditing}
-            onSelect={() => onSelectElement?.(element.id)}
-            onUpdate={(updates) => onUpdateElement?.(element.id, updates)}
-            onDelete={() => {}}
-            containerRef={documentRef}
+      {/* Signature Image Only - OUTSIDE content wrapper */}
+      {settings.show_signature !== false && settings.signature_url && (
+        <div 
+          className="absolute pointer-events-none z-30"
+          style={{
+            left: `${settings.invoice_layout_settings?.signature_position_x ?? 80}%`,
+            bottom: settings.invoice_layout_settings?.signature_position_y !== undefined 
+              ? `${100 - settings.invoice_layout_settings.signature_position_y}%` 
+              : '15%',
+            transform: `translate(-50%, 50%) scale(${settings.invoice_layout_settings?.signature_scale ?? 1})`,
+            opacity: (settings.invoice_layout_settings?.signature_opacity ?? 100) / 100,
+          }}
+        >
+          <img 
+            src={settings.signature_url} 
+            alt="Signature" 
+            className="max-w-[200px] max-h-[100px] object-contain"
           />
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Free-positioned Stamp - OUTSIDE content wrapper */}
+      {settings.show_stamp_on_invoice && (
+        <div 
+          className="absolute pointer-events-none z-40"
+          style={{
+            left: `${settings.invoice_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
+            bottom: settings.invoice_layout_settings?.stamp_position_y !== undefined 
+              ? `${100 - settings.invoice_layout_settings.stamp_position_y}%` 
+              : '30%',
+            transform: `translate(-50%, 50%) rotate(${settings.invoice_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.invoice_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+          }}
+        >
+          {settings.stamp_source === 'custom' ? (
+            <CustomStampRenderer
+              documentNumber={sampleData.documentNumber}
+              companyName={settings.company_name || ''}
+              date={format(new Date(), 'dd/MM/yyyy')}
+              opacity={settings.stamp_opacity}
+            />
+          ) : (
+            <DynamicStamp
+              status={settings.stamp_use_custom_text ? 'CUSTOM' : 'BELUM_LUNAS'}
+              customText={settings.stamp_custom_text}
+              documentNumber={sampleData.documentNumber}
+              companyName={settings.company_name || ''}
+              date={format(new Date(), 'dd/MM/yyyy')}
+              settings={settings}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Custom Text Elements - OUTSIDE content wrapper */}
+      {customTextElements.filter(el => el.is_visible).map(element => (
+        <DraggableTextBox
+          key={element.id}
+          element={element}
+          isSelected={selectedElementId === element.id}
+          isEditing={isEditing}
+          onSelect={() => onSelectElement?.(element.id)}
+          onUpdate={(updates) => onUpdateElement?.(element.id, updates)}
+          onDelete={() => {}}
+          containerRef={documentRef}
+        />
+      ))}
     </div>
   );
 }
