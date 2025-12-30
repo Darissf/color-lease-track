@@ -447,42 +447,6 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             </div>
           )}
 
-          {/* Free-positioned Stamp - uses receipt_layout_settings */}
-          {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
-            <div 
-              className="absolute pointer-events-none"
-              style={{
-                left: `${settings.receipt_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
-                top: `${settings.receipt_layout_settings?.stamp_position_y ?? settings.stamp_position_y ?? 70}%`,
-                transform: `translate(-50%, -50%) rotate(${settings.receipt_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.receipt_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
-              }}
-            >
-              {settings.stamp_source === 'custom' ? (
-                <CustomStampRenderer
-                  documentNumber={documentNumber}
-                  companyName={settings.company_name || ''}
-                  date={format(issuedAt, 'dd/MM/yyyy')}
-                  opacity={settings.stamp_opacity}
-                />
-              ) : settings.custom_stamp_url ? (
-                <img 
-                  src={settings.custom_stamp_url} 
-                  alt="Stamp" 
-                  className="h-24 w-24 object-contain"
-                  style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
-                />
-              ) : (
-                <DynamicStamp
-                  status="LUNAS"
-                  documentNumber={documentNumber}
-                  companyName={settings.company_name || 'Perusahaan'}
-                  date={format(issuedAt, 'dd/MM/yyyy')}
-                  settings={settings}
-                />
-              )}
-            </div>
-          )}
-
           {/* Footer */}
           {settings.show_footer !== false && settings.footer_text && (
             <div className="text-center text-sm text-gray-500 mb-4">
@@ -513,6 +477,42 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             </div>
           )}
         </div>
+
+        {/* Fixed-positioned Stamp - OUTSIDE content wrapper, uses receipt_layout_settings */}
+        {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
+          <div 
+            className="absolute pointer-events-none z-40"
+            style={{
+              left: `${settings.receipt_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
+              top: `${settings.receipt_layout_settings?.stamp_position_y ?? settings.stamp_position_y ?? 70}%`,
+              transform: `translate(-50%, -50%) rotate(${settings.receipt_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.receipt_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+            }}
+          >
+            {settings.stamp_source === 'custom' ? (
+              <CustomStampRenderer
+                documentNumber={documentNumber}
+                companyName={settings.company_name || ''}
+                date={format(issuedAt, 'dd/MM/yyyy')}
+                opacity={settings.stamp_opacity}
+              />
+            ) : settings.custom_stamp_url ? (
+              <img 
+                src={settings.custom_stamp_url} 
+                alt="Stamp" 
+                className="h-24 w-24 object-contain"
+                style={{ opacity: (settings.stamp_opacity || 80) / 100 }}
+              />
+            ) : (
+              <DynamicStamp
+                status="LUNAS"
+                documentNumber={documentNumber}
+                companyName={settings.company_name || 'Perusahaan'}
+                date={format(issuedAt, 'dd/MM/yyyy')}
+                settings={settings}
+              />
+            )}
+          </div>
+        )}
       </div>
     );
   }
