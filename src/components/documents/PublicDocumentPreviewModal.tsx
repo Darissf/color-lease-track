@@ -175,17 +175,6 @@ export function PublicDocumentPreviewModal({
           </DialogTitle>
         </DialogHeader>
         
-        {/* Hidden document for PDF generation - no transforms applied */}
-        {!isLoading && verificationCode && (
-          <div className="absolute left-[-9999px] top-0 opacity-0 pointer-events-none">
-            {documentType === 'invoice' && invoiceProps ? (
-              <InvoiceTemplate ref={documentRef} {...invoiceProps} />
-            ) : receiptProps ? (
-              <ReceiptTemplate ref={documentRef} {...receiptProps} />
-            ) : null}
-          </div>
-        )}
-        
         {!isLoading && verificationCode && (
           <div className="flex flex-col sm:flex-row gap-2 mb-2">
             <DocumentPDFGenerator
@@ -203,9 +192,9 @@ export function PublicDocumentPreviewModal({
         ) : isMobile ? (
           <ZoomableDocumentWrapper>
             {documentType === 'invoice' && invoiceProps ? (
-              <InvoiceTemplate {...invoiceProps} />
+              <InvoiceTemplate ref={documentRef} {...invoiceProps} />
             ) : receiptProps ? (
-              <ReceiptTemplate {...receiptProps} />
+              <ReceiptTemplate ref={documentRef} {...receiptProps} />
             ) : null}
           </ZoomableDocumentWrapper>
         ) : (
@@ -213,9 +202,9 @@ export function PublicDocumentPreviewModal({
             <div className="py-4">
               <ResponsiveDocumentWrapper>
                 {documentType === 'invoice' && invoiceProps ? (
-                  <InvoiceTemplate {...invoiceProps} />
+                  <InvoiceTemplate ref={documentRef} {...invoiceProps} />
                 ) : receiptProps ? (
-                  <ReceiptTemplate {...receiptProps} />
+                  <ReceiptTemplate ref={documentRef} {...receiptProps} />
                 ) : null}
               </ResponsiveDocumentWrapper>
             </div>
