@@ -252,23 +252,70 @@ const ManualReceipt = () => {
     if (!documentRef.current) return;
 
     try {
-      const canvas = await html2canvas(documentRef.current, {
+      toast.loading("Membuat PDF...", { id: "pdf-generate" });
+      
+      // Clone the element to avoid transform issues
+      const clone = documentRef.current.cloneNode(true) as HTMLElement;
+      clone.style.transform = 'none';
+      clone.style.position = 'absolute';
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      document.body.appendChild(clone);
+      
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
         logging: false,
       });
+      
+      document.body.removeChild(clone);
 
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = pdfWidth / imgWidth;
+      const scaledHeight = imgHeight * ratio;
+      
+      // Multi-page support
+      if (scaledHeight > pdfHeight) {
+        let remainingHeight = scaledHeight;
+        let sourceY = 0;
+        const pageHeightInPixels = pdfHeight / ratio;
+        
+        while (remainingHeight > 0) {
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = imgWidth;
+          pageCanvas.height = Math.min(pageHeightInPixels, imgHeight - sourceY);
+          
+          const ctx = pageCanvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(canvas, 0, sourceY, imgWidth, pageCanvas.height, 0, 0, imgWidth, pageCanvas.height);
+            const pageImgData = pageCanvas.toDataURL("image/png");
+            const pageScaledHeight = pageCanvas.height * ratio;
+            pdf.addImage(pageImgData, "PNG", 0, 0, pdfWidth, pageScaledHeight);
+          }
+          
+          remainingHeight -= pdfHeight;
+          sourceY += pageHeightInPixels;
+          
+          if (remainingHeight > 0) {
+            pdf.addPage();
+          }
+        }
+      } else {
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight);
+      }
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${content.document_number || "kwitansi"}.pdf`);
-      toast.success("PDF berhasil diunduh!");
+      toast.success("PDF berhasil diunduh!", { id: "pdf-generate" });
     } catch (error) {
       console.error("Error generating PDF:", error);
-      toast.error("Gagal generate PDF");
+      toast.error("Gagal generate PDF", { id: "pdf-generate" });
     }
   };
 
