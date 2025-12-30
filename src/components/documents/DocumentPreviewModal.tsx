@@ -29,6 +29,11 @@ interface DocumentData {
   period?: string;
   contractId?: string;
   paymentId?: string;
+  contractBankInfo?: {
+    bank_name: string;
+    account_number: string;
+    account_holder_name?: string;
+  };
 }
 
 interface DocumentPreviewModalProps {
@@ -194,6 +199,7 @@ export const DocumentPreviewModal = ({
                 contractInvoice={documentData.contractInvoice}
                 period={documentData.period}
                 settings={templateSettings}
+                contractBankInfo={documentData.contractBankInfo}
               />
             ) : (
               <ReceiptTemplate

@@ -53,6 +53,7 @@ export function PublicDocumentPreviewModal({
   const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
+  const [bankInfo, setBankInfo] = useState<{ bank_name: string; account_number: string; account_holder_name?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export function PublicDocumentPreviewModal({
     } else {
       setVerificationCode(null);
       setPaymentData(null);
+      setBankInfo(null);
       setIsLoading(true);
     }
   }, [open, documentType, paymentId]);
@@ -98,6 +100,10 @@ export function PublicDocumentPreviewModal({
       
       if (data.payment) {
         setPaymentData(data.payment);
+      }
+      
+      if (data.bank_info) {
+        setBankInfo(data.bank_info);
       }
     } catch (err) {
       console.error('Error:', err);
@@ -139,6 +145,7 @@ export function PublicDocumentPreviewModal({
           contractInvoice={contractData.invoice || undefined}
           period={period}
           settings={templateSettings}
+          contractBankInfo={bankInfo || undefined}
         />
       );
     }
