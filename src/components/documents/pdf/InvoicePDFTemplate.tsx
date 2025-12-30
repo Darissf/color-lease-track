@@ -517,25 +517,25 @@ export const InvoicePDFTemplate = ({
 
                 {settings.show_company_address !== false && settings.company_address && (
                   <Text style={[styles.companyDetail, { color: settings.company_info_color || "#4b5563" }]}>
-                    📍 {settings.company_address}
+                    {settings.company_address}
                   </Text>
                 )}
 
                 {settings.show_company_phone !== false && settings.company_phone && (
                   <Text style={[styles.companyDetail, { color: settings.company_info_color || "#4b5563" }]}>
-                    📞 {settings.company_phone}
+                    Tel: {settings.company_phone}
                   </Text>
                 )}
 
                 {settings.show_company_email !== false && settings.company_email && (
                   <Text style={[styles.companyDetail, { color: settings.company_info_color || "#4b5563" }]}>
-                    ✉️ {settings.company_email}
+                    Email: {settings.company_email}
                   </Text>
                 )}
 
                 {settings.show_company_website !== false && settings.company_website && (
                   <Text style={[styles.companyDetail, { color: settings.company_info_color || "#4b5563" }]}>
-                    🌐 {settings.company_website}
+                    Web: {settings.company_website}
                   </Text>
                 )}
 
