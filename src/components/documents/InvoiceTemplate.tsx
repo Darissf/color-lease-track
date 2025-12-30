@@ -548,7 +548,8 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                   <img 
                     src={settings.signature_url} 
                     alt="Signature" 
-                    className="h-16 w-auto mx-auto object-contain"
+                    className="w-auto mx-auto object-contain"
+                    style={{ maxHeight: `${(settings.signature_scale ?? 100) * 0.8}px` }}
                   />
                 ) : (
                   <div className="h-16 w-32 border-b border-gray-400" />

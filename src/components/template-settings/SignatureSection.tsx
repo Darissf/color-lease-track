@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { TemplateSettings } from './types';
 
@@ -77,11 +78,11 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
             <Label className="text-xs">Gambar Tanda Tangan</Label>
             <div className="border-2 border-dashed rounded-lg p-3">
               {settings.signature_url ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-24 h-16 rounded bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjZGRkIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNkZGQiLz48L3N2Zz4=')]">
-                    <img src={settings.signature_url} alt="Signature" className="w-full h-full object-contain" />
+                <div className="space-y-3">
+                  <div className="rounded bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjZGRkIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNkZGQiLz48L3N2Zz4=')] p-2">
+                    <img src={settings.signature_url} alt="Signature" className="max-w-full object-contain mx-auto" />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 justify-center">
                     <Button type="button" variant="outline" size="sm" onClick={() => signatureInputRef.current?.click()} disabled={uploading}>
                       <Upload className="h-3 w-3 mr-1" />
                       Ganti
@@ -94,12 +95,29 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
               ) : (
                 <div className="flex flex-col items-center py-2 cursor-pointer" onClick={() => signatureInputRef.current?.click()}>
                   <ImageIcon className="h-6 w-6 text-muted-foreground mb-1" />
-                  <span className="text-xs text-muted-foreground">Upload gambar tanda tangan (PNG dengan transparansi)</span>
+                  <span className="text-xs text-muted-foreground">Upload gambar tanda tangan (PNG dengan transparansi, maks. 10MB)</span>
                 </div>
               )}
             </div>
             <input ref={signatureInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           </div>
+
+          {/* Signature Scale Slider */}
+          {settings.signature_url && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Ukuran Tanda Tangan</Label>
+                <span className="text-xs text-muted-foreground">{settings.signature_scale ?? 100}%</span>
+              </div>
+              <Slider
+                value={[settings.signature_scale ?? 100]}
+                onValueChange={([v]) => updateSetting('signature_scale', v)}
+                min={30}
+                max={200}
+                step={5}
+              />
+            </div>
+          )}
 
           {/* Signer Details */}
           <div className="space-y-3">
@@ -130,7 +148,8 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <img 
                   src={settings.signature_url} 
                   alt="Signature" 
-                  className="h-16 w-auto mx-auto object-contain"
+                  className="w-auto mx-auto object-contain"
+                  style={{ maxHeight: `${(settings.signature_scale ?? 100) * 0.8}px` }}
                 />
               ) : (
                 <div className="h-16 w-32 border-b border-gray-400 mx-auto" />
