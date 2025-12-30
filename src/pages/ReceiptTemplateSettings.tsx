@@ -19,7 +19,7 @@ import { AdvancedSection } from '@/components/template-settings/AdvancedSection'
 import { StampSection } from '@/components/template-settings/StampSection';
 import { SignatureSection } from '@/components/template-settings/SignatureSection';
 import { CustomTextSection } from '@/components/custom-text/CustomTextSection';
-import { DraggableTextBox } from '@/components/custom-text/DraggableTextBox';
+
 import { CustomTextElement, defaultCustomTextElement } from '@/components/custom-text/types';
 
 type CropTarget = 'invoice_logo_url' | 'icon_maps_url' | 'icon_whatsapp_url' | 'icon_email_url' | 'icon_website_url' | 'bank_logo_url' | 'signature_url' | 'custom_stamp_url' | null;
@@ -332,21 +332,14 @@ const ReceiptTemplateSettings = () => {
                     }
                   }}
                 >
-                  <ReceiptTemplatePreview settings={settings} />
-                  
-                  {/* Custom Text Elements Overlay */}
-                  {customTextElements.map(element => (
-                    <DraggableTextBox
-                      key={element.id}
-                      element={element}
-                      isSelected={selectedElementId === element.id}
-                      isEditing={isEditingMode}
-                      onSelect={() => setSelectedElementId(element.id)}
-                      onUpdate={(updates) => handleUpdateCustomText(element.id, updates)}
-                      onDelete={() => handleDeleteCustomText(element.id)}
-                      containerRef={documentRef}
-                    />
-                  ))}
+                  <ReceiptTemplatePreview 
+                    settings={settings}
+                    customTextElements={customTextElements}
+                    selectedElementId={selectedElementId}
+                    onSelectElement={setSelectedElementId}
+                    onUpdateElement={handleUpdateCustomText}
+                    isEditing={isEditingMode}
+                  />
                 </div>
               </CardContent>
             </Card>

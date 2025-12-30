@@ -17,6 +17,7 @@ interface ReceiptTemplatePreviewProps {
   selectedElementId?: string | null;
   onSelectElement?: (id: string | null) => void;
   onUpdateElement?: (id: string, updates: Partial<CustomTextElement>) => void;
+  isEditing?: boolean;
 }
 
 export function ReceiptTemplatePreview({ 
@@ -24,7 +25,8 @@ export function ReceiptTemplatePreview({
   customTextElements = [],
   selectedElementId,
   onSelectElement,
-  onUpdateElement
+  onUpdateElement,
+  isEditing = false
 }: ReceiptTemplatePreviewProps) {
   const documentRef = useRef<HTMLDivElement>(null);
   const sampleData = {
@@ -536,6 +538,7 @@ export function ReceiptTemplatePreview({
             key={element.id}
             element={element}
             isSelected={selectedElementId === element.id}
+            isEditing={isEditing}
             onSelect={() => onSelectElement?.(element.id)}
             onUpdate={(updates) => onUpdateElement?.(element.id, updates)}
             onDelete={() => {}}
