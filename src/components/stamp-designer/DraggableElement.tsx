@@ -2,18 +2,20 @@ import React from 'react';
 import { StampElement } from './types';
 import { Eye, EyeOff, GripVertical } from 'lucide-react';
 
-interface DraggableElementProps {
+export interface DraggableElementProps {
   element: StampElement;
   isSelected: boolean;
   onSelect: () => void;
-  onDragStart: (e: React.MouseEvent) => void;
-  containerRef: React.RefObject<HTMLDivElement>;
+  onDrag?: (e: React.MouseEvent) => void;
+  onDragStart?: (e: React.MouseEvent) => void;
+  containerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export const DraggableElement: React.FC<DraggableElementProps> = ({
   element,
   isSelected,
   onSelect,
+  onDrag,
   onDragStart,
 }) => {
   if (!element.is_visible) return null;
@@ -42,7 +44,12 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
       onMouseDown={(e) => {
         e.stopPropagation();
         onSelect();
-        onDragStart(e);
+        onDragStart?.(e);
+      }}
+      onMouseMove={(e) => {
+        if (e.buttons === 1) {
+          onDrag?.(e);
+        }
       }}
     >
       {isSelected && (
