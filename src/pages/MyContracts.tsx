@@ -83,12 +83,19 @@ export default function MyContracts() {
     setLoading(false);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, tagihanBelumBayar?: number) => {
+    // Jika selesai dan sudah lunas → Closed (merah)
+    if (status === "selesai" && tagihanBelumBayar !== undefined && tagihanBelumBayar <= 0) {
+      return <Badge className="bg-red-600 text-white">Closed</Badge>;
+    }
+    
     switch (status) {
       case "masa sewa":
         return <Badge className="bg-green-500">Aktif</Badge>;
       case "habis sewa":
         return <Badge variant="secondary">Selesai</Badge>;
+      case "selesai":
+        return <Badge className="bg-green-500">Selesai</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -181,7 +188,7 @@ export default function MyContracts() {
                       <div className="flex-1 space-y-3">
                         <div className="flex items-center gap-3">
                           <span className="text-lg font-bold">{contract.invoice || "Kontrak"}</span>
-                          {getStatusBadge(contract.status)}
+                          {getStatusBadge(contract.status, contract.tagihan_belum_bayar)}
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">

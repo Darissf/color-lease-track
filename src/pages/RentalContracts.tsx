@@ -386,8 +386,16 @@ const RentalContracts = () => {
       .join(' ');
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, tagihanBelumBayar?: number) => {
     const statusLower = status.toLowerCase();
+    
+    // Jika selesai dan sudah lunas → Closed (merah)
+    if (statusLower === 'selesai' && tagihanBelumBayar !== undefined && tagihanBelumBayar <= 0) {
+      return activeTheme === 'japanese'
+        ? "bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-500/50"
+        : "bg-red-600 text-white";
+    }
+    
     if (statusLower === 'masa sewa') {
       return activeTheme === 'japanese' 
         ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/50"
@@ -408,6 +416,14 @@ const RentalContracts = () => {
       return "bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg shadow-indigo-500/50";
     }
     return "bg-gradient-to-r from-slate-500 to-gray-500 text-white";
+  };
+  
+  const getStatusLabel = (status: string, tagihanBelumBayar?: number) => {
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'selesai' && tagihanBelumBayar !== undefined && tagihanBelumBayar <= 0) {
+      return 'Closed';
+    }
+    return status.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
   };
 
   const sortedContracts = React.useMemo(() => {
@@ -1129,8 +1145,8 @@ const RentalContracts = () => {
                       </TableCell>
                       <TableCell className={cn(isCompactMode && "py-1 px-2")}>
                         {isTableLocked ? (
-                          <Badge className={cn(getStatusBadge(contract.status), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
-                            {capitalizeWords(contract.status)}
+                          <Badge className={cn(getStatusBadge(contract.status, contract.tagihan_belum_bayar), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
+                            {getStatusLabel(contract.status, contract.tagihan_belum_bayar)}
                           </Badge>
                         ) : (
                           <Select
