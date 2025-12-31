@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { InvoiceTemplate } from "./InvoiceTemplate";
+import { InvoiceRincianTemplate } from "./InvoiceRincianTemplate";
 import { ReceiptTemplate } from "./ReceiptTemplate";
 import { ResponsiveDocumentWrapper } from "./ResponsiveDocumentWrapper";
 import { ZoomableDocumentWrapper } from "./ZoomableDocumentWrapper";
@@ -68,11 +69,18 @@ export const DocumentPreviewModal = ({
   onDocumentSaved,
 }: DocumentPreviewModalProps) => {
   const documentRef = useRef<HTMLDivElement>(null);
+  const page2Ref = useRef<HTMLDivElement>(null); // Ref for Rincian Tagihan page
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const { settings: brandSettings } = useBrandSettings();
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
   const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
+  
+  // Determine if we should show page 2 (Rincian Tagihan)
+  const showPage2 = documentData?.documentType === 'invoice' && 
+                    documentData?.lineItems && 
+                    documentData.lineItems.length > 0;
+  
   useEffect(() => {
     if (open && user) {
       fetchSettings();
@@ -249,16 +257,34 @@ export const DocumentPreviewModal = ({
     customTextElements: customTextElements,
   };
 
+  // Rincian props for page 2
+  const rincianProps = {
+    documentNumber: documentData.documentNumber,
+    issuedAt: documentData.issuedAt,
+    clientName: documentData.clientName,
+    clientAddress: documentData.clientAddress,
+    period: documentData.period,
+    settings: templateSettings,
+    lineItems: documentData.lineItems || [],
+    transportDelivery: documentData.transportDelivery || 0,
+    transportPickup: documentData.transportPickup || 0,
+    discount: documentData.discount || 0,
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden p-4 sm:p-6">
         <DialogHeader className="pr-10">
-          <DialogTitle>Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}</DialogTitle>
+          <DialogTitle>
+            Preview {documentData.documentType === 'invoice' ? 'Invoice' : 'Kwitansi'}
+            {showPage2 && ' (2 Halaman)'}
+          </DialogTitle>
         </DialogHeader>
         
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <DocumentPDFGenerator
             documentRef={documentRef}
+            page2Ref={showPage2 ? page2Ref : undefined}
             fileName={fileName}
             onComplete={onDocumentSaved}
             showOptions={false}
@@ -267,18 +293,28 @@ export const DocumentPreviewModal = ({
           />
         </div>
         
-        {/* Visible document dengan ref - akan di-clone saat capture PDF */}
+        {/* Documents preview */}
         {isMobile ? (
           <ZoomableDocumentWrapper>
-            {documentData.documentType === 'invoice' ? (
-              <InvoiceTemplate ref={documentRef} {...invoiceProps} />
-            ) : (
-              <ReceiptTemplate ref={documentRef} {...receiptProps} />
-            )}
+            <div className="flex flex-col gap-6">
+              {documentData.documentType === 'invoice' ? (
+                <>
+                  <InvoiceTemplate ref={documentRef} {...invoiceProps} />
+                  {showPage2 && (
+                    <>
+                      <div className="w-full border-t-2 border-dashed border-gray-300 my-2" />
+                      <InvoiceRincianTemplate ref={page2Ref} {...rincianProps} />
+                    </>
+                  )}
+                </>
+              ) : (
+                <ReceiptTemplate ref={documentRef} {...receiptProps} />
+              )}
+            </div>
           </ZoomableDocumentWrapper>
         ) : (
           <ScrollArea className="h-[70vh]">
-            <div className="py-4">
+            <div className="py-4 flex flex-col gap-6 items-center">
               <ResponsiveDocumentWrapper>
                 {documentData.documentType === 'invoice' ? (
                   <InvoiceTemplate ref={documentRef} {...invoiceProps} />
@@ -286,6 +322,20 @@ export const DocumentPreviewModal = ({
                   <ReceiptTemplate ref={documentRef} {...receiptProps} />
                 )}
               </ResponsiveDocumentWrapper>
+              
+              {/* Page 2: Rincian Tagihan */}
+              {showPage2 && (
+                <>
+                  <div className="w-full flex items-center gap-4 px-4">
+                    <div className="flex-1 border-t border-dashed border-gray-400" />
+                    <span className="text-sm text-gray-500 font-medium">Halaman 2</span>
+                    <div className="flex-1 border-t border-dashed border-gray-400" />
+                  </div>
+                  <ResponsiveDocumentWrapper>
+                    <InvoiceRincianTemplate ref={page2Ref} {...rincianProps} />
+                  </ResponsiveDocumentWrapper>
+                </>
+              )}
             </div>
           </ScrollArea>
         )}

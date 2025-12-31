@@ -20,6 +20,7 @@ type PaperSize = "a4" | "letter" | "legal";
 
 interface DocumentPDFGeneratorProps {
   documentRef: React.RefObject<HTMLDivElement>;
+  page2Ref?: React.RefObject<HTMLDivElement>; // Optional ref for page 2 (Rincian Tagihan)
   fileName: string;
   onComplete?: () => void;
   showOptions?: boolean;
@@ -495,6 +496,7 @@ function restoreCriticalInlineStyles(saved: {
 
 export const DocumentPDFGenerator = ({
   documentRef,
+  page2Ref,
   fileName,
   onComplete,
   showOptions = true,
@@ -631,6 +633,116 @@ export const DocumentPDFGenerator = ({
       setIsGenerating(false);
     }
   }, [documentRef, fileName, onComplete, orientation, paperSize]);
+
+  // Generate multi-page PDF using DOM capture (html2canvas) for perfect WYSIWYG
+  const generateMultiPagePDF = useCallback(async () => {
+    if (!documentRef.current) {
+      toast.error("Dokumen tidak ditemukan");
+      return;
+    }
+
+    setIsGenerating(true);
+    const toastId = toast.loading("Menyiapkan dokumen multi-halaman...");
+
+    try {
+      const pages: HTMLElement[] = [documentRef.current];
+      if (page2Ref?.current) {
+        pages.push(page2Ref.current);
+      }
+
+      const pageImages: { imgData: string; width: number; height: number }[] = [];
+
+      // Capture each page
+      for (let i = 0; i < pages.length; i++) {
+        const targetElement = pages[i];
+        toast.loading(`Memproses halaman ${i + 1}/${pages.length}...`, { id: toastId });
+
+        // Apply all layers
+        await waitForFonts();
+        await preloadAllImages(targetElement);
+        await waitForSvgRender();
+
+        const savedTransforms = normalizeParentTransforms(targetElement);
+        const savedStyles = forceNaturalSize(targetElement);
+        const savedInlineStyles = applyCriticalInlineStyles(targetElement);
+
+        targetElement.getBoundingClientRect();
+        await sleep(150);
+
+        const canvas = await html2canvas(targetElement, {
+          scale: 3,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          imageTimeout: 15000,
+          removeContainer: false,
+          foreignObjectRendering: false,
+          windowWidth: targetElement.scrollWidth,
+          windowHeight: targetElement.scrollHeight,
+        });
+
+        // Restore
+        restoreCriticalInlineStyles(savedInlineStyles);
+        restoreNaturalSize(targetElement, savedStyles);
+        restoreParentTransforms(savedTransforms);
+
+        if (!canvas || canvas.width === 0 || canvas.height === 0) {
+          throw new Error(`Canvas halaman ${i + 1} kosong`);
+        }
+
+        let imgData = canvas.toDataURL("image/png", 1.0);
+        if (!imgData || imgData === 'data:,' || imgData.length < 100) {
+          imgData = canvas.toDataURL("image/jpeg", 0.98);
+        }
+
+        pageImages.push({
+          imgData,
+          width: canvas.width,
+          height: canvas.height,
+        });
+      }
+
+      // Create PDF with all pages
+      toast.loading("Membuat PDF...", { id: toastId });
+      
+      const paper = PAPER_SIZES[paperSize];
+      const pdfWidth = orientation === "portrait" ? paper.width : paper.height;
+      const pdfHeight = orientation === "portrait" ? paper.height : paper.width;
+
+      const pdf = new jsPDF({
+        orientation: orientation,
+        unit: "mm",
+        format: [pdfWidth, pdfHeight],
+      });
+
+      // Add each captured page to PDF
+      for (let i = 0; i < pageImages.length; i++) {
+        if (i > 0) {
+          pdf.addPage([pdfWidth, pdfHeight], orientation);
+        }
+
+        const { imgData, width: imgWidth, height: imgHeight } = pageImages[i];
+        const imgFormat = imgData.includes("jpeg") ? "JPEG" : "PNG";
+
+        // Fit width perfectly
+        const scaledWidth = pdfWidth;
+        const scaledHeight = (imgHeight * pdfWidth) / imgWidth;
+
+        pdf.addImage(imgData, imgFormat, 0, 0, scaledWidth, scaledHeight);
+      }
+
+      pdf.save(`${fileName}.pdf`);
+      toast.success(`PDF ${pages.length} halaman berhasil dibuat!`, { id: toastId });
+      onComplete?.();
+
+    } catch (error) {
+      console.error("Error generating multi-page PDF:", error);
+      toast.error("Gagal membuat PDF: " + (error as Error).message, { id: toastId });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [documentRef, page2Ref, fileName, onComplete, orientation, paperSize]);
 
   // Helper: Convert image URL to base64 data URL (avoids Buffer error in react-pdf)
   const convertImageToBase64 = async (url: string): Promise<string | undefined> => {
@@ -1038,12 +1150,12 @@ export const DocumentPDFGenerator = ({
       )}
       
       <Button 
-        onClick={documentType === 'invoice' && templateProps ? generatePDFWithReactPDF : generatePDF} 
+        onClick={page2Ref ? generateMultiPagePDF : generatePDF} 
         className="gap-2" 
         disabled={isGenerating}
       >
         <Download className="h-4 w-4" />
-        <span className="hidden sm:inline">Download PDF</span>
+        <span className="hidden sm:inline">Download PDF{page2Ref ? ' (2 Halaman)' : ''}</span>
         <span className="sm:hidden">PDF</span>
       </Button>
       <Button variant="outline" onClick={generatePNG} className="gap-2" disabled={isGenerating}>
