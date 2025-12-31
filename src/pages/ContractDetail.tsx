@@ -1748,7 +1748,15 @@ export default function ContractDetail() {
                     
                     {/* Bayar Cash Button - Admin/Super Admin Only */}
                     {(isSuperAdmin || isAdmin) && (
-                      <AlertDialog open={isCashPaymentOpen} onOpenChange={setIsCashPaymentOpen}>
+                      <AlertDialog 
+                        open={isCashPaymentOpen} 
+                        onOpenChange={(open) => {
+                          setIsCashPaymentOpen(open);
+                          if (open) {
+                            setCashPaymentAmount(contract.tagihan_belum_bayar.toString());
+                          }
+                        }}
+                      >
                         <AlertDialogTrigger asChild>
                           <Button 
                             variant="outline" 
