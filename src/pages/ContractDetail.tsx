@@ -724,6 +724,13 @@ export default function ContractDetail() {
       .limit(1)
       .maybeSingle();
     
+    // Fetch line items for Page 2 (Rincian Tagihan)
+    const { data: lineItemsData } = await supabase
+      .from('contract_line_items')
+      .select('item_name, quantity, unit_price_per_day, duration_days, subtotal')
+      .eq('contract_id', contract.id)
+      .order('sort_order', { ascending: true });
+    
     setDocumentData({
       documentType: 'invoice',
       documentNumber: contract.invoice || contract.id.slice(0, 6).toUpperCase(),
@@ -745,6 +752,11 @@ export default function ContractDetail() {
         account_holder_name: contract.bank_accounts.account_holder_name,
       } : undefined,
       accessCode: publicLink?.access_code,
+      // Page 2: Rincian Tagihan data
+      lineItems: lineItemsData || [],
+      transportDelivery: contract.transport_cost_delivery || 0,
+      transportPickup: contract.transport_cost_pickup || 0,
+      discount: 0, // Can be added to contract schema if needed
     });
     setDocumentPreviewOpen(true);
   };

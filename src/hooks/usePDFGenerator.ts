@@ -7,6 +7,14 @@ import { ReceiptPDFTemplate } from "@/components/documents/pdf/ReceiptPDFTemplat
 import { TemplateSettings } from "@/components/template-settings/types";
 import { CustomTextElement } from "@/components/custom-text/types";
 
+interface LineItem {
+  item_name: string;
+  quantity: number;
+  unit_price_per_day: number;
+  duration_days: number;
+  subtotal?: number;
+}
+
 interface InvoicePDFData {
   documentNumber: string;
   verificationCode: string;
@@ -24,6 +32,11 @@ interface InvoicePDFData {
   };
   accessCode?: string;
   customTextElements?: CustomTextElement[];
+  // Page 2: Rincian Tagihan
+  lineItems?: LineItem[];
+  transportDelivery?: number;
+  transportPickup?: number;
+  discount?: number;
 }
 
 interface ReceiptPDFData {
