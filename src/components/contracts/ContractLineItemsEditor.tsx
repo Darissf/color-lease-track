@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatRupiah } from '@/lib/currency';
@@ -18,7 +19,7 @@ import {
   type LineItem,
   type TemplateData
 } from '@/lib/contractTemplateGenerator';
-import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen, Tag, FileSignature } from 'lucide-react';
+import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen, Tag, FileSignature, Edit3, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InventoryItem {
@@ -59,6 +60,9 @@ export function ContractLineItemsEditor({
   // Pengaturan Cepat
   const [defaultPricePerDay, setDefaultPricePerDay] = useState<number | ''>('');
   const [defaultDurationDays, setDefaultDurationDays] = useState<number | ''>('');
+  
+  // Mode Penagihan
+  const [billingMode, setBillingMode] = useState<'edit' | 'new'>('edit');
 
   useEffect(() => {
     fetchInventoryItems();
@@ -262,6 +266,21 @@ export function ContractLineItemsEditor({
       const template = generateRincianTemplate(getTemplateData(), whatsappMode);
       const grandTotal = calculateGrandTotal(getTemplateData());
 
+      // Calculate tagihan_belum_bayar based on billing mode
+      let tagihanBelumBayar = grandTotal;
+
+      if (billingMode === 'edit') {
+        // Mode Edit: Kurangi dengan total yang sudah dibayar
+        const { data: payments } = await supabase
+          .from('contract_payments')
+          .select('amount')
+          .eq('contract_id', contractId);
+
+        const totalPaid = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+        tagihanBelumBayar = Math.max(0, grandTotal - totalPaid);
+      }
+      // Mode Tagihan Baru: tagihanBelumBayar = grandTotal (reset)
+
       // Update contract with transport costs, discount and template
       const { error: updateError } = await supabase
         .from('rental_contracts')
@@ -271,13 +290,14 @@ export function ContractLineItemsEditor({
           discount: discount,
           rincian_template: template,
           tagihan: grandTotal,
-          tagihan_belum_bayar: grandTotal, // Reset - in real app, calculate based on payments
+          tagihan_belum_bayar: tagihanBelumBayar,
         })
         .eq('id', contractId);
 
       if (updateError) throw updateError;
 
-      toast.success('Rincian kontrak berhasil disimpan');
+      const modeText = billingMode === 'edit' ? 'diperbarui' : 'dibuat baru';
+      toast.success(`Rincian kontrak berhasil ${modeText}`);
       onSave();
     } catch (error) {
       console.error('Error saving line items:', error);
@@ -594,6 +614,96 @@ export function ContractLineItemsEditor({
           </CardContent>
         </Card>
       )}
+
+      {/* Mode Penagihan */}
+      <Card className="bg-amber-50/50 dark:bg-amber-950/30 border-amber-300/50">
+        <CardContent className="py-4 space-y-4">
+          {/* Header dengan Toggle */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              {billingMode === 'edit' ? (
+                <Edit3 className="h-5 w-5 text-blue-600" />
+              ) : (
+                <RefreshCw className="h-5 w-5 text-orange-600" />
+              )}
+              <Label className="text-base font-semibold">Mode Penagihan</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-sm ${billingMode === 'edit' ? 'text-blue-600 font-medium' : 'text-muted-foreground'}`}>
+                Edit Tagihan
+              </span>
+              <Switch 
+                checked={billingMode === 'new'} 
+                onCheckedChange={(checked) => setBillingMode(checked ? 'new' : 'edit')}
+              />
+              <span className={`text-sm ${billingMode === 'new' ? 'text-orange-600 font-medium' : 'text-muted-foreground'}`}>
+                Tagihan Baru
+              </span>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Penjelasan dan Contoh berdasarkan Mode */}
+          {billingMode === 'edit' ? (
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                    Memperbarui tagihan yang sudah ada
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Pembayaran yang sudah dilakukan akan tetap dihitung. Sisa tagihan = Total Baru - Sudah Dibayar.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-blue-100/50 dark:bg-blue-900/30 rounded-lg p-3">
+                <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">📌 Contoh Penggunaan:</p>
+                <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                  <li>• Tagihan lama: <strong>Rp 100.000</strong></li>
+                  <li>• Sudah dibayar: <strong>Rp 50.000</strong></li>
+                  <li>• Tagihan baru diubah menjadi: <strong>Rp 120.000</strong></li>
+                  <li className="pt-1 border-t border-blue-200 dark:border-blue-700 mt-1">
+                    ➔ <strong>Hasil:</strong> Sisa tagihan = 120.000 - 50.000 = <strong className="text-blue-800 dark:text-blue-200">Rp 70.000</strong>
+                  </li>
+                </ul>
+                <p className="text-xs text-blue-500 dark:text-blue-400 mt-3 italic">
+                  💡 Gunakan mode ini untuk koreksi harga/durasi tanpa menghapus pembayaran yang sudah ada.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                    Membuat tagihan baru (reset total)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sisa tagihan sebelumnya diabaikan. Tagihan dimulai dari nol dengan total yang baru.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-orange-100/50 dark:bg-orange-900/30 rounded-lg p-3">
+                <p className="text-xs font-medium text-orange-700 dark:text-orange-300 mb-2">📌 Contoh Penggunaan:</p>
+                <ul className="text-xs text-orange-600 dark:text-orange-400 space-y-1">
+                  <li>• Tagihan lama: <strong>Rp 100.000</strong></li>
+                  <li>• Sudah dibayar: <strong>Rp 50.000</strong> (sisa Rp 50.000)</li>
+                  <li>• Tagihan baru dibuat: <strong>Rp 100.000</strong></li>
+                  <li className="pt-1 border-t border-orange-200 dark:border-orange-700 mt-1">
+                    ➔ <strong>Hasil:</strong> Sisa tagihan = <strong className="text-orange-800 dark:text-orange-200">Rp 100.000</strong> (bukan Rp 150.000)
+                  </li>
+                </ul>
+                <p className="text-xs text-orange-500 dark:text-orange-400 mt-3 italic">
+                  💡 Gunakan mode ini untuk perpanjangan sewa atau buat tagihan baru yang terpisah dari tagihan sebelumnya.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Actions */}
       <div className="flex gap-3 justify-end">
