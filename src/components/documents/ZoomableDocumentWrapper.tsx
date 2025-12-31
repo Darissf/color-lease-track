@@ -1,7 +1,7 @@
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
-import { ReactNode } from "react";
+import { ZoomIn, ZoomOut, RotateCcw, Move } from "lucide-react";
+import { ReactNode, useState, useEffect } from "react";
 
 interface ZoomableDocumentWrapperProps {
   children: ReactNode;
@@ -11,15 +11,15 @@ interface ZoomableDocumentWrapperProps {
 const ZoomControls = () => {
   const { zoomIn, zoomOut, resetTransform } = useControls();
   return (
-    <div className="absolute bottom-4 right-4 flex gap-2 z-20">
-      <Button size="icon" variant="secondary" onClick={() => zoomIn()} className="h-8 w-8 shadow-md">
-        <ZoomIn className="h-4 w-4" />
+    <div className="fixed bottom-20 right-4 flex flex-col gap-2 z-50">
+      <Button size="icon" variant="secondary" onClick={() => zoomIn()} className="h-10 w-10 shadow-lg">
+        <ZoomIn className="h-5 w-5" />
       </Button>
-      <Button size="icon" variant="secondary" onClick={() => zoomOut()} className="h-8 w-8 shadow-md">
-        <ZoomOut className="h-4 w-4" />
+      <Button size="icon" variant="secondary" onClick={() => zoomOut()} className="h-10 w-10 shadow-lg">
+        <ZoomOut className="h-5 w-5" />
       </Button>
-      <Button size="icon" variant="secondary" onClick={() => resetTransform()} className="h-8 w-8 shadow-md">
-        <RotateCcw className="h-4 w-4" />
+      <Button size="icon" variant="secondary" onClick={() => resetTransform()} className="h-10 w-10 shadow-lg">
+        <RotateCcw className="h-5 w-5" />
       </Button>
     </div>
   );
@@ -29,26 +29,72 @@ export const ZoomableDocumentWrapper = ({
   children,
   showControls = true,
 }: ZoomableDocumentWrapperProps) => {
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const updateSize = () => {
+      setContainerSize({
+        width: window.innerWidth,
+        height: window.innerHeight * 0.65,
+      });
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  // Calculate initial scale to fit A4 width (793px) in screen width with padding
+  const calculateInitialScale = () => {
+    const availableWidth = containerSize.width - 32;
+    const documentWidth = 793;
+    const scale = Math.min(availableWidth / documentWidth, 0.6);
+    return Math.max(scale, 0.25);
+  };
+
   return (
-    <div className="relative w-full h-full min-h-[50vh] overflow-hidden bg-muted/30 rounded-lg">
+    <div 
+      className="relative w-full bg-muted/30 rounded-lg touch-none"
+      style={{ height: '65vh' }}
+    >
+      {/* Hint for users */}
+      <div className="absolute top-2 left-2 z-40 flex items-center gap-1 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded-md">
+        <Move className="h-3 w-3" />
+        <span>Pinch/drag untuk zoom & scroll</span>
+      </div>
+      
       <TransformWrapper
-        initialScale={0.5}
-        minScale={0.2}
+        initialScale={calculateInitialScale()}
+        minScale={0.15}
         maxScale={3}
         centerOnInit={false}
         limitToBounds={false}
         centerZoomedOut={false}
         alignmentAnimation={{ disabled: true }}
+        velocityAnimation={{ disabled: true }}
         wheel={{ step: 0.1 }}
-        doubleClick={{ mode: "toggle" }}
-        panning={{ velocityDisabled: false }}
-        initialPositionX={0}
-        initialPositionY={0}
+        doubleClick={{ mode: "toggle", step: 0.5 }}
+        panning={{ 
+          velocityDisabled: true,
+          lockAxisX: false,
+          lockAxisY: false,
+        }}
+        pinch={{ step: 5 }}
+        initialPositionX={16}
+        initialPositionY={40}
       >
         {showControls && <ZoomControls />}
         <TransformComponent
-          wrapperClass="!w-full !h-full"
-          contentClass="p-4"
+          wrapperStyle={{
+            width: '100%',
+            height: '100%',
+            overflow: 'visible',
+          }}
+          contentStyle={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+            padding: '8px',
+          }}
         >
           {children}
         </TransformComponent>
