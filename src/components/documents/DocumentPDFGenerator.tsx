@@ -651,34 +651,53 @@ export const DocumentPDFGenerator = ({
     try {
       toast.loading("Membuat QR codes...", { id: toastId });
 
-      // Pre-generate QR codes as data URLs (required by react-pdf)
+      // Pre-generate QR codes as data URLs (required by react-pdf) with timeout
       let qrCodeDataUrl: string | undefined;
       let verificationQrDataUrl: string | undefined;
+
+      const generateQRWithTimeout = async (url: string, timeout = 5000): Promise<string | undefined> => {
+        try {
+          return await Promise.race([
+            QRCode.toDataURL(url, { width: 200, margin: 1, color: { dark: '#000000', light: '#ffffff' } }),
+            new Promise<undefined>((_, reject) => setTimeout(() => reject(new Error('QR timeout')), timeout))
+          ]);
+        } catch (error) {
+          console.warn("QR generation failed:", error);
+          return undefined;
+        }
+      };
 
       // Generate payment QR if bank info available
       if (templateProps.contractBankInfo?.account_number) {
         const paymentUrl = `https://wa.me/${templateProps.settings?.payment_wa_number || ''}?text=Pembayaran%20${encodeURIComponent(templateProps.documentNumber)}`;
-        qrCodeDataUrl = await QRCode.toDataURL(paymentUrl, {
-          width: 200,
-          margin: 1,
-          color: { dark: '#000000', light: '#ffffff' }
-        });
+        qrCodeDataUrl = await generateQRWithTimeout(paymentUrl);
       }
 
       // Generate verification QR
       const verificationUrl = `${window.location.origin}/verify/${templateProps.verificationCode}`;
-      verificationQrDataUrl = await QRCode.toDataURL(verificationUrl, {
-        width: 200,
-        margin: 1,
-        color: { dark: '#000000', light: '#ffffff' }
-      });
+      verificationQrDataUrl = await generateQRWithTimeout(verificationUrl);
 
-      toast.loading("Membuat PDF...", { id: toastId });
+      toast.loading("Membuat PDF 2 halaman...", { id: toastId });
 
-      // Create PDF document using InvoicePDFTemplate
+      // Create PDF document using InvoicePDFTemplate with explicit defaults
       const pdfProps: InvoicePDFTemplateProps = {
-        ...templateProps as InvoicePDFTemplateProps,
-        lineItems: templateProps?.lineItems || [], // Ensure lineItems is always an array
+        documentNumber: templateProps.documentNumber || '',
+        verificationCode: templateProps.verificationCode || '',
+        issuedAt: templateProps.issuedAt || new Date(),
+        clientName: templateProps.clientName || 'Pelanggan',
+        clientAddress: templateProps.clientAddress,
+        description: templateProps.description || '',
+        amount: templateProps.amount || 0,
+        contractInvoice: templateProps.contractInvoice,
+        period: templateProps.period,
+        contractBankInfo: templateProps.contractBankInfo,
+        accessCode: templateProps.accessCode,
+        customTextElements: templateProps.customTextElements,
+        lineItems: Array.isArray(templateProps.lineItems) ? templateProps.lineItems : [],
+        transportDelivery: templateProps.transportDelivery || 0,
+        transportPickup: templateProps.transportPickup || 0,
+        discount: templateProps.discount || 0,
+        settings: templateProps.settings,
         qrCodeDataUrl,
         verificationQrDataUrl,
       };
@@ -686,9 +705,18 @@ export const DocumentPDFGenerator = ({
       console.log("=== PDF Props Debug ===");
       console.log("pdfProps.lineItems:", pdfProps.lineItems);
       console.log("pdfProps.lineItems.length:", pdfProps.lineItems?.length);
+      console.log("Creating PDF document...");
 
       // Generate PDF blob using @react-pdf/renderer
-      const blob = await pdf(<InvoicePDFTemplate {...pdfProps} />).toBlob();
+      const pdfDocument = <InvoicePDFTemplate {...pdfProps} />;
+      console.log("PDF document element created");
+      
+      const blob = await pdf(pdfDocument).toBlob();
+      console.log("PDF blob created, size:", blob.size);
+      
+      if (blob.size === 0) {
+        throw new Error("PDF blob is empty");
+      }
       
       // Download the PDF
       const url = URL.createObjectURL(blob);
@@ -700,16 +728,26 @@ export const DocumentPDFGenerator = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success("PDF berhasil dibuat!", { id: toastId });
+      toast.success("PDF 2 halaman berhasil dibuat!", { id: toastId });
       onComplete?.();
 
     } catch (error) {
       console.error("Error generating PDF with react-pdf:", error);
-      toast.error("Gagal membuat PDF: " + (error as Error).message, { id: toastId });
+      console.error("Error stack:", (error as Error).stack);
+      
+      // Fallback to html2canvas method
+      toast.loading("Mencoba metode alternatif...", { id: toastId });
+      try {
+        await generatePDF();
+        toast.success("PDF berhasil dibuat (1 halaman)", { id: toastId });
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
+        toast.error("Gagal membuat PDF: " + (error as Error).message, { id: toastId });
+      }
     } finally {
       setIsGenerating(false);
     }
-  }, [templateProps, fileName, onComplete]);
+  }, [templateProps, fileName, onComplete, generatePDF]);
 
   const printDocument = useCallback(async () => {
     if (!documentRef.current) {
