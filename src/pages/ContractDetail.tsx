@@ -43,10 +43,12 @@ import {
   CreditCard,
   Plus,
   FileCheck,
-  FileOutput
+  FileOutput,
+  Banknote
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { PaymentEditDialog } from "@/components/contracts/PaymentEditDialog";
@@ -188,6 +190,11 @@ export default function ContractDetail() {
   // Invoice full rincian toggle state
   const [invoiceFullRincian, setInvoiceFullRincian] = useState(true);
   const [isSavingRincianMode, setIsSavingRincianMode] = useState(false);
+  
+  // Cash payment states
+  const [isCashPaymentOpen, setIsCashPaymentOpen] = useState(false);
+  const [cashPaymentAmount, setCashPaymentAmount] = useState("");
+  const [isProcessingCashPayment, setIsProcessingCashPayment] = useState(false);
 
   const fetchPendingPaymentRequest = useCallback(async () => {
     if (!id) return;
@@ -642,6 +649,90 @@ export default function ContractDetail() {
       setInvoiceFullRincian(!value);
     } finally {
       setIsSavingRincianMode(false);
+    }
+  };
+
+  // Handle cash payment (Admin/Super Admin only)
+  const handleCashPayment = async () => {
+    if (!contract || !user || !cashPaymentAmount) return;
+    
+    const amount = parseFloat(cashPaymentAmount.replace(/[^\d]/g, ''));
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Masukkan jumlah yang valid");
+      return;
+    }
+    
+    if (amount > contract.tagihan_belum_bayar) {
+      toast.error("Jumlah melebihi sisa tagihan");
+      return;
+    }
+    
+    setIsProcessingCashPayment(true);
+    try {
+      // Get payment count
+      const { count } = await supabase
+        .from("contract_payments")
+        .select("*", { count: "exact", head: true })
+        .eq("contract_id", contract.id);
+      
+      const paymentNumber = (count || 0) + 1;
+      const paymentDate = format(new Date(), "yyyy-MM-dd");
+      const sourceName = `${contract.invoice || "Sewa"} ${contract.keterangan || contract.client_groups?.nama || ""} #${paymentNumber} (Cash)`.trim();
+      
+      // Insert to income_sources
+      const { data: incomeData, error: incomeError } = await supabase
+        .from("income_sources")
+        .insert({
+          user_id: user.id,
+          source_name: sourceName,
+          amount: amount,
+          date: paymentDate,
+          bank_name: "Cash",
+          contract_id: contract.id,
+        })
+        .select("id")
+        .single();
+      
+      if (incomeError) throw incomeError;
+      
+      // Insert to contract_payments
+      const { error: paymentError } = await supabase
+        .from("contract_payments")
+        .insert({
+          user_id: user.id,
+          contract_id: contract.id,
+          payment_date: paymentDate,
+          amount: amount,
+          payment_number: paymentNumber,
+          income_source_id: incomeData?.id,
+          notes: "Pembayaran Cash",
+          confirmed_by: user.id,
+          payment_source: "cash",
+        });
+      
+      if (paymentError) throw paymentError;
+      
+      // Update rental_contracts
+      const newSisa = contract.tagihan_belum_bayar - amount;
+      const { error: updateError } = await supabase
+        .from("rental_contracts")
+        .update({
+          tagihan_belum_bayar: newSisa,
+          tanggal_bayar_terakhir: paymentDate,
+        })
+        .eq("id", contract.id);
+      
+      if (updateError) throw updateError;
+      
+      toast.success(`Pembayaran Cash #${paymentNumber} berhasil dicatat`);
+      setIsCashPaymentOpen(false);
+      setCashPaymentAmount("");
+      fetchContractDetail();
+    } catch (error: any) {
+      console.error("Error processing cash payment:", error);
+      toast.error("Gagal mencatat pembayaran: " + error.message);
+    } finally {
+      setIsProcessingCashPayment(false);
     }
   };
 
@@ -1627,7 +1718,7 @@ export default function ContractDetail() {
               {contract.tagihan_belum_bayar > 0 && (
                 <>
                   <Separator />
-                  <div className="pt-2">
+                  <div className="pt-2 space-y-2">
                     {pendingPaymentRequest ? (
                       <PaymentVerificationStatus
                         requestId={pendingPaymentRequest.id}
@@ -1653,6 +1744,77 @@ export default function ContractDetail() {
                         <CreditCard className="h-4 w-4 mr-2" />
                         Bayar Sekarang
                       </Button>
+                    )}
+                    
+                    {/* Bayar Cash Button - Admin/Super Admin Only */}
+                    {(isSuperAdmin || isAdmin) && (
+                      <AlertDialog open={isCashPaymentOpen} onOpenChange={setIsCashPaymentOpen}>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className="w-full border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+                          >
+                            <Banknote className="h-4 w-4 mr-2" />
+                            Bayar Cash
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2">
+                              <Banknote className="h-5 w-5 text-green-600" />
+                              Catat Pembayaran Cash
+                            </AlertDialogTitle>
+                            <AlertDialogDescription asChild>
+                              <div className="space-y-4 pt-2">
+                                <p>Client sudah membayar secara cash. Masukkan jumlah pembayaran:</p>
+                                <div className="space-y-2">
+                                  <Label htmlFor="cash-amount">Jumlah Pembayaran</Label>
+                                  <Input
+                                    id="cash-amount"
+                                    type="text"
+                                    placeholder="Contoh: 500000"
+                                    value={cashPaymentAmount}
+                                    onChange={(e) => {
+                                      const value = e.target.value.replace(/[^\d]/g, '');
+                                      setCashPaymentAmount(value);
+                                    }}
+                                    className="text-lg font-mono"
+                                  />
+                                  {cashPaymentAmount && (
+                                    <p className="text-sm text-muted-foreground">
+                                      = {formatRupiah(parseInt(cashPaymentAmount) || 0)}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="bg-muted/50 p-3 rounded-lg">
+                                  <p className="text-sm">
+                                    <span className="text-muted-foreground">Sisa Tagihan:</span>{" "}
+                                    <span className="font-semibold">{formatRupiah(contract.tagihan_belum_bayar)}</span>
+                                  </p>
+                                </div>
+                              </div>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel 
+                              onClick={() => setCashPaymentAmount("")}
+                              disabled={isProcessingCashPayment}
+                            >
+                              Batal
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleCashPayment();
+                              }}
+                              disabled={!cashPaymentAmount || isProcessingCashPayment}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              {isProcessingCashPayment ? "Memproses..." : "Konfirmasi Cash"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </div>
                 </>
