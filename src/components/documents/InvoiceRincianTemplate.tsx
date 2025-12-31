@@ -26,6 +26,7 @@ interface InvoiceRincianTemplateProps {
   transportPickup: number;
   discount: number;
   forPdfCapture?: boolean;
+  fullRincian?: boolean; // When false, only show No, Nama Item, Qty
 }
 
 export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianTemplateProps>(
@@ -42,6 +43,7 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
       transportPickup,
       discount,
       forPdfCapture,
+      fullRincian = true, // Default to full details
     },
     ref
   ) => {
@@ -264,7 +266,7 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
           A. ITEM SEWA
         </h3>
 
-        {/* Rincian Table */}
+        {/* Rincian Table - Conditional columns based on fullRincian */}
         <table className="w-full mb-4" style={{ borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ backgroundColor: settings.table_header_bg || '#f3f4f6' }}>
@@ -297,36 +299,40 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
               >
                 Qty
               </th>
-              <th
-                className="p-2 text-right text-sm font-bold"
-                style={{ 
-                  width: '100px',
-                  border: `1px solid ${settings.border_color}`,
-                  color: settings.table_header_text_color || '#374151',
-                }}
-              >
-                Harga/Hari
-              </th>
-              <th
-                className="p-2 text-center text-sm font-bold"
-                style={{ 
-                  width: '70px',
-                  border: `1px solid ${settings.border_color}`,
-                  color: settings.table_header_text_color || '#374151',
-                }}
-              >
-                Durasi
-              </th>
-              <th
-                className="p-2 text-right text-sm font-bold"
-                style={{ 
-                  width: '120px',
-                  border: `1px solid ${settings.border_color}`,
-                  color: settings.table_header_text_color || '#374151',
-                }}
-              >
-                Subtotal
-              </th>
+              {fullRincian && (
+                <>
+                  <th
+                    className="p-2 text-right text-sm font-bold"
+                    style={{ 
+                      width: '100px',
+                      border: `1px solid ${settings.border_color}`,
+                      color: settings.table_header_text_color || '#374151',
+                    }}
+                  >
+                    Harga/Hari
+                  </th>
+                  <th
+                    className="p-2 text-center text-sm font-bold"
+                    style={{ 
+                      width: '70px',
+                      border: `1px solid ${settings.border_color}`,
+                      color: settings.table_header_text_color || '#374151',
+                    }}
+                  >
+                    Durasi
+                  </th>
+                  <th
+                    className="p-2 text-right text-sm font-bold"
+                    style={{ 
+                      width: '120px',
+                      border: `1px solid ${settings.border_color}`,
+                      color: settings.table_header_text_color || '#374151',
+                    }}
+                  >
+                    Subtotal
+                  </th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -352,38 +358,44 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
                   >
                     {item.quantity}
                   </td>
-                  <td
-                    className="p-2 text-right text-sm"
-                    style={{ border: `1px solid ${settings.border_color}` }}
-                  >
-                    {formatRupiah(item.unit_price_per_day)}
-                  </td>
-                  <td
-                    className="p-2 text-center text-sm"
-                    style={{ border: `1px solid ${settings.border_color}` }}
-                  >
-                    {item.duration_days} hari
-                  </td>
-                  <td
-                    className="p-2 text-right text-sm font-bold"
-                    style={{ border: `1px solid ${settings.border_color}` }}
-                  >
-                    {formatRupiah(itemSubtotal)}
-                  </td>
+                  {fullRincian && (
+                    <>
+                      <td
+                        className="p-2 text-right text-sm"
+                        style={{ border: `1px solid ${settings.border_color}` }}
+                      >
+                        {formatRupiah(item.unit_price_per_day)}
+                      </td>
+                      <td
+                        className="p-2 text-center text-sm"
+                        style={{ border: `1px solid ${settings.border_color}` }}
+                      >
+                        {item.duration_days} hari
+                      </td>
+                      <td
+                        className="p-2 text-right text-sm font-bold"
+                        style={{ border: `1px solid ${settings.border_color}` }}
+                      >
+                        {formatRupiah(itemSubtotal)}
+                      </td>
+                    </>
+                  )}
                 </tr>
               );
             })}
           </tbody>
         </table>
 
-        {/* Subtotal Sewa */}
-        <div className="flex justify-between py-2 px-3" style={{ backgroundColor: '#f9fafb' }}>
-          <span className="text-sm" style={{ color: '#4b5563' }}>Subtotal Sewa</span>
-          <span className="text-sm font-bold">{formatRupiah(subtotalSewa)}</span>
-        </div>
+        {/* Subtotal Sewa - Only show if fullRincian */}
+        {fullRincian && (
+          <div className="flex justify-between py-2 px-3" style={{ backgroundColor: '#f9fafb' }}>
+            <span className="text-sm" style={{ color: '#4b5563' }}>Subtotal Sewa</span>
+            <span className="text-sm font-bold">{formatRupiah(subtotalSewa)}</span>
+          </div>
+        )}
 
-        {/* Section B: Ongkos Transport */}
-        {(transportDelivery > 0 || transportPickup > 0) && (
+        {/* Section B: Ongkos Transport - Only show if fullRincian */}
+        {fullRincian && (transportDelivery > 0 || transportPickup > 0) && (
           <>
             <h3
               className="font-bold text-base mt-5 mb-3 pb-1"
@@ -416,8 +428,8 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
           </>
         )}
 
-        {/* Section C: Diskon */}
-        {discount > 0 && (
+        {/* Section C: Diskon - Only show if fullRincian */}
+        {fullRincian && discount > 0 && (
           <>
             <h3
               className="font-bold text-base mt-5 mb-3 pb-1"
@@ -436,25 +448,27 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
           </>
         )}
 
-        {/* Grand Total */}
-        <div 
-          className="flex justify-between py-3 px-3 mt-4"
-          style={{ 
-            backgroundColor: `${settings.accent_color}15`,
-            borderTop: `2px solid ${settings.header_color_primary}`,
-          }}
-        >
-          <span className="text-lg font-bold">GRAND TOTAL</span>
-          <span 
-            className="text-lg font-bold"
-            style={{ color: settings.header_color_primary }}
+        {/* Grand Total - Only show if fullRincian */}
+        {fullRincian && (
+          <div 
+            className="flex justify-between py-3 px-3 mt-4"
+            style={{ 
+              backgroundColor: `${settings.accent_color}15`,
+              borderTop: `2px solid ${settings.header_color_primary}`,
+            }}
           >
-            {formatRupiah(grandTotal)}
-          </span>
-        </div>
+            <span className="text-lg font-bold">GRAND TOTAL</span>
+            <span 
+              className="text-lg font-bold"
+              style={{ color: settings.header_color_primary }}
+            >
+              {formatRupiah(grandTotal)}
+            </span>
+          </div>
+        )}
 
-        {/* Terbilang */}
-        {settings.show_terbilang && (
+        {/* Terbilang - Only show if fullRincian */}
+        {fullRincian && settings.show_terbilang && (
           <p className="text-sm italic mt-3" style={{ color: '#4b5563' }}>
             {settings.label_terbilang || "Terbilang:"} {terbilang(grandTotal)}
           </p>
