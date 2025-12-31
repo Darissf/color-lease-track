@@ -57,65 +57,113 @@ export function PaymentVerificationStatus({
   const hasTriggeredConfettiRef = useRef(false);
 
   const triggerConfetti = useCallback(() => {
-    // First burst - center explosion
-    confetti({
-      particleCount: 150,
-      spread: 100,
-      origin: { y: 0.6, x: 0.5 },
-      colors: ['#22c55e', '#16a34a', '#4ade80', '#86efac', '#fbbf24', '#f59e0b'],
-      ticks: 300,
-      gravity: 0.8,
-      scalar: 1.2,
-    });
-    
-    // Left side burst
-    setTimeout(() => {
-      confetti({
-        particleCount: 80,
-        angle: 60,
-        spread: 80,
-        origin: { x: 0, y: 0.6 },
-        colors: ['#22c55e', '#16a34a', '#4ade80', '#fbbf24'],
-        ticks: 250,
-      });
-    }, 150);
-    
-    // Right side burst
-    setTimeout(() => {
-      confetti({
-        particleCount: 80,
-        angle: 120,
-        spread: 80,
-        origin: { x: 1, y: 0.6 },
-        colors: ['#22c55e', '#16a34a', '#4ade80', '#fbbf24'],
-        ticks: 250,
-      });
-    }, 150);
-    
-    // Second wave - more sparkles
-    setTimeout(() => {
-      confetti({
-        particleCount: 100,
-        spread: 120,
-        origin: { y: 0.5, x: 0.5 },
-        colors: ['#22c55e', '#4ade80', '#fbbf24', '#ffffff'],
-        ticks: 200,
-        gravity: 1,
-        scalar: 0.8,
-      });
-    }, 400);
-    
-    // Final celebration burst
-    setTimeout(() => {
+    const colors = ['#22c55e', '#16a34a', '#4ade80', '#86efac', '#fbbf24', '#f59e0b', '#ffffff', '#34d399'];
+    const duration = 5000; // 5 detik efek confetti
+    const end = Date.now() + duration;
+
+    // 30 ledakan bersamaan dari bawah ke atas - full screen
+    const burstCount = 30;
+    for (let i = 0; i < burstCount; i++) {
+      const xPos = i / (burstCount - 1); // Spread across full width (0 to 1)
       confetti({
         particleCount: 50,
-        spread: 160,
-        origin: { y: 0.4, x: 0.5 },
-        colors: ['#22c55e', '#86efac', '#fbbf24'],
-        ticks: 150,
-        startVelocity: 45,
+        angle: 90, // Straight up
+        spread: 60,
+        origin: { x: xPos, y: 1 }, // From bottom
+        colors: colors,
+        ticks: 400,
+        gravity: 0.6,
+        scalar: 1.3,
+        startVelocity: 55,
+        drift: (Math.random() - 0.5) * 0.5,
       });
-    }, 600);
+    }
+
+    // Continuous confetti rain for 5 seconds
+    const frame = () => {
+      if (Date.now() > end) return;
+
+      // Random bursts from bottom
+      confetti({
+        particleCount: 8,
+        angle: 90 + (Math.random() - 0.5) * 30,
+        spread: 50,
+        origin: { x: Math.random(), y: 1 },
+        colors: colors,
+        ticks: 350,
+        gravity: 0.5,
+        scalar: 1.2,
+        startVelocity: 45 + Math.random() * 20,
+      });
+
+      // Side cannons
+      if (Math.random() > 0.5) {
+        confetti({
+          particleCount: 15,
+          angle: Math.random() > 0.5 ? 60 : 120,
+          spread: 70,
+          origin: { x: Math.random() > 0.5 ? 0 : 1, y: 0.8 },
+          colors: colors,
+          ticks: 300,
+          gravity: 0.7,
+          startVelocity: 50,
+        });
+      }
+
+      requestAnimationFrame(frame);
+    };
+
+    // Start continuous animation after initial burst
+    setTimeout(frame, 100);
+
+    // Additional massive waves
+    setTimeout(() => {
+      for (let i = 0; i < 15; i++) {
+        confetti({
+          particleCount: 40,
+          angle: 90,
+          spread: 80,
+          origin: { x: Math.random(), y: 1 },
+          colors: colors,
+          ticks: 350,
+          gravity: 0.5,
+          scalar: 1.4,
+          startVelocity: 60,
+        });
+      }
+    }, 500);
+
+    setTimeout(() => {
+      for (let i = 0; i < 20; i++) {
+        confetti({
+          particleCount: 35,
+          angle: 90,
+          spread: 90,
+          origin: { x: Math.random(), y: 1 },
+          colors: colors,
+          ticks: 400,
+          gravity: 0.4,
+          scalar: 1.5,
+          startVelocity: 65,
+        });
+      }
+    }, 1500);
+
+    setTimeout(() => {
+      for (let i = 0; i < 25; i++) {
+        confetti({
+          particleCount: 30,
+          angle: 90,
+          spread: 100,
+          origin: { x: Math.random(), y: 1 },
+          colors: colors,
+          ticks: 450,
+          gravity: 0.3,
+          scalar: 1.6,
+          startVelocity: 70,
+        });
+      }
+    }, 3000);
   }, []);
 
   const copyAmount = async () => {

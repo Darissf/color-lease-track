@@ -130,8 +130,71 @@ export function PaymentRequestGenerator({
       hasTriggeredConfettiRef.current = true;
       isProcessingMatchRef.current = true;
       
-      // Trigger confetti
-      confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+      // Trigger massive confetti celebration
+      const colors = ['#22c55e', '#16a34a', '#4ade80', '#86efac', '#fbbf24', '#f59e0b', '#ffffff', '#34d399'];
+      const duration = 5000;
+      const end = Date.now() + duration;
+
+      // 30 ledakan bersamaan dari bawah ke atas
+      for (let i = 0; i < 30; i++) {
+        confetti({
+          particleCount: 50,
+          angle: 90,
+          spread: 60,
+          origin: { x: i / 29, y: 1 },
+          colors: colors,
+          ticks: 400,
+          gravity: 0.6,
+          scalar: 1.3,
+          startVelocity: 55,
+        });
+      }
+
+      // Continuous confetti for 5 seconds
+      const frame = () => {
+        if (Date.now() > end) return;
+        confetti({
+          particleCount: 8,
+          angle: 90 + (Math.random() - 0.5) * 30,
+          spread: 50,
+          origin: { x: Math.random(), y: 1 },
+          colors: colors,
+          ticks: 350,
+          gravity: 0.5,
+          startVelocity: 45 + Math.random() * 20,
+        });
+        if (Math.random() > 0.5) {
+          confetti({
+            particleCount: 15,
+            angle: Math.random() > 0.5 ? 60 : 120,
+            spread: 70,
+            origin: { x: Math.random() > 0.5 ? 0 : 1, y: 0.8 },
+            colors: colors,
+            ticks: 300,
+            startVelocity: 50,
+          });
+        }
+        requestAnimationFrame(frame);
+      };
+      setTimeout(frame, 100);
+
+      // Additional waves
+      setTimeout(() => {
+        for (let i = 0; i < 15; i++) {
+          confetti({ particleCount: 40, angle: 90, spread: 80, origin: { x: Math.random(), y: 1 }, colors, ticks: 350, startVelocity: 60 });
+        }
+      }, 500);
+      setTimeout(() => {
+        for (let i = 0; i < 20; i++) {
+          confetti({ particleCount: 35, angle: 90, spread: 90, origin: { x: Math.random(), y: 1 }, colors, ticks: 400, startVelocity: 65 });
+        }
+      }, 1500);
+      setTimeout(() => {
+        for (let i = 0; i < 25; i++) {
+          confetti({ particleCount: 30, angle: 90, spread: 100, origin: { x: Math.random(), y: 1 }, colors, ticks: 450, startVelocity: 70 });
+        }
+      }, 3000);
+
       toast.success("Pembayaran terverifikasi!", { duration: 5000 });
       onPaymentVerified?.();
       
