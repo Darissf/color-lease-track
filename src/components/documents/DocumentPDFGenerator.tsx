@@ -632,6 +632,31 @@ export const DocumentPDFGenerator = ({
     }
   }, [documentRef, fileName, onComplete, orientation, paperSize]);
 
+  // Helper: Convert image URL to base64 data URL (avoids Buffer error in react-pdf)
+  const convertImageToBase64 = async (url: string): Promise<string | undefined> => {
+    try {
+      console.log("Converting image to base64:", url);
+      const response = await fetch(url, { mode: 'cors' });
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          console.log("Image converted to base64 successfully");
+          resolve(reader.result as string);
+        };
+        reader.onerror = (error) => {
+          console.error("FileReader error:", error);
+          reject(error);
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Error converting image to base64:", error);
+      return undefined;
+    }
+  };
+
   // Generate PDF using @react-pdf/renderer for multi-page support (Invoice with Rincian Tagihan)
   const generatePDFWithReactPDF = useCallback(async () => {
     console.log("=== generatePDFWithReactPDF Debug ===");
@@ -649,7 +674,7 @@ export const DocumentPDFGenerator = ({
     const toastId = toast.loading("Menyiapkan dokumen...");
 
     try {
-      toast.loading("Membuat QR codes...", { id: toastId });
+      toast.loading("Memuat gambar dan QR codes...", { id: toastId });
 
       // Pre-generate QR codes as data URLs (required by react-pdf) with timeout
       let qrCodeDataUrl: string | undefined;
@@ -677,6 +702,14 @@ export const DocumentPDFGenerator = ({
       const verificationUrl = `${window.location.origin}/verify/${templateProps.verificationCode}`;
       verificationQrDataUrl = await generateQRWithTimeout(verificationUrl);
 
+      // Convert logo URL to base64 data URL (CRITICAL: avoids Buffer error in react-pdf)
+      let logoBase64: string | undefined;
+      if (templateProps?.settings?.invoice_logo_url) {
+        console.log("Converting logo to base64...");
+        logoBase64 = await convertImageToBase64(templateProps.settings.invoice_logo_url);
+        console.log("Logo base64 result:", logoBase64 ? "success" : "failed");
+      }
+
       toast.loading("Membuat PDF 2 halaman...", { id: toastId });
 
       // Create PDF document using InvoicePDFTemplate with explicit defaults
@@ -697,7 +730,11 @@ export const DocumentPDFGenerator = ({
         transportDelivery: templateProps.transportDelivery || 0,
         transportPickup: templateProps.transportPickup || 0,
         discount: templateProps.discount || 0,
-        settings: templateProps.settings,
+        settings: {
+          ...templateProps.settings,
+          // Use base64 logo instead of URL to avoid Buffer error
+          invoice_logo_url: logoBase64 || undefined,
+        },
         qrCodeDataUrl,
         verificationQrDataUrl,
       };
@@ -705,6 +742,7 @@ export const DocumentPDFGenerator = ({
       console.log("=== PDF Props Debug ===");
       console.log("pdfProps.lineItems:", pdfProps.lineItems);
       console.log("pdfProps.lineItems.length:", pdfProps.lineItems?.length);
+      console.log("pdfProps.settings.invoice_logo_url:", pdfProps.settings?.invoice_logo_url ? "base64 data" : "none");
       console.log("Creating PDF document...");
 
       // Generate PDF blob using @react-pdf/renderer
@@ -747,7 +785,7 @@ export const DocumentPDFGenerator = ({
     } finally {
       setIsGenerating(false);
     }
-  }, [templateProps, fileName, onComplete, generatePDF]);
+  }, [templateProps, fileName, onComplete, generatePDF, documentType]);
 
   const printDocument = useCallback(async () => {
     if (!documentRef.current) {
