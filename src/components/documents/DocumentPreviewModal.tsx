@@ -12,6 +12,8 @@ import { ResponsiveDocumentWrapper } from "./ResponsiveDocumentWrapper";
 import { ZoomableDocumentWrapper } from "./ZoomableDocumentWrapper";
 import { DocumentPDFGenerator } from "./DocumentPDFGenerator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,11 +72,15 @@ export const DocumentPreviewModal = ({
 }: DocumentPreviewModalProps) => {
   const documentRef = useRef<HTMLDivElement>(null);
   const page2Ref = useRef<HTMLDivElement>(null); // Ref for Rincian Tagihan page
-  const { user } = useAuth();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
   const isMobile = useIsMobile();
   const { settings: brandSettings } = useBrandSettings();
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
   const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
+  const [fullRincian, setFullRincian] = useState(true); // Default ON - show full details
+  
+  // Check if user can see the toggle (Admin or Super Admin)
+  const canToggleRincian = isAdmin || isSuperAdmin;
   
   // Determine if we should show page 2 (Rincian Tagihan)
   const showPage2 = documentData?.documentType === 'invoice' && 
@@ -269,6 +275,7 @@ export const DocumentPreviewModal = ({
     transportDelivery: documentData.transportDelivery || 0,
     transportPickup: documentData.transportPickup || 0,
     discount: documentData.discount || 0,
+    fullRincian: fullRincian, // Pass toggle state to template
   };
 
   return (
@@ -280,6 +287,23 @@ export const DocumentPreviewModal = ({
             {showPage2 && ' (2 Halaman)'}
           </DialogTitle>
         </DialogHeader>
+        
+        {/* Toggle for Full Rincian - Only visible for Admin/Super Admin when showing page 2 */}
+        {canToggleRincian && showPage2 && (
+          <div className="flex items-center gap-3 py-2 px-3 bg-muted/50 rounded-lg">
+            <Switch
+              id="full-rincian"
+              checked={fullRincian}
+              onCheckedChange={setFullRincian}
+            />
+            <Label htmlFor="full-rincian" className="text-sm cursor-pointer">
+              Invoice Full Rincian
+              <span className="text-xs text-muted-foreground ml-2">
+                {fullRincian ? '(Tampilkan semua kolom)' : '(Hanya No, Nama Item, Qty)'}
+              </span>
+            </Label>
+          </div>
+        )}
         
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <DocumentPDFGenerator
