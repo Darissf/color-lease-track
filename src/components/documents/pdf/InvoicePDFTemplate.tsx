@@ -12,25 +12,9 @@ import { id as localeId } from "date-fns/locale";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
 import { CustomTextElement } from "@/components/custom-text/types";
 
-// Register fonts with all variants
-Font.register({
-  family: "Inter",
-  fonts: [
-    {
-      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2",
-      fontWeight: 400,
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2",
-      fontWeight: 700,
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hiJ-Ek-_EeAmM.woff2",
-      fontWeight: 400,
-      fontStyle: "italic",
-    },
-  ],
-});
+// Use built-in Helvetica font (no remote fetch = no Buffer error)
+// react-pdf has these fonts built-in: Courier, Helvetica, Times-Roman
+// We avoid remote font registration which causes "Buffer is not defined" in browser
 
 // Prevent hyphenation issues that can cause render failures
 Font.registerHyphenationCallback((word) => [word]);
@@ -42,7 +26,7 @@ const A4_HEIGHT = 841.89;
 const styles = StyleSheet.create({
   page: {
     padding: 30,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontSize: 10,
     backgroundColor: "#ffffff",
     position: "relative",
@@ -84,7 +68,7 @@ const styles = StyleSheet.create({
   },
   companyName: {
     fontSize: 16,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     marginBottom: 3,
   },
@@ -106,7 +90,7 @@ const styles = StyleSheet.create({
   },
   documentTitle: {
     fontSize: 14,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     marginBottom: 8,
   },
@@ -124,7 +108,7 @@ const styles = StyleSheet.create({
   },
   documentNumber: {
     fontSize: 12,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
   },
   documentDate: {
@@ -145,7 +129,7 @@ const styles = StyleSheet.create({
   },
   clientName: {
     fontSize: 12,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     marginBottom: 2,
   },
@@ -163,7 +147,7 @@ const styles = StyleSheet.create({
   tableHeaderCell: {
     padding: 8,
     fontSize: 9,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     color: "#374151",
   },
@@ -195,7 +179,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     borderWidth: 1,
     borderColor: "#bfdbfe",
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
   },
   tableFooter: {
@@ -205,7 +189,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     textAlign: "right",
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     borderWidth: 1,
     borderColor: "#bfdbfe",
@@ -214,7 +198,7 @@ const styles = StyleSheet.create({
     width: 120,
     padding: 10,
     textAlign: "right",
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     fontSize: 11,
     borderWidth: 1,
@@ -235,7 +219,7 @@ const styles = StyleSheet.create({
   },
   paymentTitle: {
     fontSize: 9,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     marginBottom: 8,
   },
@@ -259,7 +243,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   bankName: {
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
   },
   termsSection: {
@@ -272,7 +256,7 @@ const styles = StyleSheet.create({
   },
   termsTitle: {
     fontSize: 9,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     marginBottom: 4,
   },
@@ -307,7 +291,7 @@ const styles = StyleSheet.create({
   },
   signerName: {
     fontSize: 10,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
   },
   signerTitle: {
@@ -360,7 +344,7 @@ const styles = StyleSheet.create({
   },
   qrVerificationCode: {
     fontSize: 6,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     color: "#9ca3af",
     marginTop: 2,
@@ -374,7 +358,7 @@ const styles = StyleSheet.create({
   // Page 2: Rincian Tagihan Styles
   page2Title: {
     fontSize: 14,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     marginBottom: 5,
     textAlign: "center",
@@ -395,7 +379,7 @@ const styles = StyleSheet.create({
   rincianTableHeaderCell: {
     padding: 6,
     fontSize: 8,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     color: "#374151",
     borderWidth: 1,
@@ -412,7 +396,7 @@ const styles = StyleSheet.create({
   },
   rincianSectionTitle: {
     fontSize: 10,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
     marginTop: 15,
     marginBottom: 8,
@@ -432,7 +416,7 @@ const styles = StyleSheet.create({
   },
   rincianSummaryValue: {
     fontSize: 9,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
   },
   rincianTotalRow: {
@@ -447,12 +431,12 @@ const styles = StyleSheet.create({
   },
   rincianTotalLabel: {
     fontSize: 11,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
   },
   rincianTotalValue: {
     fontSize: 11,
-    fontFamily: "Inter",
+    fontFamily: "Helvetica",
     fontWeight: 700,
   },
 });
@@ -743,7 +727,7 @@ export const InvoicePDFTemplate = ({
 
             <View style={styles.tableRow}>
               <View style={[styles.tableCell, styles.tableCellDesc, { borderColor: settings.border_color }]}>
-                <Text style={{ fontFamily: "Inter", fontWeight: 700 }}>{description}</Text>
+                <Text style={{ fontFamily: "Helvetica", fontWeight: 700 }}>{description}</Text>
                 {contractInvoice && (
                   <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 3 }}>
                     No. Invoice: {contractInvoice}
@@ -911,7 +895,7 @@ export const InvoicePDFTemplate = ({
               fontSize: element.font_size,
               color: element.font_color,
               fontWeight: element.font_weight === 'bold' ? 700 : 400,
-              fontFamily: 'Inter',
+              fontFamily: 'Helvetica',
               textAlign: element.text_align as 'left' | 'center' | 'right',
               transform: `rotate(${element.rotation}deg)`,
             }}
@@ -1044,7 +1028,7 @@ export const InvoicePDFTemplate = ({
                     <Text style={[styles.rincianTableCell, { width: 40, textAlign: "center", borderColor: settings.border_color }]}>{item.quantity}</Text>
                     <Text style={[styles.rincianTableCell, { width: 75, textAlign: "right", borderColor: settings.border_color }]}>{formatRupiah(item.unit_price_per_day)}</Text>
                     <Text style={[styles.rincianTableCell, { width: 50, textAlign: "center", borderColor: settings.border_color }]}>{item.duration_days} hari</Text>
-                    <Text style={[styles.rincianTableCell, { width: 90, textAlign: "right", fontFamily: "Inter", fontWeight: 700, borderColor: settings.border_color }]}>{formatRupiah(itemSubtotal)}</Text>
+                    <Text style={[styles.rincianTableCell, { width: 90, textAlign: "right", fontFamily: "Helvetica", fontWeight: 700, borderColor: settings.border_color }]}>{formatRupiah(itemSubtotal)}</Text>
                   </View>
                 );
               })}
