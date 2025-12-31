@@ -353,9 +353,11 @@ export function InvoiceTemplatePreview({
                     borderColor: settings.border_color 
                   }}
                 >
-                  <div className="font-medium">{sampleData.description}</div>
-                  <div className="text-sm text-gray-500 mt-1">Ref: {sampleData.contractInvoice}</div>
-                  <div className="text-sm text-gray-500">Periode: {sampleData.period}</div>
+                  <div className="font-bold">{sampleData.description}</div>
+                  <div className="text-sm text-gray-500 mt-1">Periode: {sampleData.period}</div>
+                  <div className="text-sm text-gray-500 mt-1 italic">
+                    Rincian spesifikasi item mengacu pada Lampiran Halaman 2
+                  </div>
                 </td>
                 <td 
                   className="px-4 py-3 text-right font-semibold"
