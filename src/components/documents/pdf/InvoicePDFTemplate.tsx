@@ -1098,6 +1098,42 @@ export const InvoicePDFTemplate = ({
               <Text style={[styles.footer, { marginTop: 30 }]}>{settings.footer_text}</Text>
             )}
           </View>
+
+          {/* Watermark - SAME AS PAGE 1 */}
+          {settings.show_watermark && settings.watermark_type === 'logo' && settings.invoice_logo_url && (
+            <Image
+              src={settings.invoice_logo_url}
+              style={[
+                styles.watermark,
+                {
+                  left: ((layoutSettings?.watermark_position_x ?? settings.watermark_position_x ?? 50) / 100) * A4_WIDTH - ((layoutSettings?.watermark_size ?? settings.watermark_size ?? 200) / 2),
+                  top: ((layoutSettings?.watermark_position_y ?? settings.watermark_position_y ?? 50) / 100) * A4_HEIGHT - ((layoutSettings?.watermark_size ?? settings.watermark_size ?? 200) / 2),
+                  width: layoutSettings?.watermark_size ?? settings.watermark_size ?? 200,
+                  height: layoutSettings?.watermark_size ?? settings.watermark_size ?? 200,
+                  opacity: (layoutSettings?.watermark_opacity ?? settings.watermark_opacity ?? 10) / 100,
+                  transform: `rotate(${layoutSettings?.watermark_rotation ?? settings.watermark_rotation ?? -45}deg)`,
+                },
+              ]}
+            />
+          )}
+          {settings.show_watermark && settings.watermark_type !== 'logo' && (
+            <Text
+              style={[
+                styles.watermark,
+                {
+                  left: ((layoutSettings?.watermark_position_x ?? settings.watermark_position_x ?? 50) / 100) * A4_WIDTH,
+                  top: ((layoutSettings?.watermark_position_y ?? settings.watermark_position_y ?? 50) / 100) * A4_HEIGHT,
+                  fontSize: layoutSettings?.watermark_size ?? settings.watermark_size ?? 60,
+                  opacity: (layoutSettings?.watermark_opacity ?? settings.watermark_opacity ?? 10) / 100,
+                  transform: `rotate(${layoutSettings?.watermark_rotation ?? settings.watermark_rotation ?? -45}deg) translateX(-50%) translateY(-50%)`,
+                  color: "#9ca3af",
+                  fontWeight: 700,
+                },
+              ]}
+            >
+              {settings.watermark_text || 'DRAFT'}
+            </Text>
+          )}
         </Page>
       )}
     </Document>
