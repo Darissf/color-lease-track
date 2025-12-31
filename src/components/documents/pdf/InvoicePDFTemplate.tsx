@@ -32,6 +32,9 @@ Font.register({
   ],
 });
 
+// Prevent hyphenation issues that can cause render failures
+Font.registerHyphenationCallback((word) => [word]);
+
 // A4 dimensions in points (72 points = 1 inch, A4 = 210mm x 297mm)
 const A4_WIDTH = 595.28;
 const A4_HEIGHT = 841.89;
