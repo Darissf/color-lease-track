@@ -95,7 +95,11 @@ function normalizeParentTransforms(element: HTMLElement): SavedTransform[] {
   
   while (parent && parent !== document.body) {
     const computed = window.getComputedStyle(parent);
-    if (computed.transform !== 'none') {
+    // Check for any transform (including from react-zoom-pan-pinch)
+    const hasTransform = computed.transform !== 'none' && computed.transform !== '';
+    const hasScale = computed.transform.includes('scale') || computed.transform.includes('matrix');
+    
+    if (hasTransform || hasScale) {
       saved.push({
         element: parent,
         transform: parent.style.transform,
@@ -103,7 +107,25 @@ function normalizeParentTransforms(element: HTMLElement): SavedTransform[] {
       });
       parent.style.transform = 'none';
       parent.style.transformOrigin = 'top left';
+      
+      // Also handle inline style for transform from react-zoom-pan-pinch
+      const inlineTransform = parent.getAttribute('style');
+      if (inlineTransform && inlineTransform.includes('transform')) {
+        parent.style.setProperty('transform', 'none', 'important');
+      }
     }
+    
+    // Also check for wrapper containers that may clip content (e.g., TransformComponent)
+    if (computed.overflow === 'hidden' || computed.overflow === 'scroll') {
+      const oldOverflow = parent.style.overflow;
+      saved.push({
+        element: parent,
+        transform: oldOverflow,
+        transformOrigin: '', // reuse for overflow
+      });
+      parent.style.overflow = 'visible';
+    }
+    
     parent = parent.parentElement;
   }
   
@@ -112,8 +134,14 @@ function normalizeParentTransforms(element: HTMLElement): SavedTransform[] {
 
 function restoreParentTransforms(saved: SavedTransform[]): void {
   saved.forEach(({ element, transform, transformOrigin }) => {
-    element.style.transform = transform;
-    element.style.transformOrigin = transformOrigin;
+    // Check if this was saved for overflow or transform
+    if (transformOrigin === '') {
+      // This was an overflow save
+      element.style.overflow = transform;
+    } else {
+      element.style.transform = transform;
+      element.style.transformOrigin = transformOrigin;
+    }
   });
 }
 
@@ -657,6 +685,17 @@ export const DocumentPDFGenerator = ({
         const targetElement = pages[i];
         toast.loading(`Memproses halaman ${i + 1}/${pages.length}...`, { id: toastId });
 
+        // MOBILE FIX: Ensure element is visible and properly sized before capture
+        // Save original visibility state
+        const originalDisplay = targetElement.style.display;
+        const originalVisibility = targetElement.style.visibility;
+        const originalOpacity = targetElement.style.opacity;
+        
+        // Force element to be visible
+        targetElement.style.display = 'block';
+        targetElement.style.visibility = 'visible';
+        targetElement.style.opacity = '1';
+
         // Apply all layers
         await waitForFonts();
         await preloadAllImages(targetElement);
@@ -666,9 +705,11 @@ export const DocumentPDFGenerator = ({
         const savedStyles = forceNaturalSize(targetElement);
         const savedInlineStyles = applyCriticalInlineStyles(targetElement);
 
+        // Force layout recalculation
         targetElement.getBoundingClientRect();
-        await sleep(150);
+        await sleep(200); // Slightly longer wait for mobile
 
+        // MOBILE FIX: Use fixed width/height for capture to avoid scaling issues
         const canvas = await html2canvas(targetElement, {
           scale: 3,
           useCORS: true,
@@ -678,18 +719,28 @@ export const DocumentPDFGenerator = ({
           imageTimeout: 15000,
           removeContainer: false,
           foreignObjectRendering: false,
-          windowWidth: targetElement.scrollWidth,
-          windowHeight: targetElement.scrollHeight,
+          width: 793, // A4 width in pixels at 96 DPI
+          height: 1122, // A4 height in pixels at 96 DPI
+          windowWidth: 793,
+          windowHeight: 1122,
         });
 
         // Restore
         restoreCriticalInlineStyles(savedInlineStyles);
         restoreNaturalSize(targetElement, savedStyles);
         restoreParentTransforms(savedTransforms);
+        
+        // Restore visibility state
+        targetElement.style.display = originalDisplay;
+        targetElement.style.visibility = originalVisibility;
+        targetElement.style.opacity = originalOpacity;
 
         if (!canvas || canvas.width === 0 || canvas.height === 0) {
+          console.error(`Canvas halaman ${i + 1} kosong - width: ${canvas?.width}, height: ${canvas?.height}`);
           throw new Error(`Canvas halaman ${i + 1} kosong`);
         }
+
+        console.log(`Page ${i + 1} captured: ${canvas.width}x${canvas.height}`);
 
         let imgData = canvas.toDataURL("image/png", 1.0);
         if (!imgData || imgData === 'data:,' || imgData.length < 100) {
