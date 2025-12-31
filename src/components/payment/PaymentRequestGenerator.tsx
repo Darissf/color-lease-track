@@ -865,13 +865,34 @@ export function PaymentRequestGenerator({
               setIsGenerating(true);
               setAmount(remainingAmount.toLocaleString("id-ID"));
             }}
+            disabled={globalLock.secondsRemaining > 0 && !globalLock.isOwner}
           >
-            <CreditCard className="w-4 h-4 mr-2" />
-            Generate Pembayaran
+            {(globalLock.secondsRemaining > 0 && !globalLock.isOwner) ? (
+              <Clock className="w-4 h-4 mr-2" />
+            ) : (
+              <CreditCard className="w-4 h-4 mr-2" />
+            )}
+            {(globalLock.secondsRemaining > 0 && !globalLock.isOwner) 
+              ? `Tunggu ${formatCooldown(globalLock.secondsRemaining)}`
+              : "Generate Pembayaran"
+            }
           </Button>
         </>
       ) : (
         <>
+          {/* Warning untuk non-owner saat global lock aktif */}
+          {globalLock.secondsRemaining > 0 && !globalLock.isOwner && (
+            <div className="flex items-start gap-2 px-3 py-2 rounded-md text-sm border bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <span className="font-medium">JANGAN TRANSFER DULU!</span>
+                <p className="text-xs opacity-80 mt-0.5">
+                  Ada proses pengecekan dari user lain. Tunggu {formatCooldown(globalLock.secondsRemaining)} sebelum membuat request pembayaran baru.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
             <div className="flex items-start gap-2">
               <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
@@ -929,10 +950,17 @@ export function PaymentRequestGenerator({
             <Button
               className="flex-1"
               onClick={handleGenerate}
-              disabled={loading}
+              disabled={loading || (globalLock.secondsRemaining > 0 && !globalLock.isOwner)}
             >
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Dapatkan Nominal
+              {loading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (globalLock.secondsRemaining > 0 && !globalLock.isOwner) ? (
+                <Clock className="h-4 w-4 mr-2" />
+              ) : null}
+              {(globalLock.secondsRemaining > 0 && !globalLock.isOwner) 
+                ? `Tunggu ${formatCooldown(globalLock.secondsRemaining)}`
+                : "Dapatkan Nominal"
+              }
             </Button>
           </div>
         </>
