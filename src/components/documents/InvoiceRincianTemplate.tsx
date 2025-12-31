@@ -97,6 +97,39 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
           fontSize: `${settings.font_size_base || 14}px`,
         }}
       >
+        {/* Watermark - SAME AS PAGE 1 */}
+        {settings.show_watermark && (
+          <div 
+            className="absolute pointer-events-none z-50"
+            style={{ 
+              left: `${settings.invoice_layout_settings?.watermark_position_x ?? settings.watermark_position_x ?? 50}%`,
+              top: `${settings.invoice_layout_settings?.watermark_position_y ?? settings.watermark_position_y ?? 50}%`,
+              transform: `translate(-50%, -50%) rotate(${settings.invoice_layout_settings?.watermark_rotation ?? settings.watermark_rotation ?? -45}deg)`,
+              opacity: (settings.invoice_layout_settings?.watermark_opacity ?? settings.watermark_opacity ?? 10) / 100
+            }}
+          >
+            {settings.watermark_type === 'logo' && settings.invoice_logo_url ? (
+              <img 
+                src={settings.invoice_logo_url} 
+                alt="" 
+                style={{ 
+                  width: `${settings.invoice_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`,
+                  height: 'auto'
+                }}
+              />
+            ) : (
+              <span 
+                className="font-bold text-gray-400 whitespace-nowrap"
+                style={{ 
+                  fontFamily: getHeadingFontFamily(),
+                  fontSize: `${settings.invoice_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`
+                }}
+              >
+                {settings.watermark_text || 'DRAFT'}
+              </span>
+            )}
+          </div>
+        )}
         {/* Header Stripe Bar - SAME AS PAGE 1 */}
         {settings.show_header_stripe && (
           <div
