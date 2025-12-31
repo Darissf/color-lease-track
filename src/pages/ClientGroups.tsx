@@ -450,10 +450,15 @@ const ClientGroups = () => {
     setExpandedClients(newExpanded);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, tagihanBelumBayar?: number) => {
     const capitalizeWords = (str: string) => {
       return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
     };
+    
+    // Jika selesai dan sudah lunas → Closed (merah)
+    if (status.toLowerCase() === 'selesai' && tagihanBelumBayar !== undefined && tagihanBelumBayar <= 0) {
+      return <Badge className="bg-red-600 text-white">Closed</Badge>;
+    }
     
     switch (status.toLowerCase()) {
       case "masa sewa":
@@ -1488,7 +1493,7 @@ const ClientGroups = () => {
                                               </span>
                                             </div>
                                           </div>
-                                          {getStatusBadge(contract.status)}
+                                          {getStatusBadge(contract.status, contract.tagihan_belum_bayar)}
                                         </div>
                                         
                                         <div className="space-y-1 text-xs">

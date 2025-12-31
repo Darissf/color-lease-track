@@ -150,12 +150,19 @@ export default function ClientDashboard() {
     setLoading(false);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, tagihanBelumBayar?: number) => {
+    // Jika selesai dan sudah lunas → Closed (merah)
+    if (status === "selesai" && tagihanBelumBayar !== undefined && tagihanBelumBayar <= 0) {
+      return <Badge className="bg-red-600 text-white">Closed</Badge>;
+    }
+    
     switch (status) {
       case "masa sewa":
         return <Badge className="bg-green-500">Aktif</Badge>;
       case "habis sewa":
         return <Badge variant="secondary">Selesai</Badge>;
+      case "selesai":
+        return <Badge className="bg-green-500">Selesai</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -289,7 +296,7 @@ export default function ClientDashboard() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-semibold">{contract.invoice || "Kontrak"}</span>
-                      {getStatusBadge(contract.status)}
+                      {getStatusBadge(contract.status, contract.tagihan_belum_bayar)}
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">

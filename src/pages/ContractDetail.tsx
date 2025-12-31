@@ -802,8 +802,14 @@ export default function ContractDetail() {
     setDocumentPreviewOpen(true);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, tagihanBelumBayar?: number) => {
     const normalizedStatus = status.toLowerCase();
+    
+    // Jika selesai dan sudah lunas → Closed (merah)
+    if (normalizedStatus === 'selesai' && tagihanBelumBayar !== undefined && tagihanBelumBayar <= 0) {
+      return <Badge className="bg-red-600 text-white">Closed</Badge>;
+    }
+    
     switch (normalizedStatus) {
       case "masa sewa":
         return <Badge className="bg-green-500 text-white">Masa Sewa</Badge>;
@@ -872,7 +878,7 @@ export default function ContractDetail() {
             </p>
           </div>
         </div>
-        {getStatusBadge(contract.status)}
+        {getStatusBadge(contract.status, contract.tagihan_belum_bayar)}
       </div>
 
       {/* Summary Statistics */}
@@ -970,7 +976,7 @@ export default function ContractDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <div className="mt-1">{getStatusBadge(contract.status)}</div>
+                  <div className="mt-1">{getStatusBadge(contract.status, contract.tagihan_belum_bayar)}</div>
                 </div>
               </div>
 
