@@ -92,6 +92,9 @@ export function PaymentRequestGenerator({
     ownerRequestId?: string;
   }>({ locked: false, secondsRemaining: 0, isOwner: false });
   
+  // Loading state for initial global lock fetch - default TRUE to block button until fetch completes
+  const [isLoadingGlobalLock, setIsLoadingGlobalLock] = useState(true);
+  
   // Use ref to track confetti state to avoid stale closure and dependency issues
   const hasTriggeredConfettiRef = useRef(false);
   // Ref to prevent cleanup during confetti animation
@@ -313,25 +316,34 @@ export function PaymentRequestGenerator({
   // Fetch global lock status on mount and subscribe to changes
   useEffect(() => {
     const fetchGlobalLock = async () => {
-      const { data: settings } = await supabase
-        .from("payment_provider_settings")
-        .select("burst_global_locked_at, burst_request_id")
-        .eq("provider", "vps_scraper")
-        .eq("is_active", true)
-        .maybeSingle();
+      setIsLoadingGlobalLock(true);
+      try {
+        const { data: settings } = await supabase
+          .from("payment_provider_settings")
+          .select("burst_global_locked_at, burst_request_id")
+          .eq("provider", "vps_scraper")
+          .eq("is_active", true)
+          .maybeSingle();
 
-      if (settings?.burst_global_locked_at) {
-        const lockedAt = new Date(settings.burst_global_locked_at).getTime();
-        const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
-        if (remaining > 0) {
-          const isOwner = pendingRequest?.id === settings.burst_request_id;
-          setGlobalLock({
-            locked: true,
-            secondsRemaining: Math.ceil(remaining / 1000),
-            isOwner,
-            ownerRequestId: settings.burst_request_id
-          });
+        if (settings?.burst_global_locked_at) {
+          const lockedAt = new Date(settings.burst_global_locked_at).getTime();
+          const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
+          if (remaining > 0) {
+            const isOwner = pendingRequest?.id === settings.burst_request_id;
+            setGlobalLock({
+              locked: true,
+              secondsRemaining: Math.ceil(remaining / 1000),
+              isOwner,
+              ownerRequestId: settings.burst_request_id
+            });
+          } else {
+            setGlobalLock({ locked: false, secondsRemaining: 0, isOwner: false });
+          }
+        } else {
+          setGlobalLock({ locked: false, secondsRemaining: 0, isOwner: false });
         }
+      } finally {
+        setIsLoadingGlobalLock(false);
       }
     };
 
@@ -572,8 +584,15 @@ export function PaymentRequestGenerator({
   };
 
   const handleConfirmTransfer = async () => {
-    // Check global lock first, then individual cooldown
-    if (!pendingRequest || globalLock.secondsRemaining > 0 || cooldownRemaining > 0) return;
+    // Block if still loading, global lock active (non-owner), or cooldown
+    if (!pendingRequest || isLoadingGlobalLock || isConfirmingTransfer) return;
+    
+    if (globalLock.secondsRemaining > 0 && !globalLock.isOwner) {
+      toast.error("Ada pengecekan dari user lain. Tunggu hingga selesai.");
+      return;
+    }
+    
+    if (globalLock.secondsRemaining > 0 || cooldownRemaining > 0) return;
 
     setIsConfirmingTransfer(true);
     try {
@@ -703,7 +722,13 @@ export function PaymentRequestGenerator({
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          {(globalLock.secondsRemaining > 0 || cooldownRemaining > 0) ? (
+          {/* Loading state - wait for global lock fetch */}
+          {isLoadingGlobalLock ? (
+            <div className="flex-1 flex items-center gap-1.5 py-2 px-3 rounded-md border text-sm bg-muted/50 text-muted-foreground border-muted">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Mengecek status...</span>
+            </div>
+          ) : (globalLock.secondsRemaining > 0 || cooldownRemaining > 0) ? (
             <div className="flex-1 flex items-center gap-1.5 py-2 px-3 rounded-md border text-sm bg-muted/50 text-muted-foreground border-muted">
               <Clock className="h-3 w-3" />
               <span>Tunggu {formatCooldown(globalLock.secondsRemaining > 0 ? globalLock.secondsRemaining : cooldownRemaining)} untuk cek ulang</span>
