@@ -255,8 +255,56 @@ export function PaymentVerificationStatus({
     hasTriggeredConfettiRef.current = false;
   }, [requestId]);
 
+  // Polling fallback for reliable status checking (3 seconds interval)
   useEffect(() => {
-    // Subscribe to realtime updates
+    if (status !== "pending") return;
+
+    console.log("[Polling] Starting polling for requestId:", requestId);
+
+    const pollStatus = async () => {
+      if (hasTriggeredConfettiRef.current) {
+        console.log("[Polling] Skipping - confetti already triggered");
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from("payment_confirmation_requests")
+          .select("status")
+          .eq("id", requestId)
+          .single();
+
+        console.log("[Polling] Status:", data?.status);
+
+        if (data?.status && data.status !== status) {
+          setStatus(data.status as VerificationStatus);
+
+          if (data.status === "matched" && !hasTriggeredConfettiRef.current) {
+            console.log("[Polling] Status matched! Triggering confetti!");
+            hasTriggeredConfettiRef.current = true;
+            triggerConfetti();
+            toast.success("Pembayaran terverifikasi!");
+            onVerified?.();
+          }
+        }
+      } catch (err) {
+        console.error("[Polling] Error:", err);
+      }
+    };
+
+    // Initial check after 500ms
+    const initialTimeout = setTimeout(pollStatus, 500);
+    // Poll every 3 seconds
+    const pollInterval = setInterval(pollStatus, 3000);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(pollInterval);
+    };
+  }, [requestId, status, triggerConfetti, onVerified]);
+
+  useEffect(() => {
+    // Subscribe to realtime updates (as backup)
     const channel = supabase
       .channel(`payment-request-${requestId}`)
       .on(

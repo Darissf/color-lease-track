@@ -143,14 +143,8 @@ export function PaymentRequestGenerator({
     }
   }, [onPaymentVerified]);
 
-  // Polling for public mode (RLS blocks realtime for anonymous users)
+  // Universal polling for both public and internal modes (reliable fallback)
   useEffect(() => {
-    // Skip if not public mode or no pending request
-    if (!isPublicMode) {
-      console.log("[Polling] Skipping - not public mode");
-      return;
-    }
-    
     if (!pendingRequest?.id) {
       console.log("[Polling] Skipping - no pending request");
       return;
@@ -162,7 +156,7 @@ export function PaymentRequestGenerator({
       return;
     }
 
-    console.log("[Polling] Starting polling for public mode, request:", pendingRequest.id, "accessCode:", accessCode);
+    console.log("[Polling] Starting polling, mode:", isPublicMode ? "public" : "internal", "request:", pendingRequest.id);
 
     const pollStatus = async () => {
       // Double-check we should still be polling
@@ -172,27 +166,47 @@ export function PaymentRequestGenerator({
       }
 
       try {
-        console.log("[Polling] Calling check_status...");
-        const { data, error } = await supabase.functions.invoke("public-payment-request", {
-          body: {
-            access_code: accessCode,
-            action: "check_status",
-            request_id: pendingRequest.id,
-          },
-        });
+        console.log("[Polling] Checking status...");
+        
+        if (isPublicMode) {
+          // Use edge function for public mode (bypasses RLS)
+          const { data, error } = await supabase.functions.invoke("public-payment-request", {
+            body: {
+              access_code: accessCode,
+              action: "check_status",
+              request_id: pendingRequest.id,
+            },
+          });
 
-        if (error) {
-          console.error("[Polling] Error from edge function:", error);
-          return;
-        }
+          if (error) {
+            console.error("[Polling] Error from edge function:", error);
+            return;
+          }
 
-        console.log("[Polling] Response:", JSON.stringify(data));
+          console.log("[Polling] Response:", JSON.stringify(data));
 
-        if (data?.success && data?.status) {
-          console.log("[Polling] Got status:", data.status);
-          handleStatusChange(data.status);
+          if (data?.success && data?.status) {
+            console.log("[Polling] Got status:", data.status);
+            handleStatusChange(data.status);
+          }
         } else {
-          console.log("[Polling] No status in response or not successful");
+          // Direct DB query for internal mode (authenticated users)
+          const { data, error } = await supabase
+            .from("payment_confirmation_requests")
+            .select("status")
+            .eq("id", pendingRequest.id)
+            .single();
+
+          if (error) {
+            console.error("[Polling] DB query error:", error);
+            return;
+          }
+
+          console.log("[Polling] DB status:", data?.status);
+
+          if (data?.status) {
+            handleStatusChange(data.status);
+          }
         }
       } catch (err) {
         console.error("[Polling] Exception:", err);
@@ -212,7 +226,7 @@ export function PaymentRequestGenerator({
     };
   }, [pendingRequest?.id, isPublicMode, accessCode, handleStatusChange]);
 
-  // Subscribe to realtime updates for pending request (only for authenticated/internal mode)
+  // Subscribe to realtime updates for pending request (only for authenticated/internal mode - as backup)
   useEffect(() => {
     if (!pendingRequest?.id || isPublicMode) return;
 
