@@ -528,7 +528,11 @@ export function PaymentVerificationStatus({
                     ) : effectiveCooldown > 0 ? (
                       <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-md text-sm border bg-muted/50 text-muted-foreground border-muted">
                         <Clock className="h-3 w-3" />
-                        <span>Tunggu {formatCooldown(effectiveCooldown)} untuk cek ulang</span>
+                        {globalLock.isOwner ? (
+                          <span>Silahkan tunggu maksimal {formatCooldown(Math.min(120, effectiveCooldown))} untuk mendapatkan konfirmasi otomatis.</span>
+                        ) : (
+                          <span>Tunggu {formatCooldown(effectiveCooldown)} untuk cek ulang</span>
+                        )}
                       </div>
                     ) : burstTriggeredAt ? (
                       <Button 
