@@ -4675,6 +4675,7 @@ export type Database = {
           id: string
           inventory_item_id: string | null
           invoice: string | null
+          invoice_full_rincian: boolean | null
           jenis_scaffolding: string | null
           jumlah_unit: number | null
           keterangan: string | null
@@ -4713,6 +4714,7 @@ export type Database = {
           id?: string
           inventory_item_id?: string | null
           invoice?: string | null
+          invoice_full_rincian?: boolean | null
           jenis_scaffolding?: string | null
           jumlah_unit?: number | null
           keterangan?: string | null
@@ -4751,6 +4753,7 @@ export type Database = {
           id?: string
           inventory_item_id?: string | null
           invoice?: string | null
+          invoice_full_rincian?: boolean | null
           jenis_scaffolding?: string | null
           jumlah_unit?: number | null
           keterangan?: string | null
