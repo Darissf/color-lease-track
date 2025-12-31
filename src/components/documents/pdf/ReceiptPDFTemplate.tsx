@@ -339,6 +339,7 @@ interface ReceiptPDFTemplateProps {
   clientName: string;
   clientAddress?: string;
   description: string;
+  period?: string;
   amount: number;
   invoiceNumber?: string;
   paymentDate?: Date;
@@ -409,6 +410,7 @@ export const ReceiptPDFTemplate = ({
   clientName,
   clientAddress,
   description,
+  period,
   amount,
   invoiceNumber,
   paymentDate,
@@ -573,14 +575,22 @@ export const ReceiptPDFTemplate = ({
 
             <View style={styles.tableRow}>
               <View style={[styles.tableCell, styles.tableCellDesc, { borderColor: settings.border_color }]}>
-                <Text style={{ fontFamily: "Helvetica", fontWeight: 700 }}>{description}</Text>
+                {/* Judul - Bold & Hitam Pekat */}
+                <Text style={{ fontFamily: "Helvetica", fontWeight: 700, color: "#000000" }}>{description}</Text>
+                {/* Sub-teks - Abu-abu Tua, Font Normal */}
                 {invoiceNumber && (
-                  <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 3 }}>
-                    No. Invoice: {invoiceNumber}
+                  <Text style={{ fontSize: 8, color: "#4b5563", marginTop: 3 }}>
+                    Mengacu pada Invoice {invoiceNumber}
                   </Text>
                 )}
-                <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 2 }}>
-                  Tanggal Bayar: {formattedPaymentDate}
+                {period && (
+                  <Text style={{ fontSize: 8, color: "#4b5563", marginTop: 2 }}>
+                    Periode: {period}
+                  </Text>
+                )}
+                {/* Kalimat Penutup - Italic */}
+                <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 6, fontStyle: "italic" }}>
+                  Terima kasih, pembayaran telah kami terima dengan baik.
                 </Text>
               </View>
               <Text style={[styles.tableCell, styles.tableCellAmount, { borderColor: settings.border_color }]}>
