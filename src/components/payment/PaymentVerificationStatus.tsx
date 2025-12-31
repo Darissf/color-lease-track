@@ -292,7 +292,7 @@ export function PaymentVerificationStatus({
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [globalLock.locked, globalLock.secondsRemaining]);
+  }, [globalLock.locked]); // Hanya locked, agar timer tidak restart setiap detik
 
   // Calculate individual cooldown remaining (2 minutes)
   useEffect(() => {

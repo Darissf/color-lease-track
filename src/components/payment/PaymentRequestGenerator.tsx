@@ -395,7 +395,7 @@ export function PaymentRequestGenerator({
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [globalLock.locked, globalLock.secondsRemaining]);
+  }, [globalLock.locked]); // Hanya locked, agar timer tidak restart setiap detik
 
   // Calculate cooldown remaining for burst trigger (2 minutes)
   useEffect(() => {
