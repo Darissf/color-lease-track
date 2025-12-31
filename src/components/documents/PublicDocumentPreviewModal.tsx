@@ -148,7 +148,7 @@ export function PublicDocumentPreviewModal({
   } : null;
 
   const receiptProps = verificationCode ? {
-    documentNumber: `KWT-${contractData.invoice || contractData.id.substring(0, 8)}`,
+    documentNumber: contractData.invoice || contractData.id.substring(0, 8).toUpperCase(),
     verificationCode: verificationCode,
     issuedAt: contractData.tanggal ? new Date(contractData.tanggal) : new Date(),
     clientName: clientData?.nama || 'Klien',
