@@ -30,20 +30,25 @@ export const ZoomableDocumentWrapper = ({
   showControls = true,
 }: ZoomableDocumentWrapperProps) => {
   return (
-    <div className="relative w-full h-full min-h-[60vh] overflow-hidden bg-muted/30 rounded-lg">
+    <div className="relative w-full h-full min-h-[50vh] overflow-hidden bg-muted/30 rounded-lg">
       <TransformWrapper
-        initialScale={0.4}
+        initialScale={0.5}
         minScale={0.2}
         maxScale={3}
-        centerOnInit={true}
+        centerOnInit={false}
+        limitToBounds={false}
+        centerZoomedOut={false}
+        alignmentAnimation={{ disabled: true }}
         wheel={{ step: 0.1 }}
         doubleClick={{ mode: "toggle" }}
         panning={{ velocityDisabled: false }}
+        initialPositionX={0}
+        initialPositionY={0}
       >
         {showControls && <ZoomControls />}
         <TransformComponent
           wrapperClass="!w-full !h-full"
-          contentClass="flex items-center justify-center p-4"
+          contentClass="p-4"
         >
           {children}
         </TransformComponent>
