@@ -1204,7 +1204,17 @@ export const DocumentPDFGenerator = ({
       )}
       
       <Button 
-        onClick={page2Ref ? generateMultiPagePDF : generatePDF} 
+        onClick={() => {
+          // For invoice with page2 (Rincian Tagihan), use react-pdf renderer which is reliable on mobile
+          // html2canvas has issues capturing page2 inside ZoomableDocumentWrapper on mobile
+          if (page2Ref && documentType === 'invoice' && templateProps?.lineItems?.length > 0) {
+            generatePDFWithReactPDF();
+          } else if (page2Ref) {
+            generateMultiPagePDF();
+          } else {
+            generatePDF();
+          }
+        }} 
         className="gap-2" 
         disabled={isGenerating}
       >
