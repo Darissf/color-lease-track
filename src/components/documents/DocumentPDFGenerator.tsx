@@ -685,32 +685,36 @@ export const DocumentPDFGenerator = ({
         const targetElement = pages[i];
         toast.loading(`Memproses halaman ${i + 1}/${pages.length}...`, { id: toastId });
 
-        // MOBILE FIX: Ensure element is visible and properly sized before capture
-        // Save original visibility state
-        const originalDisplay = targetElement.style.display;
-        const originalVisibility = targetElement.style.visibility;
-        const originalOpacity = targetElement.style.opacity;
-        
-        // Force element to be visible
-        targetElement.style.display = 'block';
-        targetElement.style.visibility = 'visible';
-        targetElement.style.opacity = '1';
+        // MOBILE FIX: Clone element to capture outside of transform context
+        // This ensures html2canvas can capture the full element without transform issues
+        const clone = targetElement.cloneNode(true) as HTMLElement;
+        clone.style.position = 'fixed';
+        clone.style.top = '0';
+        clone.style.left = '0';
+        clone.style.width = '793px';
+        clone.style.height = '1122px';
+        clone.style.zIndex = '-9999';
+        clone.style.visibility = 'visible';
+        clone.style.opacity = '1';
+        clone.style.transform = 'none';
+        clone.style.pointerEvents = 'none';
+        clone.style.overflow = 'visible';
+        document.body.appendChild(clone);
 
-        // Apply all layers
+        // Apply all layers to clone
         await waitForFonts();
-        await preloadAllImages(targetElement);
+        await preloadAllImages(clone);
         await waitForSvgRender();
 
-        const savedTransforms = normalizeParentTransforms(targetElement);
-        const savedStyles = forceNaturalSize(targetElement);
-        const savedInlineStyles = applyCriticalInlineStyles(targetElement);
+        const savedStyles = forceNaturalSize(clone);
+        const savedInlineStyles = applyCriticalInlineStyles(clone);
 
         // Force layout recalculation
-        targetElement.getBoundingClientRect();
-        await sleep(200); // Slightly longer wait for mobile
+        clone.getBoundingClientRect();
+        await sleep(250); // Wait for mobile rendering
 
-        // MOBILE FIX: Use fixed width/height for capture to avoid scaling issues
-        const canvas = await html2canvas(targetElement, {
+        // Capture the clone which is outside of any transform context
+        const canvas = await html2canvas(clone, {
           scale: 3,
           useCORS: true,
           allowTaint: true,
@@ -719,21 +723,20 @@ export const DocumentPDFGenerator = ({
           imageTimeout: 15000,
           removeContainer: false,
           foreignObjectRendering: false,
-          width: 793, // A4 width in pixels at 96 DPI
-          height: 1122, // A4 height in pixels at 96 DPI
+          width: 793,
+          height: 1122,
           windowWidth: 793,
           windowHeight: 1122,
+          x: 0,
+          y: 0,
+          scrollX: 0,
+          scrollY: 0,
         });
 
-        // Restore
+        // Clean up clone
         restoreCriticalInlineStyles(savedInlineStyles);
-        restoreNaturalSize(targetElement, savedStyles);
-        restoreParentTransforms(savedTransforms);
-        
-        // Restore visibility state
-        targetElement.style.display = originalDisplay;
-        targetElement.style.visibility = originalVisibility;
-        targetElement.style.opacity = originalOpacity;
+        restoreNaturalSize(clone, savedStyles);
+        document.body.removeChild(clone);
 
         if (!canvas || canvas.width === 0 || canvas.height === 0) {
           console.error(`Canvas halaman ${i + 1} kosong - width: ${canvas?.width}, height: ${canvas?.height}`);
