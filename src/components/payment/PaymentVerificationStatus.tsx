@@ -525,14 +525,17 @@ export function PaymentVerificationStatus({
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>Mengecek status...</span>
                       </div>
-                    ) : effectiveCooldown > 0 ? (
+                    ) : (effectiveCooldown > 0 && !globalLock.isOwner) ? (
+                      /* Non-owner harus tunggu - TIDAK BISA klik sama sekali */
+                      <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-md text-sm border bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
+                        <Clock className="h-3 w-3" />
+                        <span>Tunggu {formatCooldown(effectiveCooldown)} untuk bisa transfer</span>
+                      </div>
+                    ) : (effectiveCooldown > 0 && globalLock.isOwner) ? (
+                      /* Owner melihat countdown konfirmasi otomatis */
                       <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-md text-sm border bg-muted/50 text-muted-foreground border-muted">
                         <Clock className="h-3 w-3" />
-                        {globalLock.isOwner ? (
-                          <span>Silahkan tunggu maksimal {formatCooldown(Math.min(120, effectiveCooldown))} untuk mendapatkan konfirmasi otomatis.</span>
-                        ) : (
-                          <span>Tunggu {formatCooldown(effectiveCooldown)} untuk cek ulang</span>
-                        )}
+                        <span>Silahkan tunggu maksimal {formatCooldown(Math.min(120, effectiveCooldown))} untuk mendapatkan konfirmasi otomatis.</span>
                       </div>
                     ) : burstTriggeredAt ? (
                       <Button 
