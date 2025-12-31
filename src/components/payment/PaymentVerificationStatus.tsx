@@ -55,6 +55,8 @@ export function PaymentVerificationStatus({
   
   // Use ref to track confetti state to avoid stale closure and dependency issues
   const hasTriggeredConfettiRef = useRef(false);
+  // Ref for countdown interval to prevent race conditions
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const triggerConfetti = useCallback(() => {
     const colors = ['#22c55e', '#16a34a', '#4ade80', '#86efac', '#fbbf24', '#f59e0b', '#ffffff', '#34d399'];
@@ -338,22 +340,44 @@ export function PaymentVerificationStatus({
     };
   }, [requestId]);
 
-  // Global lock countdown effect
+  // Global lock countdown effect with ref for reliable interval management
   useEffect(() => {
-    if (!globalLock.locked || globalLock.secondsRemaining <= 0) return;
+    // Clear existing interval first
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
     
-    const timer = setInterval(() => {
+    // Don't start if not locked or no remaining time
+    if (!globalLock.locked || globalLock.secondsRemaining <= 0) {
+      return;
+    }
+    
+    console.log("[GlobalLock] Starting countdown from:", globalLock.secondsRemaining);
+    
+    // Start new countdown interval
+    countdownIntervalRef.current = setInterval(() => {
       setGlobalLock(prev => {
         const newSeconds = prev.secondsRemaining - 1;
         if (newSeconds <= 0) {
+          // Clear interval when done
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
           return { locked: false, secondsRemaining: 0, isOwner: false };
         }
         return { ...prev, secondsRemaining: newSeconds };
       });
     }, 1000);
     
-    return () => clearInterval(timer);
-  }, [globalLock.locked]); // Hanya locked, agar timer tidak restart setiap detik
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    };
+  }, [globalLock.locked, globalLock.secondsRemaining > 0]); // Trigger when locked or has remaining time
 
   // Calculate individual cooldown remaining (2 minutes)
   useEffect(() => {
