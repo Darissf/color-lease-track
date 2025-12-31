@@ -727,15 +727,13 @@ export const InvoicePDFTemplate = ({
 
             <View style={styles.tableRow}>
               <View style={[styles.tableCell, styles.tableCellDesc, { borderColor: settings.border_color }]}>
-                <Text style={{ fontFamily: "Helvetica", fontWeight: 700 }}>{description}</Text>
-                {contractInvoice && (
-                  <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 3 }}>
-                    No. Invoice: {contractInvoice}
-                  </Text>
-                )}
+                <Text style={{ fontFamily: "Helvetica-Bold", fontWeight: 700 }}>{description}</Text>
                 {period && (
-                  <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 2 }}>Periode: {period}</Text>
+                  <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 3 }}>Periode: {period}</Text>
                 )}
+                <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 2, fontStyle: "italic" }}>
+                  Rincian spesifikasi item mengacu pada Lampiran Halaman 2
+                </Text>
               </View>
               <Text style={[styles.tableCell, styles.tableCellAmount, { borderColor: settings.border_color }]}>
                 {formatRupiah(amount)}

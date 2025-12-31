@@ -370,13 +370,13 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                       borderColor: settings.border_color 
                     }}
                   >
-                    <div className="font-medium">{description}</div>
-                    {contractInvoice && (
-                      <div className="text-sm text-gray-500 mt-1">No. Invoice: {contractInvoice}</div>
-                    )}
+                    <div className="font-bold">{description}</div>
                     {period && (
-                      <div className="text-sm text-gray-500">Periode: {period}</div>
+                      <div className="text-sm text-gray-500 mt-1">Periode: {period}</div>
                     )}
+                    <div className="text-sm text-gray-500 mt-1 italic">
+                      Rincian spesifikasi item mengacu pada Lampiran Halaman 2
+                    </div>
                   </td>
                   <td 
                     className="px-4 py-3 text-right font-semibold"
