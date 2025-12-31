@@ -65,6 +65,7 @@ import {
   generateRincianTemplate,
   type TemplateData 
 } from "@/lib/contractTemplateGenerator";
+import { WhatsAppMessageGenerator } from "@/components/contracts/WhatsAppMessageGenerator";
 
 interface Contract {
   id: string;
@@ -1915,6 +1916,46 @@ export default function ContractDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* WhatsApp Message Generator - Only for Admin/Super Admin */}
+      {(isSuperAdmin || isAdmin) && contract && user && (
+        <WhatsAppMessageGenerator
+          contract={{
+            id: contract.id,
+            invoice_number: contract.invoice || '',
+            keterangan: contract.keterangan || undefined,
+            start_date: contract.start_date,
+            end_date: contract.end_date,
+            lokasi_proyek: contract.google_maps_link || undefined,
+            jenis_scaffolding: contract.jenis_scaffolding || undefined,
+            jumlah_unit: contract.jumlah_unit || undefined,
+            jumlah_tagihan: contract.tagihan || 0,
+            tagihan_belum_bayar: contract.tagihan_belum_bayar || 0,
+            tanggal_kirim: contract.tanggal_kirim || undefined,
+            tanggal_ambil: contract.tanggal_ambil || undefined,
+            status_pengiriman: contract.status_pengiriman || undefined,
+            status_pengambilan: contract.status_pengambilan || undefined,
+            client_groups: contract.client_groups ? {
+              nama: contract.client_groups.nama,
+              nomor_telepon: contract.client_groups.nomor_telepon,
+            } : undefined,
+          }}
+          payments={paymentHistory.map(p => ({
+            id: p.id,
+            amount: p.amount,
+            payment_date: p.payment_date,
+            payment_number: p.payment_number,
+            notes: p.notes || undefined,
+          }))}
+          bankAccount={contract.bank_accounts ? {
+            bank_name: contract.bank_accounts.bank_name,
+            account_number: contract.bank_accounts.account_number,
+            account_holder_name: contract.bank_accounts.account_holder_name || undefined,
+          } : null}
+          userId={user.id}
+        />
+      )}
+
       {/* Edit Payment Dialog - Super Admin */}
       <PaymentEditDialog
         open={isEditDialogOpen}
