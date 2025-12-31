@@ -156,10 +156,12 @@ export function PaymentVerificationStatus({
     }
   };
 
-  // Fetch global lock status on mount and subscribe to changes
+  // Fetch global lock status on mount, periodic refetch, and subscribe to changes
   useEffect(() => {
-    const fetchGlobalLock = async () => {
-      setIsLoadingGlobalLock(true);
+    let isMounted = true;
+
+    const fetchGlobalLock = async (showLoading = false) => {
+      if (showLoading) setIsLoadingGlobalLock(true);
       try {
         const { data: settings } = await supabase
           .from("payment_provider_settings")
@@ -167,6 +169,8 @@ export function PaymentVerificationStatus({
           .eq("provider", "vps_scraper")
           .eq("is_active", true)
           .maybeSingle();
+
+        if (!isMounted) return;
 
         if (settings?.burst_global_locked_at) {
           const lockedAt = new Date(settings.burst_global_locked_at).getTime();
@@ -185,14 +189,20 @@ export function PaymentVerificationStatus({
         } else {
           setGlobalLock({ locked: false, secondsRemaining: 0, isOwner: false });
         }
+      } catch (error) {
+        console.error("[GlobalLock] Fetch error:", error);
       } finally {
-        setIsLoadingGlobalLock(false);
+        if (isMounted && showLoading) setIsLoadingGlobalLock(false);
       }
     };
 
-    fetchGlobalLock();
+    // Initial fetch with loading state
+    fetchGlobalLock(true);
 
-    // Subscribe to realtime updates for global lock
+    // Periodic refetch every 2 seconds (without loading indicator for smooth UX)
+    const refetchInterval = setInterval(() => fetchGlobalLock(false), 2000);
+
+    // Subscribe to realtime updates for global lock (as backup)
     const settingsChannel = supabase
       .channel('global-burst-lock-status')
       .on(
@@ -202,23 +212,13 @@ export function PaymentVerificationStatus({
           schema: 'public',
           table: 'payment_provider_settings',
         },
-        (payload: any) => {
-          if (payload.new?.burst_global_locked_at) {
-            const lockedAt = new Date(payload.new.burst_global_locked_at).getTime();
-            const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
-            const isOwner = payload.new?.burst_request_id === requestId;
-            setGlobalLock({
-              locked: remaining > 0,
-              secondsRemaining: Math.ceil(remaining / 1000),
-              isOwner,
-              ownerRequestId: payload.new?.burst_request_id
-            });
-          }
-        }
+        () => fetchGlobalLock(false)
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
+      clearInterval(refetchInterval);
       supabase.removeChannel(settingsChannel);
     };
   }, [requestId]);
