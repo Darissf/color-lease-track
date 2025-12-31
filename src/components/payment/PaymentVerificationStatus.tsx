@@ -231,11 +231,24 @@ export function PaymentVerificationStatus({
           const remaining = Math.max(0, GLOBAL_COOLDOWN_MS - (Date.now() - lockedAt));
           if (remaining > 0) {
             const isOwner = settings.burst_request_id === requestId;
-            setGlobalLock({
-              locked: true,
-              secondsRemaining: Math.ceil(remaining / 1000),
-              isOwner,
-              ownerRequestId: settings.burst_request_id
+            const newSecondsRemaining = Math.ceil(remaining / 1000);
+            
+            // Hanya update jika ini adalah lock baru (request_id berbeda) atau belum ada lock
+            // Jangan override countdown yang sudah berjalan
+            setGlobalLock(prev => {
+              // Jika sudah locked dengan request yang sama, jangan override secondsRemaining
+              // agar countdown lokal tetap berjalan
+              if (prev.locked && prev.ownerRequestId === settings.burst_request_id) {
+                // Hanya update isOwner jika berubah, jangan sentuh secondsRemaining
+                return { ...prev, isOwner };
+              }
+              // Lock baru atau lock pertama kali
+              return {
+                locked: true,
+                secondsRemaining: newSecondsRemaining,
+                isOwner,
+                ownerRequestId: settings.burst_request_id
+              };
             });
           } else {
             setGlobalLock({ locked: false, secondsRemaining: 0, isOwner: false });
