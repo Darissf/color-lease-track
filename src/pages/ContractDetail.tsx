@@ -731,6 +731,13 @@ export default function ContractDetail() {
       .eq('contract_id', contract.id)
       .order('sort_order', { ascending: true });
     
+    console.log("=== handleGenerateInvoice Debug ===");
+    console.log("contract.id:", contract.id);
+    console.log("lineItemsData fetched:", lineItemsData);
+    console.log("lineItemsData length:", lineItemsData?.length);
+    console.log("transport_cost_delivery:", contract.transport_cost_delivery);
+    console.log("transport_cost_pickup:", contract.transport_cost_pickup);
+    
     setDocumentData({
       documentType: 'invoice',
       documentNumber: contract.invoice || contract.id.slice(0, 6).toUpperCase(),

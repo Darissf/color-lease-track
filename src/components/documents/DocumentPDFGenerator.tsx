@@ -634,6 +634,12 @@ export const DocumentPDFGenerator = ({
 
   // Generate PDF using @react-pdf/renderer for multi-page support (Invoice with Rincian Tagihan)
   const generatePDFWithReactPDF = useCallback(async () => {
+    console.log("=== generatePDFWithReactPDF Debug ===");
+    console.log("documentType:", documentType);
+    console.log("templateProps:", templateProps);
+    console.log("lineItems:", templateProps?.lineItems);
+    console.log("lineItems length:", templateProps?.lineItems?.length);
+    
     if (!templateProps) {
       toast.error("Template props tidak ditemukan");
       return;
@@ -672,9 +678,14 @@ export const DocumentPDFGenerator = ({
       // Create PDF document using InvoicePDFTemplate
       const pdfProps: InvoicePDFTemplateProps = {
         ...templateProps as InvoicePDFTemplateProps,
+        lineItems: templateProps?.lineItems || [], // Ensure lineItems is always an array
         qrCodeDataUrl,
         verificationQrDataUrl,
       };
+      
+      console.log("=== PDF Props Debug ===");
+      console.log("pdfProps.lineItems:", pdfProps.lineItems);
+      console.log("pdfProps.lineItems.length:", pdfProps.lineItems?.length);
 
       // Generate PDF blob using @react-pdf/renderer
       const blob = await pdf(<InvoicePDFTemplate {...pdfProps} />).toBlob();

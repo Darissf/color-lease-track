@@ -229,6 +229,11 @@ export const DocumentPreviewModal = ({
     transportPickup: documentData.transportPickup || 0,
     discount: documentData.discount || 0,
   };
+  
+  console.log("=== DocumentPreviewModal Debug ===");
+  console.log("documentData.lineItems:", documentData.lineItems);
+  console.log("invoiceProps.lineItems:", invoiceProps.lineItems);
+  console.log("invoiceProps.lineItems.length:", invoiceProps.lineItems?.length);
 
   const receiptProps = {
     documentNumber: documentData.documentNumber,

@@ -565,6 +565,14 @@ export const InvoicePDFTemplate = ({
   transportPickup = 0,
   discount = 0,
 }: InvoicePDFTemplateProps) => {
+  // Debug logging
+  console.log("=== InvoicePDFTemplate Debug ===");
+  console.log("lineItems received:", lineItems);
+  console.log("lineItems.length:", lineItems?.length);
+  console.log("transportDelivery:", transportDelivery);
+  console.log("transportPickup:", transportPickup);
+  console.log("discount:", discount);
+  
   const settings = { ...defaultSettings, ...propSettings };
   const formattedDate = format(issuedAt, "dd MMMM yyyy", { locale: localeId });
   const verificationUrl = `https://sewascaffoldingbali.com/verify/${verificationCode}`;
@@ -578,6 +586,10 @@ export const InvoicePDFTemplate = ({
   const totalTransport = (transportDelivery || 0) + (transportPickup || 0);
   const grandTotal = subtotalSewa + totalTransport - (discount || 0);
   const showPage2 = lineItems.length > 0;
+  
+  console.log("showPage2:", showPage2);
+  console.log("subtotalSewa:", subtotalSewa);
+  console.log("grandTotal:", grandTotal);
 
   return (
     <Document>
