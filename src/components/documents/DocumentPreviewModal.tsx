@@ -18,6 +18,14 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
 import { CustomTextElement } from "@/components/custom-text/types";
 
+interface LineItem {
+  item_name: string;
+  quantity: number;
+  unit_price_per_day: number;
+  duration_days: number;
+  subtotal?: number;
+}
+
 interface DocumentData {
   documentType: 'invoice' | 'kwitansi';
   documentNumber: string;
@@ -39,6 +47,11 @@ interface DocumentData {
     account_holder_name?: string;
   };
   accessCode?: string; // For public contract link (payment QR)
+  // Page 2: Rincian Tagihan
+  lineItems?: LineItem[];
+  transportDelivery?: number;
+  transportPickup?: number;
+  discount?: number;
 }
 
 interface DocumentPreviewModalProps {
@@ -210,6 +223,11 @@ export const DocumentPreviewModal = ({
     contractBankInfo: documentData.contractBankInfo,
     accessCode: documentData.accessCode,
     customTextElements: customTextElements,
+    // Page 2: Rincian Tagihan
+    lineItems: documentData.lineItems || [],
+    transportDelivery: documentData.transportDelivery || 0,
+    transportPickup: documentData.transportPickup || 0,
+    discount: documentData.discount || 0,
   };
 
   const receiptProps = {

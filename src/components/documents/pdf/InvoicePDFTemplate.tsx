@@ -368,7 +368,99 @@ const styles = StyleSheet.create({
     marginTop: 2,
     maxWidth: 100,
   },
+  // Page 2: Rincian Tagihan Styles
+  page2Title: {
+    fontSize: 14,
+    fontFamily: "Inter",
+    fontWeight: 700,
+    marginBottom: 5,
+    textAlign: "center",
+  },
+  page2Subtitle: {
+    fontSize: 10,
+    color: "#6b7280",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  rincianTable: {
+    marginBottom: 15,
+  },
+  rincianTableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#f3f4f6",
+  },
+  rincianTableHeaderCell: {
+    padding: 6,
+    fontSize: 8,
+    fontFamily: "Inter",
+    fontWeight: 700,
+    color: "#374151",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+  },
+  rincianTableRow: {
+    flexDirection: "row",
+  },
+  rincianTableCell: {
+    padding: 6,
+    fontSize: 8,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+  },
+  rincianSectionTitle: {
+    fontSize: 10,
+    fontFamily: "Inter",
+    fontWeight: 700,
+    marginTop: 15,
+    marginBottom: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  rincianSummaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  rincianSummaryLabel: {
+    fontSize: 9,
+    color: "#4b5563",
+  },
+  rincianSummaryValue: {
+    fontSize: 9,
+    fontFamily: "Inter",
+    fontWeight: 700,
+  },
+  rincianTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: "#f3f4f6",
+    marginTop: 8,
+    borderTopWidth: 2,
+    borderTopColor: "#374151",
+  },
+  rincianTotalLabel: {
+    fontSize: 11,
+    fontFamily: "Inter",
+    fontWeight: 700,
+  },
+  rincianTotalValue: {
+    fontSize: 11,
+    fontFamily: "Inter",
+    fontWeight: 700,
+  },
 });
+
+interface LineItem {
+  item_name: string;
+  quantity: number;
+  unit_price_per_day: number;
+  duration_days: number;
+  subtotal?: number;
+}
 
 interface InvoicePDFTemplateProps {
   documentNumber: string;
@@ -390,6 +482,11 @@ interface InvoicePDFTemplateProps {
   qrCodeDataUrl?: string; // Pre-generated QR code as data URL
   verificationQrDataUrl?: string; // Pre-generated verification QR
   customTextElements?: CustomTextElement[];
+  // Page 2: Rincian Tagihan
+  lineItems?: LineItem[];
+  transportDelivery?: number;
+  transportPickup?: number;
+  discount?: number;
 }
 
 // Helper function to format currency
@@ -463,11 +560,24 @@ export const InvoicePDFTemplate = ({
   qrCodeDataUrl,
   verificationQrDataUrl,
   customTextElements = [],
+  lineItems = [],
+  transportDelivery = 0,
+  transportPickup = 0,
+  discount = 0,
 }: InvoicePDFTemplateProps) => {
   const settings = { ...defaultSettings, ...propSettings };
   const formattedDate = format(issuedAt, "dd MMMM yyyy", { locale: localeId });
   const verificationUrl = `https://sewascaffoldingbali.com/verify/${verificationCode}`;
   const layoutSettings = settings.invoice_layout_settings;
+
+  // Calculate subtotals for Page 2
+  const subtotalSewa = lineItems.reduce((sum, item) => {
+    const subtotal = item.subtotal || (item.quantity * item.unit_price_per_day * item.duration_days);
+    return sum + subtotal;
+  }, 0);
+  const totalTransport = (transportDelivery || 0) + (transportPickup || 0);
+  const grandTotal = subtotalSewa + totalTransport - (discount || 0);
+  const showPage2 = lineItems.length > 0;
 
   return (
     <Document>
@@ -795,6 +905,204 @@ export const InvoicePDFTemplate = ({
           </Text>
         ))}
       </Page>
+
+      {/* Page 2: Rincian Tagihan */}
+      {showPage2 && (
+        <Page size="A4" style={styles.page}>
+          {/* Header Stripe */}
+          {settings.show_header_stripe && (
+            <View
+              style={[
+                styles.headerStripe,
+                {
+                  height: settings.header_stripe_height || 12,
+                  backgroundColor: settings.header_color_primary,
+                },
+              ]}
+            />
+          )}
+
+          {/* Content starts after stripe */}
+          <View style={{ paddingTop: settings.show_header_stripe ? 15 : 0 }}>
+            {/* Header - Same as Page 1 */}
+            <View style={[styles.header, { borderBottomColor: settings.border_color }]}>
+              <View style={styles.headerLeft}>
+                {/* Logo */}
+                {settings.invoice_logo_url ? (
+                  <Image src={settings.invoice_logo_url} style={styles.logo} />
+                ) : (
+                  <View style={styles.logoPlaceholder}>
+                    <Text style={{ fontSize: 6, color: "#9ca3af" }}>Logo</Text>
+                  </View>
+                )}
+
+                {/* Company Info */}
+                <View style={styles.companyInfo}>
+                  {settings.show_company_name !== false && (
+                    <Text
+                      style={[
+                        styles.companyName,
+                        { color: settings.company_name_color || settings.header_color_primary },
+                      ]}
+                    >
+                      {settings.company_name || "Perusahaan"}
+                    </Text>
+                  )}
+
+                  {settings.show_company_tagline && settings.company_tagline && (
+                    <Text style={[styles.tagline, { color: settings.tagline_color || "#6b7280" }]}>
+                      {settings.company_tagline}
+                    </Text>
+                  )}
+
+                  {settings.show_company_address !== false && settings.company_address && (
+                    <Text style={[styles.companyDetail, { color: settings.company_info_color || "#4b5563" }]}>
+                      {settings.company_address}
+                    </Text>
+                  )}
+
+                  {settings.show_company_phone !== false && settings.company_phone && (
+                    <Text style={[styles.companyDetail, { color: settings.company_info_color || "#4b5563" }]}>
+                      Tel: {settings.company_phone}
+                    </Text>
+                  )}
+                </View>
+              </View>
+
+              {/* Document Info */}
+              <View style={styles.headerRight}>
+                <Text
+                  style={[
+                    styles.documentTitle,
+                    { color: settings.document_title_color || settings.header_color_primary },
+                  ]}
+                >
+                  RINCIAN TAGIHAN
+                </Text>
+                <View style={[styles.documentNumberBox, { borderColor: settings.header_color_primary }]}>
+                  <Text style={styles.documentNumberLabel}>NO.</Text>
+                  <Text style={styles.documentNumber}>{documentNumber}</Text>
+                </View>
+                <Text style={styles.documentDate}>{formattedDate}</Text>
+              </View>
+            </View>
+
+            {/* Client Info */}
+            <View style={[styles.clientSection, { marginBottom: 15 }]}>
+              <Text style={[styles.clientLabel, { color: settings.label_color || "#6b7280" }]}>
+                Kepada:
+              </Text>
+              <Text style={[styles.clientName, { color: settings.value_color || "#1f2937" }]}>
+                {clientName}
+              </Text>
+              {period && (
+                <Text style={{ fontSize: 8, color: "#6b7280", marginTop: 4 }}>
+                  Periode: {period}
+                </Text>
+              )}
+            </View>
+
+            {/* Section A: Item Sewa */}
+            <Text style={[styles.rincianSectionTitle, { color: settings.header_color_primary }]}>
+              A. ITEM SEWA
+            </Text>
+
+            {/* Rincian Table */}
+            <View style={styles.rincianTable}>
+              {/* Table Header */}
+              <View style={[styles.rincianTableHeader, { backgroundColor: settings.table_header_bg || "#f3f4f6" }]}>
+                <Text style={[styles.rincianTableHeaderCell, { width: 25, textAlign: "center", borderColor: settings.border_color }]}>No</Text>
+                <Text style={[styles.rincianTableHeaderCell, { flex: 1, borderColor: settings.border_color }]}>Nama Item</Text>
+                <Text style={[styles.rincianTableHeaderCell, { width: 40, textAlign: "center", borderColor: settings.border_color }]}>Qty</Text>
+                <Text style={[styles.rincianTableHeaderCell, { width: 75, textAlign: "right", borderColor: settings.border_color }]}>Harga/Hari</Text>
+                <Text style={[styles.rincianTableHeaderCell, { width: 50, textAlign: "center", borderColor: settings.border_color }]}>Durasi</Text>
+                <Text style={[styles.rincianTableHeaderCell, { width: 90, textAlign: "right", borderColor: settings.border_color }]}>Subtotal</Text>
+              </View>
+
+              {/* Table Rows */}
+              {lineItems.map((item, index) => {
+                const itemSubtotal = item.subtotal || (item.quantity * item.unit_price_per_day * item.duration_days);
+                return (
+                  <View key={index} style={styles.rincianTableRow}>
+                    <Text style={[styles.rincianTableCell, { width: 25, textAlign: "center", borderColor: settings.border_color }]}>{index + 1}</Text>
+                    <Text style={[styles.rincianTableCell, { flex: 1, borderColor: settings.border_color }]}>{item.item_name}</Text>
+                    <Text style={[styles.rincianTableCell, { width: 40, textAlign: "center", borderColor: settings.border_color }]}>{item.quantity}</Text>
+                    <Text style={[styles.rincianTableCell, { width: 75, textAlign: "right", borderColor: settings.border_color }]}>{formatRupiah(item.unit_price_per_day)}</Text>
+                    <Text style={[styles.rincianTableCell, { width: 50, textAlign: "center", borderColor: settings.border_color }]}>{item.duration_days} hari</Text>
+                    <Text style={[styles.rincianTableCell, { width: 90, textAlign: "right", fontFamily: "Inter", fontWeight: 700, borderColor: settings.border_color }]}>{formatRupiah(itemSubtotal)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Subtotal Sewa */}
+            <View style={[styles.rincianSummaryRow, { backgroundColor: "#f9fafb" }]}>
+              <Text style={styles.rincianSummaryLabel}>Subtotal Sewa</Text>
+              <Text style={styles.rincianSummaryValue}>{formatRupiah(subtotalSewa)}</Text>
+            </View>
+
+            {/* Section B: Ongkos Transport */}
+            {(transportDelivery > 0 || transportPickup > 0) && (
+              <>
+                <Text style={[styles.rincianSectionTitle, { color: settings.header_color_primary }]}>
+                  B. ONGKOS TRANSPORT
+                </Text>
+
+                {transportDelivery > 0 && (
+                  <View style={styles.rincianSummaryRow}>
+                    <Text style={styles.rincianSummaryLabel}>Pengiriman</Text>
+                    <Text style={styles.rincianSummaryValue}>{formatRupiah(transportDelivery)}</Text>
+                  </View>
+                )}
+
+                {transportPickup > 0 && (
+                  <View style={styles.rincianSummaryRow}>
+                    <Text style={styles.rincianSummaryLabel}>Pengambilan</Text>
+                    <Text style={styles.rincianSummaryValue}>{formatRupiah(transportPickup)}</Text>
+                  </View>
+                )}
+
+                <View style={[styles.rincianSummaryRow, { backgroundColor: "#f9fafb" }]}>
+                  <Text style={styles.rincianSummaryLabel}>Total Transport</Text>
+                  <Text style={styles.rincianSummaryValue}>{formatRupiah(totalTransport)}</Text>
+                </View>
+              </>
+            )}
+
+            {/* Section C: Diskon */}
+            {discount > 0 && (
+              <>
+                <Text style={[styles.rincianSectionTitle, { color: settings.header_color_primary }]}>
+                  C. DISKON
+                </Text>
+
+                <View style={styles.rincianSummaryRow}>
+                  <Text style={styles.rincianSummaryLabel}>Potongan Harga</Text>
+                  <Text style={[styles.rincianSummaryValue, { color: "#dc2626" }]}>-{formatRupiah(discount)}</Text>
+                </View>
+              </>
+            )}
+
+            {/* Grand Total */}
+            <View style={[styles.rincianTotalRow, { backgroundColor: `${settings.accent_color}15` }]}>
+              <Text style={styles.rincianTotalLabel}>GRAND TOTAL</Text>
+              <Text style={[styles.rincianTotalValue, { color: settings.header_color_primary }]}>{formatRupiah(grandTotal)}</Text>
+            </View>
+
+            {/* Terbilang */}
+            {settings.show_terbilang && (
+              <Text style={[styles.terbilang, { marginTop: 10 }]}>
+                {settings.label_terbilang || "Terbilang:"} {terbilang(grandTotal)}
+              </Text>
+            )}
+
+            {/* Footer */}
+            {settings.show_footer !== false && settings.footer_text && (
+              <Text style={[styles.footer, { marginTop: 30 }]}>{settings.footer_text}</Text>
+            )}
+          </View>
+        </Page>
+      )}
     </Document>
   );
 };
