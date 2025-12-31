@@ -47,6 +47,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { PaymentEditDialog } from "@/components/contracts/PaymentEditDialog";
 import { EditRequestDialog } from "@/components/contracts/EditRequestDialog";
 import { PendingEditRequests } from "@/components/contracts/PendingEditRequests";
@@ -92,6 +94,7 @@ interface Contract {
   transport_cost_delivery?: number | null;
   transport_cost_pickup?: number | null;
   whatsapp_template_mode?: boolean | null;
+  invoice_full_rincian?: boolean | null; // Toggle for full/simple invoice page 2
   client_groups?: {
     nama: string;
     nomor_telepon: string;
@@ -181,6 +184,10 @@ export default function ContractDetail() {
   // Document generation states
   const [documentPreviewOpen, setDocumentPreviewOpen] = useState(false);
   const [documentData, setDocumentData] = useState<any>(null);
+  
+  // Invoice full rincian toggle state
+  const [invoiceFullRincian, setInvoiceFullRincian] = useState(true);
+  const [isSavingRincianMode, setIsSavingRincianMode] = useState(false);
 
   const fetchPendingPaymentRequest = useCallback(async () => {
     if (!id) return;
@@ -297,6 +304,7 @@ export default function ContractDetail() {
 
     setContract(processedContract as unknown as Contract);
     setAdminNotes(contractData.admin_notes || "");
+    setInvoiceFullRincian(contractData.invoice_full_rincian !== false); // Default to true
 
     // Fetch payment history from contract_payments table
     const { data: paymentData, error: paymentError } = await supabase
@@ -611,6 +619,32 @@ export default function ContractDetail() {
     }
   };
 
+  // Handle save invoice full rincian toggle
+  const handleSaveInvoiceFullRincian = async (value: boolean) => {
+    if (!contract || !user) return;
+    
+    setIsSavingRincianMode(true);
+    try {
+      const { error } = await supabase
+        .from("rental_contracts")
+        .update({ invoice_full_rincian: value })
+        .eq("id", contract.id);
+      
+      if (error) throw error;
+      
+      setInvoiceFullRincian(value);
+      setContract(prev => prev ? { ...prev, invoice_full_rincian: value } : null);
+      toast.success(value ? "Mode Full Rincian aktif" : "Mode Sederhana aktif");
+    } catch (error) {
+      console.error("Error saving invoice full rincian:", error);
+      toast.error("Gagal menyimpan pengaturan");
+      // Revert toggle
+      setInvoiceFullRincian(!value);
+    } finally {
+      setIsSavingRincianMode(false);
+    }
+  };
+
   // Handle edit button click
   const handleEditClick = (payment: PaymentHistory) => {
     setEditPayment(payment);
@@ -764,6 +798,7 @@ export default function ContractDetail() {
       transportDelivery: contract.transport_cost_delivery || 0,
       transportPickup: contract.transport_cost_pickup || 0,
       discount: 0, // Can be added to contract schema if needed
+      fullRincian: invoiceFullRincian, // Pass saved setting for page 2 display mode
     });
     setDocumentPreviewOpen(true);
   };
@@ -1137,6 +1172,26 @@ export default function ContractDetail() {
                     Kwitansi akan tersedia setelah tagihan lunas 100%
                   </p>
                 )}
+                
+                {/* Invoice Full Rincian Toggle - Only for Admin/Super Admin */}
+                <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t">
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      id="invoice-full-rincian"
+                      checked={invoiceFullRincian}
+                      onCheckedChange={handleSaveInvoiceFullRincian}
+                      disabled={isSavingRincianMode}
+                    />
+                    <Label htmlFor="invoice-full-rincian" className="text-sm cursor-pointer">
+                      Invoice Full Rincian
+                    </Label>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {invoiceFullRincian 
+                      ? 'Halaman 2: Semua kolom' 
+                      : 'Halaman 2: Hanya No, Nama Item, Qty'}
+                  </span>
+                </div>
               </CardContent>
             </Card>
           )}
