@@ -26,6 +26,13 @@ function toTitleCase(str: string): string {
     .join(' ');
 }
 
+// Helper: check if all items have zero pricing (price = 0 AND duration = 0)
+function isZeroPricingMode(lineItems: LineItem[]): boolean {
+  return lineItems.every(item => 
+    item.unit_price_per_day === 0 && item.duration_days === 0
+  );
+}
+
 export function calculateLineItemSubtotal(item: LineItem): number {
   return item.quantity * item.unit_price_per_day * item.duration_days;
 }
@@ -65,11 +72,18 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
   lines.push('');
   
   // Items
+  const zeroPricing = isZeroPricingMode(lineItems);
   lines.push('🔧 Item Sewa:');
   lineItems.forEach((item, index) => {
-    const subtotal = calculateLineItemSubtotal(item);
-    lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
-    lines.push(`   ${formatRupiah(item.unit_price_per_day)}/hari × ${item.duration_days} hari = ${formatRupiah(subtotal)}`);
+    if (zeroPricing) {
+      // Simplified format: only name × qty pcs
+      lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
+    } else {
+      // Full format: name + price/duration details
+      const subtotal = calculateLineItemSubtotal(item);
+      lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
+      lines.push(`   ${formatRupiah(item.unit_price_per_day)}/hari × ${item.duration_days} hari = ${formatRupiah(subtotal)}`);
+    }
   });
   lines.push('');
   
@@ -125,13 +139,20 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   lines.push('');
   
   // Items
+  const zeroPricing = isZeroPricingMode(lineItems);
   lines.push('🔧 *Item Sewa:*');
   lines.push('┌──────────────────────────');
   lineItems.forEach((item, index) => {
-    const subtotal = calculateLineItemSubtotal(item);
-    lines.push(`│ ${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
-    lines.push(`│    ${formatRupiah(item.unit_price_per_day)}/hari × ${item.duration_days} hari`);
-    lines.push(`│    ▸ ${formatRupiah(subtotal)}`);
+    if (zeroPricing) {
+      // Simplified format: only name × qty pcs
+      lines.push(`│ ${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
+    } else {
+      // Full format: name + price/duration details
+      const subtotal = calculateLineItemSubtotal(item);
+      lines.push(`│ ${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
+      lines.push(`│    ${formatRupiah(item.unit_price_per_day)}/hari × ${item.duration_days} hari`);
+      lines.push(`│    ▸ ${formatRupiah(subtotal)}`);
+    }
     if (index < lineItems.length - 1) {
       lines.push('├──────────────────────────');
     }
