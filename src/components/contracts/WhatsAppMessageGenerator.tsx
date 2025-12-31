@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +19,9 @@ import {
   Truck, 
   Package,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  Edit2,
+  RotateCcw
 } from 'lucide-react';
 import { SITE_URL } from '@/lib/seo';
 
@@ -69,9 +71,7 @@ interface WhatsAppMessageGeneratorProps {
 }
 
 const formatPhoneForWhatsApp = (phone: string): string => {
-  // Remove all non-digit characters
   let cleaned = phone.replace(/\D/g, '');
-  // Remove leading 0 and add 62 (Indonesia)
   if (cleaned.startsWith('0')) {
     cleaned = '62' + cleaned.substring(1);
   } else if (!cleaned.startsWith('62')) {
@@ -97,8 +97,11 @@ export function WhatsAppMessageGenerator({
 }: WhatsAppMessageGeneratorProps) {
   const [selectedType, setSelectedType] = useState<MessageType>('confirmation');
   const [message, setMessage] = useState('');
+  const [originalMessage, setOriginalMessage] = useState('');
+  const [isEdited, setIsEdited] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [publicLinkUrl, setPublicLinkUrl] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const clientName = contract.client_groups?.nama || 'Bapak/Ibu';
   const clientPhone = contract.client_groups?.nomor_telepon || '';
@@ -111,6 +114,54 @@ export function WhatsAppMessageGenerator({
     { type: 'delivery', label: 'Pengiriman', icon: <Truck className="h-4 w-4" />, available: !!contract.tanggal_kirim },
     { type: 'pickup', label: 'Pengambilan', icon: <Package className="h-4 w-4" />, available: !!contract.tanggal_ambil },
   ];
+
+  // Available variables for insertion
+  const availableVariables = [
+    { key: 'nama', value: clientName, label: 'Nama Client' },
+    { key: 'invoice', value: contract.invoice_number, label: 'No. Invoice' },
+    { key: 'proyek', value: contract.keterangan || '-', label: 'Proyek' },
+    { key: 'total_tagihan', value: formatRupiah(contract.jumlah_tagihan), label: 'Total Tagihan' },
+    { key: 'sisa_tagihan', value: formatRupiah(contract.tagihan_belum_bayar), label: 'Sisa Tagihan' },
+    { key: 'periode', value: `${formatDate(contract.start_date)} - ${formatDate(contract.end_date)}`, label: 'Periode' },
+    { key: 'lokasi', value: contract.lokasi_proyek || '-', label: 'Lokasi' },
+    { key: 'jenis', value: contract.jenis_scaffolding || 'Scaffolding', label: 'Jenis' },
+    { key: 'jumlah_unit', value: String(contract.jumlah_unit || 0), label: 'Jumlah Unit' },
+  ];
+
+  const insertVariable = (value: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      // Fallback: append to end
+      setMessage(prev => prev + value);
+      setIsEdited(true);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newMessage = message.slice(0, start) + value + message.slice(end);
+
+    setMessage(newMessage);
+    setIsEdited(newMessage !== originalMessage);
+
+    // Set cursor after inserted text
+    setTimeout(() => {
+      textarea.selectionStart = textarea.selectionEnd = start + value.length;
+      textarea.focus();
+    }, 0);
+  };
+
+  const handleReset = () => {
+    setMessage(originalMessage);
+    setIsEdited(false);
+    toast.info('Template dikembalikan ke default');
+  };
+
+  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setMessage(newValue);
+    setIsEdited(newValue !== originalMessage);
+  };
 
   const generateConfirmationMessage = (): string => {
     return `Halo Bapak/Ibu ${clientName},
@@ -204,7 +255,6 @@ Sewa Scaffolding Bali`;
   };
 
   const fetchOrCreatePublicLink = async (): Promise<string> => {
-    // Check for existing active link
     const { data: existingLinks } = await supabase
       .from('contract_public_links')
       .select('access_code, expires_at')
@@ -218,7 +268,6 @@ Sewa Scaffolding Bali`;
       return `${SITE_URL}/contract/${existingLinks[0].access_code}`;
     }
 
-    // Generate new link with 7-day expiration
     const { data: accessCode } = await supabase.rpc('generate_contract_access_code');
     const expiresAt = addDays(new Date(), 7);
 
@@ -240,35 +289,41 @@ Sewa Scaffolding Bali`;
 
   const generateMessage = async (type: MessageType) => {
     setSelectedType(type);
+    let generatedMessage = '';
 
     if (type === 'invoice') {
       setIsGenerating(true);
       try {
         const linkUrl = await fetchOrCreatePublicLink();
         setPublicLinkUrl(linkUrl);
-        setMessage(generateInvoiceMessage(linkUrl));
+        generatedMessage = generateInvoiceMessage(linkUrl);
       } catch (error) {
         toast.error('Gagal generate link pembayaran');
         console.error(error);
+        return;
       } finally {
         setIsGenerating(false);
       }
     } else {
       switch (type) {
         case 'confirmation':
-          setMessage(generateConfirmationMessage());
+          generatedMessage = generateConfirmationMessage();
           break;
         case 'payment':
-          setMessage(generatePaymentMessage());
+          generatedMessage = generatePaymentMessage();
           break;
         case 'delivery':
-          setMessage(generateDeliveryMessage());
+          generatedMessage = generateDeliveryMessage();
           break;
         case 'pickup':
-          setMessage(generatePickupMessage());
+          generatedMessage = generatePickupMessage();
           break;
       }
     }
+
+    setMessage(generatedMessage);
+    setOriginalMessage(generatedMessage);
+    setIsEdited(false);
   };
 
   // Generate initial message
@@ -328,6 +383,25 @@ Sewa Scaffolding Bali`;
           </div>
         )}
 
+        {/* Variable Helper */}
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Klik untuk menyisipkan nilai ke pesan:
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {availableVariables.map((v) => (
+              <Badge
+                key={v.key}
+                variant="outline"
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors text-xs"
+                onClick={() => insertVariable(v.value)}
+              >
+                {v.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
         {/* Message Preview */}
         <div className="relative">
           {isGenerating && (
@@ -336,13 +410,33 @@ Sewa Scaffolding Bali`;
             </div>
           )}
           <Textarea
+            ref={textareaRef}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleMessageChange}
             rows={12}
             className="font-mono text-sm"
             placeholder="Pilih jenis pesan untuk generate..."
           />
         </div>
+
+        {/* Edit Indicator & Reset */}
+        {isEdited && (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
+              <Edit2 className="h-4 w-4" />
+              <span>Pesan telah dimodifikasi</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset Template
+            </Button>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
