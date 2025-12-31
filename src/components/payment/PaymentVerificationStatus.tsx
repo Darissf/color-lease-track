@@ -57,11 +57,65 @@ export function PaymentVerificationStatus({
   const hasTriggeredConfettiRef = useRef(false);
 
   const triggerConfetti = useCallback(() => {
+    // First burst - center explosion
     confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
+      particleCount: 150,
+      spread: 100,
+      origin: { y: 0.6, x: 0.5 },
+      colors: ['#22c55e', '#16a34a', '#4ade80', '#86efac', '#fbbf24', '#f59e0b'],
+      ticks: 300,
+      gravity: 0.8,
+      scalar: 1.2,
     });
+    
+    // Left side burst
+    setTimeout(() => {
+      confetti({
+        particleCount: 80,
+        angle: 60,
+        spread: 80,
+        origin: { x: 0, y: 0.6 },
+        colors: ['#22c55e', '#16a34a', '#4ade80', '#fbbf24'],
+        ticks: 250,
+      });
+    }, 150);
+    
+    // Right side burst
+    setTimeout(() => {
+      confetti({
+        particleCount: 80,
+        angle: 120,
+        spread: 80,
+        origin: { x: 1, y: 0.6 },
+        colors: ['#22c55e', '#16a34a', '#4ade80', '#fbbf24'],
+        ticks: 250,
+      });
+    }, 150);
+    
+    // Second wave - more sparkles
+    setTimeout(() => {
+      confetti({
+        particleCount: 100,
+        spread: 120,
+        origin: { y: 0.5, x: 0.5 },
+        colors: ['#22c55e', '#4ade80', '#fbbf24', '#ffffff'],
+        ticks: 200,
+        gravity: 1,
+        scalar: 0.8,
+      });
+    }, 400);
+    
+    // Final celebration burst
+    setTimeout(() => {
+      confetti({
+        particleCount: 50,
+        spread: 160,
+        origin: { y: 0.4, x: 0.5 },
+        colors: ['#22c55e', '#86efac', '#fbbf24'],
+        ticks: 150,
+        startVelocity: 45,
+      });
+    }, 600);
   }, []);
 
   const copyAmount = async () => {
@@ -532,10 +586,10 @@ export function PaymentVerificationStatus({
                         <span>Tunggu {formatCooldown(effectiveCooldown)} untuk bisa transfer</span>
                       </div>
                     ) : (effectiveCooldown > 0 && globalLock.isOwner) ? (
-                      /* Owner melihat countdown konfirmasi otomatis */
+                      /* Owner melihat countdown konfirmasi otomatis - menggunakan globalLock.secondsRemaining yang terupdate tiap detik */
                       <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-md text-sm border bg-muted/50 text-muted-foreground border-muted">
-                        <Clock className="h-3 w-3" />
-                        <span>Silahkan tunggu maksimal {formatCooldown(Math.min(120, effectiveCooldown))} untuk mendapatkan konfirmasi otomatis.</span>
+                        <Clock className="h-3 w-3 animate-pulse" />
+                        <span>Silahkan tunggu maksimal {formatCooldown(Math.min(120, globalLock.secondsRemaining))} untuk mendapatkan konfirmasi otomatis.</span>
                       </div>
                     ) : burstTriggeredAt ? (
                       <Button 

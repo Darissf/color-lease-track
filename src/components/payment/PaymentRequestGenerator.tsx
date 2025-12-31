@@ -735,9 +735,9 @@ export function PaymentRequestGenerator({
               <span>Tunggu {formatCooldown(globalLock.secondsRemaining)} untuk bisa transfer</span>
             </div>
           ) : (globalLock.secondsRemaining > 0 && globalLock.isOwner) || cooldownRemaining > 0 ? (
-            /* Owner melihat countdown konfirmasi otomatis */
+            /* Owner melihat countdown konfirmasi otomatis - gunakan globalLock.secondsRemaining yang terupdate tiap detik */
             <div className="flex-1 flex items-center gap-1.5 py-2 px-3 rounded-md border text-sm bg-muted/50 text-muted-foreground border-muted">
-              <Clock className="h-3 w-3" />
+              <Clock className="h-3 w-3 animate-pulse" />
               <span>Silahkan tunggu maksimal {formatCooldown(Math.min(120, globalLock.secondsRemaining > 0 ? globalLock.secondsRemaining : cooldownRemaining))} untuk mendapatkan konfirmasi otomatis.</span>
             </div>
           ) : pendingRequest?.burst_triggered_at ? (
