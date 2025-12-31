@@ -112,8 +112,6 @@ const RentalContracts = () => {
     start_date: undefined as Date | undefined,
     end_date: undefined as Date | undefined,
     status: "masa sewa",
-    tagihan: "",
-    tagihan_belum_bayar: "",
     invoice: "",
     keterangan: "",
     bank_account_id: "",
@@ -226,14 +224,14 @@ const RentalContracts = () => {
         return;
       }
 
-      const contractData = {
-        user_id: user?.id,
+      // Untuk kontrak baru, tagihan = 0 (akan diisi dari rincian tagihan)
+      // Untuk edit, tidak ubah tagihan (hanya bisa diubah via rincian tagihan)
+      const baseContractData = {
+        user_id: user?.id as string,
         client_group_id: contractForm.client_group_id,
         start_date: format(contractForm.start_date, "yyyy-MM-dd"),
         end_date: format(contractForm.end_date, "yyyy-MM-dd"),
         status: contractForm.status,
-        tagihan: parseFloat(contractForm.tagihan) || 0,
-        tagihan_belum_bayar: parseFloat(contractForm.tagihan) || 0,
         invoice: contractForm.invoice || null,
         keterangan: contractForm.keterangan || null,
         bank_account_id: contractForm.bank_account_id || null,
@@ -246,7 +244,7 @@ const RentalContracts = () => {
       if (editingContractId) {
         const { error: contractError } = await supabase
           .from("rental_contracts")
-          .update(contractData)
+          .update(baseContractData)
           .eq("id", editingContractId);
 
         if (contractError) throw contractError;
@@ -255,9 +253,14 @@ const RentalContracts = () => {
         
         toast.success("Kontrak berhasil diupdate");
       } else {
+        // Untuk kontrak baru, set tagihan = 0
         const { error: contractError } = await supabase
           .from("rental_contracts")
-          .insert(contractData);
+          .insert({
+            ...baseContractData,
+            tagihan: 0,
+            tagihan_belum_bayar: 0,
+          });
 
         if (contractError) throw contractError;
 
@@ -290,8 +293,6 @@ const RentalContracts = () => {
       start_date: new Date(contract.start_date),
       end_date: new Date(contract.end_date),
       status: contract.status,
-      tagihan: contract.tagihan?.toString() || "",
-      tagihan_belum_bayar: contract.tagihan_belum_bayar.toString(),
       invoice: contract.invoice || "",
       keterangan: contract.keterangan || "",
       bank_account_id: contract.bank_account_id || "",
@@ -331,8 +332,6 @@ const RentalContracts = () => {
       start_date: undefined,
       end_date: undefined,
       status: "masa sewa",
-      tagihan: "",
-      tagihan_belum_bayar: "",
       invoice: "",
       keterangan: "",
       bank_account_id: bankAccounts.length === 1 ? bankAccounts[0].id : "",
@@ -774,20 +773,11 @@ const RentalContracts = () => {
                 </div>
               )}
 
-              {/* Tagihan Section */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Tagihan</Label>
-                  <Input
-                    type="number"
-                    value={contractForm.tagihan}
-                    onChange={(e) => setContractForm({ ...contractForm, tagihan: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
+              {/* Info Tagihan */}
+              <div className="text-xs text-muted-foreground border-l-2 border-primary/50 pl-3 py-2 bg-muted/30 rounded">
+                <p className="font-medium">Tagihan akan otomatis dihitung dari "Rincian Tagihan" di halaman detail kontrak.</p>
+                <p className="mt-1 opacity-80">Kontrak baru akan memiliki tagihan Rp 0 sampai rincian ditambahkan.</p>
               </div>
-              
-              <p className="text-xs text-muted-foreground">Pembayaran dikelola melalui kolom "Tanggal Bayar" di tabel kontrak</p>
 
               {/* Akun Penerima - Auto-select if only one */}
               {bankAccounts.length > 1 ? (
