@@ -935,7 +935,7 @@ export default function ContractDetail() {
       clientName: contract.client_groups?.nama || 'Client',
       clientAddress: '',
       clientPhone: contract.client_groups?.nomor_telepon || '',
-      description: `Pembayaran #${payment.payment_number} - ${contract.keterangan || 'Sewa Scaffolding'}`,
+      description: `Pembayaran Lunas - ${contract.keterangan || 'Sewa Scaffolding'}`,
       amount: payment.amount,
       status: 'lunas',
       verificationCode,
