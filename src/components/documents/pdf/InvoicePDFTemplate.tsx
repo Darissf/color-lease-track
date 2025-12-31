@@ -462,7 +462,7 @@ interface LineItem {
   subtotal?: number;
 }
 
-interface InvoicePDFTemplateProps {
+export interface InvoicePDFTemplateProps {
   documentNumber: string;
   verificationCode: string;
   issuedAt: Date;

@@ -1,6 +1,8 @@
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { pdf } from "@react-pdf/renderer";
+import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
 import { Download, Printer, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InvoicePDFTemplate, type InvoicePDFTemplateProps } from "@/components/documents/pdf/InvoicePDFTemplate";
 
 type Orientation = "portrait" | "landscape";
 type PaperSize = "a4" | "letter" | "legal";
@@ -497,6 +500,8 @@ export const DocumentPDFGenerator = ({
   showOptions = true,
   defaultOrientation = "portrait",
   defaultPaperSize = "a4",
+  documentType,
+  templateProps,
 }: DocumentPDFGeneratorProps) => {
   const [orientation, setOrientation] = useState<Orientation>(defaultOrientation);
   const [paperSize, setPaperSize] = useState<PaperSize>(defaultPaperSize);
@@ -626,6 +631,74 @@ export const DocumentPDFGenerator = ({
       setIsGenerating(false);
     }
   }, [documentRef, fileName, onComplete, orientation, paperSize]);
+
+  // Generate PDF using @react-pdf/renderer for multi-page support (Invoice with Rincian Tagihan)
+  const generatePDFWithReactPDF = useCallback(async () => {
+    if (!templateProps) {
+      toast.error("Template props tidak ditemukan");
+      return;
+    }
+
+    setIsGenerating(true);
+    const toastId = toast.loading("Menyiapkan dokumen...");
+
+    try {
+      toast.loading("Membuat QR codes...", { id: toastId });
+
+      // Pre-generate QR codes as data URLs (required by react-pdf)
+      let qrCodeDataUrl: string | undefined;
+      let verificationQrDataUrl: string | undefined;
+
+      // Generate payment QR if bank info available
+      if (templateProps.contractBankInfo?.account_number) {
+        const paymentUrl = `https://wa.me/${templateProps.settings?.payment_wa_number || ''}?text=Pembayaran%20${encodeURIComponent(templateProps.documentNumber)}`;
+        qrCodeDataUrl = await QRCode.toDataURL(paymentUrl, {
+          width: 200,
+          margin: 1,
+          color: { dark: '#000000', light: '#ffffff' }
+        });
+      }
+
+      // Generate verification QR
+      const verificationUrl = `${window.location.origin}/verify/${templateProps.verificationCode}`;
+      verificationQrDataUrl = await QRCode.toDataURL(verificationUrl, {
+        width: 200,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' }
+      });
+
+      toast.loading("Membuat PDF...", { id: toastId });
+
+      // Create PDF document using InvoicePDFTemplate
+      const pdfProps: InvoicePDFTemplateProps = {
+        ...templateProps as InvoicePDFTemplateProps,
+        qrCodeDataUrl,
+        verificationQrDataUrl,
+      };
+
+      // Generate PDF blob using @react-pdf/renderer
+      const blob = await pdf(<InvoicePDFTemplate {...pdfProps} />).toBlob();
+      
+      // Download the PDF
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${fileName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("PDF berhasil dibuat!", { id: toastId });
+      onComplete?.();
+
+    } catch (error) {
+      console.error("Error generating PDF with react-pdf:", error);
+      toast.error("Gagal membuat PDF: " + (error as Error).message, { id: toastId });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [templateProps, fileName, onComplete]);
 
   const printDocument = useCallback(async () => {
     if (!documentRef.current) {
@@ -850,7 +923,11 @@ export const DocumentPDFGenerator = ({
         </>
       )}
       
-      <Button onClick={generatePDF} className="gap-2" disabled={isGenerating}>
+      <Button 
+        onClick={documentType === 'invoice' && templateProps ? generatePDFWithReactPDF : generatePDF} 
+        className="gap-2" 
+        disabled={isGenerating}
+      >
         <Download className="h-4 w-4" />
         <span className="hidden sm:inline">Download PDF</span>
         <span className="sm:hidden">PDF</span>
