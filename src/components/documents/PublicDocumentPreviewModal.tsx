@@ -157,12 +157,15 @@ export function PublicDocumentPreviewModal({
     }
   };
 
+  // Clean keterangan - remove "Pembayaran #X - " prefix if exists
+  const cleanKeterangan = (contractData.keterangan || 'Sewa Scaffolding').replace(/^Pembayaran\s*#\d+\s*-\s*/i, '');
+
   const receiptProps = verificationCode ? {
     documentNumber: contractData.invoice || contractData.id.substring(0, 8).toUpperCase(),
     verificationCode: verificationCode,
     issuedAt: contractData.tanggal ? new Date(contractData.tanggal) : new Date(),
     clientName: clientData?.nama || 'Klien',
-    description: `Pembayaran Lunas - ${contractData.keterangan || 'Sewa Scaffolding'}`,
+    description: `Pembayaran Lunas - ${cleanKeterangan}`,
     period: `${formatPeriodDate(contractData.start_date)} - ${formatPeriodDate(contractData.end_date)}`,
     amount: paymentData?.amount || (contractData.tagihan - contractData.tagihan_belum_bayar),
     invoiceNumber: contractData.invoice || undefined,
