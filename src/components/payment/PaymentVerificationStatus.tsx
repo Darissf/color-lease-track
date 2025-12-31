@@ -59,7 +59,7 @@ export function PaymentVerificationStatus({
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const triggerConfetti = useCallback(() => {
-    const colors = ['#22c55e', '#16a34a', '#4ade80', '#86efac', '#fbbf24', '#f59e0b', '#ffffff', '#34d399'];
+    const colors = ['#ff0000', '#ff7700', '#ffdd00', '#00ff00', '#00ddff', '#0077ff', '#7700ff', '#ff00ff', '#ff0077', '#ffffff'];
     const duration = 5000; // 5 detik efek confetti
     const end = Date.now() + duration;
 
