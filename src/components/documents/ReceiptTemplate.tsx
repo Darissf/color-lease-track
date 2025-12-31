@@ -17,6 +17,7 @@ interface ReceiptTemplateProps {
   clientName: string;
   clientAddress?: string;
   description: string;
+  period?: string;
   amount: number;
   invoiceNumber?: string;
   paymentDate?: Date;
@@ -34,6 +35,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
       clientName,
       clientAddress,
       description,
+      period,
       amount,
       invoiceNumber,
       paymentDate,
@@ -362,11 +364,23 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                       borderColor: settings.border_color 
                     }}
                   >
-                    <div className="font-medium">{description}</div>
+                    {/* Judul - Bold & Hitam Pekat */}
+                    <div className="font-bold text-black">{description}</div>
+                    {/* Sub-teks - Abu-abu Tua, Font Normal */}
                     {invoiceNumber && (
-                      <div className="text-sm text-gray-500 mt-1">No. Invoice: {invoiceNumber}</div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        Mengacu pada Invoice {invoiceNumber}
+                      </div>
                     )}
-                    <div className="text-sm text-gray-500">Tanggal Bayar: {formattedPaymentDate}</div>
+                    {period && (
+                      <div className="text-sm text-gray-600">
+                        Periode: {period}
+                      </div>
+                    )}
+                    {/* Kalimat Penutup - Italic */}
+                    <div className="text-sm text-gray-500 mt-2 italic">
+                      Terima kasih, pembayaran telah kami terima dengan baik.
+                    </div>
                   </td>
                   <td 
                     className="px-4 py-3 text-right font-semibold"

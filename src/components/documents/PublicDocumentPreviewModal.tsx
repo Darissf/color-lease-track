@@ -147,12 +147,23 @@ export function PublicDocumentPreviewModal({
     accessCode: accessCode,
   } : null;
 
+  // Format period for receipt (e.g., "03 Nov 2025 - 18 Nov 2025")
+  const formatPeriodDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+
   const receiptProps = verificationCode ? {
     documentNumber: contractData.invoice || contractData.id.substring(0, 8).toUpperCase(),
     verificationCode: verificationCode,
     issuedAt: contractData.tanggal ? new Date(contractData.tanggal) : new Date(),
     clientName: clientData?.nama || 'Klien',
-    description: `Pembayaran sewa scaffolding - ${contractData.keterangan || 'Invoice ' + contractData.invoice}`,
+    description: `Pembayaran Lunas - ${contractData.keterangan || 'Sewa Scaffolding'}`,
+    period: `${formatPeriodDate(contractData.start_date)} - ${formatPeriodDate(contractData.end_date)}`,
     amount: paymentData?.amount || (contractData.tagihan - contractData.tagihan_belum_bayar),
     invoiceNumber: contractData.invoice || undefined,
     paymentDate: paymentData?.payment_date ? new Date(paymentData.payment_date) : undefined,
