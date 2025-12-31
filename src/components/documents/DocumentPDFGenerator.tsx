@@ -702,12 +702,36 @@ export const DocumentPDFGenerator = ({
       const verificationUrl = `${window.location.origin}/verify/${templateProps.verificationCode}`;
       verificationQrDataUrl = await generateQRWithTimeout(verificationUrl);
 
-      // Convert logo URL to base64 data URL (CRITICAL: avoids Buffer error in react-pdf)
+      // Convert ALL image URLs to base64 data URLs (CRITICAL: avoids Buffer error in react-pdf)
       let logoBase64: string | undefined;
+      let signatureBase64: string | undefined;
+      let stampBase64: string | undefined;
+      let bankLogoBase64: string | undefined;
+
+      console.log("Converting all images to base64...");
+
+      // Convert logo
       if (templateProps?.settings?.invoice_logo_url) {
-        console.log("Converting logo to base64...");
         logoBase64 = await convertImageToBase64(templateProps.settings.invoice_logo_url);
-        console.log("Logo base64 result:", logoBase64 ? "success" : "failed");
+        console.log("Logo base64:", logoBase64 ? "success" : "failed");
+      }
+
+      // Convert signature
+      if (templateProps?.settings?.signature_url) {
+        signatureBase64 = await convertImageToBase64(templateProps.settings.signature_url);
+        console.log("Signature base64:", signatureBase64 ? "success" : "failed");
+      }
+
+      // Convert custom stamp
+      if (templateProps?.settings?.custom_stamp_url) {
+        stampBase64 = await convertImageToBase64(templateProps.settings.custom_stamp_url);
+        console.log("Stamp base64:", stampBase64 ? "success" : "failed");
+      }
+
+      // Convert bank logo
+      if (templateProps?.settings?.bank_logo_url) {
+        bankLogoBase64 = await convertImageToBase64(templateProps.settings.bank_logo_url);
+        console.log("Bank logo base64:", bankLogoBase64 ? "success" : "failed");
       }
 
       toast.loading("Membuat PDF 2 halaman...", { id: toastId });
@@ -732,8 +756,11 @@ export const DocumentPDFGenerator = ({
         discount: templateProps.discount || 0,
         settings: {
           ...templateProps.settings,
-          // Use base64 logo instead of URL to avoid Buffer error
+          // Use base64 images instead of URLs to avoid Buffer error
           invoice_logo_url: logoBase64 || undefined,
+          signature_url: signatureBase64 || undefined,
+          custom_stamp_url: stampBase64 || undefined,
+          bank_logo_url: bankLogoBase64 || undefined,
         },
         qrCodeDataUrl,
         verificationQrDataUrl,
