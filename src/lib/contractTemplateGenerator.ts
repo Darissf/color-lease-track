@@ -1,4 +1,6 @@
 import { formatRupiah } from './currency';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
 
 export interface LineItem {
   id?: string;
@@ -15,6 +17,8 @@ export interface TemplateData {
   transportPickup: number;
   contractTitle?: string;
   discount?: number;
+  startDate?: string;
+  endDate?: string;
 }
 
 // Helper function to convert string to title case
@@ -24,6 +28,15 @@ function toTitleCase(str: string): string {
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+// Helper function to format date in Indonesian
+function formatDateIndo(dateString: string): string {
+  try {
+    return format(new Date(dateString), 'dd MMM yyyy', { locale: localeId });
+  } catch {
+    return dateString;
+  }
 }
 
 // Helper: check if all items have zero pricing (price = 0 AND duration = 0)
@@ -56,7 +69,7 @@ export function calculateGrandTotal(data: TemplateData): number {
 
 // Normal template (default) - clean format for display
 export function generateRincianTemplateNormal(data: TemplateData): string {
-  const { lineItems, transportDelivery, transportPickup, contractTitle, discount } = data;
+  const { lineItems, transportDelivery, transportPickup, contractTitle, discount, startDate, endDate } = data;
   
   if (lineItems.length === 0) {
     return '';
@@ -106,6 +119,14 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
     lines.push('');
   }
   
+  // Periode Sewa
+  if (startDate && endDate) {
+    lines.push('📅 Periode Sewa:');
+    lines.push(`   Mulai: ${formatDateIndo(startDate)}`);
+    lines.push(`   Selesai: ${formatDateIndo(endDate)}`);
+    lines.push('');
+  }
+  
   // Discount (only if filled)
   if (discount && discount > 0) {
     lines.push(`🏷️ Diskon: -${formatRupiah(discount)}`);
@@ -123,7 +144,7 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
 
 // WhatsApp template - clean format with WhatsApp formatting (no box lines)
 export function generateRincianTemplateWhatsApp(data: TemplateData): string {
-  const { lineItems, transportDelivery, transportPickup, contractTitle, discount } = data;
+  const { lineItems, transportDelivery, transportPickup, contractTitle, discount, startDate, endDate } = data;
   
   if (lineItems.length === 0) {
     return '';
@@ -170,6 +191,14 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
     }
     const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
     lines.push(`   *Total Transport:* ${formatRupiah(totalTransport)}`);
+    lines.push('');
+  }
+  
+  // Periode Sewa
+  if (startDate && endDate) {
+    lines.push('📅 *Periode Sewa:*');
+    lines.push(`   • Mulai: ${formatDateIndo(startDate)}`);
+    lines.push(`   • Selesai: ${formatDateIndo(endDate)}`);
     lines.push('');
   }
   

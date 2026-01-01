@@ -51,6 +51,8 @@ export function ContractLineItemsEditor({
   const [transportPickup, setTransportPickup] = useState(0);
   const [contractTitle, setContractTitle] = useState('');
   const [discount, setDiscount] = useState(0);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [whatsappMode, setWhatsappMode] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -100,10 +102,10 @@ export function ContractLineItemsEditor({
       })));
     }
     
-    // Fetch transport costs, discount and whatsapp mode from contract
+    // Fetch transport costs, discount, dates and whatsapp mode from contract
     const { data: contractData } = await supabase
       .from('rental_contracts')
-      .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan, whatsapp_template_mode')
+      .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan, whatsapp_template_mode, start_date, end_date')
       .eq('id', contractId)
       .single();
     
@@ -113,6 +115,8 @@ export function ContractLineItemsEditor({
       setDiscount(Number(contractData.discount) || 0);
       setContractTitle(contractData.keterangan || '');
       setWhatsappMode(contractData.whatsapp_template_mode || false);
+      setStartDate(contractData.start_date || '');
+      setEndDate(contractData.end_date || '');
     }
     
     setLoading(false);
@@ -219,6 +223,8 @@ export function ContractLineItemsEditor({
     transportPickup,
     contractTitle,
     discount,
+    startDate,
+    endDate,
   });
 
   const handleSave = async () => {
