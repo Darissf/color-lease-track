@@ -164,32 +164,32 @@ export function WhatsAppMessageGenerator({
   };
 
   const generateConfirmationMessage = (): string => {
-    return `Halo Bapak/Ibu ${clientName},
+    return `Halo *${clientName}*,
 
-Berikut detail sewa scaffolding untuk proyek ${contract.keterangan || 'Anda'}:
+Berikut detail sewa scaffolding untuk proyek *${contract.keterangan || 'Anda'}*:
 
-📋 No. Invoice: ${contract.invoice_number}
-📅 Periode: ${formatDate(contract.start_date)} - ${formatDate(contract.end_date)}
-📍 Lokasi: ${contract.lokasi_proyek || '-'}
-📦 Jenis: ${contract.jenis_scaffolding || 'Scaffolding'} × ${contract.jumlah_unit || 0} unit
+📋 *No. Invoice:* ${contract.invoice_number}
+📅 *Periode:* ${formatDate(contract.start_date)} - ${formatDate(contract.end_date)}
+📍 *Lokasi:* ${contract.lokasi_proyek || '-'}
+📦 *Jenis:* ${contract.jenis_scaffolding || 'Scaffolding'} × ${contract.jumlah_unit || 0} unit
 
-💰 Total Tagihan: ${formatRupiah(contract.jumlah_tagihan)}
-💵 Sisa Tagihan: ${formatRupiah(contract.tagihan_belum_bayar)}
+💰 *Total Tagihan:* ${formatRupiah(contract.jumlah_tagihan)}
+💵 *Sisa Tagihan:* ${formatRupiah(contract.tagihan_belum_bayar)}
 
 Jika ada pertanyaan, silakan hubungi kami.
 
 Terima kasih 🙏
-Sewa Scaffolding Bali`;
+_Sewa Scaffolding Bali_`;
   };
 
   const generateInvoiceMessage = (linkUrl: string): string => {
-    return `Halo Bapak/Ibu ${clientName},
+    return `Halo *${clientName}*,
 
 Berikut tagihan sewa scaffolding Anda:
 
-📋 Invoice: ${contract.invoice_number}
-📦 Proyek: ${contract.keterangan || '-'}
-💰 Sisa Tagihan: ${formatRupiah(contract.tagihan_belum_bayar)}
+📋 *Invoice:* ${contract.invoice_number}
+📦 *Proyek:* ${contract.keterangan || '-'}
+💰 *Sisa Tagihan:* ${formatRupiah(contract.tagihan_belum_bayar)}
 
 Silakan klik link berikut untuk melihat rincian tagihan dan melakukan pembayaran:
 👇
@@ -200,7 +200,7 @@ ${linkUrl}
 Jika ada pertanyaan, silakan hubungi kami.
 
 Terima kasih 🙏
-Sewa Scaffolding Bali`;
+_Sewa Scaffolding Bali_`;
   };
 
   const generatePaymentMessage = (): string => {
@@ -208,50 +208,50 @@ Sewa Scaffolding Bali`;
     
     const isFullyPaid = contract.tagihan_belum_bayar <= 0;
     const statusText = isFullyPaid 
-      ? '🎉 Tagihan Anda telah LUNAS.'
-      : `💵 Sisa tagihan: ${formatRupiah(contract.tagihan_belum_bayar)}`;
+      ? '🎉 *Tagihan Anda telah LUNAS!*'
+      : `💵 *Sisa tagihan:* ${formatRupiah(contract.tagihan_belum_bayar)}`;
 
-    return `Halo Bapak/Ibu ${clientName},
+    return `Halo *${clientName}*,
 
-Pembayaran telah kami terima ✅
+*Pembayaran telah kami terima* ✅
 
-📋 Invoice: ${contract.invoice_number}
-💰 Jumlah Bayar: ${formatRupiah(latestPayment.amount)}
-📅 Tanggal: ${formatDate(latestPayment.payment_date)}
+📋 *Invoice:* ${contract.invoice_number}
+💰 *Jumlah Bayar:* ${formatRupiah(latestPayment.amount)}
+📅 *Tanggal:* ${formatDate(latestPayment.payment_date)}
 
 ${statusText}
 
 Terima kasih 🙏
-Sewa Scaffolding Bali`;
+_Sewa Scaffolding Bali_`;
   };
 
   const generateDeliveryMessage = (): string => {
-    return `Halo Bapak/Ibu ${clientName},
+    return `Halo *${clientName}*,
 
-Scaffolding sedang dalam perjalanan 🚚
+*Scaffolding sedang dalam perjalanan* 🚚
 
-📋 Invoice: ${contract.invoice_number}
-📍 Lokasi: ${contract.lokasi_proyek || '-'}
-📅 Tanggal Kirim: ${contract.tanggal_kirim ? formatDate(contract.tanggal_kirim) : '-'}
-📦 Jumlah: ${contract.jumlah_unit || 0} unit
+📋 *Invoice:* ${contract.invoice_number}
+📍 *Lokasi:* ${contract.lokasi_proyek || '-'}
+📅 *Tanggal Kirim:* ${contract.tanggal_kirim ? formatDate(contract.tanggal_kirim) : '-'}
+📦 *Jumlah:* ${contract.jumlah_unit || 0} unit
 
 Terima kasih 🙏
-Sewa Scaffolding Bali`;
+_Sewa Scaffolding Bali_`;
   };
 
   const generatePickupMessage = (): string => {
-    return `Halo Bapak/Ibu ${clientName},
+    return `Halo *${clientName}*,
 
-Scaffolding akan kami ambil 📦
+*Scaffolding akan kami ambil* 📦
 
-📋 Invoice: ${contract.invoice_number}
-📍 Lokasi: ${contract.lokasi_proyek || '-'}
-📅 Tanggal Ambil: ${contract.tanggal_ambil ? formatDate(contract.tanggal_ambil) : '-'}
+📋 *Invoice:* ${contract.invoice_number}
+📍 *Lokasi:* ${contract.lokasi_proyek || '-'}
+📅 *Tanggal Ambil:* ${contract.tanggal_ambil ? formatDate(contract.tanggal_ambil) : '-'}
 
-Tim kami akan menuju lokasi.
+Tim kami akan menuju lokasi sesuai jadwal.
 
 Terima kasih 🙏
-Sewa Scaffolding Bali`;
+_Sewa Scaffolding Bali_`;
   };
 
   const fetchOrCreatePublicLink = async (): Promise<string> => {
