@@ -54,15 +54,30 @@ export const DocumentPrintGenerator = ({
       @media print {
         html, body {
           width: 210mm;
-          min-height: 297mm;
           margin: 0;
           padding: 0;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
+        .print-container {
+          display: block !important;
+          position: relative !important;
+          width: 210mm !important;
+        }
+        .print-page {
+          display: block !important;
+          position: relative !important;
+          width: 210mm !important;
+          min-height: 297mm !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          background: white !important;
+        }
         .print-page-break {
-          page-break-after: always;
-          break-after: page;
+          display: block !important;
+          height: 0 !important;
+          page-break-after: always !important;
+          break-after: page !important;
         }
       }
     `,
