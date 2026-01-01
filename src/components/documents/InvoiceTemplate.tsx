@@ -500,41 +500,12 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
 
-        {/* Footer Section - Prevent page break inside */}
-        <div className="invoice-footer-section" style={{ pageBreakInside: 'avoid' }}>
-          {/* Signature Label & Signer Info - Fixed Position */}
-          {settings.show_signature !== false && (
-            <div className="flex justify-end mb-8">
-              <div className="text-center" style={{ minWidth: '200px' }}>
-                <p className="text-sm text-gray-600 mb-12">{settings.signature_label || 'Hormat Kami,'}</p>
-                <p className="font-semibold">{settings.signer_name || settings.company_name}</p>
-                {settings.signer_title && (
-                  <p className="text-sm text-gray-500">{settings.signer_title}</p>
-                )}
-              </div>
-            </div>
-          )}
-          {/* Footer */}
-          {settings.show_footer !== false && settings.footer_text && (
-            <div className="text-center text-sm text-gray-500 mb-4">
-              {settings.footer_text}
-            </div>
-          )}
-        </div>
-
-        </div>
-
-        {/* QR Verification - Positioned from top for consistent PDF capture */}
-        {settings.show_qr_code && (
-          <div 
-            className="absolute pointer-events-none z-20 footer-positioned"
-            style={{
-              left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
-              top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
-              transform: `translate(-50%, -50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
-            }}
-          >
-          <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
+        {/* Footer Section - Unified Flex Layout for Print Stability */}
+        <div className="invoice-footer-section flex justify-between items-end px-0 pb-4 mt-8" style={{ pageBreakInside: 'avoid' }}>
+          
+          {/* Left Side: QR Verification - IN FLOW */}
+          {settings.show_qr_code ? (
+            <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
               <QRCode 
                 value={verificationUrl} 
                 size={layoutSettings?.qr_size ?? settings.qr_size ?? 80} 
@@ -553,27 +524,49 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                 )}
               </div>
             </div>
+          ) : (
+            <div /> /* Spacer when no QR */
+          )}
+          
+          {/* Right Side: Unified Signature Block - All elements stacked together */}
+          {settings.show_signature !== false && (
+            <div className="flex flex-col items-center text-center min-w-[200px]">
+              {/* 1. Signature Label */}
+              <p className="text-sm text-gray-600 mb-2">
+                {settings.signature_label || 'Hormat Kami,'}
+              </p>
+              
+              {/* 2. Image Container - holds signature and optional stamp */}
+              <div className="relative h-20 w-full flex items-center justify-center my-2">
+                {settings.signature_url && (
+                  <img 
+                    src={settings.signature_url} 
+                    alt="Signature" 
+                    className="max-h-16 max-w-[150px] object-contain"
+                    style={{ opacity: (settings.invoice_layout_settings?.signature_opacity ?? 100) / 100 }}
+                  />
+                )}
+              </div>
+              
+              {/* 3. Signer Name & Title */}
+              <p className="font-semibold mt-2">
+                {settings.signer_name || settings.company_name}
+              </p>
+              {settings.signer_title && (
+                <p className="text-sm text-gray-500">{settings.signer_title}</p>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Footer Text - Centered below */}
+        {settings.show_footer !== false && settings.footer_text && (
+          <div className="text-center text-sm text-gray-500 mb-4">
+            {settings.footer_text}
           </div>
         )}
 
-        {/* Signature Image Only - Positioned from top for consistent PDF capture */}
-        {settings.show_signature !== false && settings.signature_url && (
-          <div 
-            className="absolute pointer-events-none z-30 footer-positioned"
-            style={{
-              left: `${settings.invoice_layout_settings?.signature_position_x ?? 80}%`,
-              top: `${settings.invoice_layout_settings?.signature_position_y ?? 85}%`,
-              transform: `translate(-50%, -50%) scale(${settings.invoice_layout_settings?.signature_scale ?? 1})`,
-              opacity: (settings.invoice_layout_settings?.signature_opacity ?? 100) / 100,
-            }}
-          >
-            <img 
-              src={settings.signature_url} 
-              alt="Signature" 
-              className="max-w-[200px] max-h-[100px] object-contain"
-            />
-          </div>
-        )}
+        </div>
 
         {/* Fixed-positioned Stamp - Positioned from top for consistent PDF capture */}
         {settings.show_stamp && settings.show_stamp_on_invoice && (
