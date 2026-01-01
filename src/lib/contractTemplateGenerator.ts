@@ -39,6 +39,19 @@ function formatDateIndo(dateString: string): string {
   }
 }
 
+// Helper function to calculate rental duration in days
+function calculateDurationDays(startDate: string, endDate: string): number {
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays + 1; // +1 karena hari mulai dihitung
+  } catch {
+    return 0;
+  }
+}
+
 // Helper: check if all items have zero pricing (price = 0 AND duration = 0)
 function isZeroPricingMode(lineItems: LineItem[]): boolean {
   return lineItems.every(item => 
@@ -121,9 +134,11 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
   
   // Periode Sewa
   if (startDate && endDate) {
+    const durationDays = calculateDurationDays(startDate, endDate);
     lines.push('📅 Periode Sewa:');
     lines.push(`   Mulai: ${formatDateIndo(startDate)}`);
     lines.push(`   Selesai: ${formatDateIndo(endDate)}`);
+    lines.push(`   Durasi: ${durationDays} Hari`);
     lines.push('');
   }
   
@@ -196,9 +211,11 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   
   // Periode Sewa
   if (startDate && endDate) {
+    const durationDays = calculateDurationDays(startDate, endDate);
     lines.push('📅 *Periode Sewa:*');
     lines.push(`   • Mulai: ${formatDateIndo(startDate)}`);
     lines.push(`   • Selesai: ${formatDateIndo(endDate)}`);
+    lines.push(`   • Durasi: ${durationDays} Hari`);
     lines.push('');
   }
   
