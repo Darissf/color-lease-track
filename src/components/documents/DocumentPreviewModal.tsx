@@ -299,17 +299,21 @@ export const DocumentPreviewModal = ({
           <ZoomableDocumentWrapper>
             {/* Print container for native browser printing */}
             <div ref={printContainerRef} className="print-container flex flex-col">
-              <div className="print-page">
+              {/* Page 1 */}
+              <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
                 {documentData.documentType === 'invoice' ? (
                   <InvoiceTemplate {...invoiceProps} />
                 ) : (
                   <ReceiptTemplate {...receiptProps} />
                 )}
               </div>
+              
+              {/* Page break and Page 2 */}
               {showPage2 && (
                 <>
-                  <div className="w-full border-t-2 border-dashed border-gray-300 my-2 print-page-break no-print" />
-                  <div className="print-page">
+                  <div className="print-page-break" aria-hidden="true" />
+                  <div className="w-full border-t-2 border-dashed border-gray-300 my-2 no-print" />
+                  <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
                     <InvoiceRincianTemplate {...rincianProps} />
                   </div>
                 </>
@@ -320,7 +324,8 @@ export const DocumentPreviewModal = ({
           <ScrollArea className="h-[70vh]">
             {/* Print container for native browser printing */}
             <div ref={printContainerRef} className="print-container py-4 flex flex-col gap-6 items-center">
-              <div className="print-page">
+              {/* Page 1 */}
+              <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
                 <ResponsiveDocumentWrapper>
                   {documentData.documentType === 'invoice' ? (
                     <InvoiceTemplate {...invoiceProps} />
@@ -330,15 +335,16 @@ export const DocumentPreviewModal = ({
                 </ResponsiveDocumentWrapper>
               </div>
               
-              {/* Page 2: Rincian Tagihan */}
+              {/* Page break and Page 2: Rincian Tagihan */}
               {showPage2 && (
                 <>
-                  <div className="w-full flex items-center gap-4 px-4 print-page-break no-print">
+                  <div className="print-page-break" aria-hidden="true" />
+                  <div className="w-full flex items-center gap-4 px-4 no-print">
                     <div className="flex-1 border-t border-dashed border-gray-400" />
                     <span className="text-sm text-gray-500 font-medium">Halaman 2</span>
                     <div className="flex-1 border-t border-dashed border-gray-400" />
                   </div>
-                  <div className="print-page">
+                  <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
                     <ResponsiveDocumentWrapper>
                       <InvoiceRincianTemplate {...rincianProps} />
                     </ResponsiveDocumentWrapper>
