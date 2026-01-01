@@ -10,7 +10,7 @@ import { InvoiceRincianTemplate } from "./InvoiceRincianTemplate";
 import { ReceiptTemplate } from "./ReceiptTemplate";
 import { ResponsiveDocumentWrapper } from "./ResponsiveDocumentWrapper";
 import { ZoomableDocumentWrapper } from "./ZoomableDocumentWrapper";
-import { DocumentPDFGenerator } from "./DocumentPDFGenerator";
+import { DocumentPrintGenerator } from "./DocumentPrintGenerator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,8 +69,7 @@ export const DocumentPreviewModal = ({
   documentData,
   onDocumentSaved,
 }: DocumentPreviewModalProps) => {
-  const documentRef = useRef<HTMLDivElement>(null);
-  const page2Ref = useRef<HTMLDivElement>(null); // Ref for Rincian Tagihan page
+  const printContainerRef = useRef<HTMLDivElement>(null); // Single ref for print container (all pages)
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const { settings: brandSettings } = useBrandSettings();
@@ -287,58 +286,63 @@ export const DocumentPreviewModal = ({
         </DialogHeader>
         
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
-          <DocumentPDFGenerator
-            documentRef={documentRef}
-            page2Ref={showPage2 ? page2Ref : undefined}
+          <DocumentPrintGenerator
+            printContainerRef={printContainerRef}
             fileName={fileName}
             onComplete={onDocumentSaved}
-            showOptions={false}
-            documentType={documentData.documentType === 'invoice' ? 'invoice' : 'kwitansi'}
-            templateProps={documentData.documentType === 'invoice' ? invoiceProps : receiptProps}
+            hasPage2={showPage2}
           />
         </div>
         
-        {/* Documents preview */}
+        {/* Documents preview - also serves as print container */}
         {isMobile ? (
           <ZoomableDocumentWrapper>
-            <div className="flex flex-col gap-6">
-              {documentData.documentType === 'invoice' ? (
+            {/* Print container for native browser printing */}
+            <div ref={printContainerRef} className="print-container flex flex-col">
+              <div className="print-page">
+                {documentData.documentType === 'invoice' ? (
+                  <InvoiceTemplate {...invoiceProps} />
+                ) : (
+                  <ReceiptTemplate {...receiptProps} />
+                )}
+              </div>
+              {showPage2 && (
                 <>
-                  <InvoiceTemplate ref={documentRef} {...invoiceProps} />
-                  {showPage2 && (
-                    <>
-                      <div className="w-full border-t-2 border-dashed border-gray-300 my-2" />
-                      <InvoiceRincianTemplate ref={page2Ref} {...rincianProps} />
-                    </>
-                  )}
+                  <div className="w-full border-t-2 border-dashed border-gray-300 my-2 print-page-break no-print" />
+                  <div className="print-page">
+                    <InvoiceRincianTemplate {...rincianProps} />
+                  </div>
                 </>
-              ) : (
-                <ReceiptTemplate ref={documentRef} {...receiptProps} />
               )}
             </div>
           </ZoomableDocumentWrapper>
         ) : (
           <ScrollArea className="h-[70vh]">
-            <div className="py-4 flex flex-col gap-6 items-center">
-              <ResponsiveDocumentWrapper>
-                {documentData.documentType === 'invoice' ? (
-                  <InvoiceTemplate ref={documentRef} {...invoiceProps} />
-                ) : (
-                  <ReceiptTemplate ref={documentRef} {...receiptProps} />
-                )}
-              </ResponsiveDocumentWrapper>
+            {/* Print container for native browser printing */}
+            <div ref={printContainerRef} className="print-container py-4 flex flex-col gap-6 items-center">
+              <div className="print-page">
+                <ResponsiveDocumentWrapper>
+                  {documentData.documentType === 'invoice' ? (
+                    <InvoiceTemplate {...invoiceProps} />
+                  ) : (
+                    <ReceiptTemplate {...receiptProps} />
+                  )}
+                </ResponsiveDocumentWrapper>
+              </div>
               
               {/* Page 2: Rincian Tagihan */}
               {showPage2 && (
                 <>
-                  <div className="w-full flex items-center gap-4 px-4">
+                  <div className="w-full flex items-center gap-4 px-4 print-page-break no-print">
                     <div className="flex-1 border-t border-dashed border-gray-400" />
                     <span className="text-sm text-gray-500 font-medium">Halaman 2</span>
                     <div className="flex-1 border-t border-dashed border-gray-400" />
                   </div>
-                  <ResponsiveDocumentWrapper>
-                    <InvoiceRincianTemplate ref={page2Ref} {...rincianProps} />
-                  </ResponsiveDocumentWrapper>
+                  <div className="print-page">
+                    <ResponsiveDocumentWrapper>
+                      <InvoiceRincianTemplate {...rincianProps} />
+                    </ResponsiveDocumentWrapper>
+                  </div>
                 </>
               )}
             </div>

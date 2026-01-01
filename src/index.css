@@ -1517,3 +1517,83 @@ All colors MUST be HSL.
     animation: sakura-fall 15s linear infinite;
   }
 }
+
+/* ========== PRINT STYLES FOR PDF GENERATION ========== */
+@media print {
+  /* Hide everything except print target */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only print target and its children */
+  .print-target,
+  .print-target * {
+    visibility: visible !important;
+  }
+  
+  .print-target {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm !important;
+    min-height: 297mm !important;
+  }
+  
+  /* Hide UI elements during print */
+  .no-print,
+  header,
+  nav,
+  footer:not(.print-target footer),
+  button,
+  .toast,
+  [role="dialog"] > div:not(.print-container),
+  .scroll-area,
+  [data-radix-scroll-area-viewport] {
+    display: none !important;
+  }
+  
+  /* Force color printing - CRITICAL for borders and backgrounds */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* Reset all transforms for print target */
+  .print-target,
+  .print-target *:not(.stamp):not(.watermark):not([class*="stamp"]):not([class*="watermark"]) {
+    transform: none !important;
+  }
+  
+  /* Multi-page support - page break between documents */
+  .print-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+  
+  /* Ensure proper page dimensions */
+  .print-page {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    max-width: 210mm !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+/* Page settings for PDF */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+/* Print container that wraps all pages */
+.print-container {
+  width: 210mm;
+  background: white;
+}
+
+.print-container .print-page {
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+}
