@@ -1993,8 +1993,11 @@ export type Database = {
           signature_label_color: string | null
           signature_label_font_family: string | null
           signature_label_font_size: number | null
+          signature_label_font_style: string | null
+          signature_label_font_weight: string | null
           signature_label_position_x: number | null
           signature_label_position_y: number | null
+          signature_label_text_decoration: string | null
           signature_position: string | null
           signature_scale: number | null
           signature_url: string | null
@@ -2002,14 +2005,20 @@ export type Database = {
           signer_name_color: string | null
           signer_name_font_family: string | null
           signer_name_font_size: number | null
+          signer_name_font_style: string | null
+          signer_name_font_weight: string | null
           signer_name_position_x: number | null
           signer_name_position_y: number | null
+          signer_name_text_decoration: string | null
           signer_title: string | null
           signer_title_color: string | null
           signer_title_font_family: string | null
           signer_title_font_size: number | null
+          signer_title_font_style: string | null
+          signer_title_font_weight: string | null
           signer_title_position_x: number | null
           signer_title_position_y: number | null
+          signer_title_text_decoration: string | null
           stamp_border_color: string | null
           stamp_border_style: string | null
           stamp_border_width: number | null
@@ -2153,8 +2162,11 @@ export type Database = {
           signature_label_color?: string | null
           signature_label_font_family?: string | null
           signature_label_font_size?: number | null
+          signature_label_font_style?: string | null
+          signature_label_font_weight?: string | null
           signature_label_position_x?: number | null
           signature_label_position_y?: number | null
+          signature_label_text_decoration?: string | null
           signature_position?: string | null
           signature_scale?: number | null
           signature_url?: string | null
@@ -2162,14 +2174,20 @@ export type Database = {
           signer_name_color?: string | null
           signer_name_font_family?: string | null
           signer_name_font_size?: number | null
+          signer_name_font_style?: string | null
+          signer_name_font_weight?: string | null
           signer_name_position_x?: number | null
           signer_name_position_y?: number | null
+          signer_name_text_decoration?: string | null
           signer_title?: string | null
           signer_title_color?: string | null
           signer_title_font_family?: string | null
           signer_title_font_size?: number | null
+          signer_title_font_style?: string | null
+          signer_title_font_weight?: string | null
           signer_title_position_x?: number | null
           signer_title_position_y?: number | null
+          signer_title_text_decoration?: string | null
           stamp_border_color?: string | null
           stamp_border_style?: string | null
           stamp_border_width?: number | null
@@ -2313,8 +2331,11 @@ export type Database = {
           signature_label_color?: string | null
           signature_label_font_family?: string | null
           signature_label_font_size?: number | null
+          signature_label_font_style?: string | null
+          signature_label_font_weight?: string | null
           signature_label_position_x?: number | null
           signature_label_position_y?: number | null
+          signature_label_text_decoration?: string | null
           signature_position?: string | null
           signature_scale?: number | null
           signature_url?: string | null
@@ -2322,14 +2343,20 @@ export type Database = {
           signer_name_color?: string | null
           signer_name_font_family?: string | null
           signer_name_font_size?: number | null
+          signer_name_font_style?: string | null
+          signer_name_font_weight?: string | null
           signer_name_position_x?: number | null
           signer_name_position_y?: number | null
+          signer_name_text_decoration?: string | null
           signer_title?: string | null
           signer_title_color?: string | null
           signer_title_font_family?: string | null
           signer_title_font_size?: number | null
+          signer_title_font_style?: string | null
+          signer_title_font_weight?: string | null
           signer_title_position_x?: number | null
           signer_title_position_y?: number | null
+          signer_title_text_decoration?: string | null
           stamp_border_color?: string | null
           stamp_border_style?: string | null
           stamp_border_width?: number | null
