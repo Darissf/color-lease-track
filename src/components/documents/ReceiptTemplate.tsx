@@ -108,10 +108,10 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
         className="bg-white text-gray-900 p-8 pb-12 mx-auto shadow-lg relative overflow-visible"
         style={containerStyle}
       >
-        {/* Watermark - uses receipt_layout_settings */}
+        {/* Watermark - dengan class watermark-centered untuk preserve transform saat print */}
         {settings.show_watermark && (
           <div 
-            className="absolute pointer-events-none z-50"
+            className="absolute pointer-events-none z-50 watermark-centered"
             style={{ 
               left: `${settings.receipt_layout_settings?.watermark_position_x ?? settings.watermark_position_x ?? 50}%`,
               top: `${settings.receipt_layout_settings?.watermark_position_y ?? settings.watermark_position_y ?? 50}%`,
@@ -127,7 +127,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                   width: `${settings.receipt_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`,
                   height: 'auto'
                 }}
-                className="object-contain" 
+                className="object-contain"
               />
             ) : (
               <span 
@@ -455,82 +455,66 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
             </div>
           )}
 
-          {/* Signature Label & Signer Info - Fixed Position */}
-          {settings.show_signature !== false && (
-            <div className="flex justify-end mb-8">
-              <div className="text-center" style={{ minWidth: '200px' }}>
-                <p className="text-sm text-gray-600 mb-12">{settings.signature_label || 'Hormat Kami,'}</p>
-                <p className="font-semibold">{settings.signer_name || settings.company_name}</p>
-                {settings.signer_title && (
-                  <p className="text-sm text-gray-500">{settings.signer_title}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Footer */}
-          {settings.show_footer !== false && settings.footer_text && (
-            <div className="text-center text-sm text-gray-500 mb-4">
-              {settings.footer_text}
-            </div>
-          )}
-
         </div>
-
-        {/* QR Verification - Positioned from top for consistent PDF capture */}
-        {settings.show_qr_code && (
-          <div 
-            className="absolute pointer-events-none z-20"
-            style={{
-              left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
-              top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
-              transform: `translate(-50%, -50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
-            }}
-          >
-          <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
+        
+        {/* Footer Section - Unified Flex Layout untuk Print Stability */}
+        <div className="invoice-footer-section flex justify-between items-end px-8 pb-4 mt-8" style={{ pageBreakInside: 'avoid' }}>
+          
+          {/* Left Side: QR Verification - IN FLOW, not absolute */}
+          {settings.show_qr_code ? (
+            <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
               <QRCode 
                 value={verificationUrl} 
                 size={layoutSettings?.qr_size ?? settings.qr_size ?? 80} 
               />
               <div className="text-sm">
-                <p className="text-gray-500">
-                  {settings.qr_verification_title || 'Scan untuk verifikasi dokumen'}
-                </p>
-                <p className="font-mono text-xs text-gray-400 mt-1">
-                  {settings.qr_verification_label || 'Kode:'} {verificationCode}
-                </p>
+                <p className="text-gray-500">{settings.qr_verification_title || 'Scan untuk verifikasi dokumen'}</p>
+                <p className="font-mono text-xs text-gray-400 mt-1">{settings.qr_verification_label || 'Kode:'} {verificationCode}</p>
                 {settings.show_qr_verification_url !== false && (
-                  <p className="text-xs text-blue-600 break-all max-w-[150px]">
-                    {verificationUrl}
-                  </p>
+                  <p className="text-xs text-blue-600 break-all max-w-[150px]">{verificationUrl}</p>
                 )}
               </div>
             </div>
-          </div>
-        )}
-        {/* Signature Image Only - Positioned from top for consistent PDF capture */}
-        {settings.show_signature !== false && settings.signature_url && (
-          <div 
-            className="absolute pointer-events-none z-30"
-            style={{
-              left: `${settings.receipt_layout_settings?.signature_position_x ?? 80}%`,
-              top: `${settings.receipt_layout_settings?.signature_position_y ?? 85}%`,
-              transform: `translate(-50%, -50%) scale(${settings.receipt_layout_settings?.signature_scale ?? 1})`,
-              opacity: (settings.receipt_layout_settings?.signature_opacity ?? 100) / 100,
-            }}
-          >
-            <img 
-              src={settings.signature_url} 
-              alt="Signature" 
-              className="max-w-[200px] max-h-[100px] object-contain"
-            />
-          </div>
+          ) : (
+            <div /> 
+          )}
+          
+          {/* Right Side: Unified Signature Block */}
+          {settings.show_signature !== false && (
+            <div className="flex flex-col items-center text-center min-w-[200px]">
+              {/* 1. Label */}
+              <p className="text-sm text-gray-600 mb-2">{settings.signature_label || 'Hormat Kami,'}</p>
+              
+              {/* 2. Image Container - fixed height to hold signature */}
+              <div className="relative h-20 w-full flex items-center justify-center my-2">
+                {settings.signature_url && (
+                  <img 
+                    src={settings.signature_url} 
+                    alt="Signature" 
+                    className="max-h-16 max-w-[150px] object-contain"
+                    style={{ opacity: (layoutSettings?.signature_opacity ?? 100) / 100 }}
+                  />
+                )}
+              </div>
+              
+              {/* 3. Name & Title */}
+              <p className="font-semibold mt-2">{settings.signer_name || settings.company_name}</p>
+              {settings.signer_title && (
+                <p className="text-sm text-gray-500">{settings.signer_title}</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Text - Centered below */}
+        {settings.show_footer !== false && settings.footer_text && (
+          <div className="text-center text-sm text-gray-500 mb-4 px-8">{settings.footer_text}</div>
         )}
 
-        {/* Fixed-positioned Stamp - Positioned from top for consistent PDF capture */}
+        {/* Fixed-positioned Stamp - dengan class stamp-positioned untuk preserve transform saat print */}
         {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
           <div 
-            className="absolute pointer-events-none z-40"
+            className="absolute pointer-events-none z-40 stamp-positioned"
             style={{
               left: `${settings.receipt_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
               top: `${settings.receipt_layout_settings?.stamp_position_y ?? 70}%`,

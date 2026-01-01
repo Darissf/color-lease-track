@@ -114,10 +114,10 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
         className="bg-white text-gray-900 p-8 pb-12 mx-auto shadow-lg relative overflow-visible"
         style={containerStyle}
       >
-        {/* Watermark - uses invoice_layout_settings */}
+        {/* Watermark - dengan class watermark-centered untuk preserve transform saat print */}
         {settings.show_watermark && (
           <div 
-            className="absolute pointer-events-none z-50"
+            className="absolute pointer-events-none z-50 watermark-centered"
             style={{ 
               left: `${settings.invoice_layout_settings?.watermark_position_x ?? settings.watermark_position_x ?? 50}%`,
               top: `${settings.invoice_layout_settings?.watermark_position_y ?? settings.watermark_position_y ?? 50}%`,
@@ -568,10 +568,10 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
 
         </div>
 
-        {/* Fixed-positioned Stamp - Positioned from top for consistent PDF capture */}
+        {/* Fixed-positioned Stamp - dengan class stamp-positioned untuk preserve transform saat print */}
         {settings.show_stamp && settings.show_stamp_on_invoice && (
           <div 
-            className="absolute pointer-events-none z-40"
+            className="absolute pointer-events-none z-40 stamp-positioned"
             style={{
               left: `${settings.invoice_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
               top: `${settings.invoice_layout_settings?.stamp_position_y ?? 70}%`,
