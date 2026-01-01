@@ -427,7 +427,7 @@ const InvoiceTemplateSettings = () => {
                 </AccordionItem>
                 <AccordionItem value="signature" className="border rounded-lg px-4">
                   <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><PenTool className="h-4 w-4 text-primary" /><span className="font-medium">Tanda Tangan</span></div></AccordionTrigger>
-                  <AccordionContent className="pb-4"><SignatureSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} layoutSettings={currentLayoutSettings} updateLayoutSetting={updateLayoutSetting} documentMode="receipt" /></AccordionContent>
+                  <AccordionContent className="pb-4"><SignatureSection settings={settings} updateSetting={updateSetting} onFileSelect={handleFileSelect} onRemoveImage={handleRemoveImage} uploading={uploading} layoutSettings={currentLayoutSettings} updateLayoutSetting={updateLayoutSetting} documentMode={activeTab} /></AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="stamp" className="border rounded-lg px-4">
                   <AccordionTrigger className="hover:no-underline py-3"><div className="flex items-center gap-2"><Stamp className="h-4 w-4 text-primary" /><span className="font-medium">Stempel</span></div></AccordionTrigger>
