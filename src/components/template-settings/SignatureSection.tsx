@@ -257,6 +257,46 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Text Styling Toggles */}
+              <div className="space-y-2">
+                <Label className="text-xs">Gaya Teks</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={settings.signature_label_font_weight === 'bold' ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-10 font-bold"
+                    onClick={() => updateSetting('signature_label_font_weight', 
+                      settings.signature_label_font_weight === 'bold' ? 'normal' : 'bold'
+                    )}
+                  >
+                    B
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={settings.signature_label_font_style === 'italic' ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-10 italic"
+                    onClick={() => updateSetting('signature_label_font_style', 
+                      settings.signature_label_font_style === 'italic' ? 'normal' : 'italic'
+                    )}
+                  >
+                    I
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={settings.signature_label_text_decoration === 'underline' ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-10 underline"
+                    onClick={() => updateSetting('signature_label_text_decoration', 
+                      settings.signature_label_text_decoration === 'underline' ? 'none' : 'underline'
+                    )}
+                  >
+                    U
+                  </Button>
+                </div>
+              </div>
             </CollapsibleContent>
           </Collapsible>
 
@@ -357,6 +397,46 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Text Styling Toggles */}
+              <div className="space-y-2">
+                <Label className="text-xs">Gaya Teks</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={settings.signer_name_font_weight === 'bold' ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-10 font-bold"
+                    onClick={() => updateSetting('signer_name_font_weight', 
+                      settings.signer_name_font_weight === 'bold' ? 'normal' : 'bold'
+                    )}
+                  >
+                    B
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={settings.signer_name_font_style === 'italic' ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-10 italic"
+                    onClick={() => updateSetting('signer_name_font_style', 
+                      settings.signer_name_font_style === 'italic' ? 'normal' : 'italic'
+                    )}
+                  >
+                    I
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={settings.signer_name_text_decoration === 'underline' ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-10 underline"
+                    onClick={() => updateSetting('signer_name_text_decoration', 
+                      settings.signer_name_text_decoration === 'underline' ? 'none' : 'underline'
+                    )}
+                  >
+                    U
+                  </Button>
+                </div>
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -459,6 +539,46 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Text Styling Toggles */}
+              <div className="space-y-2">
+                <Label className="text-xs">Gaya Teks</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={settings.signer_title_font_weight === 'bold' ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-10 font-bold"
+                    onClick={() => updateSetting('signer_title_font_weight', 
+                      settings.signer_title_font_weight === 'bold' ? 'normal' : 'bold'
+                    )}
+                  >
+                    B
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={settings.signer_title_font_style === 'italic' ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-10 italic"
+                    onClick={() => updateSetting('signer_title_font_style', 
+                      settings.signer_title_font_style === 'italic' ? 'normal' : 'italic'
+                    )}
+                  >
+                    I
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={settings.signer_title_text_decoration === 'underline' ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-10 underline"
+                    onClick={() => updateSetting('signer_title_text_decoration', 
+                      settings.signer_title_text_decoration === 'underline' ? 'none' : 'underline'
+                    )}
+                  >
+                    U
+                  </Button>
+                </div>
+              </div>
             </CollapsibleContent>
           </Collapsible>
 
@@ -473,6 +593,9 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   fontSize: `${settings.signature_label_font_size ?? 14}px`,
                   fontFamily: settings.signature_label_font_family === 'inherit' ? 'inherit' : settings.signature_label_font_family,
                   color: settings.signature_label_color ?? '#4b5563',
+                  fontWeight: settings.signature_label_font_weight ?? 'normal',
+                  fontStyle: settings.signature_label_font_style ?? 'normal',
+                  textDecoration: settings.signature_label_text_decoration ?? 'none',
                   transform: `translate(${settings.signature_label_position_x ?? 0}px, ${settings.signature_label_position_y ?? 0}px)`
                 }}
               >
@@ -500,7 +623,9 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   fontSize: `${settings.signer_name_font_size ?? 14}px`,
                   fontFamily: settings.signer_name_font_family === 'inherit' ? 'inherit' : settings.signer_name_font_family,
                   color: settings.signer_name_color ?? '#1f2937',
-                  fontWeight: 600,
+                  fontWeight: settings.signer_name_font_weight ?? 'bold',
+                  fontStyle: settings.signer_name_font_style ?? 'normal',
+                  textDecoration: settings.signer_name_text_decoration ?? 'none',
                   transform: `translate(${settings.signer_name_position_x ?? 0}px, ${settings.signer_name_position_y ?? 0}px)`
                 }}
               >
@@ -514,6 +639,9 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                     fontSize: `${settings.signer_title_font_size ?? 12}px`,
                     fontFamily: settings.signer_title_font_family === 'inherit' ? 'inherit' : settings.signer_title_font_family,
                     color: settings.signer_title_color ?? '#6b7280',
+                    fontWeight: settings.signer_title_font_weight ?? 'normal',
+                    fontStyle: settings.signer_title_font_style ?? 'normal',
+                    textDecoration: settings.signer_title_text_decoration ?? 'none',
                     transform: `translate(${settings.signer_title_position_x ?? 0}px, ${settings.signer_title_position_y ?? 0}px)`
                   }}
                 >

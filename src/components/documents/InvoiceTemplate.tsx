@@ -540,6 +540,9 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                     ? getFontFamily() 
                     : settings.signature_label_font_family,
                   color: settings.signature_label_color ?? '#4b5563',
+                  fontWeight: settings.signature_label_font_weight ?? 'normal',
+                  fontStyle: settings.signature_label_font_style ?? 'normal',
+                  textDecoration: settings.signature_label_text_decoration ?? 'none',
                   transform: `translate(${settings.signature_label_position_x ?? 0}px, ${settings.signature_label_position_y ?? 0}px)`
                 }}
               >
@@ -567,7 +570,9 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                     ? getFontFamily() 
                     : settings.signer_name_font_family,
                   color: settings.signer_name_color ?? '#1f2937',
-                  fontWeight: 600,
+                  fontWeight: settings.signer_name_font_weight ?? 'bold',
+                  fontStyle: settings.signer_name_font_style ?? 'normal',
+                  textDecoration: settings.signer_name_text_decoration ?? 'none',
                   transform: `translate(${settings.signer_name_position_x ?? 0}px, ${settings.signer_name_position_y ?? 0}px)`
                 }}
               >
@@ -583,6 +588,9 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                       ? getFontFamily() 
                       : settings.signer_title_font_family,
                     color: settings.signer_title_color ?? '#6b7280',
+                    fontWeight: settings.signer_title_font_weight ?? 'normal',
+                    fontStyle: settings.signer_title_font_style ?? 'normal',
+                    textDecoration: settings.signer_title_text_decoration ?? 'none',
                     transform: `translate(${settings.signer_title_position_x ?? 0}px, ${settings.signer_title_position_y ?? 0}px)`
                   }}
                 >

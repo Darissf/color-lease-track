@@ -129,6 +129,17 @@ export interface TemplateSettings {
   signer_title_font_family: string;
   signer_title_color: string;
   
+  // Text Styling (Bold, Italic, Underline)
+  signature_label_font_weight: string;
+  signature_label_font_style: string;
+  signature_label_text_decoration: string;
+  signer_name_font_weight: string;
+  signer_name_font_style: string;
+  signer_name_text_decoration: string;
+  signer_title_font_weight: string;
+  signer_title_font_style: string;
+  signer_title_text_decoration: string;
+  
   show_stamp: boolean;
   custom_stamp_url: string | null;
   stamp_text: string;
@@ -326,6 +337,17 @@ export const defaultSettings: TemplateSettings = {
   signer_title_font_family: 'inherit',
   signer_title_color: '#6b7280',
   
+  // Text Styling defaults
+  signature_label_font_weight: 'normal',
+  signature_label_font_style: 'normal',
+  signature_label_text_decoration: 'none',
+  signer_name_font_weight: 'bold',
+  signer_name_font_style: 'normal',
+  signer_name_text_decoration: 'none',
+  signer_title_font_weight: 'normal',
+  signer_title_font_style: 'normal',
+  signer_title_text_decoration: 'none',
+  
   show_stamp: true,
   custom_stamp_url: null,
   stamp_text: 'LUNAS',
@@ -487,15 +509,18 @@ export const colorPresets = {
 };
 
 export const fontFamilies = [
-  { value: 'Segoe UI', label: 'Segoe UI' },
-  { value: 'inter', label: 'Inter' },
-  { value: 'roboto', label: 'Roboto' },
-  { value: 'open-sans', label: 'Open Sans' },
-  { value: 'lato', label: 'Lato' },
-  { value: 'poppins', label: 'Poppins' },
-  { value: 'montserrat', label: 'Montserrat' },
-  { value: 'playfair', label: 'Playfair Display' },
-  { value: 'merriweather', label: 'Merriweather' },
+  { value: "'Segoe UI', sans-serif", label: 'Segoe UI' },
+  { value: "'Inter', sans-serif", label: 'Inter' },
+  { value: "'Roboto', sans-serif", label: 'Roboto' },
+  { value: "'Open Sans', sans-serif", label: 'Open Sans' },
+  { value: "'Lato', sans-serif", label: 'Lato' },
+  { value: "'Poppins', sans-serif", label: 'Poppins' },
+  { value: "'Montserrat', sans-serif", label: 'Montserrat' },
+  { value: "'Playfair Display', serif", label: 'Playfair Display' },
+  { value: "'Merriweather', serif", label: 'Merriweather' },
+  { value: "Georgia, serif", label: 'Georgia' },
+  { value: "'Times New Roman', serif", label: 'Times New Roman' },
+  { value: "'Courier New', monospace", label: 'Courier New' },
 ];
 
 export const headerStyles = [
