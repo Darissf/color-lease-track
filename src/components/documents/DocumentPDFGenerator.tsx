@@ -228,41 +228,15 @@ function shouldPreserveRotation(el: HTMLElement): boolean {
 
 // ========== HELPER: Normalize transform to remove unwanted rotation ==========
 function normalizeTransform(transform: string, preserveRotation: boolean): string {
-  if (transform === 'none' || !transform) return transform;
+  if (transform === 'none' || !transform) return 'none';
   
   // If we should preserve rotation, don't modify
   if (preserveRotation) return transform;
   
-  // Extract translate and scale from transform, remove rotation
-  // Transform can be in matrix form or individual transforms
-  
-  // If it's a matrix, we need to decompose it
-  if (transform.startsWith('matrix')) {
-    // For simplicity, just remove rotation by resetting to translate only
-    // Extract translate values from matrix
-    const matrixMatch = transform.match(/matrix\(([^)]+)\)/);
-    if (matrixMatch) {
-      const values = matrixMatch[1].split(',').map(v => parseFloat(v.trim()));
-      if (values.length >= 6) {
-        // matrix(a, b, c, d, tx, ty) - tx and ty are translation
-        const tx = values[4];
-        const ty = values[5];
-        // Return just translate, removing any rotation/scale from matrix
-        return `translate(${tx}px, ${ty}px)`;
-      }
-    }
-  }
-  
-  // If it contains rotate but is not a matrix, remove the rotate part
-  if (transform.includes('rotate')) {
-    // Split by space and filter out rotate
-    return transform
-      .replace(/rotate\([^)]+\)/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-  
-  return transform;
+  // CRITICAL FIX: For all non-stamp/non-watermark elements, completely remove transform
+  // The positioning is handled by absolute positioning with top/left/translate
+  // Returning 'none' ensures no unwanted rotation gets baked into the PDF
+  return 'none';
 }
 
 function applyCriticalInlineStyles(container: HTMLElement): {
@@ -498,19 +472,29 @@ function applyCriticalInlineStyles(container: HTMLElement): {
 
       const pathComputed = window.getComputedStyle(path);
       
-      // Force stroke and fill colors
+      // Force stroke and fill colors - CRITICAL: Get parent color for currentColor resolution
       const stroke = pathComputed.stroke;
       const fill = pathComputed.fill;
       const strokeWidth = pathComputed.strokeWidth;
+      
+      // Get explicit color from parent element (resolves currentColor)
+      const parentElement = svg.parentElement;
+      const parentColor = parentElement ? window.getComputedStyle(parentElement).color : color;
 
       if (stroke && stroke !== 'none') {
-        path.setAttribute('stroke', stroke === 'currentcolor' || stroke === 'currentColor' ? color : stroke);
-      } else {
-        path.setAttribute('stroke', 'currentColor');
+        // Force explicit color instead of currentColor
+        const resolvedStroke = (stroke === 'currentcolor' || stroke === 'currentColor') ? parentColor : stroke;
+        path.setAttribute('stroke', resolvedStroke);
+      } else if (path.getAttribute('stroke') === 'currentColor') {
+        path.setAttribute('stroke', parentColor);
       }
       
       if (fill && fill !== 'none' && fill !== 'rgba(0, 0, 0, 0)') {
-        path.setAttribute('fill', fill === 'currentcolor' || fill === 'currentColor' ? color : fill);
+        // Force explicit color instead of currentColor
+        const resolvedFill = (fill === 'currentcolor' || fill === 'currentColor') ? parentColor : fill;
+        path.setAttribute('fill', resolvedFill);
+      } else if (path.getAttribute('fill') === 'currentColor') {
+        path.setAttribute('fill', parentColor);
       }
       
       if (strokeWidth) {
@@ -632,9 +616,10 @@ export const DocumentPDFGenerator = ({
       toast.loading("Menerapkan styles...", { id: toastId });
       const savedInlineStyles = applyCriticalInlineStyles(targetElement);
 
-      // Force browser reflow after inline styles applied
+      // Force browser reflow after inline styles applied with double requestAnimationFrame
       targetElement.getBoundingClientRect();
-      await sleep(150);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await sleep(500); // Increased delay for better rendering
 
       // LAYER 7: Capture with high-fidelity settings
       toast.loading("Membuat gambar...", { id: toastId });
@@ -770,9 +755,10 @@ export const DocumentPDFGenerator = ({
         const savedStyles = forceNaturalSize(clone);
         const savedInlineStyles = applyCriticalInlineStyles(clone);
 
-        // Force layout recalculation
+        // Force layout recalculation with double requestAnimationFrame
         clone.getBoundingClientRect();
-        await sleep(250); // Wait for mobile rendering
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        await sleep(500); // Increased delay for better mobile rendering
 
         // Capture the clone which is outside of any transform context
         const canvas = await html2canvas(clone, {
@@ -1065,7 +1051,8 @@ export const DocumentPDFGenerator = ({
       const savedInlineStyles = applyCriticalInlineStyles(targetElement);
 
       targetElement.getBoundingClientRect();
-      await sleep(150);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await sleep(500); // Increased delay
 
       toast.loading("Membuat gambar...", { id: toastId });
 
@@ -1168,74 +1155,112 @@ export const DocumentPDFGenerator = ({
     const toastId = toast.loading("Menyiapkan gambar PNG...");
 
     try {
-      const targetElement = documentRef.current;
-
-      // Apply all protective layers (same as PDF)
-      await waitForFonts();
-      await preloadAllImages(targetElement);
-      await waitForSvgRender();
-
-      const savedTransforms = normalizeParentTransforms(targetElement);
-      const savedStyles = forceNaturalSize(targetElement);
-      const savedInlineStyles = applyCriticalInlineStyles(targetElement);
-
-      targetElement.getBoundingClientRect();
-      await sleep(150);
-
-      toast.loading("Membuat gambar...", { id: toastId });
-
-      const canvas = await html2canvas(targetElement, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        imageTimeout: 15000,
-        removeContainer: false,
-        foreignObjectRendering: false,
-        windowWidth: targetElement.scrollWidth,
-        windowHeight: targetElement.scrollHeight,
-      });
-
-      // Restore everything
-      restoreCriticalInlineStyles(savedInlineStyles);
-      restoreNaturalSize(targetElement, savedStyles);
-      restoreParentTransforms(savedTransforms);
-
-      if (!canvas || canvas.width === 0 || canvas.height === 0) {
-        throw new Error("Canvas kosong");
+      // Collect all pages to capture
+      const pages: { element: HTMLElement; name: string }[] = [
+        { element: documentRef.current, name: fileName }
+      ];
+      
+      // Add page 2 if exists
+      if (page2Ref?.current) {
+        pages.push({ element: page2Ref.current, name: `${fileName}-halaman2` });
       }
 
-      // Convert canvas to PNG blob and download
-      toast.loading("Mengunduh PNG...", { id: toastId });
+      for (let i = 0; i < pages.length; i++) {
+        const { element: targetElement, name: pageName } = pages[i];
+        
+        toast.loading(`Memproses halaman ${i + 1}/${pages.length}...`, { id: toastId });
 
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          toast.error("Gagal membuat PNG", { id: toastId });
-          setIsGenerating(false);
-          return;
+        // MOBILE FIX: Clone element to capture outside of transform context
+        const clone = targetElement.cloneNode(true) as HTMLElement;
+        clone.style.position = 'fixed';
+        clone.style.top = '0';
+        clone.style.left = '0';
+        clone.style.width = '793px';
+        clone.style.height = '1122px';
+        clone.style.zIndex = '-9999';
+        clone.style.visibility = 'visible';
+        clone.style.opacity = '1';
+        clone.style.transform = 'none';
+        clone.style.pointerEvents = 'none';
+        clone.style.overflow = 'visible';
+        document.body.appendChild(clone);
+
+        // Apply all protective layers
+        await waitForFonts();
+        await preloadAllImages(clone);
+        await waitForSvgRender();
+
+        const savedStyles = forceNaturalSize(clone);
+        const savedInlineStyles = applyCriticalInlineStyles(clone);
+
+        // Force reflow with double requestAnimationFrame
+        clone.getBoundingClientRect();
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        await sleep(500); // Increased delay
+
+        toast.loading("Membuat gambar...", { id: toastId });
+
+        const canvas = await html2canvas(clone, {
+          scale: 3,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          imageTimeout: 15000,
+          removeContainer: false,
+          foreignObjectRendering: false,
+          width: 793,
+          height: 1122,
+          windowWidth: 793,
+          windowHeight: 1122,
+          x: 0,
+          y: 0,
+          scrollX: 0,
+          scrollY: 0,
+        });
+
+        // Clean up clone
+        restoreCriticalInlineStyles(savedInlineStyles);
+        restoreNaturalSize(clone, savedStyles);
+        document.body.removeChild(clone);
+
+        if (!canvas || canvas.width === 0 || canvas.height === 0) {
+          throw new Error(`Canvas halaman ${i + 1} kosong`);
         }
 
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${fileName}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        // Convert canvas to PNG blob and download
+        toast.loading(`Mengunduh PNG halaman ${i + 1}...`, { id: toastId });
 
-        toast.success("PNG berhasil diunduh!", { id: toastId });
-        setIsGenerating(false);
-        onComplete?.();
-      }, 'image/png', 1.0);
+        await new Promise<void>((resolve, reject) => {
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error("Gagal membuat PNG"));
+              return;
+            }
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${pageName}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            resolve();
+          }, 'image/png', 1.0);
+        });
+      }
+
+      toast.success(`PNG ${pages.length > 1 ? pages.length + ' halaman ' : ''}berhasil diunduh!`, { id: toastId });
+      setIsGenerating(false);
+      onComplete?.();
 
     } catch (error) {
       console.error("Error generating PNG:", error);
       toast.error("Gagal membuat PNG: " + (error as Error).message, { id: toastId });
       setIsGenerating(false);
     }
-  }, [documentRef, fileName, onComplete]);
+  }, [documentRef, page2Ref, fileName, onComplete]);
 
   return (
     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
