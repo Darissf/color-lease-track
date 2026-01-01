@@ -510,6 +510,95 @@ function applyCriticalInlineStyles(container: HTMLElement): {
   return { elements: savedElements, svgs: savedSvgs, paths: savedPaths };
 }
 
+// ========== NEW: HARDCODED STYLES FOR CRITICAL ELEMENTS ==========
+// This function applies explicit, hardcoded styles to ensure critical elements
+// always render correctly in PDF/PNG, regardless of CSS scan issues.
+function applyHardcodedStyles(container: HTMLElement, headerColor: string = '#3b82f6'): void {
+  // 1. PAKSA BORDER PADA INVOICE NUMBER BOX
+  const invoiceBox = container.querySelector('#invoice-number-box') as HTMLElement;
+  if (invoiceBox) {
+    invoiceBox.style.border = `2px solid ${headerColor}`;
+    invoiceBox.style.borderWidth = '2px';
+    invoiceBox.style.borderStyle = 'solid';
+    invoiceBox.style.borderColor = headerColor;
+    invoiceBox.style.borderRadius = '0px';
+    invoiceBox.style.display = 'inline-flex';
+    invoiceBox.style.padding = '4px 16px';
+    invoiceBox.style.boxSizing = 'border-box';
+    console.log('[PDF] Applied hardcoded border to invoice-number-box');
+  }
+
+  // 2. PAKSA UKURAN ICON SVG (non-QR)
+  const svgs = container.querySelectorAll('svg');
+  svgs.forEach((svg) => {
+    if (!(svg instanceof SVGElement)) return;
+    
+    // Skip QR code SVGs
+    if (svg.closest('[data-qr]') || 
+        svg.closest('.qr-code-container') || 
+        svg.closest('[class*="qr"]') ||
+        svg.getAttribute('shape-rendering') === 'crispEdges') {
+      return;
+    }
+    
+    const svgEl = svg as unknown as HTMLElement;
+    
+    // Force 16px size for small icons
+    const currentWidth = parseInt(svgEl.style.width || '24', 10);
+    if (currentWidth <= 24) {
+      svgEl.style.width = '16px';
+      svgEl.style.height = '16px';
+      svgEl.style.minWidth = '16px';
+      svgEl.style.minHeight = '16px';
+      svg.setAttribute('width', '16');
+      svg.setAttribute('height', '16');
+    }
+    
+    // Force explicit colors on paths (resolve currentColor)
+    const parentColor = svgEl.parentElement 
+      ? window.getComputedStyle(svgEl.parentElement).color 
+      : '#000000';
+    
+    svg.querySelectorAll('path, circle, line, polyline, rect, polygon, ellipse').forEach((path) => {
+      const stroke = path.getAttribute('stroke');
+      const fill = path.getAttribute('fill');
+      
+      if (stroke === 'currentColor' || stroke === 'currentcolor') {
+        path.setAttribute('stroke', parentColor);
+      }
+      if (fill === 'currentColor' || fill === 'currentcolor') {
+        path.setAttribute('fill', parentColor);
+      }
+    });
+  });
+
+  // 3. PAKSA TRANSFORM 'none' UNTUK SIGNATURE, QR VERIFICATION, HORMAT KAMI
+  // (kecuali stamp dan watermark yang seharusnya miring)
+  const allPositionedElements = container.querySelectorAll('[style*="transform"]');
+  allPositionedElements.forEach((el) => {
+    if (!(el instanceof HTMLElement)) return;
+    
+    const isStamp = el.closest('[class*="stamp"]') !== null || 
+                    el.classList.contains('stamp') ||
+                    el.getAttribute('alt')?.toLowerCase().includes('stamp');
+    const isWatermark = el.closest('[class*="watermark"]') !== null || 
+                        el.classList.contains('watermark');
+    
+    if (!isStamp && !isWatermark) {
+      // Keep translate for centering, but remove any rotation
+      const currentTransform = el.style.transform;
+      if (currentTransform && currentTransform.includes('rotate')) {
+        // Remove rotate but keep translate
+        const newTransform = currentTransform.replace(/rotate\([^)]+\)/g, '').trim();
+        el.style.transform = newTransform || 'none';
+        console.log('[PDF] Removed rotation from element:', el.className || el.id);
+      }
+    }
+  });
+
+  console.log('[PDF] Hardcoded styles applied successfully');
+}
+
 function restoreCriticalInlineStyles(saved: {
   elements: SavedElementStyle[];
   svgs: SavedSvgStyle[];
@@ -616,10 +705,13 @@ export const DocumentPDFGenerator = ({
       toast.loading("Menerapkan styles...", { id: toastId });
       const savedInlineStyles = applyCriticalInlineStyles(targetElement);
 
+      // LAYER 6.5: Apply hardcoded styles for critical elements
+      applyHardcodedStyles(targetElement);
+
       // Force browser reflow after inline styles applied with double requestAnimationFrame
       targetElement.getBoundingClientRect();
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      await sleep(500); // Increased delay for better rendering
+      await sleep(800); // Increased delay for better rendering
 
       // LAYER 7: Capture with high-fidelity settings
       toast.loading("Membuat gambar...", { id: toastId });
@@ -755,10 +847,13 @@ export const DocumentPDFGenerator = ({
         const savedStyles = forceNaturalSize(clone);
         const savedInlineStyles = applyCriticalInlineStyles(clone);
 
+        // Apply hardcoded styles for critical elements
+        applyHardcodedStyles(clone);
+
         // Force layout recalculation with double requestAnimationFrame
         clone.getBoundingClientRect();
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        await sleep(500); // Increased delay for better mobile rendering
+        await sleep(800); // Increased delay for better mobile rendering
 
         // Capture the clone which is outside of any transform context
         const canvas = await html2canvas(clone, {
@@ -1050,9 +1145,12 @@ export const DocumentPDFGenerator = ({
       // Apply critical inline styles
       const savedInlineStyles = applyCriticalInlineStyles(targetElement);
 
+      // Apply hardcoded styles for critical elements
+      applyHardcodedStyles(targetElement);
+
       targetElement.getBoundingClientRect();
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      await sleep(500); // Increased delay
+      await sleep(800); // Increased delay
 
       toast.loading("Membuat gambar...", { id: toastId });
 
@@ -1193,10 +1291,13 @@ export const DocumentPDFGenerator = ({
         const savedStyles = forceNaturalSize(clone);
         const savedInlineStyles = applyCriticalInlineStyles(clone);
 
+        // Apply hardcoded styles for critical elements
+        applyHardcodedStyles(clone);
+
         // Force reflow with double requestAnimationFrame
         clone.getBoundingClientRect();
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        await sleep(500); // Increased delay
+        await sleep(800); // Increased delay
 
         toast.loading("Membuat gambar...", { id: toastId });
 
