@@ -436,14 +436,65 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
-        {/* Signature Label & Signer Info - Fixed Position */}
+        {/* Signature Label & Signer Info - With Individual Styling */}
         {settings.show_signature !== false && (
           <div className="flex justify-end mb-8">
-            <div className="text-center" style={{ minWidth: '200px' }}>
-              <p className="text-sm text-gray-600 mb-12">{settings.signature_label || 'Hormat Kami,'}</p>
-              <p className="font-semibold">{sampleData.ownerName}</p>
+            <div className="flex flex-col items-center text-center" style={{ minWidth: '200px' }}>
+              {/* 1. Signature Label with individual styling */}
+              <p 
+                className="mb-2"
+                style={{
+                  fontSize: `${settings.signature_label_font_size ?? 14}px`,
+                  fontFamily: settings.signature_label_font_family === 'inherit' 
+                    ? getFontFamily() 
+                    : settings.signature_label_font_family,
+                  color: settings.signature_label_color ?? '#4b5563',
+                  fontWeight: settings.signature_label_font_weight ?? 'normal',
+                  fontStyle: settings.signature_label_font_style ?? 'normal',
+                  textDecoration: settings.signature_label_text_decoration ?? 'none',
+                  transform: `translate(${settings.signature_label_position_x ?? 0}px, ${settings.signature_label_position_y ?? 0}px)`
+                }}
+              >
+                {settings.signature_label || 'Hormat Kami,'}
+              </p>
+              
+              {/* 2. Space for signature image */}
+              <div className="h-16 my-2" />
+              
+              {/* 3. Signer Name with individual styling */}
+              <p 
+                style={{
+                  fontSize: `${settings.signer_name_font_size ?? 14}px`,
+                  fontFamily: settings.signer_name_font_family === 'inherit' 
+                    ? getFontFamily() 
+                    : settings.signer_name_font_family,
+                  color: settings.signer_name_color ?? '#1f2937',
+                  fontWeight: settings.signer_name_font_weight ?? 'bold',
+                  fontStyle: settings.signer_name_font_style ?? 'normal',
+                  textDecoration: settings.signer_name_text_decoration ?? 'none',
+                  transform: `translate(${settings.signer_name_position_x ?? 0}px, ${settings.signer_name_position_y ?? 0}px)`
+                }}
+              >
+                {sampleData.ownerName}
+              </p>
+              
+              {/* 4. Signer Title with individual styling */}
               {sampleData.signerTitle && (
-                <p className="text-sm text-gray-500">{sampleData.signerTitle}</p>
+                <p 
+                  style={{
+                    fontSize: `${settings.signer_title_font_size ?? 12}px`,
+                    fontFamily: settings.signer_title_font_family === 'inherit' 
+                      ? getFontFamily() 
+                      : settings.signer_title_font_family,
+                    color: settings.signer_title_color ?? '#6b7280',
+                    fontWeight: settings.signer_title_font_weight ?? 'normal',
+                    fontStyle: settings.signer_title_font_style ?? 'normal',
+                    textDecoration: settings.signer_title_text_decoration ?? 'none',
+                    transform: `translate(${settings.signer_title_position_x ?? 0}px, ${settings.signer_title_position_y ?? 0}px)`
+                  }}
+                >
+                  {sampleData.signerTitle}
+                </p>
               )}
             </div>
           </div>
