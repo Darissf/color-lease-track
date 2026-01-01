@@ -1595,8 +1595,12 @@ All colors MUST be HSL.
     /* transform is preserved - translate centering works correctly */
   }
   
-  /* Invoice footer section - prevent page break inside */
+  /* Invoice footer section - prevent page break inside and enforce flex */
   .invoice-footer-section {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    width: 100% !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
