@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { FileText } from "lucide-react";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { TemplateSettings, defaultSettings } from "@/components/template-settings/types";
 import { CustomTextElement } from "@/components/custom-text/types";
@@ -70,7 +71,8 @@ export const DocumentPreviewModal = ({
   onDocumentSaved,
 }: DocumentPreviewModalProps) => {
   const printContainerRef = useRef<HTMLDivElement>(null); // Single ref for print container (all pages)
-  const { user } = useAuth();
+  const { user, isSuperAdmin, isAdmin } = useAuth();
+  const canViewPreview = isSuperAdmin || isAdmin;
   const isMobile = useIsMobile();
   const { settings: brandSettings } = useBrandSettings();
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings>(defaultSettings);
@@ -295,10 +297,72 @@ export const DocumentPreviewModal = ({
         </div>
         
         {/* Documents preview - also serves as print container */}
-        {isMobile ? (
-          <ZoomableDocumentWrapper>
-            {/* Print container for native browser printing */}
-            <div ref={printContainerRef} className="print-container flex flex-col">
+        {canViewPreview ? (
+          // Admin/Super Admin: Show full preview
+          isMobile ? (
+            <ZoomableDocumentWrapper>
+              {/* Print container for native browser printing */}
+              <div ref={printContainerRef} className="print-container flex flex-col">
+                {/* Page 1 */}
+                <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+                  {documentData.documentType === 'invoice' ? (
+                    <InvoiceTemplate {...invoiceProps} />
+                  ) : (
+                    <ReceiptTemplate {...receiptProps} />
+                  )}
+                </div>
+                
+                {/* Page break and Page 2 */}
+                {showPage2 && (
+                  <>
+                    <div className="print-page-break" aria-hidden="true" />
+                    <div className="w-full border-t-2 border-dashed border-gray-300 my-2 no-print" />
+                    <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+                      <InvoiceRincianTemplate {...rincianProps} />
+                    </div>
+                  </>
+                )}
+              </div>
+            </ZoomableDocumentWrapper>
+          ) : (
+            <ScrollArea className="h-[70vh]">
+              {/* Print container for native browser printing */}
+              <div ref={printContainerRef} className="print-container py-4 flex flex-col gap-6 items-center">
+                {/* Page 1 */}
+                <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+                  <ResponsiveDocumentWrapper>
+                    {documentData.documentType === 'invoice' ? (
+                      <InvoiceTemplate {...invoiceProps} />
+                    ) : (
+                      <ReceiptTemplate {...receiptProps} />
+                    )}
+                  </ResponsiveDocumentWrapper>
+                </div>
+                
+                {/* Page break and Page 2: Rincian Tagihan */}
+                {showPage2 && (
+                  <>
+                    <div className="print-page-break" aria-hidden="true" />
+                    <div className="w-full flex items-center gap-4 px-4 no-print">
+                      <div className="flex-1 border-t border-dashed border-gray-400" />
+                      <span className="text-sm text-gray-500 font-medium">Halaman 2</span>
+                      <div className="flex-1 border-t border-dashed border-gray-400" />
+                    </div>
+                    <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+                      <ResponsiveDocumentWrapper>
+                        <InvoiceRincianTemplate {...rincianProps} />
+                      </ResponsiveDocumentWrapper>
+                    </div>
+                  </>
+                )}
+              </div>
+            </ScrollArea>
+          )
+        ) : (
+          // Regular user: Hide preview but keep hidden print container for download functionality
+          <>
+            {/* Hidden print container so download/print still works */}
+            <div ref={printContainerRef} className="print-container hidden">
               {/* Page 1 */}
               <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
                 {documentData.documentType === 'invoice' ? (
@@ -307,52 +371,26 @@ export const DocumentPreviewModal = ({
                   <ReceiptTemplate {...receiptProps} />
                 )}
               </div>
-              
-              {/* Page break and Page 2 */}
               {showPage2 && (
                 <>
                   <div className="print-page-break" aria-hidden="true" />
-                  <div className="w-full border-t-2 border-dashed border-gray-300 my-2 no-print" />
                   <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
                     <InvoiceRincianTemplate {...rincianProps} />
                   </div>
                 </>
               )}
             </div>
-          </ZoomableDocumentWrapper>
-        ) : (
-          <ScrollArea className="h-[70vh]">
-            {/* Print container for native browser printing */}
-            <div ref={printContainerRef} className="print-container py-4 flex flex-col gap-6 items-center">
-              {/* Page 1 */}
-              <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
-                <ResponsiveDocumentWrapper>
-                  {documentData.documentType === 'invoice' ? (
-                    <InvoiceTemplate {...invoiceProps} />
-                  ) : (
-                    <ReceiptTemplate {...receiptProps} />
-                  )}
-                </ResponsiveDocumentWrapper>
-              </div>
-              
-              {/* Page break and Page 2: Rincian Tagihan */}
-              {showPage2 && (
-                <>
-                  <div className="print-page-break" aria-hidden="true" />
-                  <div className="w-full flex items-center gap-4 px-4 no-print">
-                    <div className="flex-1 border-t border-dashed border-gray-400" />
-                    <span className="text-sm text-gray-500 font-medium">Halaman 2</span>
-                    <div className="flex-1 border-t border-dashed border-gray-400" />
-                  </div>
-                  <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
-                    <ResponsiveDocumentWrapper>
-                      <InvoiceRincianTemplate {...rincianProps} />
-                    </ResponsiveDocumentWrapper>
-                  </div>
-                </>
-              )}
+            
+            {/* Placeholder message for regular users */}
+            <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
+              <FileText className="h-16 w-16 text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Preview Tidak Tersedia</h3>
+              <p className="text-muted-foreground max-w-sm">
+                Preview dokumen hanya tersedia untuk Administrator. 
+                Gunakan tombol di atas untuk download dokumen.
+              </p>
             </div>
-          </ScrollArea>
+          </>
         )}
       </DialogContent>
     </Dialog>
