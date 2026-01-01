@@ -379,7 +379,7 @@ export default function ContractDetail() {
       
       const { data: contractData } = await supabase
         .from('rental_contracts')
-        .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan')
+        .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan, start_date, end_date')
         .eq('id', contract.id)
         .single();
       
@@ -395,6 +395,8 @@ export default function ContractDetail() {
           transportPickup: Number(contractData.transport_cost_pickup) || 0,
           contractTitle: contractData.keterangan || '',
           discount: Number(contractData.discount) || 0,
+          startDate: contractData.start_date || '',
+          endDate: contractData.end_date || '',
         };
         
         const newTemplate = generateRincianTemplate(templateData, newMode);
