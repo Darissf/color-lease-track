@@ -1961,6 +1961,30 @@ export type Database = {
           qr_verification_title: string | null
           receipt_layout_settings: Json | null
           receipt_prefix: string | null
+          receipt_signature_label_color: string | null
+          receipt_signature_label_font_family: string | null
+          receipt_signature_label_font_size: number | null
+          receipt_signature_label_font_style: string | null
+          receipt_signature_label_font_weight: string | null
+          receipt_signature_label_position_x: number | null
+          receipt_signature_label_position_y: number | null
+          receipt_signature_label_text_decoration: string | null
+          receipt_signer_name_color: string | null
+          receipt_signer_name_font_family: string | null
+          receipt_signer_name_font_size: number | null
+          receipt_signer_name_font_style: string | null
+          receipt_signer_name_font_weight: string | null
+          receipt_signer_name_position_x: number | null
+          receipt_signer_name_position_y: number | null
+          receipt_signer_name_text_decoration: string | null
+          receipt_signer_title_color: string | null
+          receipt_signer_title_font_family: string | null
+          receipt_signer_title_font_size: number | null
+          receipt_signer_title_font_style: string | null
+          receipt_signer_title_font_weight: string | null
+          receipt_signer_title_position_x: number | null
+          receipt_signer_title_position_y: number | null
+          receipt_signer_title_text_decoration: string | null
           receipt_title: string | null
           show_bank_info: boolean | null
           show_client_info: boolean | null
@@ -2130,6 +2154,30 @@ export type Database = {
           qr_verification_title?: string | null
           receipt_layout_settings?: Json | null
           receipt_prefix?: string | null
+          receipt_signature_label_color?: string | null
+          receipt_signature_label_font_family?: string | null
+          receipt_signature_label_font_size?: number | null
+          receipt_signature_label_font_style?: string | null
+          receipt_signature_label_font_weight?: string | null
+          receipt_signature_label_position_x?: number | null
+          receipt_signature_label_position_y?: number | null
+          receipt_signature_label_text_decoration?: string | null
+          receipt_signer_name_color?: string | null
+          receipt_signer_name_font_family?: string | null
+          receipt_signer_name_font_size?: number | null
+          receipt_signer_name_font_style?: string | null
+          receipt_signer_name_font_weight?: string | null
+          receipt_signer_name_position_x?: number | null
+          receipt_signer_name_position_y?: number | null
+          receipt_signer_name_text_decoration?: string | null
+          receipt_signer_title_color?: string | null
+          receipt_signer_title_font_family?: string | null
+          receipt_signer_title_font_size?: number | null
+          receipt_signer_title_font_style?: string | null
+          receipt_signer_title_font_weight?: string | null
+          receipt_signer_title_position_x?: number | null
+          receipt_signer_title_position_y?: number | null
+          receipt_signer_title_text_decoration?: string | null
           receipt_title?: string | null
           show_bank_info?: boolean | null
           show_client_info?: boolean | null
@@ -2299,6 +2347,30 @@ export type Database = {
           qr_verification_title?: string | null
           receipt_layout_settings?: Json | null
           receipt_prefix?: string | null
+          receipt_signature_label_color?: string | null
+          receipt_signature_label_font_family?: string | null
+          receipt_signature_label_font_size?: number | null
+          receipt_signature_label_font_style?: string | null
+          receipt_signature_label_font_weight?: string | null
+          receipt_signature_label_position_x?: number | null
+          receipt_signature_label_position_y?: number | null
+          receipt_signature_label_text_decoration?: string | null
+          receipt_signer_name_color?: string | null
+          receipt_signer_name_font_family?: string | null
+          receipt_signer_name_font_size?: number | null
+          receipt_signer_name_font_style?: string | null
+          receipt_signer_name_font_weight?: string | null
+          receipt_signer_name_position_x?: number | null
+          receipt_signer_name_position_y?: number | null
+          receipt_signer_name_text_decoration?: string | null
+          receipt_signer_title_color?: string | null
+          receipt_signer_title_font_family?: string | null
+          receipt_signer_title_font_size?: number | null
+          receipt_signer_title_font_style?: string | null
+          receipt_signer_title_font_weight?: string | null
+          receipt_signer_title_position_x?: number | null
+          receipt_signer_title_position_y?: number | null
+          receipt_signer_title_text_decoration?: string | null
           receipt_title?: string | null
           show_bank_info?: boolean | null
           show_client_info?: boolean | null

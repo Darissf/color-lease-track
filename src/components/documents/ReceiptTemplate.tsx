@@ -482,19 +482,19 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
           {/* Right Side: Unified Signature Block */}
           {settings.show_signature !== false && (
             <div className="flex flex-col items-center text-center min-w-[200px]">
-              {/* 1. Label with individual styling */}
+              {/* 1. Label with individual styling - using receipt_ properties */}
               <p 
                 className="mb-2"
                 style={{
-                  fontSize: `${settings.signature_label_font_size ?? 14}px`,
-                  fontFamily: settings.signature_label_font_family === 'inherit' 
+                  fontSize: `${settings.receipt_signature_label_font_size ?? settings.signature_label_font_size ?? 14}px`,
+                  fontFamily: (settings.receipt_signature_label_font_family ?? settings.signature_label_font_family) === 'inherit' 
                     ? getFontFamily() 
-                    : settings.signature_label_font_family,
-                  color: settings.signature_label_color ?? '#4b5563',
-                  fontWeight: settings.signature_label_font_weight ?? 'normal',
-                  fontStyle: settings.signature_label_font_style ?? 'normal',
-                  textDecoration: settings.signature_label_text_decoration ?? 'none',
-                  transform: `translate(${settings.signature_label_position_x ?? 0}px, ${settings.signature_label_position_y ?? 0}px)`
+                    : (settings.receipt_signature_label_font_family ?? settings.signature_label_font_family),
+                  color: settings.receipt_signature_label_color ?? settings.signature_label_color ?? '#4b5563',
+                  fontWeight: settings.receipt_signature_label_font_weight ?? settings.signature_label_font_weight ?? 'normal',
+                  fontStyle: settings.receipt_signature_label_font_style ?? settings.signature_label_font_style ?? 'normal',
+                  textDecoration: settings.receipt_signature_label_text_decoration ?? settings.signature_label_text_decoration ?? 'none',
+                  transform: `translate(${settings.receipt_signature_label_position_x ?? settings.signature_label_position_x ?? 0}px, ${settings.receipt_signature_label_position_y ?? settings.signature_label_position_y ?? 0}px)`
                 }}
               >
                 {settings.signature_label || 'Hormat Kami,'}
@@ -512,37 +512,37 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                 )}
               </div>
               
-              {/* 3. Name with individual styling */}
+              {/* 3. Name with individual styling - using receipt_ properties */}
               <p 
                 className="mt-2"
                 style={{
-                  fontSize: `${settings.signer_name_font_size ?? 14}px`,
-                  fontFamily: settings.signer_name_font_family === 'inherit' 
+                  fontSize: `${settings.receipt_signer_name_font_size ?? settings.signer_name_font_size ?? 14}px`,
+                  fontFamily: (settings.receipt_signer_name_font_family ?? settings.signer_name_font_family) === 'inherit' 
                     ? getFontFamily() 
-                    : settings.signer_name_font_family,
-                  color: settings.signer_name_color ?? '#1f2937',
-                  fontWeight: settings.signer_name_font_weight ?? 'bold',
-                  fontStyle: settings.signer_name_font_style ?? 'normal',
-                  textDecoration: settings.signer_name_text_decoration ?? 'none',
-                  transform: `translate(${settings.signer_name_position_x ?? 0}px, ${settings.signer_name_position_y ?? 0}px)`
+                    : (settings.receipt_signer_name_font_family ?? settings.signer_name_font_family),
+                  color: settings.receipt_signer_name_color ?? settings.signer_name_color ?? '#1f2937',
+                  fontWeight: settings.receipt_signer_name_font_weight ?? settings.signer_name_font_weight ?? 'bold',
+                  fontStyle: settings.receipt_signer_name_font_style ?? settings.signer_name_font_style ?? 'normal',
+                  textDecoration: settings.receipt_signer_name_text_decoration ?? settings.signer_name_text_decoration ?? 'none',
+                  transform: `translate(${settings.receipt_signer_name_position_x ?? settings.signer_name_position_x ?? 0}px, ${settings.receipt_signer_name_position_y ?? settings.signer_name_position_y ?? 0}px)`
                 }}
               >
                 {settings.signer_name || settings.company_name}
               </p>
               
-              {/* 4. Title with individual styling */}
+              {/* 4. Title with individual styling - using receipt_ properties */}
               {settings.signer_title && (
                 <p 
                   style={{
-                    fontSize: `${settings.signer_title_font_size ?? 12}px`,
-                    fontFamily: settings.signer_title_font_family === 'inherit' 
+                    fontSize: `${settings.receipt_signer_title_font_size ?? settings.signer_title_font_size ?? 12}px`,
+                    fontFamily: (settings.receipt_signer_title_font_family ?? settings.signer_title_font_family) === 'inherit' 
                       ? getFontFamily() 
-                      : settings.signer_title_font_family,
-                    color: settings.signer_title_color ?? '#6b7280',
-                    fontWeight: settings.signer_title_font_weight ?? 'normal',
-                    fontStyle: settings.signer_title_font_style ?? 'normal',
-                    textDecoration: settings.signer_title_text_decoration ?? 'none',
-                    transform: `translate(${settings.signer_title_position_x ?? 0}px, ${settings.signer_title_position_y ?? 0}px)`
+                      : (settings.receipt_signer_title_font_family ?? settings.signer_title_font_family),
+                    color: settings.receipt_signer_title_color ?? settings.signer_title_color ?? '#6b7280',
+                    fontWeight: settings.receipt_signer_title_font_weight ?? settings.signer_title_font_weight ?? 'normal',
+                    fontStyle: settings.receipt_signer_title_font_style ?? settings.signer_title_font_style ?? 'normal',
+                    textDecoration: settings.receipt_signer_title_text_decoration ?? settings.signer_title_text_decoration ?? 'none',
+                    transform: `translate(${settings.receipt_signer_title_position_x ?? settings.signer_title_position_x ?? 0}px, ${settings.receipt_signer_title_position_y ?? settings.signer_title_position_y ?? 0}px)`
                   }}
                 >
                   {settings.signer_title}

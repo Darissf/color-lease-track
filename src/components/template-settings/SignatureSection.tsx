@@ -17,6 +17,7 @@ interface SignatureSectionProps {
   uploading: boolean;
   layoutSettings?: LayoutSettings;
   updateLayoutSetting?: (key: string, value: any) => void;
+  documentMode?: 'invoice' | 'receipt'; // NEW: To differentiate settings
 }
 
 export const SignatureSection: React.FC<SignatureSectionProps> = ({
@@ -27,6 +28,7 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
   uploading,
   layoutSettings,
   updateLayoutSetting,
+  documentMode = 'invoice', // Default to invoice
 }) => {
   const signatureInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,6 +49,45 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
   const getFontFamilyLabel = (value: string) => {
     if (value === 'inherit') return 'Ikuti Dokumen';
     return fontFamilies.find(f => f.value === value)?.label || value;
+  };
+
+  // Helper functions to get/set values based on document mode
+  const isReceipt = documentMode === 'receipt';
+  
+  // Get label values based on mode
+  const getLabelPosX = () => isReceipt ? (settings.receipt_signature_label_position_x ?? 0) : (settings.signature_label_position_x ?? 0);
+  const getLabelPosY = () => isReceipt ? (settings.receipt_signature_label_position_y ?? 0) : (settings.signature_label_position_y ?? 0);
+  const getLabelFontSize = () => isReceipt ? (settings.receipt_signature_label_font_size ?? 14) : (settings.signature_label_font_size ?? 14);
+  const getLabelFontFamily = () => isReceipt ? (settings.receipt_signature_label_font_family || 'inherit') : (settings.signature_label_font_family || 'inherit');
+  const getLabelColor = () => isReceipt ? (settings.receipt_signature_label_color || '#4b5563') : (settings.signature_label_color || '#4b5563');
+  const getLabelFontWeight = () => isReceipt ? (settings.receipt_signature_label_font_weight ?? 'normal') : (settings.signature_label_font_weight ?? 'normal');
+  const getLabelFontStyle = () => isReceipt ? (settings.receipt_signature_label_font_style ?? 'normal') : (settings.signature_label_font_style ?? 'normal');
+  const getLabelTextDecoration = () => isReceipt ? (settings.receipt_signature_label_text_decoration ?? 'none') : (settings.signature_label_text_decoration ?? 'none');
+  
+  // Get name values based on mode
+  const getNamePosX = () => isReceipt ? (settings.receipt_signer_name_position_x ?? 0) : (settings.signer_name_position_x ?? 0);
+  const getNamePosY = () => isReceipt ? (settings.receipt_signer_name_position_y ?? 0) : (settings.signer_name_position_y ?? 0);
+  const getNameFontSize = () => isReceipt ? (settings.receipt_signer_name_font_size ?? 14) : (settings.signer_name_font_size ?? 14);
+  const getNameFontFamily = () => isReceipt ? (settings.receipt_signer_name_font_family || 'inherit') : (settings.signer_name_font_family || 'inherit');
+  const getNameColor = () => isReceipt ? (settings.receipt_signer_name_color || '#1f2937') : (settings.signer_name_color || '#1f2937');
+  const getNameFontWeight = () => isReceipt ? (settings.receipt_signer_name_font_weight ?? 'bold') : (settings.signer_name_font_weight ?? 'bold');
+  const getNameFontStyle = () => isReceipt ? (settings.receipt_signer_name_font_style ?? 'normal') : (settings.signer_name_font_style ?? 'normal');
+  const getNameTextDecoration = () => isReceipt ? (settings.receipt_signer_name_text_decoration ?? 'none') : (settings.signer_name_text_decoration ?? 'none');
+  
+  // Get title values based on mode
+  const getTitlePosX = () => isReceipt ? (settings.receipt_signer_title_position_x ?? 0) : (settings.signer_title_position_x ?? 0);
+  const getTitlePosY = () => isReceipt ? (settings.receipt_signer_title_position_y ?? 0) : (settings.signer_title_position_y ?? 0);
+  const getTitleFontSize = () => isReceipt ? (settings.receipt_signer_title_font_size ?? 12) : (settings.signer_title_font_size ?? 12);
+  const getTitleFontFamily = () => isReceipt ? (settings.receipt_signer_title_font_family || 'inherit') : (settings.signer_title_font_family || 'inherit');
+  const getTitleColor = () => isReceipt ? (settings.receipt_signer_title_color || '#6b7280') : (settings.signer_title_color || '#6b7280');
+  const getTitleFontWeight = () => isReceipt ? (settings.receipt_signer_title_font_weight ?? 'normal') : (settings.signer_title_font_weight ?? 'normal');
+  const getTitleFontStyle = () => isReceipt ? (settings.receipt_signer_title_font_style ?? 'normal') : (settings.signer_title_font_style ?? 'normal');
+  const getTitleTextDecoration = () => isReceipt ? (settings.receipt_signer_title_text_decoration ?? 'none') : (settings.signer_title_text_decoration ?? 'none');
+  
+  // Helper to update the correct setting key based on mode
+  const updateTextSetting = (baseName: string, value: any) => {
+    const key = (isReceipt ? `receipt_${baseName}` : baseName) as keyof TemplateSettings;
+    updateSetting(key, value);
   };
 
   return (
@@ -156,7 +197,9 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
           )}
 
           <div className="border-t pt-4 mt-4">
-            <Label className="text-sm font-medium mb-3 block">Pengaturan Teks Tanda Tangan</Label>
+            <Label className="text-sm font-medium mb-3 block">
+              Pengaturan Teks Tanda Tangan ({documentMode === 'receipt' ? 'Kwitansi' : 'Invoice'})
+            </Label>
           </div>
 
           {/* Label Tanda Tangan Section */}
@@ -182,11 +225,11 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <Label className="text-xs">Posisi X</Label>
-                    <span className="text-xs text-muted-foreground">{settings.signature_label_position_x ?? 0}px</span>
+                    <span className="text-xs text-muted-foreground">{getLabelPosX()}px</span>
                   </div>
                   <Slider
-                    value={[settings.signature_label_position_x ?? 0]}
-                    onValueChange={([value]) => updateSetting('signature_label_position_x', value)}
+                    value={[getLabelPosX()]}
+                    onValueChange={([value]) => updateTextSetting('signature_label_position_x', value)}
                     min={-100}
                     max={100}
                     step={1}
@@ -195,11 +238,11 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <Label className="text-xs">Posisi Y</Label>
-                    <span className="text-xs text-muted-foreground">{settings.signature_label_position_y ?? 0}px</span>
+                    <span className="text-xs text-muted-foreground">{getLabelPosY()}px</span>
                   </div>
                   <Slider
-                    value={[settings.signature_label_position_y ?? 0]}
-                    onValueChange={([value]) => updateSetting('signature_label_position_y', value)}
+                    value={[getLabelPosY()]}
+                    onValueChange={([value]) => updateTextSetting('signature_label_position_y', value)}
                     min={-100}
                     max={100}
                     step={1}
@@ -212,14 +255,14 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   <Label className="text-xs">Ukuran Font</Label>
                   <div className="flex items-center gap-2">
                     <Slider
-                      value={[settings.signature_label_font_size ?? 14]}
-                      onValueChange={([value]) => updateSetting('signature_label_font_size', value)}
+                      value={[getLabelFontSize()]}
+                      onValueChange={([value]) => updateTextSetting('signature_label_font_size', value)}
                       min={8}
                       max={24}
                       step={1}
                       className="flex-1"
                     />
-                    <span className="text-xs text-muted-foreground w-8">{settings.signature_label_font_size ?? 14}px</span>
+                    <span className="text-xs text-muted-foreground w-8">{getLabelFontSize()}px</span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -227,13 +270,13 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={settings.signature_label_color || '#4b5563'}
-                      onChange={(e) => updateSetting('signature_label_color', e.target.value)}
+                      value={getLabelColor()}
+                      onChange={(e) => updateTextSetting('signature_label_color', e.target.value)}
                       className="w-8 h-8 rounded cursor-pointer border"
                     />
                     <Input
-                      value={settings.signature_label_color || '#4b5563'}
-                      onChange={(e) => updateSetting('signature_label_color', e.target.value)}
+                      value={getLabelColor()}
+                      onChange={(e) => updateTextSetting('signature_label_color', e.target.value)}
                       className="flex-1 text-xs"
                     />
                   </div>
@@ -243,8 +286,8 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
               <div className="space-y-2">
                 <Label className="text-xs">Font Family</Label>
                 <Select
-                  value={settings.signature_label_font_family || 'inherit'}
-                  onValueChange={(value) => updateSetting('signature_label_font_family', value)}
+                  value={getLabelFontFamily()}
+                  onValueChange={(value) => updateTextSetting('signature_label_font_family', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih font" />
@@ -264,33 +307,33 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    variant={settings.signature_label_font_weight === 'bold' ? 'default' : 'outline'}
+                    variant={getLabelFontWeight() === 'bold' ? 'default' : 'outline'}
                     size="sm"
                     className="w-10 font-bold"
-                    onClick={() => updateSetting('signature_label_font_weight', 
-                      settings.signature_label_font_weight === 'bold' ? 'normal' : 'bold'
+                    onClick={() => updateTextSetting('signature_label_font_weight', 
+                      getLabelFontWeight() === 'bold' ? 'normal' : 'bold'
                     )}
                   >
                     B
                   </Button>
                   <Button
                     type="button"
-                    variant={settings.signature_label_font_style === 'italic' ? 'default' : 'outline'}
+                    variant={getLabelFontStyle() === 'italic' ? 'default' : 'outline'}
                     size="sm"
                     className="w-10 italic"
-                    onClick={() => updateSetting('signature_label_font_style', 
-                      settings.signature_label_font_style === 'italic' ? 'normal' : 'italic'
+                    onClick={() => updateTextSetting('signature_label_font_style', 
+                      getLabelFontStyle() === 'italic' ? 'normal' : 'italic'
                     )}
                   >
                     I
                   </Button>
                   <Button
                     type="button"
-                    variant={settings.signature_label_text_decoration === 'underline' ? 'default' : 'outline'}
+                    variant={getLabelTextDecoration() === 'underline' ? 'default' : 'outline'}
                     size="sm"
                     className="w-10 underline"
-                    onClick={() => updateSetting('signature_label_text_decoration', 
-                      settings.signature_label_text_decoration === 'underline' ? 'none' : 'underline'
+                    onClick={() => updateTextSetting('signature_label_text_decoration', 
+                      getLabelTextDecoration() === 'underline' ? 'none' : 'underline'
                     )}
                   >
                     U
@@ -323,11 +366,11 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <Label className="text-xs">Posisi X</Label>
-                    <span className="text-xs text-muted-foreground">{settings.signer_name_position_x ?? 0}px</span>
+                    <span className="text-xs text-muted-foreground">{getNamePosX()}px</span>
                   </div>
                   <Slider
-                    value={[settings.signer_name_position_x ?? 0]}
-                    onValueChange={([value]) => updateSetting('signer_name_position_x', value)}
+                    value={[getNamePosX()]}
+                    onValueChange={([value]) => updateTextSetting('signer_name_position_x', value)}
                     min={-100}
                     max={100}
                     step={1}
@@ -336,11 +379,11 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <Label className="text-xs">Posisi Y</Label>
-                    <span className="text-xs text-muted-foreground">{settings.signer_name_position_y ?? 0}px</span>
+                    <span className="text-xs text-muted-foreground">{getNamePosY()}px</span>
                   </div>
                   <Slider
-                    value={[settings.signer_name_position_y ?? 0]}
-                    onValueChange={([value]) => updateSetting('signer_name_position_y', value)}
+                    value={[getNamePosY()]}
+                    onValueChange={([value]) => updateTextSetting('signer_name_position_y', value)}
                     min={-100}
                     max={100}
                     step={1}
@@ -353,14 +396,14 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   <Label className="text-xs">Ukuran Font</Label>
                   <div className="flex items-center gap-2">
                     <Slider
-                      value={[settings.signer_name_font_size ?? 14]}
-                      onValueChange={([value]) => updateSetting('signer_name_font_size', value)}
+                      value={[getNameFontSize()]}
+                      onValueChange={([value]) => updateTextSetting('signer_name_font_size', value)}
                       min={10}
                       max={28}
                       step={1}
                       className="flex-1"
                     />
-                    <span className="text-xs text-muted-foreground w-8">{settings.signer_name_font_size ?? 14}px</span>
+                    <span className="text-xs text-muted-foreground w-8">{getNameFontSize()}px</span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -368,13 +411,13 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={settings.signer_name_color || '#1f2937'}
-                      onChange={(e) => updateSetting('signer_name_color', e.target.value)}
+                      value={getNameColor()}
+                      onChange={(e) => updateTextSetting('signer_name_color', e.target.value)}
                       className="w-8 h-8 rounded cursor-pointer border"
                     />
                     <Input
-                      value={settings.signer_name_color || '#1f2937'}
-                      onChange={(e) => updateSetting('signer_name_color', e.target.value)}
+                      value={getNameColor()}
+                      onChange={(e) => updateTextSetting('signer_name_color', e.target.value)}
                       className="flex-1 text-xs"
                     />
                   </div>
@@ -384,8 +427,8 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
               <div className="space-y-2">
                 <Label className="text-xs">Font Family</Label>
                 <Select
-                  value={settings.signer_name_font_family || 'inherit'}
-                  onValueChange={(value) => updateSetting('signer_name_font_family', value)}
+                  value={getNameFontFamily()}
+                  onValueChange={(value) => updateTextSetting('signer_name_font_family', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih font" />
@@ -405,33 +448,33 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    variant={settings.signer_name_font_weight === 'bold' ? 'default' : 'outline'}
+                    variant={getNameFontWeight() === 'bold' ? 'default' : 'outline'}
                     size="sm"
                     className="w-10 font-bold"
-                    onClick={() => updateSetting('signer_name_font_weight', 
-                      settings.signer_name_font_weight === 'bold' ? 'normal' : 'bold'
+                    onClick={() => updateTextSetting('signer_name_font_weight', 
+                      getNameFontWeight() === 'bold' ? 'normal' : 'bold'
                     )}
                   >
                     B
                   </Button>
                   <Button
                     type="button"
-                    variant={settings.signer_name_font_style === 'italic' ? 'default' : 'outline'}
+                    variant={getNameFontStyle() === 'italic' ? 'default' : 'outline'}
                     size="sm"
                     className="w-10 italic"
-                    onClick={() => updateSetting('signer_name_font_style', 
-                      settings.signer_name_font_style === 'italic' ? 'normal' : 'italic'
+                    onClick={() => updateTextSetting('signer_name_font_style', 
+                      getNameFontStyle() === 'italic' ? 'normal' : 'italic'
                     )}
                   >
                     I
                   </Button>
                   <Button
                     type="button"
-                    variant={settings.signer_name_text_decoration === 'underline' ? 'default' : 'outline'}
+                    variant={getNameTextDecoration() === 'underline' ? 'default' : 'outline'}
                     size="sm"
                     className="w-10 underline"
-                    onClick={() => updateSetting('signer_name_text_decoration', 
-                      settings.signer_name_text_decoration === 'underline' ? 'none' : 'underline'
+                    onClick={() => updateTextSetting('signer_name_text_decoration', 
+                      getNameTextDecoration() === 'underline' ? 'none' : 'underline'
                     )}
                   >
                     U
@@ -464,11 +507,11 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <Label className="text-xs">Posisi X</Label>
-                    <span className="text-xs text-muted-foreground">{settings.signer_title_position_x ?? 0}px</span>
+                    <span className="text-xs text-muted-foreground">{getTitlePosX()}px</span>
                   </div>
                   <Slider
-                    value={[settings.signer_title_position_x ?? 0]}
-                    onValueChange={([value]) => updateSetting('signer_title_position_x', value)}
+                    value={[getTitlePosX()]}
+                    onValueChange={([value]) => updateTextSetting('signer_title_position_x', value)}
                     min={-100}
                     max={100}
                     step={1}
@@ -477,11 +520,11 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <Label className="text-xs">Posisi Y</Label>
-                    <span className="text-xs text-muted-foreground">{settings.signer_title_position_y ?? 0}px</span>
+                    <span className="text-xs text-muted-foreground">{getTitlePosY()}px</span>
                   </div>
                   <Slider
-                    value={[settings.signer_title_position_y ?? 0]}
-                    onValueChange={([value]) => updateSetting('signer_title_position_y', value)}
+                    value={[getTitlePosY()]}
+                    onValueChange={([value]) => updateTextSetting('signer_title_position_y', value)}
                     min={-100}
                     max={100}
                     step={1}
@@ -494,14 +537,14 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   <Label className="text-xs">Ukuran Font</Label>
                   <div className="flex items-center gap-2">
                     <Slider
-                      value={[settings.signer_title_font_size ?? 12]}
-                      onValueChange={([value]) => updateSetting('signer_title_font_size', value)}
+                      value={[getTitleFontSize()]}
+                      onValueChange={([value]) => updateTextSetting('signer_title_font_size', value)}
                       min={8}
                       max={20}
                       step={1}
                       className="flex-1"
                     />
-                    <span className="text-xs text-muted-foreground w-8">{settings.signer_title_font_size ?? 12}px</span>
+                    <span className="text-xs text-muted-foreground w-8">{getTitleFontSize()}px</span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -509,13 +552,13 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={settings.signer_title_color || '#6b7280'}
-                      onChange={(e) => updateSetting('signer_title_color', e.target.value)}
+                      value={getTitleColor()}
+                      onChange={(e) => updateTextSetting('signer_title_color', e.target.value)}
                       className="w-8 h-8 rounded cursor-pointer border"
                     />
                     <Input
-                      value={settings.signer_title_color || '#6b7280'}
-                      onChange={(e) => updateSetting('signer_title_color', e.target.value)}
+                      value={getTitleColor()}
+                      onChange={(e) => updateTextSetting('signer_title_color', e.target.value)}
                       className="flex-1 text-xs"
                     />
                   </div>
@@ -525,8 +568,8 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
               <div className="space-y-2">
                 <Label className="text-xs">Font Family</Label>
                 <Select
-                  value={settings.signer_title_font_family || 'inherit'}
-                  onValueChange={(value) => updateSetting('signer_title_font_family', value)}
+                  value={getTitleFontFamily()}
+                  onValueChange={(value) => updateTextSetting('signer_title_font_family', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih font" />
@@ -546,33 +589,33 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    variant={settings.signer_title_font_weight === 'bold' ? 'default' : 'outline'}
+                    variant={getTitleFontWeight() === 'bold' ? 'default' : 'outline'}
                     size="sm"
                     className="w-10 font-bold"
-                    onClick={() => updateSetting('signer_title_font_weight', 
-                      settings.signer_title_font_weight === 'bold' ? 'normal' : 'bold'
+                    onClick={() => updateTextSetting('signer_title_font_weight', 
+                      getTitleFontWeight() === 'bold' ? 'normal' : 'bold'
                     )}
                   >
                     B
                   </Button>
                   <Button
                     type="button"
-                    variant={settings.signer_title_font_style === 'italic' ? 'default' : 'outline'}
+                    variant={getTitleFontStyle() === 'italic' ? 'default' : 'outline'}
                     size="sm"
                     className="w-10 italic"
-                    onClick={() => updateSetting('signer_title_font_style', 
-                      settings.signer_title_font_style === 'italic' ? 'normal' : 'italic'
+                    onClick={() => updateTextSetting('signer_title_font_style', 
+                      getTitleFontStyle() === 'italic' ? 'normal' : 'italic'
                     )}
                   >
                     I
                   </Button>
                   <Button
                     type="button"
-                    variant={settings.signer_title_text_decoration === 'underline' ? 'default' : 'outline'}
+                    variant={getTitleTextDecoration() === 'underline' ? 'default' : 'outline'}
                     size="sm"
                     className="w-10 underline"
-                    onClick={() => updateSetting('signer_title_text_decoration', 
-                      settings.signer_title_text_decoration === 'underline' ? 'none' : 'underline'
+                    onClick={() => updateTextSetting('signer_title_text_decoration', 
+                      getTitleTextDecoration() === 'underline' ? 'none' : 'underline'
                     )}
                   >
                     U
@@ -584,19 +627,19 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
 
           {/* Preview */}
           <div className="space-y-2 p-4 rounded-lg border bg-white relative overflow-hidden" style={{ minHeight: '180px' }}>
-            <Label className="text-xs font-medium text-muted-foreground">Preview:</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Preview ({documentMode === 'receipt' ? 'Kwitansi' : 'Invoice'}):</Label>
             <div className="flex flex-col items-center text-center pt-8">
               {/* Label Preview */}
               <p 
                 className="mb-1"
                 style={{
-                  fontSize: `${settings.signature_label_font_size ?? 14}px`,
-                  fontFamily: settings.signature_label_font_family === 'inherit' ? 'inherit' : settings.signature_label_font_family,
-                  color: settings.signature_label_color ?? '#4b5563',
-                  fontWeight: settings.signature_label_font_weight ?? 'normal',
-                  fontStyle: settings.signature_label_font_style ?? 'normal',
-                  textDecoration: settings.signature_label_text_decoration ?? 'none',
-                  transform: `translate(${settings.signature_label_position_x ?? 0}px, ${settings.signature_label_position_y ?? 0}px)`
+                  fontSize: `${getLabelFontSize()}px`,
+                  fontFamily: getLabelFontFamily() === 'inherit' ? 'inherit' : getLabelFontFamily(),
+                  color: getLabelColor(),
+                  fontWeight: getLabelFontWeight(),
+                  fontStyle: getLabelFontStyle(),
+                  textDecoration: getLabelTextDecoration(),
+                  transform: `translate(${getLabelPosX()}px, ${getLabelPosY()}px)`
                 }}
               >
                 {settings.signature_label || 'Hormat Kami,'}
@@ -620,13 +663,13 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
               <p 
                 className="mt-1"
                 style={{
-                  fontSize: `${settings.signer_name_font_size ?? 14}px`,
-                  fontFamily: settings.signer_name_font_family === 'inherit' ? 'inherit' : settings.signer_name_font_family,
-                  color: settings.signer_name_color ?? '#1f2937',
-                  fontWeight: settings.signer_name_font_weight ?? 'bold',
-                  fontStyle: settings.signer_name_font_style ?? 'normal',
-                  textDecoration: settings.signer_name_text_decoration ?? 'none',
-                  transform: `translate(${settings.signer_name_position_x ?? 0}px, ${settings.signer_name_position_y ?? 0}px)`
+                  fontSize: `${getNameFontSize()}px`,
+                  fontFamily: getNameFontFamily() === 'inherit' ? 'inherit' : getNameFontFamily(),
+                  color: getNameColor(),
+                  fontWeight: getNameFontWeight(),
+                  fontStyle: getNameFontStyle(),
+                  textDecoration: getNameTextDecoration(),
+                  transform: `translate(${getNamePosX()}px, ${getNamePosY()}px)`
                 }}
               >
                 {settings.signer_name || 'Nama Penanda'}
@@ -636,13 +679,13 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
               {settings.signer_title && (
                 <p 
                   style={{
-                    fontSize: `${settings.signer_title_font_size ?? 12}px`,
-                    fontFamily: settings.signer_title_font_family === 'inherit' ? 'inherit' : settings.signer_title_font_family,
-                    color: settings.signer_title_color ?? '#6b7280',
-                    fontWeight: settings.signer_title_font_weight ?? 'normal',
-                    fontStyle: settings.signer_title_font_style ?? 'normal',
-                    textDecoration: settings.signer_title_text_decoration ?? 'none',
-                    transform: `translate(${settings.signer_title_position_x ?? 0}px, ${settings.signer_title_position_y ?? 0}px)`
+                    fontSize: `${getTitleFontSize()}px`,
+                    fontFamily: getTitleFontFamily() === 'inherit' ? 'inherit' : getTitleFontFamily(),
+                    color: getTitleColor(),
+                    fontWeight: getTitleFontWeight(),
+                    fontStyle: getTitleFontStyle(),
+                    textDecoration: getTitleTextDecoration(),
+                    transform: `translate(${getTitlePosX()}px, ${getTitlePosY()}px)`
                   }}
                 >
                   {settings.signer_title}
