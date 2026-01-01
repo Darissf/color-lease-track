@@ -211,6 +211,60 @@ interface SavedPathStyle {
   originalStrokeWidth: string | null;
 }
 
+// ========== HELPER: Check if element should preserve rotation ==========
+function shouldPreserveRotation(el: HTMLElement): boolean {
+  // Only stamp elements should preserve rotation
+  // Check for stamp-related classes or parent containers
+  const isStamp = el.closest('[class*="stamp"]') !== null ||
+                  el.classList.contains('stamp') ||
+                  el.getAttribute('alt')?.toLowerCase().includes('stamp');
+  
+  // Watermark elements also preserve rotation
+  const isWatermark = el.closest('[class*="watermark"]') !== null ||
+                      el.classList.contains('watermark');
+  
+  return isStamp || isWatermark;
+}
+
+// ========== HELPER: Normalize transform to remove unwanted rotation ==========
+function normalizeTransform(transform: string, preserveRotation: boolean): string {
+  if (transform === 'none' || !transform) return transform;
+  
+  // If we should preserve rotation, don't modify
+  if (preserveRotation) return transform;
+  
+  // Extract translate and scale from transform, remove rotation
+  // Transform can be in matrix form or individual transforms
+  
+  // If it's a matrix, we need to decompose it
+  if (transform.startsWith('matrix')) {
+    // For simplicity, just remove rotation by resetting to translate only
+    // Extract translate values from matrix
+    const matrixMatch = transform.match(/matrix\(([^)]+)\)/);
+    if (matrixMatch) {
+      const values = matrixMatch[1].split(',').map(v => parseFloat(v.trim()));
+      if (values.length >= 6) {
+        // matrix(a, b, c, d, tx, ty) - tx and ty are translation
+        const tx = values[4];
+        const ty = values[5];
+        // Return just translate, removing any rotation/scale from matrix
+        return `translate(${tx}px, ${ty}px)`;
+      }
+    }
+  }
+  
+  // If it contains rotate but is not a matrix, remove the rotate part
+  if (transform.includes('rotate')) {
+    // Split by space and filter out rotate
+    return transform
+      .replace(/rotate\([^)]+\)/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  
+  return transform;
+}
+
 function applyCriticalInlineStyles(container: HTMLElement): {
   elements: SavedElementStyle[];
   svgs: SavedSvgStyle[];
@@ -334,6 +388,13 @@ function applyCriticalInlineStyles(container: HTMLElement): {
     el.style.boxShadow = computed.boxShadow;
     el.style.overflow = computed.overflow;
     el.style.visibility = computed.visibility;
+    
+    // === TRANSFORM (Normalize to remove unwanted rotation) ===
+    const preserveRotation = shouldPreserveRotation(el);
+    const normalizedTransform = normalizeTransform(computed.transform, preserveRotation);
+    if (normalizedTransform && normalizedTransform !== 'none') {
+      el.style.transform = normalizedTransform;
+    }
   });
 
   // === HELPER: Detect QR Code SVGs (react-qr-code generates specific patterns) ===
