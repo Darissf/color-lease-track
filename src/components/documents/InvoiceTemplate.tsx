@@ -289,6 +289,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                     {settings.document_title || 'INVOICE'}
                   </h2>
                   <div 
+                    id="invoice-number-box"
                     className="px-4 py-1 inline-block border-2" 
                     style={{ borderColor: settings.header_color_primary }}
                   >
