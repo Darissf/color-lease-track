@@ -121,7 +121,7 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
   return lines.join('\n');
 }
 
-// WhatsApp template - with box/separator for WhatsApp
+// WhatsApp template - clean format with WhatsApp formatting (no box lines)
 export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   const { lineItems, transportDelivery, transportPickup, contractTitle, discount } = data;
   
@@ -133,31 +133,25 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   
   // Header with optional title
   const headerTitle = contractTitle 
-    ? `📦 Rincian Sewa Scaffolding ${toTitleCase(contractTitle)}`
-    : '📦 Rincian Sewa Scaffolding';
+    ? `📦 *Rincian Sewa Scaffolding ${toTitleCase(contractTitle)}*`
+    : '📦 *Rincian Sewa Scaffolding*';
   lines.push(headerTitle);
   lines.push('');
   
-  // Items
+  // Items - tanpa garis box
   const zeroPricing = isZeroPricingMode(lineItems);
   lines.push('🔧 *Item Sewa:*');
-  lines.push('┌──────────────────────────');
   lineItems.forEach((item, index) => {
     if (zeroPricing) {
       // Simplified format: only name × qty pcs
-      lines.push(`│ ${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
+      lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
     } else {
       // Full format: name + price/duration details
       const subtotal = calculateLineItemSubtotal(item);
-      lines.push(`│ ${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
-      lines.push(`│    ${formatRupiah(item.unit_price_per_day)}/hari × ${item.duration_days} hari`);
-      lines.push(`│    ▸ ${formatRupiah(subtotal)}`);
-    }
-    if (index < lineItems.length - 1) {
-      lines.push('├──────────────────────────');
+      lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
+      lines.push(`   ${formatRupiah(item.unit_price_per_day)}/hari × ${item.duration_days} hari = ${formatRupiah(subtotal)}`);
     }
   });
-  lines.push('└──────────────────────────');
   lines.push('');
   
   // Subtotal Items
@@ -175,7 +169,7 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
       lines.push(`   • Pengambilan: ${formatRupiah(transportPickup)}`);
     }
     const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
-    lines.push(`   ▸ Total: ${formatRupiah(totalTransport)}`);
+    lines.push(`   *Total Transport:* ${formatRupiah(totalTransport)}`);
     lines.push('');
   }
   
@@ -185,11 +179,9 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
     lines.push('');
   }
   
-  // Grand Total
-  lines.push('════════════════════════');
+  // Grand Total - tanpa garis
   const grandTotal = calculateGrandTotal(data);
   lines.push(`💵 *TOTAL TAGIHAN:* ${formatRupiah(grandTotal)}`);
-  lines.push('════════════════════════');
   lines.push('');
   lines.push('🙏 Terima kasih atas kepercayaan Anda!');
   
