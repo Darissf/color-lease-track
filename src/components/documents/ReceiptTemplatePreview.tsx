@@ -91,14 +91,19 @@ export function ReceiptTemplatePreview({
   // Get layout settings for QR verification
   const layoutSettings = settings.receipt_layout_settings;
 
+  // ALWAYS use pixel dimensions to ensure preview and PDF are identical (match ReceiptTemplate)
+  const containerStyle = {
+    fontFamily: getFontFamily(),
+    fontSize: `${settings.font_size_base || 14}px`,
+    width: '793px',
+    minHeight: '1122px',
+  };
+
   return (
     <div
       ref={documentRef}
-      className="bg-white text-gray-900 p-8 pb-12 w-[210mm] h-[297mm] mx-auto shadow-lg relative overflow-visible"
-      style={{ 
-        fontFamily: getFontFamily(),
-        fontSize: `${settings.font_size_base || 14}px`
-      }}
+      className="bg-white text-gray-900 p-8 pb-12 mx-auto shadow-lg relative overflow-visible"
+      style={containerStyle}
     >
       {/* Watermark - uses receipt_layout_settings */}
       {settings.show_watermark && (
@@ -453,19 +458,17 @@ export function ReceiptTemplatePreview({
 
         </div>
 
-        {/* QR Verification - Positioned relative to content bottom */}
+        {/* QR Verification - Positioned from top for consistent PDF capture (match ReceiptTemplate) */}
         {settings.show_qr_code && (
           <div 
             className="absolute pointer-events-none z-20"
             style={{
               left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
-              bottom: layoutSettings?.qr_verification_position_y !== undefined 
-                ? `${100 - layoutSettings.qr_verification_position_y}%` 
-                : '8%',
-              transform: `translate(-50%, 50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
+              top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
+              transform: `translate(-50%, -50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
             }}
           >
-          <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
+            <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
               <QRCode 
                 value={verificationUrl} 
                 size={layoutSettings?.qr_size ?? settings.qr_size ?? 80} 
@@ -487,16 +490,14 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
-        {/* Signature Image Only - Positioned relative to content bottom */}
+        {/* Signature Image Only - Positioned from top for consistent PDF capture (match ReceiptTemplate) */}
         {settings.show_signature !== false && settings.signature_url && (
           <div 
             className="absolute pointer-events-none z-30"
             style={{
               left: `${settings.receipt_layout_settings?.signature_position_x ?? 80}%`,
-              bottom: settings.receipt_layout_settings?.signature_position_y !== undefined 
-                ? `${100 - settings.receipt_layout_settings.signature_position_y}%` 
-                : '15%',
-              transform: `translate(-50%, 50%) scale(${settings.receipt_layout_settings?.signature_scale ?? 1})`,
+              top: `${settings.receipt_layout_settings?.signature_position_y ?? 85}%`,
+              transform: `translate(-50%, -50%) scale(${settings.receipt_layout_settings?.signature_scale ?? 1})`,
               opacity: (settings.receipt_layout_settings?.signature_opacity ?? 100) / 100,
             }}
           >
@@ -508,16 +509,14 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
-        {/* Fixed-positioned Stamp - Positioned relative to content bottom */}
+        {/* Fixed-positioned Stamp - Positioned from top for consistent PDF capture (match ReceiptTemplate) */}
         {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
           <div 
             className="absolute pointer-events-none z-40"
             style={{
               left: `${settings.receipt_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
-              bottom: settings.receipt_layout_settings?.stamp_position_y !== undefined 
-                ? `${100 - settings.receipt_layout_settings.stamp_position_y}%` 
-                : '30%',
-              transform: `translate(-50%, 50%) rotate(${settings.receipt_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.receipt_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+              top: `${settings.receipt_layout_settings?.stamp_position_y ?? 70}%`,
+              transform: `translate(-50%, -50%) rotate(${settings.receipt_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.receipt_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
             }}
           >
             {settings.stamp_source === 'custom' ? (
