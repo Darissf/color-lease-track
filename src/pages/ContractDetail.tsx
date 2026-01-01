@@ -1203,20 +1203,12 @@ export default function ContractDetail() {
                         <p className="font-semibold text-blue-600">
                           {format(new Date(contract.tanggal_kirim), "dd MMMM yyyy", { locale: localeId })}
                         </p>
-                        {contract.status_pengiriman && (
-                          <Badge 
-                            variant="secondary" 
-                            className={`mt-1 text-xs ${
-                              contract.status_pengiriman === 'sudah_kirim' 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-orange-100 text-orange-700'
-                            }`}
-                          >
-                            {contract.status_pengiriman === 'sudah_kirim' ? 'Sudah Dikirim' : 
-                             contract.status_pengiriman === 'belum_kirim' ? 'Belum Dikirim' : 
-                             contract.status_pengiriman}
-                          </Badge>
-                        )}
+                        <Badge 
+                          variant="secondary" 
+                          className="mt-1 text-xs bg-green-100 text-green-700"
+                        >
+                          Sudah Dikirim
+                        </Badge>
                       </div>
                     )}
                     {contract.tanggal_ambil && (
@@ -1228,20 +1220,12 @@ export default function ContractDetail() {
                         <p className="font-semibold text-emerald-600">
                           {format(new Date(contract.tanggal_ambil), "dd MMMM yyyy", { locale: localeId })}
                         </p>
-                        {contract.status_pengambilan && (
-                          <Badge 
-                            variant="secondary" 
-                            className={`mt-1 text-xs ${
-                              contract.status_pengambilan === 'sudah_diambil' 
-                                ? 'bg-emerald-100 text-emerald-700' 
-                                : 'bg-orange-100 text-orange-700'
-                            }`}
-                          >
-                            {contract.status_pengambilan === 'sudah_diambil' ? 'Sudah Diambil' : 
-                             contract.status_pengambilan === 'belum_diambil' ? 'Belum Diambil' : 
-                             contract.status_pengambilan}
-                          </Badge>
-                        )}
+                        <Badge 
+                          variant="secondary" 
+                          className="mt-1 text-xs bg-emerald-100 text-emerald-700"
+                        >
+                          Sudah Diambil
+                        </Badge>
                       </div>
                     )}
                   </div>
