@@ -1585,9 +1585,20 @@ All colors MUST be HSL.
     color-adjust: exact !important;
   }
   
-  /* Reset all transforms for print target (except stamps/watermarks) */
-  .print-target *:not(.stamp):not(.watermark):not([class*="stamp"]):not([class*="watermark"]) {
+  /* Reset all transforms for print target (except stamps/watermarks/footer-positioned) */
+  .print-target *:not(.stamp):not(.watermark):not([class*="stamp"]):not([class*="watermark"]):not(.footer-positioned) {
     transform: none !important;
+  }
+  
+  /* Preserve transforms for footer-positioned elements (QR, Signature) */
+  .footer-positioned {
+    /* transform is preserved - translate centering works correctly */
+  }
+  
+  /* Invoice footer section - prevent page break inside */
+  .invoice-footer-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   
   /* Page break between documents - MUST be between .print-page elements */
