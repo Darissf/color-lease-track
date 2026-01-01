@@ -500,31 +500,34 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
 
-        {/* Signature Label & Signer Info - Fixed Position */}
-        {settings.show_signature !== false && (
-          <div className="flex justify-end mb-8">
-            <div className="text-center" style={{ minWidth: '200px' }}>
-              <p className="text-sm text-gray-600 mb-12">{settings.signature_label || 'Hormat Kami,'}</p>
-              <p className="font-semibold">{settings.signer_name || settings.company_name}</p>
-              {settings.signer_title && (
-                <p className="text-sm text-gray-500">{settings.signer_title}</p>
-              )}
+        {/* Footer Section - Prevent page break inside */}
+        <div className="invoice-footer-section" style={{ pageBreakInside: 'avoid' }}>
+          {/* Signature Label & Signer Info - Fixed Position */}
+          {settings.show_signature !== false && (
+            <div className="flex justify-end mb-8">
+              <div className="text-center" style={{ minWidth: '200px' }}>
+                <p className="text-sm text-gray-600 mb-12">{settings.signature_label || 'Hormat Kami,'}</p>
+                <p className="font-semibold">{settings.signer_name || settings.company_name}</p>
+                {settings.signer_title && (
+                  <p className="text-sm text-gray-500">{settings.signer_title}</p>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
           {/* Footer */}
           {settings.show_footer !== false && settings.footer_text && (
             <div className="text-center text-sm text-gray-500 mb-4">
               {settings.footer_text}
             </div>
           )}
+        </div>
 
         </div>
 
         {/* QR Verification - Positioned from top for consistent PDF capture */}
         {settings.show_qr_code && (
           <div 
-            className="absolute pointer-events-none z-20"
+            className="absolute pointer-events-none z-20 footer-positioned"
             style={{
               left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
               top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
@@ -556,7 +559,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
         {/* Signature Image Only - Positioned from top for consistent PDF capture */}
         {settings.show_signature !== false && settings.signature_url && (
           <div 
-            className="absolute pointer-events-none z-30"
+            className="absolute pointer-events-none z-30 footer-positioned"
             style={{
               left: `${settings.invoice_layout_settings?.signature_position_x ?? 80}%`,
               top: `${settings.invoice_layout_settings?.signature_position_y ?? 85}%`,
