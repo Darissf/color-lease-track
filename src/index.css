@@ -1585,14 +1585,24 @@ All colors MUST be HSL.
     color-adjust: exact !important;
   }
   
-  /* Reset all transforms for print target (except stamps/watermarks/footer-positioned) */
-  .print-target *:not(.stamp):not(.watermark):not([class*="stamp"]):not([class*="watermark"]):not(.footer-positioned) {
+  /* Reset all transforms for print target (except stamps/watermarks/footer-positioned/watermark-centered/stamp-positioned) */
+  .print-target *:not(.stamp):not(.watermark):not(.watermark-centered):not(.stamp-positioned):not([class*="stamp"]):not([class*="watermark"]):not(.footer-positioned) {
     transform: none !important;
   }
   
   /* Preserve transforms for footer-positioned elements (QR, Signature) */
   .footer-positioned {
     /* transform is preserved - translate centering works correctly */
+  }
+  
+  /* Preserve watermark centering transform during print */
+  .watermark-centered {
+    /* Allow inline transform to work - includes translate and rotate */
+  }
+  
+  /* Preserve stamp rotation and positioning during print */
+  .stamp-positioned {
+    /* Allow inline transform to work - includes translate, rotate, and scale */
   }
   
   /* Invoice footer section - prevent page break inside and enforce flex */
@@ -1629,14 +1639,24 @@ All colors MUST be HSL.
   margin: 0;
 }
 
-/* Print container that wraps all pages (non-print view) */
+/* Print container - Screen view: auto width, Print view: A4 fixed */
 .print-container {
-  width: 210mm;
   background: white;
 }
 
-.print-container .print-page {
-  width: 210mm;
-  min-height: 297mm;
-  background: white;
+@media print {
+  .print-container {
+    display: block !important;
+    position: relative !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  
+  .print-container .print-page {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    background: white !important;
+  }
 }
