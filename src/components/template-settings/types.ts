@@ -107,6 +107,28 @@ export interface TemplateSettings {
   signer_title: string;
   signature_position: string;
   signature_label: string;
+  
+  // Signature Label Styling
+  signature_label_position_x: number;
+  signature_label_position_y: number;
+  signature_label_font_size: number;
+  signature_label_font_family: string;
+  signature_label_color: string;
+  
+  // Signer Name Styling
+  signer_name_position_x: number;
+  signer_name_position_y: number;
+  signer_name_font_size: number;
+  signer_name_font_family: string;
+  signer_name_color: string;
+  
+  // Signer Title Styling
+  signer_title_position_x: number;
+  signer_title_position_y: number;
+  signer_title_font_size: number;
+  signer_title_font_family: string;
+  signer_title_color: string;
+  
   show_stamp: boolean;
   custom_stamp_url: string | null;
   stamp_text: string;
@@ -282,6 +304,28 @@ export const defaultSettings: TemplateSettings = {
   signer_title: '',
   signature_position: 'right',
   signature_label: 'Hormat Kami,',
+  
+  // Signature Label Styling defaults
+  signature_label_position_x: 0,
+  signature_label_position_y: 0,
+  signature_label_font_size: 14,
+  signature_label_font_family: 'inherit',
+  signature_label_color: '#4b5563',
+  
+  // Signer Name Styling defaults
+  signer_name_position_x: 0,
+  signer_name_position_y: 0,
+  signer_name_font_size: 14,
+  signer_name_font_family: 'inherit',
+  signer_name_color: '#1f2937',
+  
+  // Signer Title Styling defaults
+  signer_title_position_x: 0,
+  signer_title_position_y: 0,
+  signer_title_font_size: 12,
+  signer_title_font_family: 'inherit',
+  signer_title_color: '#6b7280',
+  
   show_stamp: true,
   custom_stamp_url: null,
   stamp_text: 'LUNAS',

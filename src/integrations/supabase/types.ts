@@ -1990,11 +1990,26 @@ export type Database = {
           show_watermark: boolean | null
           signature_image_url: string | null
           signature_label: string | null
+          signature_label_color: string | null
+          signature_label_font_family: string | null
+          signature_label_font_size: number | null
+          signature_label_position_x: number | null
+          signature_label_position_y: number | null
           signature_position: string | null
           signature_scale: number | null
           signature_url: string | null
           signer_name: string | null
+          signer_name_color: string | null
+          signer_name_font_family: string | null
+          signer_name_font_size: number | null
+          signer_name_position_x: number | null
+          signer_name_position_y: number | null
           signer_title: string | null
+          signer_title_color: string | null
+          signer_title_font_family: string | null
+          signer_title_font_size: number | null
+          signer_title_position_x: number | null
+          signer_title_position_y: number | null
           stamp_border_color: string | null
           stamp_border_style: string | null
           stamp_border_width: number | null
@@ -2135,11 +2150,26 @@ export type Database = {
           show_watermark?: boolean | null
           signature_image_url?: string | null
           signature_label?: string | null
+          signature_label_color?: string | null
+          signature_label_font_family?: string | null
+          signature_label_font_size?: number | null
+          signature_label_position_x?: number | null
+          signature_label_position_y?: number | null
           signature_position?: string | null
           signature_scale?: number | null
           signature_url?: string | null
           signer_name?: string | null
+          signer_name_color?: string | null
+          signer_name_font_family?: string | null
+          signer_name_font_size?: number | null
+          signer_name_position_x?: number | null
+          signer_name_position_y?: number | null
           signer_title?: string | null
+          signer_title_color?: string | null
+          signer_title_font_family?: string | null
+          signer_title_font_size?: number | null
+          signer_title_position_x?: number | null
+          signer_title_position_y?: number | null
           stamp_border_color?: string | null
           stamp_border_style?: string | null
           stamp_border_width?: number | null
@@ -2280,11 +2310,26 @@ export type Database = {
           show_watermark?: boolean | null
           signature_image_url?: string | null
           signature_label?: string | null
+          signature_label_color?: string | null
+          signature_label_font_family?: string | null
+          signature_label_font_size?: number | null
+          signature_label_position_x?: number | null
+          signature_label_position_y?: number | null
           signature_position?: string | null
           signature_scale?: number | null
           signature_url?: string | null
           signer_name?: string | null
+          signer_name_color?: string | null
+          signer_name_font_family?: string | null
+          signer_name_font_size?: number | null
+          signer_name_position_x?: number | null
+          signer_name_position_y?: number | null
           signer_title?: string | null
+          signer_title_color?: string | null
+          signer_title_font_family?: string | null
+          signer_title_font_size?: number | null
+          signer_title_position_x?: number | null
+          signer_title_position_y?: number | null
           stamp_border_color?: string | null
           stamp_border_style?: string | null
           stamp_border_width?: number | null
