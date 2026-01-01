@@ -129,7 +129,7 @@ export interface TemplateSettings {
   signer_title_font_family: string;
   signer_title_color: string;
   
-  // Text Styling (Bold, Italic, Underline)
+  // Text Styling (Bold, Italic, Underline) - Invoice
   signature_label_font_weight: string;
   signature_label_font_style: string;
   signature_label_text_decoration: string;
@@ -139,6 +139,36 @@ export interface TemplateSettings {
   signer_title_font_weight: string;
   signer_title_font_style: string;
   signer_title_text_decoration: string;
+  
+  // Receipt Signature Label Styling (Separate from Invoice)
+  receipt_signature_label_position_x: number;
+  receipt_signature_label_position_y: number;
+  receipt_signature_label_font_size: number;
+  receipt_signature_label_font_family: string;
+  receipt_signature_label_color: string;
+  receipt_signature_label_font_weight: string;
+  receipt_signature_label_font_style: string;
+  receipt_signature_label_text_decoration: string;
+  
+  // Receipt Signer Name Styling
+  receipt_signer_name_position_x: number;
+  receipt_signer_name_position_y: number;
+  receipt_signer_name_font_size: number;
+  receipt_signer_name_font_family: string;
+  receipt_signer_name_color: string;
+  receipt_signer_name_font_weight: string;
+  receipt_signer_name_font_style: string;
+  receipt_signer_name_text_decoration: string;
+  
+  // Receipt Signer Title Styling
+  receipt_signer_title_position_x: number;
+  receipt_signer_title_position_y: number;
+  receipt_signer_title_font_size: number;
+  receipt_signer_title_font_family: string;
+  receipt_signer_title_color: string;
+  receipt_signer_title_font_weight: string;
+  receipt_signer_title_font_style: string;
+  receipt_signer_title_text_decoration: string;
   
   show_stamp: boolean;
   custom_stamp_url: string | null;
@@ -337,7 +367,7 @@ export const defaultSettings: TemplateSettings = {
   signer_title_font_family: 'inherit',
   signer_title_color: '#6b7280',
   
-  // Text Styling defaults
+  // Text Styling defaults - Invoice
   signature_label_font_weight: 'normal',
   signature_label_font_style: 'normal',
   signature_label_text_decoration: 'none',
@@ -347,6 +377,36 @@ export const defaultSettings: TemplateSettings = {
   signer_title_font_weight: 'normal',
   signer_title_font_style: 'normal',
   signer_title_text_decoration: 'none',
+  
+  // Receipt Signature Label Styling defaults
+  receipt_signature_label_position_x: 0,
+  receipt_signature_label_position_y: 0,
+  receipt_signature_label_font_size: 14,
+  receipt_signature_label_font_family: 'inherit',
+  receipt_signature_label_color: '#4b5563',
+  receipt_signature_label_font_weight: 'normal',
+  receipt_signature_label_font_style: 'normal',
+  receipt_signature_label_text_decoration: 'none',
+  
+  // Receipt Signer Name Styling defaults
+  receipt_signer_name_position_x: 0,
+  receipt_signer_name_position_y: 0,
+  receipt_signer_name_font_size: 14,
+  receipt_signer_name_font_family: 'inherit',
+  receipt_signer_name_color: '#1f2937',
+  receipt_signer_name_font_weight: 'bold',
+  receipt_signer_name_font_style: 'normal',
+  receipt_signer_name_text_decoration: 'none',
+  
+  // Receipt Signer Title Styling defaults
+  receipt_signer_title_position_x: 0,
+  receipt_signer_title_position_y: 0,
+  receipt_signer_title_font_size: 12,
+  receipt_signer_title_font_family: 'inherit',
+  receipt_signer_title_color: '#6b7280',
+  receipt_signer_title_font_weight: 'normal',
+  receipt_signer_title_font_style: 'normal',
+  receipt_signer_title_text_decoration: 'none',
   
   show_stamp: true,
   custom_stamp_url: null,
