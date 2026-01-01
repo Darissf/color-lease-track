@@ -174,18 +174,20 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   lines.push(headerTitle);
   lines.push('');
   
-  // Items - tanpa garis box
+  // Items - tanpa garis box, format mobile-friendly
   const zeroPricing = isZeroPricingMode(lineItems);
   lines.push('🔧 *Item Sewa:*');
   lineItems.forEach((item, index) => {
     if (zeroPricing) {
-      // Simplified format: only name × qty pcs
-      lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
+      // Simplified format: name on first line, qty on second
+      lines.push(`${index + 1}. ${item.item_name}`);
+      lines.push(`   × ${item.quantity} pcs`);
     } else {
-      // Full format: name + price/duration details
+      // Full format: split into 3 lines for mobile readability
       const subtotal = calculateLineItemSubtotal(item);
-      lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
-      lines.push(`   ${formatRupiah(item.unit_price_per_day)}/hari × ${item.duration_days} hari = ${formatRupiah(subtotal)}`);
+      lines.push(`${index + 1}. ${item.item_name}`);
+      lines.push(`   ${item.quantity} pcs × ${formatRupiah(item.unit_price_per_day)} × ${item.duration_days} hari`);
+      lines.push(`   = *${formatRupiah(subtotal)}*`);
     }
   });
   lines.push('');
