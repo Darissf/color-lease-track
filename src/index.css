@@ -1518,8 +1518,39 @@ All colors MUST be HSL.
   }
 }
 
+/* ========== PAPER DOCUMENT - UNIVERSAL CLASS ========== */
+/* CLASS UTAMA: Berlaku untuk Admin, Preview, DAN Print */
+.paper-document {
+  width: 210mm !important;
+  min-height: 297mm !important;
+  background-color: white !important;
+  position: relative;
+  padding: 0;
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* TAMPILAN LAYAR (Admin & Preview Modal) */
+@media screen {
+  .paper-document {
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+  }
+}
+
 /* ========== PRINT STYLES FOR PDF GENERATION ========== */
 @media print {
+  /* Page settings */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  
+  body {
+    background: white;
+  }
+  
   /* Hide everything except print target */
   body * {
     visibility: hidden;
@@ -1548,6 +1579,18 @@ All colors MUST be HSL.
     width: 210mm !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: white !important;
+  }
+  
+  /* Paper document - exact A4 sizing for print */
+  .paper-document {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
   }
   
   /* Each page in block flow, not absolute */
@@ -1585,7 +1628,7 @@ All colors MUST be HSL.
     color-adjust: exact !important;
   }
   
-  /* Reset all transforms for print target (except stamps/watermarks/footer-positioned/watermark-centered/stamp-positioned) */
+  /* Reset all transforms for print target (except stamps/watermarks/footer-positioned) */
   .print-target *:not(.stamp):not(.watermark):not(.watermark-centered):not(.stamp-positioned):not([class*="stamp"]):not([class*="watermark"]):not(.footer-positioned) {
     transform: none !important;
   }
@@ -1633,30 +1676,7 @@ All colors MUST be HSL.
   }
 }
 
-/* Page settings for PDF */
-@page {
-  size: A4 portrait;
-  margin: 0;
-}
-
 /* Print container - Screen view: auto width, Print view: A4 fixed */
 .print-container {
   background: white;
-}
-
-@media print {
-  .print-container {
-    display: block !important;
-    position: relative !important;
-    width: 210mm !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-  }
-  
-  .print-container .print-page {
-    width: 210mm !important;
-    min-height: 297mm !important;
-    background: white !important;
-  }
 }

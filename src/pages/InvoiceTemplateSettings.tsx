@@ -470,7 +470,7 @@ const InvoiceTemplateSettings = () => {
                 </TabsList>
                 <TabsContent value="invoice">
                   <div className="flex justify-center py-4 overflow-auto">
-                    <div style={{ transform: 'scale(0.65)', transformOrigin: 'top center' }}>
+                    <div className="document-scale-wrapper" style={{ transform: 'scale(0.65)', transformOrigin: 'top center' }}>
                       <InvoiceTemplatePreview 
                         settings={settings}
                         customTextElements={customTextElements}
@@ -484,7 +484,7 @@ const InvoiceTemplateSettings = () => {
                 </TabsContent>
                 <TabsContent value="receipt">
                   <div className="flex justify-center py-4 overflow-auto">
-                    <div style={{ transform: 'scale(0.65)', transformOrigin: 'top center' }}>
+                    <div className="document-scale-wrapper" style={{ transform: 'scale(0.65)', transformOrigin: 'top center' }}>
                       <ReceiptTemplatePreview 
                         settings={settings}
                         customTextElements={customTextElements}

@@ -93,20 +93,14 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
     // Get layout settings for QR verification
     const layoutSettings = settings.receipt_layout_settings;
 
-    // Override dimensions for PDF capture to ensure exact pixel match
-    // ALWAYS use pixel dimensions to ensure preview and PDF are identical
-    const containerStyle = {
-      fontFamily: getFontFamily(),
-      fontSize: `${settings.font_size_base || 14}px`,
-      width: '793px',
-      minHeight: '1122px',
-    };
-
     return (
       <div
         ref={ref}
-        className="bg-white text-gray-900 p-8 pb-12 mx-auto shadow-lg relative overflow-visible"
-        style={containerStyle}
+        className="paper-document bg-white text-gray-900 p-8 pb-12 relative overflow-visible"
+        style={{
+          fontFamily: getFontFamily(),
+          fontSize: `${settings.font_size_base || 14}px`,
+        }}
       >
         {/* Watermark - dengan class watermark-centered untuk preserve transform saat print */}
         {settings.show_watermark && (

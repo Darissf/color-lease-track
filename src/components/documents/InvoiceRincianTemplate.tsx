@@ -89,10 +89,8 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
     return (
       <div
         ref={ref}
-        className="bg-white text-gray-900 p-8 pb-12 mx-auto shadow-lg relative overflow-visible"
+        className="paper-document bg-white text-gray-900 p-8 pb-12 relative overflow-visible"
         style={{
-          width: '793px',
-          minHeight: '1122px',
           fontFamily: getFontFamily(),
           fontSize: `${settings.font_size_base || 14}px`,
         }}

@@ -304,7 +304,7 @@ export const DocumentPreviewModal = ({
               {/* Print container for native browser printing */}
               <div ref={printContainerRef} className="print-container flex flex-col">
                 {/* Page 1 */}
-                <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+                <div className="print-page">
                   {documentData.documentType === 'invoice' ? (
                     <InvoiceTemplate {...invoiceProps} />
                   ) : (
@@ -317,7 +317,7 @@ export const DocumentPreviewModal = ({
                   <>
                     <div className="print-page-break" aria-hidden="true" />
                     <div className="w-full border-t-2 border-dashed border-gray-300 my-2 no-print" />
-                    <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+                    <div className="print-page">
                       <InvoiceRincianTemplate {...rincianProps} />
                     </div>
                   </>
@@ -329,7 +329,7 @@ export const DocumentPreviewModal = ({
               {/* Print container for native browser printing */}
               <div ref={printContainerRef} className="print-container py-4 flex flex-col gap-6 items-center">
                 {/* Page 1 */}
-                <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+                <div className="print-page">
                   <ResponsiveDocumentWrapper>
                     {documentData.documentType === 'invoice' ? (
                       <InvoiceTemplate {...invoiceProps} />
@@ -348,7 +348,7 @@ export const DocumentPreviewModal = ({
                       <span className="text-sm text-gray-500 font-medium">Halaman 2</span>
                       <div className="flex-1 border-t border-dashed border-gray-400" />
                     </div>
-                    <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+                    <div className="print-page">
                       <ResponsiveDocumentWrapper>
                         <InvoiceRincianTemplate {...rincianProps} />
                       </ResponsiveDocumentWrapper>
@@ -364,7 +364,7 @@ export const DocumentPreviewModal = ({
             {/* Hidden print container so download/print still works */}
             <div ref={printContainerRef} className="print-container hidden">
               {/* Page 1 */}
-              <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+              <div className="print-page">
                 {documentData.documentType === 'invoice' ? (
                   <InvoiceTemplate {...invoiceProps} />
                 ) : (
@@ -374,7 +374,7 @@ export const DocumentPreviewModal = ({
               {showPage2 && (
                 <>
                   <div className="print-page-break" aria-hidden="true" />
-                  <div className="print-page" style={{ width: '210mm', minHeight: '297mm', background: 'white' }}>
+                  <div className="print-page">
                     <InvoiceRincianTemplate {...rincianProps} />
                   </div>
                 </>
