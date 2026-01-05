@@ -102,10 +102,8 @@ function getPDFOverrideCSS(): string {
       display: none !important;
     }
     
-    /* Preserve transforms for watermark and stamp */
-    .watermark-centered {
-      transform: translate(-50%, -50%) rotate(-45deg) !important;
-    }
+    /* Watermark transform comes from inline styles - DO NOT override */
+    /* Rotation is dynamic from database settings (watermark_rotation) */
     
     .stamp-positioned {
       /* Preserve stamp rotation */
