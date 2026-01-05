@@ -372,42 +372,66 @@ const InvoiceTemplateSettings = () => {
                   <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
                 </TabsList>
                 <TabsContent value="invoice">
-                  <div className="w-full bg-gray-100 rounded-xl border border-gray-200 overflow-hidden flex justify-center items-start pt-4 pb-4">
+                  {/* FRAME LUAR Mobile */}
+                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center p-2">
+                    {/* SCALING CONTAINER: Ukuran = 210mm * 0.4 x 297mm * 0.4 */}
                     <div style={{
-                      transform: 'scale(0.45)',
-                      transformOrigin: 'top center',
-                      width: '210mm',
-                      height: '297mm',
-                      marginBottom: '-55%'
+                      width: 'calc(210mm * 0.4)',
+                      height: 'calc(297mm * 0.4)',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}>
-                      <InvoiceTemplatePreview 
-                        settings={settings}
-                        customTextElements={customTextElements}
-                        selectedElementId={selectedElementId}
-                        onSelectElement={setSelectedElementId}
-                        onUpdateElement={handleUpdateTextElement}
-                        isEditing={isEditingMode}
-                      />
+                      {/* KERTAS ASLI A4: Scale 0.4 dari pojok kiri atas */}
+                      <div style={{
+                        transform: 'scale(0.4)',
+                        transformOrigin: 'top left',
+                        width: '210mm',
+                        minHeight: '297mm',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}>
+                        <InvoiceTemplatePreview 
+                          settings={settings}
+                          customTextElements={customTextElements}
+                          selectedElementId={selectedElementId}
+                          onSelectElement={setSelectedElementId}
+                          onUpdateElement={handleUpdateTextElement}
+                          isEditing={isEditingMode}
+                        />
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
                 <TabsContent value="receipt">
-                  <div className="w-full bg-gray-100 rounded-xl border border-gray-200 overflow-hidden flex justify-center items-start pt-4 pb-4">
+                  {/* FRAME LUAR Mobile */}
+                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center p-2">
+                    {/* SCALING CONTAINER: Ukuran = 210mm * 0.4 x 297mm * 0.4 */}
                     <div style={{
-                      transform: 'scale(0.45)',
-                      transformOrigin: 'top center',
-                      width: '210mm',
-                      height: '297mm',
-                      marginBottom: '-55%'
+                      width: 'calc(210mm * 0.4)',
+                      height: 'calc(297mm * 0.4)',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}>
-                      <ReceiptTemplatePreview 
-                        settings={settings}
-                        customTextElements={customTextElements}
-                        selectedElementId={selectedElementId}
-                        onSelectElement={setSelectedElementId}
-                        onUpdateElement={handleUpdateTextElement}
-                        isEditing={isEditingMode}
-                      />
+                      {/* KERTAS ASLI A4: Scale 0.4 dari pojok kiri atas */}
+                      <div style={{
+                        transform: 'scale(0.4)',
+                        transformOrigin: 'top left',
+                        width: '210mm',
+                        minHeight: '297mm',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}>
+                        <ReceiptTemplatePreview 
+                          settings={settings}
+                          customTextElements={customTextElements}
+                          selectedElementId={selectedElementId}
+                          onSelectElement={setSelectedElementId}
+                          onUpdateElement={handleUpdateTextElement}
+                          isEditing={isEditingMode}
+                        />
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
@@ -485,42 +509,66 @@ const InvoiceTemplateSettings = () => {
                   <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
                 </TabsList>
                 <TabsContent value="invoice">
-                  <div className="w-full bg-gray-100 rounded-xl border border-gray-200 overflow-hidden flex justify-center items-start pt-8 pb-8">
+                  {/* FRAME LUAR: Kotak pembatas visual di Admin */}
+                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center p-4">
+                    {/* SCALING CONTAINER: Ukuran sudah dihitung = 210mm * 0.6 x 297mm * 0.6 */}
                     <div style={{
-                      transform: 'scale(0.65)',
-                      transformOrigin: 'top center',
-                      width: '210mm',
-                      height: '297mm',
-                      marginBottom: '-35%'
+                      width: 'calc(210mm * 0.6)',
+                      height: 'calc(297mm * 0.6)',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}>
-                      <InvoiceTemplatePreview 
-                        settings={settings}
-                        customTextElements={customTextElements}
-                        selectedElementId={selectedElementId}
-                        onSelectElement={setSelectedElementId}
-                        onUpdateElement={handleUpdateTextElement}
-                        isEditing={isEditingMode}
-                      />
+                      {/* KERTAS ASLI A4: Di-scale dari pojok kiri atas */}
+                      <div style={{
+                        transform: 'scale(0.6)',
+                        transformOrigin: 'top left',
+                        width: '210mm',
+                        minHeight: '297mm',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}>
+                        <InvoiceTemplatePreview 
+                          settings={settings}
+                          customTextElements={customTextElements}
+                          selectedElementId={selectedElementId}
+                          onSelectElement={setSelectedElementId}
+                          onUpdateElement={handleUpdateTextElement}
+                          isEditing={isEditingMode}
+                        />
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
                 <TabsContent value="receipt">
-                  <div className="w-full bg-gray-100 rounded-xl border border-gray-200 overflow-hidden flex justify-center items-start pt-8 pb-8">
+                  {/* FRAME LUAR: Kotak pembatas visual di Admin */}
+                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center p-4">
+                    {/* SCALING CONTAINER: Ukuran sudah dihitung = 210mm * 0.6 x 297mm * 0.6 */}
                     <div style={{
-                      transform: 'scale(0.65)',
-                      transformOrigin: 'top center',
-                      width: '210mm',
-                      height: '297mm',
-                      marginBottom: '-35%'
+                      width: 'calc(210mm * 0.6)',
+                      height: 'calc(297mm * 0.6)',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}>
-                      <ReceiptTemplatePreview 
-                        settings={settings}
-                        customTextElements={customTextElements}
-                        selectedElementId={selectedElementId}
-                        onSelectElement={setSelectedElementId}
-                        onUpdateElement={handleUpdateTextElement}
-                        isEditing={isEditingMode}
-                      />
+                      {/* KERTAS ASLI A4: Di-scale dari pojok kiri atas */}
+                      <div style={{
+                        transform: 'scale(0.6)',
+                        transformOrigin: 'top left',
+                        width: '210mm',
+                        minHeight: '297mm',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}>
+                        <ReceiptTemplatePreview 
+                          settings={settings}
+                          customTextElements={customTextElements}
+                          selectedElementId={selectedElementId}
+                          onSelectElement={setSelectedElementId}
+                          onUpdateElement={handleUpdateTextElement}
+                          isEditing={isEditingMode}
+                        />
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
