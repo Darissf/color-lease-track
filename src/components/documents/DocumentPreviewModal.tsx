@@ -293,6 +293,13 @@ export const DocumentPreviewModal = ({
             fileName={fileName}
             onComplete={onDocumentSaved}
             hasPage2={showPage2}
+            // Backend PDF props
+            documentType={documentData.documentType}
+            templateComponent={documentData.documentType === 'invoice' ? InvoiceTemplate : ReceiptTemplate}
+            templateProps={documentData.documentType === 'invoice' ? invoiceProps : receiptProps}
+            page2Component={showPage2 ? InvoiceRincianTemplate : undefined}
+            page2Props={showPage2 ? rincianProps : undefined}
+            useBackendPDF={true}
           />
         </div>
         
