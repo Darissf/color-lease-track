@@ -1,15 +1,24 @@
-import React, { useRef, useCallback, useState } from "react";
+import React, { useCallback, useState, ComponentType } from "react";
 import { useReactToPrint } from "react-to-print";
 import html2canvas from "html2canvas";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, Image as ImageIcon } from "lucide-react";
+import { Download, Printer, Image as ImageIcon, Server } from "lucide-react";
 import { toast } from "sonner";
+import { generatePDFFromBackend } from "@/lib/pdfBackendService";
+import { generateFullHTMLDocument, generateMultiPageHTMLDocument } from "@/lib/templateToHTML";
 
 interface DocumentPrintGeneratorProps {
   printContainerRef: React.RefObject<HTMLDivElement>;
   fileName: string;
   onComplete?: () => void;
   hasPage2?: boolean;
+  // Props for backend PDF generation
+  documentType?: 'invoice' | 'kwitansi';
+  templateComponent?: ComponentType<any>;
+  templateProps?: any;
+  page2Component?: ComponentType<any>;
+  page2Props?: any;
+  useBackendPDF?: boolean;
 }
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -19,6 +28,12 @@ export const DocumentPrintGenerator = ({
   fileName,
   onComplete,
   hasPage2 = false,
+  documentType,
+  templateComponent,
+  templateProps,
+  page2Component,
+  page2Props,
+  useBackendPDF = false,
 }: DocumentPrintGeneratorProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -98,6 +113,46 @@ export const DocumentPrintGenerator = ({
     }, 500);
   }, [handlePrintPDF]);
 
+  // Backend PDF generation - sends HTML to VPS server
+  const generateBackendPDF = useCallback(async () => {
+    if (!templateComponent || !templateProps) {
+      toast.error("Data template tidak ditemukan untuk Backend PDF");
+      return;
+    }
+
+    setIsGenerating(true);
+    const toastId = toast.loading("Membuat PDF via server...");
+
+    try {
+      let htmlContent: string;
+
+      if (hasPage2 && page2Component && page2Props) {
+        // Multi-page document
+        htmlContent = generateMultiPageHTMLDocument([
+          { component: templateComponent, props: templateProps },
+          { component: page2Component, props: page2Props },
+        ]);
+      } else {
+        // Single page document
+        htmlContent = generateFullHTMLDocument(templateComponent, templateProps);
+      }
+
+      const result = await generatePDFFromBackend(htmlContent, fileName);
+
+      if (result.success) {
+        toast.success("PDF berhasil dibuat via server!", { id: toastId });
+        onComplete?.();
+      } else {
+        throw new Error(result.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error("Backend PDF generation error:", error);
+      toast.error("Gagal membuat PDF: " + (error as Error).message, { id: toastId });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [templateComponent, templateProps, page2Component, page2Props, hasPage2, fileName, onComplete]);
+
   // PNG generation - still uses html2canvas (no native alternative)
   const generatePNG = useCallback(async () => {
     if (!printContainerRef.current) {
@@ -166,17 +221,39 @@ export const DocumentPrintGenerator = ({
     }, 300);
   }, [handlePrintPDF]);
 
+  // Determine which PDF method to use
+  const handleDownloadPDF = useBackendPDF && templateComponent && templateProps
+    ? generateBackendPDF
+    : generatePDFViaPrint;
+
   return (
     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+      {/* Primary PDF Download Button */}
       <Button 
-        onClick={generatePDFViaPrint} 
+        onClick={handleDownloadPDF} 
         className="gap-2" 
         disabled={isGenerating}
       >
-        <Download className="h-4 w-4" />
-        <span className="hidden sm:inline">Download PDF{hasPage2 ? ' (2 Halaman)' : ''}</span>
+        {useBackendPDF ? <Server className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+        <span className="hidden sm:inline">
+          Download PDF{hasPage2 ? ' (2 Halaman)' : ''}
+        </span>
         <span className="sm:hidden">PDF</span>
       </Button>
+      
+      {/* Fallback: Browser Print PDF (when backend is primary) */}
+      {useBackendPDF && (
+        <Button 
+          variant="outline" 
+          onClick={generatePDFViaPrint} 
+          className="gap-2" 
+          disabled={isGenerating}
+        >
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">PDF Browser</span>
+        </Button>
+      )}
+      
       <Button variant="outline" onClick={generatePNG} className="gap-2" disabled={isGenerating}>
         <ImageIcon className="h-4 w-4" />
         <span className="hidden sm:inline">Download PNG</span>
