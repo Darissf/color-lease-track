@@ -115,7 +115,15 @@ export const DocumentPrintGenerator = ({
 
   // Backend PDF generation - sends HTML to VPS server
   const generateBackendPDF = useCallback(async () => {
+    // DEBUG: Baris pertama - konfirmasi tombol ditekan
+    console.log("🚀 [DocumentPrintGenerator] TOMBOL DITEKAN! Memulai proses generate HTML...");
+    console.log("🚀 [DocumentPrintGenerator] useBackendPDF:", useBackendPDF);
+    console.log("🚀 [DocumentPrintGenerator] templateComponent:", templateComponent ? "ADA" : "TIDAK ADA");
+    console.log("🚀 [DocumentPrintGenerator] templateProps:", templateProps ? "ADA" : "TIDAK ADA");
+    console.log("🚀 [DocumentPrintGenerator] templateProps detail:", JSON.stringify(templateProps, null, 2)?.substring(0, 500));
+
     if (!templateComponent || !templateProps) {
+      console.error("❌ [DocumentPrintGenerator] BATAL: templateComponent atau templateProps tidak ada!");
       toast.error("Data template tidak ditemukan untuk Backend PDF");
       return;
     }
@@ -126,32 +134,47 @@ export const DocumentPrintGenerator = ({
     try {
       let htmlContent: string;
 
+      console.log("📄 [DocumentPrintGenerator] Generating HTML content...");
+      console.log("📄 [DocumentPrintGenerator] hasPage2:", hasPage2);
+
       if (hasPage2 && page2Component && page2Props) {
         // Multi-page document
+        console.log("📄 [DocumentPrintGenerator] Mode: Multi-page (2 halaman)");
         htmlContent = generateMultiPageHTMLDocument([
           { component: templateComponent, props: templateProps },
           { component: page2Component, props: page2Props },
         ]);
       } else {
         // Single page document
+        console.log("📄 [DocumentPrintGenerator] Mode: Single page");
         htmlContent = generateFullHTMLDocument(templateComponent, templateProps);
       }
 
+      console.log("📄 [DocumentPrintGenerator] HTML generated! Length:", htmlContent.length, "chars");
+      console.log("📄 [DocumentPrintGenerator] HTML preview (first 1000 chars):");
+      console.log(htmlContent.substring(0, 1000));
+
+      console.log("📡 [DocumentPrintGenerator] Memanggil generatePDFFromBackend...");
       const result = await generatePDFFromBackend(htmlContent, fileName);
 
+      console.log("📡 [DocumentPrintGenerator] Result dari backend:", result);
+
       if (result.success) {
+        console.log("✅ [DocumentPrintGenerator] PDF berhasil dibuat!");
         toast.success("PDF berhasil dibuat via server!", { id: toastId });
         onComplete?.();
       } else {
+        console.error("❌ [DocumentPrintGenerator] PDF gagal:", result.error);
         throw new Error(result.error || 'Unknown error');
       }
     } catch (error) {
-      console.error("Backend PDF generation error:", error);
+      console.error("❌ [DocumentPrintGenerator] EXCEPTION:", error);
       toast.error("Gagal membuat PDF: " + (error as Error).message, { id: toastId });
     } finally {
       setIsGenerating(false);
+      console.log("🏁 [DocumentPrintGenerator] generateBackendPDF selesai.");
     }
-  }, [templateComponent, templateProps, page2Component, page2Props, hasPage2, fileName, onComplete]);
+  }, [templateComponent, templateProps, page2Component, page2Props, hasPage2, fileName, onComplete, useBackendPDF]);
 
   // PNG generation - still uses html2canvas (no native alternative)
   const generatePNG = useCallback(async () => {
@@ -221,10 +244,16 @@ export const DocumentPrintGenerator = ({
     }, 300);
   }, [handlePrintPDF]);
 
-  // Determine which PDF method to use
+  // Determine which PDF method to use - WITH DEBUG LOG
   const handleDownloadPDF = useBackendPDF && templateComponent && templateProps
     ? generateBackendPDF
     : generatePDFViaPrint;
+
+  // DEBUG: Log saat komponen render
+  console.log("🔧 [DocumentPrintGenerator] RENDER - useBackendPDF:", useBackendPDF, 
+    "| templateComponent:", !!templateComponent, 
+    "| templateProps:", !!templateProps,
+    "| akan pakai:", useBackendPDF && templateComponent && templateProps ? "BACKEND" : "BROWSER PRINT");
 
   return (
     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
