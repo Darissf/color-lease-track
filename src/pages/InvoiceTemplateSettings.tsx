@@ -372,28 +372,44 @@ const InvoiceTemplateSettings = () => {
                   <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
                 </TabsList>
                 <TabsContent value="invoice">
-                  <ZoomableDocumentWrapper>
-                    <InvoiceTemplatePreview 
-                      settings={settings}
-                      customTextElements={customTextElements}
-                      selectedElementId={selectedElementId}
-                      onSelectElement={setSelectedElementId}
-                      onUpdateElement={handleUpdateTextElement}
-                      isEditing={isEditingMode}
-                    />
-                  </ZoomableDocumentWrapper>
+                  <div className="w-full bg-gray-100 rounded-xl border border-gray-200 overflow-hidden flex justify-center items-start pt-4 pb-4">
+                    <div style={{
+                      transform: 'scale(0.45)',
+                      transformOrigin: 'top center',
+                      width: '210mm',
+                      height: '297mm',
+                      marginBottom: '-55%'
+                    }}>
+                      <InvoiceTemplatePreview 
+                        settings={settings}
+                        customTextElements={customTextElements}
+                        selectedElementId={selectedElementId}
+                        onSelectElement={setSelectedElementId}
+                        onUpdateElement={handleUpdateTextElement}
+                        isEditing={isEditingMode}
+                      />
+                    </div>
+                  </div>
                 </TabsContent>
                 <TabsContent value="receipt">
-                  <ZoomableDocumentWrapper>
-                    <ReceiptTemplatePreview 
-                      settings={settings}
-                      customTextElements={customTextElements}
-                      selectedElementId={selectedElementId}
-                      onSelectElement={setSelectedElementId}
-                      onUpdateElement={handleUpdateTextElement}
-                      isEditing={isEditingMode}
-                    />
-                  </ZoomableDocumentWrapper>
+                  <div className="w-full bg-gray-100 rounded-xl border border-gray-200 overflow-hidden flex justify-center items-start pt-4 pb-4">
+                    <div style={{
+                      transform: 'scale(0.45)',
+                      transformOrigin: 'top center',
+                      width: '210mm',
+                      height: '297mm',
+                      marginBottom: '-55%'
+                    }}>
+                      <ReceiptTemplatePreview 
+                        settings={settings}
+                        customTextElements={customTextElements}
+                        selectedElementId={selectedElementId}
+                        onSelectElement={setSelectedElementId}
+                        onUpdateElement={handleUpdateTextElement}
+                        isEditing={isEditingMode}
+                      />
+                    </div>
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>
@@ -469,8 +485,14 @@ const InvoiceTemplateSettings = () => {
                   <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
                 </TabsList>
                 <TabsContent value="invoice">
-                  <div className="flex justify-center py-4 overflow-auto">
-                    <div className="document-scale-wrapper" style={{ transform: 'scale(0.65)', transformOrigin: 'top center' }}>
+                  <div className="w-full bg-gray-100 rounded-xl border border-gray-200 overflow-hidden flex justify-center items-start pt-8 pb-8">
+                    <div style={{
+                      transform: 'scale(0.65)',
+                      transformOrigin: 'top center',
+                      width: '210mm',
+                      height: '297mm',
+                      marginBottom: '-35%'
+                    }}>
                       <InvoiceTemplatePreview 
                         settings={settings}
                         customTextElements={customTextElements}
@@ -483,8 +505,14 @@ const InvoiceTemplateSettings = () => {
                   </div>
                 </TabsContent>
                 <TabsContent value="receipt">
-                  <div className="flex justify-center py-4 overflow-auto">
-                    <div className="document-scale-wrapper" style={{ transform: 'scale(0.65)', transformOrigin: 'top center' }}>
+                  <div className="w-full bg-gray-100 rounded-xl border border-gray-200 overflow-hidden flex justify-center items-start pt-8 pb-8">
+                    <div style={{
+                      transform: 'scale(0.65)',
+                      transformOrigin: 'top center',
+                      width: '210mm',
+                      height: '297mm',
+                      marginBottom: '-35%'
+                    }}>
                       <ReceiptTemplatePreview 
                         settings={settings}
                         customTextElements={customTextElements}
