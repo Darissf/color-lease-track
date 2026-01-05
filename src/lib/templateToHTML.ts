@@ -96,17 +96,25 @@ export function generateFullHTMLDocument<P extends object>(
   templateComponent: ComponentType<P>,
   props: P
 ): string {
+  console.log("📄 [templateToHTML] generateFullHTMLDocument DIPANGGIL");
+  console.log("📄 [templateToHTML] templateComponent:", (templateComponent as any)?.name || "anonymous");
+  console.log("📄 [templateToHTML] props keys:", Object.keys(props || {}));
+  
   // Render React component to static HTML
   const templateHTML = renderToStaticMarkup(
     createElement(templateComponent, props)
   );
   
+  console.log("📄 [templateToHTML] templateHTML length:", templateHTML.length);
+  
   // Get all compiled CSS
   const compiledCSS = getCompiledCSS();
+  console.log("📄 [templateToHTML] compiledCSS length:", compiledCSS.length);
+  
   const pdfOverrides = getPDFOverrideCSS();
   
   // Build complete HTML document
-  return `<!DOCTYPE html>
+  const fullHTML = `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -121,6 +129,9 @@ export function generateFullHTMLDocument<P extends object>(
   ${templateHTML}
 </body>
 </html>`;
+
+  console.log("📄 [templateToHTML] FULL HTML length:", fullHTML.length);
+  return fullHTML;
 }
 
 /**
