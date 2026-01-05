@@ -8,26 +8,57 @@ import { createElement, ComponentType } from 'react';
 
 /**
  * Extract all compiled CSS from the current document
- * This captures Tailwind + custom CSS from index.css
+ * Scrapes from <style> tags AND document.styleSheets for complete coverage
  */
 function getCompiledCSS(): string {
-  const styleSheets = Array.from(document.styleSheets);
-  let css = '';
+  console.log("📄 [templateToHTML] Scraping semua CSS dari browser...");
   
-  styleSheets.forEach(sheet => {
-    try {
-      // Only process same-origin stylesheets
-      const rules = Array.from(sheet.cssRules || []);
-      rules.forEach(rule => {
-        css += rule.cssText + '\n';
-      });
-    } catch (e) {
-      // Skip external stylesheets (CORS restrictions)
-      console.warn('Could not access stylesheet:', sheet.href);
+  let collectedStyles = '';
+  
+  // METODE 1: Ambil dari semua <style> tags (Vite inject CSS di sini)
+  const styleTags = document.querySelectorAll('style');
+  console.log("📄 [templateToHTML] Ditemukan", styleTags.length, "<style> tags");
+  
+  styleTags.forEach((tag, index) => {
+    const content = tag.innerHTML || tag.textContent || '';
+    if (content.trim()) {
+      collectedStyles += `/* Style Tag ${index + 1} */\n${content}\n\n`;
+      console.log("📄 [templateToHTML] Style tag", index + 1, "length:", content.length);
     }
   });
   
-  return css;
+  // METODE 2: Fallback - coba ambil dari document.styleSheets untuk external CSS
+  try {
+    const styleSheets = Array.from(document.styleSheets);
+    console.log("📄 [templateToHTML] Ditemukan", styleSheets.length, "StyleSheet objects");
+    
+    styleSheets.forEach((sheet, index) => {
+      try {
+        // Skip jika dari <style> tag (sudah ditangkap di metode 1)
+        if (sheet.href === null) {
+          return;
+        }
+        
+        const rules = Array.from(sheet.cssRules || []);
+        if (rules.length > 0) {
+          let sheetCSS = `/* External StyleSheet ${index + 1}: ${sheet.href} */\n`;
+          rules.forEach(rule => {
+            sheetCSS += rule.cssText + '\n';
+          });
+          collectedStyles += sheetCSS + '\n';
+          console.log("📄 [templateToHTML] External sheet", index + 1, "rules:", rules.length);
+        }
+      } catch (e) {
+        // CORS restriction - skip external stylesheets
+        console.warn("📄 [templateToHTML] Skip external (CORS):", sheet.href);
+      }
+    });
+  } catch (e) {
+    console.warn("📄 [templateToHTML] StyleSheets API error:", e);
+  }
+  
+  console.log("📄 [templateToHTML] Total CSS collected:", collectedStyles.length, "chars");
+  return collectedStyles;
 }
 
 /**
@@ -113,16 +144,34 @@ export function generateFullHTMLDocument<P extends object>(
   
   const pdfOverrides = getPDFOverrideCSS();
   
-  // Build complete HTML document
+  // Build complete HTML document with Google Fonts
   const fullHTML = `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
+    /* ======== CSS Variables & Compiled Styles ======== */
     ${compiledCSS}
+    
+    /* ======== PDF Generation Overrides ======== */
     ${pdfOverrides}
+    
+    /* ======== Force Print Color Rendering ======== */
+    @page { 
+      size: A4 portrait; 
+      margin: 0; 
+    }
+    
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
   </style>
 </head>
 <body style="margin: 0; padding: 0; background: white;">
@@ -165,9 +214,27 @@ export function generateMultiPageHTMLDocument(pages: Array<{
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
+    /* ======== CSS Variables & Compiled Styles ======== */
     ${compiledCSS}
+    
+    /* ======== PDF Generation Overrides ======== */
     ${pdfOverrides}
+    
+    /* ======== Force Print Color Rendering ======== */
+    @page { 
+      size: A4 portrait; 
+      margin: 0; 
+    }
+    
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
   </style>
 </head>
 <body style="margin: 0; padding: 0; background: white;">
