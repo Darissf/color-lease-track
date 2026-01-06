@@ -101,9 +101,22 @@ export function PublicDocumentPreviewModal({
 
       setVerificationCode(data.verification_code);
       
-      // Set template settings from response
+      // Set template settings from response with proper JSONB parsing
       if (data.template_settings) {
-        setTemplateSettings({ ...defaultSettings, ...data.template_settings });
+        const mergedSettings: TemplateSettings = {
+          ...defaultSettings,
+          ...data.template_settings,
+          // Parse JSONB layout settings properly
+          invoice_layout_settings: typeof data.template_settings.invoice_layout_settings === 'object' 
+            && data.template_settings.invoice_layout_settings
+            ? { ...defaultSettings.invoice_layout_settings, ...data.template_settings.invoice_layout_settings }
+            : defaultSettings.invoice_layout_settings,
+          receipt_layout_settings: typeof data.template_settings.receipt_layout_settings === 'object' 
+            && data.template_settings.receipt_layout_settings
+            ? { ...defaultSettings.receipt_layout_settings, ...data.template_settings.receipt_layout_settings }
+            : defaultSettings.receipt_layout_settings,
+        };
+        setTemplateSettings(mergedSettings);
       }
       
       if (data.payment) {
