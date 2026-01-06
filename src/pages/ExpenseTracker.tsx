@@ -161,12 +161,23 @@ export default function ExpenseTracker() {
       filtered = filtered.filter(exp => exp.category === filterCategory);
     }
 
-    if (filterMonth) {
+    // Handle "all" months - show all expenses without date filter
+    if (filterMonth && filterMonth !== "all") {
       filtered = filtered.filter(exp => exp.date.startsWith(filterMonth));
     }
 
     setFilteredExpenses(filtered);
     setCurrentPage(1); // Reset to page 1 on filter change
+  };
+
+  // Generate month options from expenses data
+  const getAvailableMonths = () => {
+    const months = new Set<string>();
+    expenses.forEach(exp => {
+      const month = exp.date.slice(0, 7); // YYYY-MM
+      months.add(month);
+    });
+    return Array.from(months).sort().reverse();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -577,12 +588,19 @@ export default function ExpenseTracker() {
             </div>
             <div>
               <Label>Bulan</Label>
-              <Input
-                type="month"
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
-                className="border-2 border-orange-500/20 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/50"
-              />
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger className="border-2 border-orange-500/20 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">📅 Semua Bulan</SelectItem>
+                  {getAvailableMonths().map(month => (
+                    <SelectItem key={month} value={month}>
+                      {new Date(month + '-01').toLocaleDateString('id-ID', { year: 'numeric', month: 'long' })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
