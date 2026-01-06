@@ -167,13 +167,23 @@ serve(async (req) => {
       .order('order_index');
 
     // Merge template settings with brand settings fallback for logo
+    // Ensure layout settings are properly structured as objects for JSONB parsing
     const mergedTemplateSettings = templateSettings ? {
       ...templateSettings,
       invoice_logo_url: templateSettings.invoice_logo_url || brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || brandSettings?.logo_url || null,
       company_name: templateSettings.company_name || brandSettings?.site_name || null,
+      // Ensure layout settings are objects (not null/undefined)
+      invoice_layout_settings: typeof templateSettings.invoice_layout_settings === 'object' && templateSettings.invoice_layout_settings
+        ? templateSettings.invoice_layout_settings
+        : {},
+      receipt_layout_settings: typeof templateSettings.receipt_layout_settings === 'object' && templateSettings.receipt_layout_settings
+        ? templateSettings.receipt_layout_settings
+        : {},
     } : {
       invoice_logo_url: brandSettings?.sidebar_logo_url || brandSettings?.brand_image_url || brandSettings?.logo_url || null,
       company_name: brandSettings?.site_name || null,
+      invoice_layout_settings: {},
+      receipt_layout_settings: {},
     };
 
     const response = {
