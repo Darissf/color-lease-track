@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, TrendingUp, Download, Filter, Receipt, Wallet } from "lucide-react";
+import { Plus, Trash2, Edit, TrendingUp, Download, Filter, Receipt, Wallet, ArrowRightLeft, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -70,6 +71,11 @@ export default function IncomeManagement() {
     amount: "",
     date: getNowInJakarta(),
   });
+  
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [targetBankId, setTargetBankId] = useState<string>("");
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   useEffect(() => {
     fetchIncomeSources();
@@ -254,6 +260,66 @@ export default function IncomeManagement() {
 
   const totalIncome = filteredIncome.reduce((sum, source) => sum + (source.amount || 0), 0);
   const avgDaily = filteredIncome.length > 0 ? totalIncome / getNowInJakarta().getDate() : 0;
+
+  // Bulk selection functions
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedIncomeSources.length) {
+      setSelectedIds(new Set());
+    } else {
+      const allIds = new Set(paginatedIncomeSources.map(inc => inc.id));
+      setSelectedIds(allIds);
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const handleBulkAssignBank = async () => {
+    if (selectedIds.size === 0 || !targetBankId) {
+      toast({ 
+        title: "Error", 
+        description: "Pilih item dan rekening bank tujuan", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsBulkUpdating(true);
+    const selectedBank = bankAccounts.find(b => b.id === targetBankId);
+    
+    const { error } = await supabase
+      .from("income_sources")
+      .update({ 
+        bank_account_id: targetBankId,
+        bank_name: selectedBank?.bank_name || null 
+      })
+      .in("id", Array.from(selectedIds));
+
+    if (error) {
+      toast({ title: "Error", description: "Gagal memperbarui data", variant: "destructive" });
+    } else {
+      toast({ 
+        title: "Sukses", 
+        description: `${selectedIds.size} pemasukan berhasil dipindahkan ke ${selectedBank?.bank_name}` 
+      });
+      setSelectedIds(new Set());
+      setTargetBankId("");
+      fetchIncomeSources();
+    }
+    setIsBulkUpdating(false);
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setTargetBankId("");
+  };
 
   // Helper functions for stats
   const getHighestSource = () => {
@@ -481,6 +547,62 @@ export default function IncomeManagement() {
           </CardContent>
         </Card>
 
+        {/* Bulk Action Bar */}
+        {selectedIds.size > 0 && (
+          <Card className="border-2 border-blue-500/30 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10 shadow-lg animate-in slide-in-from-top duration-300">
+            <CardContent className="py-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
+                    <ArrowRightLeft className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                    {selectedIds.size} item dipilih
+                  </span>
+                </div>
+                
+                <div className="flex-1" />
+                
+                <div className="flex flex-wrap items-center gap-3">
+                  <Select value={targetBankId} onValueChange={setTargetBankId}>
+                    <SelectTrigger className="w-[250px] border-2 border-blue-500/30 focus:border-blue-500">
+                      <SelectValue placeholder="Pilih rekening tujuan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map((bank) => (
+                        <SelectItem key={bank.id} value={bank.id}>
+                          <div className="flex items-center gap-2">
+                            <BankLogo bankName={bank.bank_name} size="sm" />
+                            <span>{bank.bank_name} - {bank.account_number}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button 
+                    onClick={handleBulkAssignBank}
+                    disabled={!targetBankId || isBulkUpdating}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    {isBulkUpdating ? "Memproses..." : "Pindahkan ke Bank"}
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={clearSelection}
+                    className="border-2 border-red-500/30 hover:bg-red-500/10 hover:border-red-500"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Batal
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Income Sources Table */}
         <Card className="border-2 border-emerald-500/20 shadow-lg">
           <CardHeader className="bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 border-b-2 border-emerald-500/20">
@@ -501,6 +623,13 @@ export default function IncomeManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 border-b-2 border-emerald-500/20">
+                      <TableHead className="w-[50px]">
+                        <Checkbox
+                          checked={selectedIds.size === paginatedIncomeSources.length && paginatedIncomeSources.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                          className="border-2 border-emerald-500"
+                        />
+                      </TableHead>
                       <TableHead className="font-semibold w-[60px]">
                         <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">No</span>
                       </TableHead>
@@ -528,8 +657,18 @@ export default function IncomeManagement() {
                     {paginatedIncomeSources.map((income, index) => (
                       <TableRow 
                         key={income.id}
-                        className="hover:bg-gradient-to-r hover:from-emerald-500/5 hover:to-teal-500/5 transition-all duration-300 hover:shadow-md"
+                        className={cn(
+                          "hover:bg-gradient-to-r hover:from-emerald-500/5 hover:to-teal-500/5 transition-all duration-300 hover:shadow-md",
+                          selectedIds.has(income.id) && "bg-blue-500/10"
+                        )}
                       >
+                        <TableCell className="w-[50px]">
+                          <Checkbox
+                            checked={selectedIds.has(income.id)}
+                            onCheckedChange={() => toggleSelectItem(income.id)}
+                            className="border-2 border-emerald-500/50"
+                          />
+                        </TableCell>
                         <TableCell className="text-center font-medium text-muted-foreground">
                           {startIndex + index + 1}
                         </TableCell>
