@@ -1,10 +1,8 @@
 /**
  * PDF Backend Service
- * Handles communication with VPS PDF generation server
+ * Handles communication with VPS PDF generation server via Edge Function proxy
+ * This avoids Mixed Content errors (HTTPS → HTTP blocked by browsers)
  */
-
-const PDF_API_URL = 'http://194.163.144.205:3000/generate-pdf';
-const PDF_API_KEY = 'rahasia123';
 
 export interface PDFGenerationResult {
   success: boolean;
@@ -12,7 +10,7 @@ export interface PDFGenerationResult {
 }
 
 /**
- * Generate PDF from HTML content via backend server
+ * Generate PDF from HTML content via Edge Function proxy
  * @param htmlContent - Full HTML document string
  * @param fileName - Name for the downloaded file (without .pdf extension)
  */
@@ -20,41 +18,42 @@ export async function generatePDFFromBackend(
   htmlContent: string,
   fileName: string
 ): Promise<PDFGenerationResult> {
-  // DEBUG: Log masuk fungsi
   console.log("📡 [pdfBackendService] generatePDFFromBackend DIPANGGIL");
   console.log("📡 [pdfBackendService] HTML length:", htmlContent?.length || 0, "chars");
   console.log("📡 [pdfBackendService] fileName:", fileName);
   
-  // Validasi input
   if (!htmlContent || htmlContent.length === 0) {
     console.error("❌ [pdfBackendService] htmlContent KOSONG!");
     return { success: false, error: 'HTML content is empty' };
   }
 
+  // Use Edge Function proxy to avoid Mixed Content error
+  const edgeFunctionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pdf-proxy`;
+
   try {
-    console.log("📡 [pdfBackendService] Mengirim ke VPS:", PDF_API_URL);
-    console.log("📡 [pdfBackendService] Body preview (first 500 chars):", htmlContent.substring(0, 500));
+    console.log("📡 [pdfBackendService] Mengirim ke Edge Function:", edgeFunctionUrl);
     
-    const response = await fetch(PDF_API_URL, {
+    const response = await fetch(edgeFunctionUrl, {
       method: 'POST',
-      mode: 'cors',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/pdf, application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({
-        htmlContent: htmlContent,
-        apiKey: PDF_API_KEY,
-      }),
+      body: JSON.stringify({ htmlContent, fileName }),
     });
 
     console.log("📡 [pdfBackendService] Response status:", response.status);
-    console.log("📡 [pdfBackendService] Response ok:", response.ok);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ [pdfBackendService] Server error:", response.status, errorText);
-      throw new Error(`Server error ${response.status}: ${errorText}`);
+      let errorMessage = `Server error ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        errorMessage = await response.text() || errorMessage;
+      }
+      console.error("❌ [pdfBackendService] Error:", errorMessage);
+      throw new Error(errorMessage);
     }
 
     // Receive PDF as blob
@@ -75,18 +74,7 @@ export async function generatePDFFromBackend(
     console.log("✅ [pdfBackendService] Download triggered untuk:", `${fileName}.pdf`);
     return { success: true };
   } catch (error) {
-    console.error("❌ [pdfBackendService] GAGAL FETCH:", error);
-    console.error("❌ [pdfBackendService] Error type:", (error as Error).name);
-    console.error("❌ [pdfBackendService] Error message:", (error as Error).message);
-    
-    // Check for common issues
-    if ((error as Error).message.includes('Failed to fetch')) {
-      console.error("❌ [pdfBackendService] Kemungkinan: CORS blocked, Network error, atau server tidak bisa diakses");
-    }
-    if ((error as Error).message.includes('Mixed Content')) {
-      console.error("❌ [pdfBackendService] Kemungkinan: Mixed Content - HTTPS page calling HTTP API");
-    }
-    
+    console.error("❌ [pdfBackendService] GAGAL:", error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
