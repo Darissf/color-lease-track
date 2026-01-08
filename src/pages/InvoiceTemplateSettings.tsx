@@ -259,7 +259,7 @@ const InvoiceTemplateSettings = () => {
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0"><ArrowLeft className="h-5 w-5" /></Button>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-semibold truncate">Template Dokumen</h1>
+              <h1 className="text-base sm:text-lg font-semibold truncate">Template Invoice dan Kwitansi</h1>
               <p className="text-xs text-muted-foreground hidden sm:block">Kustomisasi template invoice dan kwitansi</p>
             </div>
           </div>
