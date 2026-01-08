@@ -57,8 +57,17 @@ function getCompiledCSS(): string {
     console.warn("📄 [templateToHTML] StyleSheets API error:", e);
   }
   
-  console.log("📄 [templateToHTML] Total CSS collected:", collectedStyles.length, "chars");
-  return collectedStyles;
+  console.log("📄 [templateToHTML] Total CSS collected (before filter):", collectedStyles.length, "chars");
+  
+  // CRITICAL: Filter out @media print rules to avoid conflicts with VPS PDF generation
+  // VPS puppeteer may apply these rules and cause visibility:hidden or transform resets
+  const filteredCSS = collectedStyles.replace(
+    /@media\s+print\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g,
+    '/* @media print rules removed for PDF generation */'
+  );
+  
+  console.log("📄 [templateToHTML] CSS after @media print filter:", filteredCSS.length, "chars");
+  return filteredCSS;
 }
 
 /**
@@ -66,11 +75,18 @@ function getCompiledCSS(): string {
  */
 function getPDFOverrideCSS(): string {
   return `
-    /* PDF Generation Overrides */
+    /* ========== PDF Generation Overrides ========== */
+    
+    /* CRITICAL: Override any visibility:hidden from @media print that might have leaked */
     html, body {
-      margin: 0;
-      padding: 0;
-      background: white;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+      visibility: visible !important;
+    }
+    
+    body * {
+      visibility: visible !important;
     }
     
     /* A4 Paper dimensions - WITH POSITION RELATIVE for absolute children */
@@ -83,6 +99,7 @@ function getPDFOverrideCSS(): string {
       box-sizing: border-box !important;
       position: relative !important;
       overflow: visible !important;
+      visibility: visible !important;
     }
     
     /* Print page setup */
@@ -92,6 +109,8 @@ function getPDFOverrideCSS(): string {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       background: white !important;
+      position: relative !important;
+      visibility: visible !important;
     }
     
     /* Page break */
@@ -111,6 +130,7 @@ function getPDFOverrideCSS(): string {
     .footer-positioned {
       position: absolute !important;
       pointer-events: none !important;
+      visibility: visible !important;
       /* transform is set via inline styles - DO NOT override */
     }
     
@@ -118,6 +138,7 @@ function getPDFOverrideCSS(): string {
     .watermark-centered {
       position: absolute !important;
       pointer-events: none !important;
+      visibility: visible !important;
       /* transform is set via inline styles - DO NOT override */
     }
     
@@ -125,7 +146,15 @@ function getPDFOverrideCSS(): string {
     .stamp-positioned {
       position: absolute !important;
       pointer-events: none !important;
+      visibility: visible !important;
       /* transform is set via inline styles - DO NOT override */
+    }
+    
+    /* Ensure children of positioned elements are also visible */
+    .footer-positioned *,
+    .watermark-centered *,
+    .stamp-positioned * {
+      visibility: visible !important;
     }
     
     /* Ensure colors are printed */
