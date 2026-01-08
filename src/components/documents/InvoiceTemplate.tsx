@@ -544,16 +544,9 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                 {settings.signature_label || 'Hormat Kami,'}
               </p>
               
-              {/* 2. Image Container - holds signature and optional stamp */}
-              <div className="relative h-20 w-full flex items-center justify-center my-2">
-                {settings.signature_url && (
-                  <img 
-                    src={settings.signature_url} 
-                    alt="Signature" 
-                    className="max-h-16 max-w-[150px] object-contain"
-                    style={{ opacity: (settings.invoice_layout_settings?.signature_opacity ?? 100) / 100 }}
-                  />
-                )}
+              {/* 2. Signature Space - image is absolute positioned for layout control */}
+              <div className="relative h-20 w-full my-2">
+                {/* Placeholder space - actual signature image is absolutely positioned */}
               </div>
               
               {/* 3. Signer Name with individual styling */}
@@ -604,6 +597,25 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
         )}
 
         </div>
+
+        {/* Signature Image - Absolute Positioned for layout control (synced with Settings Preview) */}
+        {settings.show_signature !== false && settings.signature_url && (
+          <div 
+            className="absolute pointer-events-none z-30"
+            style={{
+              left: `${settings.invoice_layout_settings?.signature_position_x ?? 80}%`,
+              top: `${settings.invoice_layout_settings?.signature_position_y ?? 85}%`,
+              transform: `translate(-50%, -50%) scale(${settings.invoice_layout_settings?.signature_scale ?? 1})`,
+              opacity: (settings.invoice_layout_settings?.signature_opacity ?? 100) / 100,
+            }}
+          >
+            <img 
+              src={settings.signature_url} 
+              alt="Signature" 
+              className="max-w-[200px] max-h-[100px] object-contain"
+            />
+          </div>
+        )}
 
         {/* Fixed-positioned Stamp - dengan class stamp-positioned untuk preserve transform saat print */}
         {settings.show_stamp && settings.show_stamp_on_invoice && (
