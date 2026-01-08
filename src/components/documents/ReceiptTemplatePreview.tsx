@@ -504,14 +504,14 @@ export function ReceiptTemplatePreview({
 
         </div>
 
-        {/* QR Verification - Bottom-relative Positioned for consistent PDF */}
+        {/* QR Verification - Top-relative Positioned for consistent PDF */}
         {settings.show_qr_code && (
           <div 
             className="absolute pointer-events-none z-20 footer-positioned"
             style={{
               left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
-              bottom: `${((100 - (layoutSettings?.qr_verification_position_y ?? 92)) / 100) * 297}mm`,
-              transform: `translate(-50%, 50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
+              top: `${((layoutSettings?.qr_verification_position_y ?? 92) / 100) * 297}mm`,
+              transform: `translate(-50%, -50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
             }}
           >
             <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
@@ -536,14 +536,14 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
-        {/* Signature Image Only - Bottom-relative Positioned for consistent PDF */}
+        {/* Signature Image Only - Top-relative Positioned for consistent PDF */}
         {settings.show_signature !== false && settings.signature_url && (
           <div 
             className="absolute pointer-events-none z-30 footer-positioned"
             style={{
               left: `${layoutSettings?.signature_position_x ?? 80}%`,
-              bottom: `${((100 - (layoutSettings?.signature_position_y ?? 85)) / 100) * 297}mm`,
-              transform: `translate(-50%, 50%) scale(${layoutSettings?.signature_scale ?? 1})`,
+              top: `${((layoutSettings?.signature_position_y ?? 85) / 100) * 297}mm`,
+              transform: `translate(-50%, -50%) scale(${layoutSettings?.signature_scale ?? 1})`,
               opacity: (layoutSettings?.signature_opacity ?? 100) / 100,
             }}
           >
@@ -555,14 +555,14 @@ export function ReceiptTemplatePreview({
           </div>
         )}
 
-        {/* Stamp - Bottom-relative Positioned for consistent PDF */}
+        {/* Stamp - Top-relative Positioned for consistent PDF */}
         {settings.show_stamp && settings.show_stamp_on_receipt !== false && (
           <div 
             className="absolute pointer-events-none z-40"
             style={{
               left: `${layoutSettings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
-              bottom: `${((100 - (layoutSettings?.stamp_position_y ?? 70)) / 100) * 297}mm`,
-              transform: `translate(-50%, 50%) rotate(${layoutSettings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${layoutSettings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+              top: `${((layoutSettings?.stamp_position_y ?? 70) / 100) * 297}mm`,
+              transform: `translate(-50%, -50%) rotate(${layoutSettings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${layoutSettings?.stamp_scale ?? settings.stamp_scale ?? 1})`
             }}
           >
             {settings.stamp_source === 'custom' ? (
