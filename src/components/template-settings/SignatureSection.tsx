@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -6,7 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Upload, Trash2, Image as ImageIcon, ChevronDown, Type, Move, Palette } from 'lucide-react';
+import { Upload, Trash2, Image as ImageIcon, ChevronDown, Type, Move, Palette, ZoomIn, ZoomOut } from 'lucide-react';
 import { TemplateSettings, LayoutSettings, fontFamilies } from './types';
 
 interface SignatureSectionProps {
@@ -31,6 +31,7 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
   documentMode = 'invoice', // Default to invoice
 }) => {
   const signatureInputRef = useRef<HTMLInputElement>(null);
+  const [previewZoom, setPreviewZoom] = useState(1);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -625,103 +626,142 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Preview - Simulasi dokumen dengan absolute positioning seperti dokumen asli */}
+          {/* Preview - Simulasi dokumen dengan zoom dan layout seperti dokumen asli */}
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">Preview ({documentMode === 'receipt' ? 'Kwitansi' : 'Invoice'}):</Label>
-            
-            {/* Container dengan aspect ratio A4 (210:297) untuk matching preview */}
-            <div 
-              className="rounded-lg border bg-white relative overflow-hidden mx-auto" 
-              style={{ 
-                width: '100%',
-                maxWidth: '200px',
-                aspectRatio: '210 / 297',
-                backgroundColor: '#fafafa'
-              }}
-            >
-              {/* Signature Image - Absolute positioned SAMA dengan dokumen asli */}
-              {settings.signature_url && (
-                <div 
-                  className="absolute pointer-events-none"
-                  style={{
-                    left: `${posX}%`,
-                    top: `${posY}%`,
-                    transform: `translate(-50%, -50%) scale(${scale * 0.2})`,
-                    opacity: opacity / 100,
-                  }}
+            {/* Header dengan zoom controls */}
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Preview ({documentMode === 'receipt' ? 'Kwitansi' : 'Invoice'}):
+              </Label>
+              <div className="flex items-center gap-1">
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-6 w-6"
+                  onClick={() => setPreviewZoom(z => Math.max(0.5, z - 0.25))}
+                  disabled={previewZoom <= 0.5}
                 >
-                  <img 
-                    src={settings.signature_url} 
-                    alt="Signature" 
-                    className="max-w-[200px] max-h-[100px] object-contain"
-                  />
-                </div>
-              )}
-              
-              {/* Signature Text Block - Posisi sama dengan dokumen asli */}
+                  <ZoomOut className="h-3 w-3" />
+                </Button>
+                <span className="text-xs text-muted-foreground w-10 text-center">
+                  {Math.round(previewZoom * 100)}%
+                </span>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-6 w-6"
+                  onClick={() => setPreviewZoom(z => Math.min(2, z + 0.25))}
+                  disabled={previewZoom >= 2}
+                >
+                  <ZoomIn className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+            
+            {/* Scrollable container untuk zoom */}
+            <div 
+              className="rounded-lg border bg-muted/30 overflow-auto"
+              style={{ maxHeight: '400px' }}
+            >
+              {/* Container dengan aspect ratio A4 dan zoom */}
               <div 
-                className="absolute text-center"
-                style={{
-                  left: '80%',
-                  top: '88%',
-                  transform: 'translate(-50%, -50%)',
-                  maxWidth: '35%'
+                className="bg-white relative mx-auto" 
+                style={{ 
+                  width: `${200 * previewZoom}px`,
+                  aspectRatio: '210 / 297',
+                  backgroundColor: '#fafafa'
                 }}
               >
-                {/* Label */}
-                <p 
-                  style={{
-                    fontSize: '5px',
-                    fontFamily: getLabelFontFamily() === 'inherit' ? 'inherit' : getLabelFontFamily(),
-                    color: getLabelColor(),
-                    fontWeight: getLabelFontWeight(),
-                    fontStyle: getLabelFontStyle(),
-                    textDecoration: getLabelTextDecoration(),
-                  }}
-                >
-                  {settings.signature_label || 'Hormat Kami,'}
-                </p>
+                {/* Simulasi konten dokumen */}
+                <div 
+                  className="absolute inset-x-0 top-0 bg-gradient-to-b from-gray-200/50 to-transparent" 
+                  style={{ height: '50%' }} 
+                />
                 
-                {/* Placeholder garis jika tidak ada signature */}
-                {!settings.signature_url && (
-                  <div className="h-2 w-8 border-b border-gray-400 mx-auto my-1" />
-                )}
-                
-                {/* Name */}
-                <p 
-                  className="mt-3"
-                  style={{
-                    fontSize: '5px',
-                    fontFamily: getNameFontFamily() === 'inherit' ? 'inherit' : getNameFontFamily(),
-                    color: getNameColor(),
-                    fontWeight: getNameFontWeight(),
-                    fontStyle: getNameFontStyle(),
-                    textDecoration: getNameTextDecoration(),
-                  }}
-                >
-                  {settings.signer_name || 'Nama Penanda'}
-                </p>
-                
-                {/* Title */}
-                {settings.signer_title && (
-                  <p 
+                {/* Signature Image - Absolute positioned SAMA dengan dokumen asli */}
+                {settings.signature_url && (
+                  <div 
+                    className="absolute pointer-events-none"
                     style={{
-                      fontSize: '4px',
-                      fontFamily: getTitleFontFamily() === 'inherit' ? 'inherit' : getTitleFontFamily(),
-                      color: getTitleColor(),
-                      fontWeight: getTitleFontWeight(),
-                      fontStyle: getTitleFontStyle(),
-                      textDecoration: getTitleTextDecoration(),
+                      left: `${posX}%`,
+                      top: `${posY}%`,
+                      transform: `translate(-50%, -50%) scale(${scale * 0.2 * previewZoom})`,
+                      transformOrigin: 'center center',
+                      opacity: opacity / 100,
                     }}
                   >
-                    {settings.signer_title}
-                  </p>
+                    <img 
+                      src={settings.signature_url} 
+                      alt="Signature" 
+                      className="max-w-[200px] max-h-[100px] object-contain"
+                    />
+                  </div>
                 )}
-              </div>
-              
-              {/* Indicator posisi */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gray-100/90 text-[6px] text-center text-muted-foreground py-0.5">
-                X={posX}% Y={posY}% | Skala: {Math.round(scale * 100)}%
+                
+                {/* Signature Text Block - flex justify-end seperti dokumen asli */}
+                <div className="absolute bottom-[10%] right-[5%] left-[5%]">
+                  <div className="flex justify-end">
+                    <div 
+                      className="flex flex-col items-center text-center"
+                      style={{ minWidth: `${60 * previewZoom}px` }}
+                    >
+                      {/* Label */}
+                      <p 
+                        style={{
+                          fontSize: `${5 * previewZoom}px`,
+                          fontFamily: getLabelFontFamily() === 'inherit' ? 'inherit' : getLabelFontFamily(),
+                          color: getLabelColor(),
+                          fontWeight: getLabelFontWeight(),
+                          fontStyle: getLabelFontStyle(),
+                          textDecoration: getLabelTextDecoration(),
+                        }}
+                      >
+                        {settings.signature_label || 'Hormat Kami,'}
+                      </p>
+                      
+                      {/* Space untuk signature */}
+                      <div style={{ height: `${24 * previewZoom}px` }} />
+                      
+                      {/* Name */}
+                      <p 
+                        style={{
+                          fontSize: `${5 * previewZoom}px`,
+                          fontFamily: getNameFontFamily() === 'inherit' ? 'inherit' : getNameFontFamily(),
+                          color: getNameColor(),
+                          fontWeight: getNameFontWeight(),
+                          fontStyle: getNameFontStyle(),
+                          textDecoration: getNameTextDecoration(),
+                        }}
+                      >
+                        {settings.signer_name || 'Nama Penanda'}
+                      </p>
+                      
+                      {/* Title */}
+                      {settings.signer_title && (
+                        <p 
+                          style={{
+                            fontSize: `${4 * previewZoom}px`,
+                            fontFamily: getTitleFontFamily() === 'inherit' ? 'inherit' : getTitleFontFamily(),
+                            color: getTitleColor(),
+                            fontWeight: getTitleFontWeight(),
+                            fontStyle: getTitleFontStyle(),
+                            textDecoration: getTitleTextDecoration(),
+                          }}
+                        >
+                          {settings.signer_title}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Indicator posisi */}
+                <div 
+                  className="absolute bottom-0 left-0 right-0 bg-gray-100/90 text-center text-muted-foreground py-0.5"
+                  style={{ fontSize: `${6 * previewZoom}px` }}
+                >
+                  X={posX}% Y={posY}% | Skala: {Math.round(scale * 100)}%
+                </div>
               </div>
             </div>
           </div>
