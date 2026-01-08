@@ -518,7 +518,8 @@ export function InvoiceTemplatePreview({
                   fontWeight: settings.signature_label_font_weight ?? 'normal',
                   fontStyle: settings.signature_label_font_style ?? 'normal',
                   textDecoration: settings.signature_label_text_decoration ?? 'none',
-                  transform: `translate(${settings.signature_label_position_x ?? 0}px, ${settings.signature_label_position_y ?? 0}px)`
+                  marginLeft: `${settings.signature_label_position_x ?? 0}px`,
+                  marginTop: `${settings.signature_label_position_y ?? 0}px`,
                 }}
               >
                 {settings.signature_label || 'Hormat Kami,'}
@@ -538,7 +539,8 @@ export function InvoiceTemplatePreview({
                   fontWeight: settings.signer_name_font_weight ?? 'bold',
                   fontStyle: settings.signer_name_font_style ?? 'normal',
                   textDecoration: settings.signer_name_text_decoration ?? 'none',
-                  transform: `translate(${settings.signer_name_position_x ?? 0}px, ${settings.signer_name_position_y ?? 0}px)`
+                  marginLeft: `${settings.signer_name_position_x ?? 0}px`,
+                  marginTop: `${settings.signer_name_position_y ?? 0}px`,
                 }}
               >
                 {sampleData.ownerName}
@@ -556,7 +558,8 @@ export function InvoiceTemplatePreview({
                     fontWeight: settings.signer_title_font_weight ?? 'normal',
                     fontStyle: settings.signer_title_font_style ?? 'normal',
                     textDecoration: settings.signer_title_text_decoration ?? 'none',
-                    transform: `translate(${settings.signer_title_position_x ?? 0}px, ${settings.signer_title_position_y ?? 0}px)`
+                    marginLeft: `${settings.signer_title_position_x ?? 0}px`,
+                    marginTop: `${settings.signer_title_position_y ?? 0}px`,
                   }}
                 >
                   {sampleData.signerTitle}
