@@ -774,25 +774,29 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   </div>
                 </div>
                 
-                {/* Signature Image - Absolute positioned SAMA dengan dokumen asli */}
-                {settings.signature_url && (
-                  <div 
-                    className="absolute pointer-events-none"
-                    style={{
-                      left: `${posX}%`,
-                      top: `${posY}%`,
-                      transform: `translate(-50%, -50%) scale(${scale * 0.2 * previewZoom})`,
-                      transformOrigin: 'center center',
-                      opacity: opacity / 100,
-                    }}
-                  >
-                    <img 
-                      src={settings.signature_url} 
-                      alt="Signature" 
-                      className="max-w-[200px] max-h-[100px] object-contain"
-                    />
-                  </div>
-                )}
+                {/* Signature Image - Absolute positioned dengan proporsi yang sama */}
+                {settings.signature_url && (() => {
+                  // A4 width in px at 96dpi ≈ 793px, preview container = 200px * previewZoom
+                  const containerScaleFactor = (200 * previewZoom) / 793;
+                  return (
+                    <div 
+                      className="absolute pointer-events-none z-30"
+                      style={{
+                        left: `${posX}%`,
+                        top: `${posY}%`,
+                        transform: `translate(-50%, -50%) scale(${scale * containerScaleFactor})`,
+                        transformOrigin: 'center center',
+                        opacity: opacity / 100,
+                      }}
+                    >
+                      <img 
+                        src={settings.signature_url} 
+                        alt="Signature" 
+                        className="max-w-[200px] max-h-[100px] object-contain"
+                      />
+                    </div>
+                  );
+                })()}
                 
                 {/* Indicator posisi */}
                 <div 
