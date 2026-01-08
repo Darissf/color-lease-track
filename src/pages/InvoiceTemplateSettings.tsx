@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2, Stamp, PenTool, Wallet, TypeIcon, TextCursor, Eye } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2, Image as ImageIcon, Loader2, Stamp, PenTool, Wallet, TypeIcon, TextCursor, Eye, Copy, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageCropper } from '@/components/ImageCropper';
 import { SignatureCropper } from '@/components/SignatureCropper';
@@ -45,6 +46,7 @@ const InvoiceTemplateSettings = () => {
   const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [isEditingMode, setIsEditingMode] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -187,6 +189,7 @@ const InvoiceTemplateSettings = () => {
 
   const updateSetting = <K extends keyof TemplateSettings>(key: K, value: TemplateSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+    setHasUnsavedChanges(true);
   };
 
   // Update layout settings based on active tab
@@ -208,6 +211,25 @@ const InvoiceTemplateSettings = () => {
         }
       }));
     }
+    setHasUnsavedChanges(true);
+  };
+
+  // Copy layout settings between invoice and receipt
+  const copyLayoutSettings = (direction: 'invoice-to-receipt' | 'receipt-to-invoice') => {
+    if (direction === 'invoice-to-receipt') {
+      setSettings(prev => ({
+        ...prev,
+        receipt_layout_settings: { ...prev.invoice_layout_settings }
+      }));
+      toast.success('Settings layout Invoice berhasil disalin ke Kwitansi');
+    } else {
+      setSettings(prev => ({
+        ...prev,
+        invoice_layout_settings: { ...prev.receipt_layout_settings }
+      }));
+      toast.success('Settings layout Kwitansi berhasil disalin ke Invoice');
+    }
+    setHasUnsavedChanges(true);
   };
 
   // Get current layout settings based on active tab
@@ -235,6 +257,7 @@ const InvoiceTemplateSettings = () => {
       const { error } = await supabase.from('document_settings').upsert(saveData as any, { onConflict: 'user_id' });
       if (error) throw error;
       toast.success('Pengaturan template berhasil disimpan');
+      setHasUnsavedChanges(false);
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Gagal menyimpan pengaturan');
@@ -245,6 +268,7 @@ const InvoiceTemplateSettings = () => {
 
   const handleReset = () => {
     setSettings(defaultSettings);
+    setHasUnsavedChanges(true);
     toast.info('Pengaturan dikembalikan ke default');
   };
 
@@ -263,7 +287,14 @@ const InvoiceTemplateSettings = () => {
               <p className="text-xs text-muted-foreground hidden sm:block">Kustomisasi template invoice dan kwitansi</p>
             </div>
           </div>
-          <div className="flex gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Unsaved Changes Indicator */}
+            {hasUnsavedChanges && (
+              <span className="text-xs text-amber-600 flex items-center gap-1 mr-1">
+                <AlertCircle className="h-3 w-3" />
+                <span className="hidden sm:inline">Belum tersimpan</span>
+              </span>
+            )}
             {/* Mobile: View Toggle */}
             {isMobile && (
               <Button 
@@ -276,6 +307,23 @@ const InvoiceTemplateSettings = () => {
                 <span className="hidden sm:inline">{mobileView === 'settings' ? 'Preview' : 'Settings'}</span>
               </Button>
             )}
+            {/* Copy Layout Settings */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Copy className="h-4 w-4" />
+                  <span className="hidden sm:inline">Copy Layout</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => copyLayoutSettings('invoice-to-receipt')}>
+                  Invoice → Kwitansi
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => copyLayoutSettings('receipt-to-invoice')}>
+                  Kwitansi → Invoice
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button 
               variant={isEditingMode ? "default" : "outline"} 
               size="sm" 
