@@ -94,7 +94,7 @@ export function ReceiptTemplatePreview({
   return (
     <div
       ref={documentRef}
-      className="paper-document bg-white text-gray-900 p-8 pb-12 relative overflow-visible"
+      className="paper-document bg-white text-gray-900 relative overflow-visible"
       style={{
         fontFamily: getFontFamily(),
         fontSize: `${settings.font_size_base || 14}px`,

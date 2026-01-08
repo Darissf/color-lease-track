@@ -1525,7 +1525,7 @@ All colors MUST be HSL.
   height: 297mm !important;
   background-color: white !important;
   position: relative;
-  padding: 0;
+  padding: 8mm 10mm 12mm 10mm !important;
   margin: 0 auto;
   box-sizing: border-box;
   overflow: hidden;

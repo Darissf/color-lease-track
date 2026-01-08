@@ -90,15 +90,16 @@ function getPDFOverrideCSS(): string {
     }
     
     /* A4 Paper dimensions - FIXED HEIGHT for consistent positioning */
-    .paper-document {
-      width: 210mm !important;
-      height: 297mm !important;
-      background: white !important;
-      box-sizing: border-box !important;
-      position: relative !important;
-      overflow: hidden !important;
-      visibility: visible !important;
-    }
+      .paper-document {
+        width: 210mm !important;
+        height: 297mm !important;
+        background: white !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+        overflow: hidden !important;
+        visibility: visible !important;
+        padding: 8mm 10mm 12mm 10mm !important;
+      }
     
     /* Print page setup */
     .print-page {
