@@ -105,10 +105,10 @@ export function ReceiptTemplatePreview({
         <div 
           className="absolute pointer-events-none z-50"
           style={{ 
-            left: `${settings.receipt_layout_settings?.watermark_position_x ?? settings.watermark_position_x ?? 50}%`,
-            top: `${settings.receipt_layout_settings?.watermark_position_y ?? settings.watermark_position_y ?? 50}%`,
-            transform: `translate(-50%, -50%) rotate(${settings.receipt_layout_settings?.watermark_rotation ?? settings.watermark_rotation ?? -45}deg)`,
-            opacity: (settings.receipt_layout_settings?.watermark_opacity ?? settings.watermark_opacity ?? 10) / 100
+            left: `${layoutSettings?.watermark_position_x ?? settings.watermark_position_x ?? 50}%`,
+            top: `${layoutSettings?.watermark_position_y ?? settings.watermark_position_y ?? 50}%`,
+            transform: `translate(-50%, -50%) rotate(${layoutSettings?.watermark_rotation ?? settings.watermark_rotation ?? -45}deg)`,
+            opacity: (layoutSettings?.watermark_opacity ?? settings.watermark_opacity ?? 10) / 100
           }}
         >
           {settings.watermark_type === 'logo' && settings.invoice_logo_url ? (
@@ -116,7 +116,7 @@ export function ReceiptTemplatePreview({
               src={settings.invoice_logo_url} 
               alt="" 
               style={{ 
-                width: `${settings.receipt_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`,
+                width: `${layoutSettings?.watermark_size ?? settings.watermark_size ?? 300}px`,
                 height: 'auto'
               }}
               className="object-contain" 
@@ -126,7 +126,7 @@ export function ReceiptTemplatePreview({
               className="font-bold text-gray-300 whitespace-nowrap"
               style={{ 
                 fontFamily: getHeadingFontFamily(),
-                fontSize: `${settings.receipt_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`
+                fontSize: `${layoutSettings?.watermark_size ?? settings.watermark_size ?? 300}px`
               }}
             >
               {settings.watermark_text || 'DRAFT'}
@@ -541,10 +541,10 @@ export function ReceiptTemplatePreview({
           <div 
             className="absolute pointer-events-none z-30 footer-positioned"
             style={{
-              left: `${settings.receipt_layout_settings?.signature_position_x ?? 80}%`,
-              top: `${settings.receipt_layout_settings?.signature_position_y ?? 85}%`,
-              transform: `translate(-50%, -50%) scale(${settings.receipt_layout_settings?.signature_scale ?? 1})`,
-              opacity: (settings.receipt_layout_settings?.signature_opacity ?? 100) / 100,
+              left: `${layoutSettings?.signature_position_x ?? 80}%`,
+              top: `${layoutSettings?.signature_position_y ?? 85}%`,
+              transform: `translate(-50%, -50%) scale(${layoutSettings?.signature_scale ?? 1})`,
+              opacity: (layoutSettings?.signature_opacity ?? 100) / 100,
             }}
           >
             <img 
@@ -560,9 +560,9 @@ export function ReceiptTemplatePreview({
           <div 
             className="absolute pointer-events-none z-40"
             style={{
-              left: `${settings.receipt_layout_settings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
-              top: `${settings.receipt_layout_settings?.stamp_position_y ?? 70}%`,
-              transform: `translate(-50%, -50%) rotate(${settings.receipt_layout_settings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${settings.receipt_layout_settings?.stamp_scale ?? settings.stamp_scale ?? 1})`
+              left: `${layoutSettings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
+              top: `${layoutSettings?.stamp_position_y ?? 70}%`,
+              transform: `translate(-50%, -50%) rotate(${layoutSettings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${layoutSettings?.stamp_scale ?? settings.stamp_scale ?? 1})`
             }}
           >
             {settings.stamp_source === 'custom' ? (
