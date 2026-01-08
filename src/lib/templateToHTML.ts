@@ -89,16 +89,16 @@ function getPDFOverrideCSS(): string {
       visibility: visible !important;
     }
     
-    /* A4 Paper dimensions - WITH POSITION RELATIVE for absolute children */
+    /* A4 Paper dimensions - FIXED HEIGHT for bottom positioning */
     .paper-document {
       width: 210mm !important;
-      min-height: 297mm !important;
+      height: 297mm !important;
       padding: 32px !important;
       padding-bottom: 48px !important;
       background: white !important;
       box-sizing: border-box !important;
       position: relative !important;
-      overflow: visible !important;
+      overflow: hidden !important;
       visibility: visible !important;
     }
     

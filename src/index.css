@@ -1522,13 +1522,13 @@ All colors MUST be HSL.
 /* CLASS UTAMA: Berlaku untuk Admin, Preview, DAN Print */
 .paper-document {
   width: 210mm !important;
-  min-height: 297mm !important;
+  height: 297mm !important;
   background-color: white !important;
   position: relative;
   padding: 0;
   margin: 0 auto;
   box-sizing: border-box;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* TAMPILAN LAYAR (Admin & Preview Modal) */
