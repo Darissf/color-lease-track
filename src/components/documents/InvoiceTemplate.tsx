@@ -498,30 +498,8 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
         {/* Footer Section - Unified Flex Layout for Print Stability */}
         <div className="invoice-footer-section flex justify-between items-end px-0 pb-4 mt-8" style={{ pageBreakInside: 'avoid' }}>
           
-          {/* Left Side: QR Verification - IN FLOW */}
-          {settings.show_qr_code ? (
-            <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
-              <QRCode 
-                value={verificationUrl} 
-                size={layoutSettings?.qr_size ?? settings.qr_size ?? 80} 
-              />
-              <div className="text-sm">
-                <p className="text-gray-500">
-                  {settings.qr_verification_title || 'Scan untuk verifikasi dokumen'}
-                </p>
-                <p className="font-mono text-xs text-gray-400 mt-1">
-                  {settings.qr_verification_label || 'Kode:'} {verificationCode}
-                </p>
-                {settings.show_qr_verification_url !== false && (
-                  <p className="text-xs text-blue-600 break-all max-w-[150px]">
-                    {verificationUrl}
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div /> /* Spacer when no QR */
-          )}
+          {/* Left Side: Spacer - QR is now absolute positioned */}
+          <div />
           
           {/* Right Side: Unified Signature Block - All elements stacked together */}
           {settings.show_signature !== false && (
@@ -598,15 +576,47 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
 
         </div>
 
+        {/* QR Verification - Absolute Positioned (synced with Settings Preview) */}
+        {settings.show_qr_code && (
+          <div 
+            className="absolute pointer-events-none z-20"
+            style={{
+              left: `${layoutSettings?.qr_verification_position_x ?? 15}%`,
+              top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
+              transform: `translate(-50%, -50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
+            }}
+          >
+            <div className="flex items-center gap-3 bg-white/95 p-3 rounded-lg shadow-sm border border-gray-100" data-qr="verification">
+              <QRCode 
+                value={verificationUrl} 
+                size={layoutSettings?.qr_size ?? settings.qr_size ?? 80} 
+              />
+              <div className="text-sm">
+                <p className="text-gray-500">
+                  {settings.qr_verification_title || 'Scan untuk verifikasi dokumen'}
+                </p>
+                <p className="font-mono text-xs text-gray-400 mt-1">
+                  {settings.qr_verification_label || 'Kode:'} {verificationCode}
+                </p>
+                {settings.show_qr_verification_url !== false && (
+                  <p className="text-xs text-blue-600 break-all max-w-[150px]">
+                    {verificationUrl}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Signature Image - Absolute Positioned for layout control (synced with Settings Preview) */}
         {settings.show_signature !== false && settings.signature_url && (
           <div 
             className="absolute pointer-events-none z-30"
             style={{
-              left: `${settings.invoice_layout_settings?.signature_position_x ?? 80}%`,
-              top: `${settings.invoice_layout_settings?.signature_position_y ?? 85}%`,
-              transform: `translate(-50%, -50%) scale(${settings.invoice_layout_settings?.signature_scale ?? 1})`,
-              opacity: (settings.invoice_layout_settings?.signature_opacity ?? 100) / 100,
+              left: `${layoutSettings?.signature_position_x ?? 80}%`,
+              top: `${layoutSettings?.signature_position_y ?? 85}%`,
+              transform: `translate(-50%, -50%) scale(${layoutSettings?.signature_scale ?? 1})`,
+              opacity: (layoutSettings?.signature_opacity ?? 100) / 100,
             }}
           >
             <img 
