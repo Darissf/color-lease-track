@@ -629,23 +629,24 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">Preview ({documentMode === 'receipt' ? 'Kwitansi' : 'Invoice'}):</Label>
             
-            {/* Container simulasi dokumen */}
+            {/* Container dengan aspect ratio A4 (210:297) untuk matching preview */}
             <div 
-              className="rounded-lg border bg-white relative overflow-hidden" 
+              className="rounded-lg border bg-white relative overflow-hidden mx-auto" 
               style={{ 
                 width: '100%',
-                height: '160px',
+                maxWidth: '200px',
+                aspectRatio: '210 / 297',
                 backgroundColor: '#fafafa'
               }}
             >
-              {/* Signature Image - Absolute positioned seperti dokumen asli */}
+              {/* Signature Image - Absolute positioned SAMA dengan dokumen asli */}
               {settings.signature_url && (
                 <div 
                   className="absolute pointer-events-none"
                   style={{
                     left: `${posX}%`,
                     top: `${posY}%`,
-                    transform: `translate(-50%, -50%) scale(${scale * 0.5})`,
+                    transform: `translate(-50%, -50%) scale(${scale * 0.2})`,
                     opacity: opacity / 100,
                   }}
                 >
@@ -657,25 +658,25 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 </div>
               )}
               
-              {/* Signature Text Block - Di kanan bawah seperti dokumen asli */}
+              {/* Signature Text Block - Posisi sama dengan dokumen asli */}
               <div 
                 className="absolute text-center"
                 style={{
-                  right: '10%',
-                  bottom: '15px',
-                  maxWidth: '45%'
+                  left: '80%',
+                  top: '88%',
+                  transform: 'translate(-50%, -50%)',
+                  maxWidth: '35%'
                 }}
               >
                 {/* Label */}
                 <p 
                   style={{
-                    fontSize: `${Math.max(8, getLabelFontSize() * 0.7)}px`,
+                    fontSize: '5px',
                     fontFamily: getLabelFontFamily() === 'inherit' ? 'inherit' : getLabelFontFamily(),
                     color: getLabelColor(),
                     fontWeight: getLabelFontWeight(),
                     fontStyle: getLabelFontStyle(),
                     textDecoration: getLabelTextDecoration(),
-                    transform: `translate(${getLabelPosX() * 0.5}px, ${getLabelPosY() * 0.5}px)`
                   }}
                 >
                   {settings.signature_label || 'Hormat Kami,'}
@@ -683,20 +684,19 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 
                 {/* Placeholder garis jika tidak ada signature */}
                 {!settings.signature_url && (
-                  <div className="h-6 w-16 border-b border-gray-400 mx-auto my-2" />
+                  <div className="h-2 w-8 border-b border-gray-400 mx-auto my-1" />
                 )}
                 
                 {/* Name */}
                 <p 
-                  className="mt-6"
+                  className="mt-3"
                   style={{
-                    fontSize: `${Math.max(8, getNameFontSize() * 0.7)}px`,
+                    fontSize: '5px',
                     fontFamily: getNameFontFamily() === 'inherit' ? 'inherit' : getNameFontFamily(),
                     color: getNameColor(),
                     fontWeight: getNameFontWeight(),
                     fontStyle: getNameFontStyle(),
                     textDecoration: getNameTextDecoration(),
-                    transform: `translate(${getNamePosX() * 0.5}px, ${getNamePosY() * 0.5}px)`
                   }}
                 >
                   {settings.signer_name || 'Nama Penanda'}
@@ -706,13 +706,12 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 {settings.signer_title && (
                   <p 
                     style={{
-                      fontSize: `${Math.max(8, getTitleFontSize() * 0.7)}px`,
+                      fontSize: '4px',
                       fontFamily: getTitleFontFamily() === 'inherit' ? 'inherit' : getTitleFontFamily(),
                       color: getTitleColor(),
                       fontWeight: getTitleFontWeight(),
                       fontStyle: getTitleFontStyle(),
                       textDecoration: getTitleTextDecoration(),
-                      transform: `translate(${getTitlePosX() * 0.5}px, ${getTitlePosY() * 0.5}px)`
                     }}
                   >
                     {settings.signer_title}
@@ -721,8 +720,8 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
               </div>
               
               {/* Indicator posisi */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gray-100/80 text-[9px] text-center text-muted-foreground py-0.5">
-                Gambar: X={posX}% Y={posY}% | Skala: {Math.round(scale * 100)}%
+              <div className="absolute bottom-0 left-0 right-0 bg-gray-100/90 text-[6px] text-center text-muted-foreground py-0.5">
+                X={posX}% Y={posY}% | Skala: {Math.round(scale * 100)}%
               </div>
             </div>
           </div>
