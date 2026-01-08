@@ -31,19 +31,11 @@ const InvoiceSettings = () => {
     },
     {
       icon: FileText,
-      title: "Template Invoice",
-      description: "Custom template design untuk invoice",
+      title: "Template Invoice dan Kwitansi",
+      description: "Custom template design untuk invoice dan kwitansi",
       color: "bg-blue-600",
       comingSoon: false,
       href: "/vip/settings/invoice/template",
-    },
-    {
-      icon: ScrollText,
-      title: "Template Kwitansi",
-      description: "Custom template design untuk kwitansi",
-      color: "bg-violet-600",
-      comingSoon: false,
-      href: "/vip/settings/invoice/template?tab=receipt",
     },
     {
       icon: FileEdit,
