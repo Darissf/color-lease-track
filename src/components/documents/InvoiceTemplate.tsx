@@ -581,7 +581,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
           <div 
             className="absolute pointer-events-none z-20"
             style={{
-              left: `${layoutSettings?.qr_verification_position_x ?? 15}%`,
+              left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
               top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
               transform: `translate(-50%, -50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
             }}
