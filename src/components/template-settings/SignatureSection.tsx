@@ -674,107 +674,110 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   boxSizing: 'border-box',
                 }}
               >
-                {/* Simulasi Header */}
-                <div 
-                  className="bg-gradient-to-r from-primary/60 to-primary/40 rounded-sm"
-                  style={{ height: `${10 * previewZoom}px`, marginBottom: `${4 * previewZoom}px` }}
-                />
-                
-                {/* Simulasi Logo + Company Info */}
-                <div className="flex items-start gap-1" style={{ marginBottom: `${6 * previewZoom}px` }}>
+                {/* ===== KONTEN WRAPPER (seperti z-10 di dokumen asli) ===== */}
+                <div className="relative z-10">
+                  {/* Simulasi Header */}
                   <div 
-                    className="bg-muted rounded flex-shrink-0"
-                    style={{ width: `${20 * previewZoom}px`, height: `${20 * previewZoom}px` }}
+                    className="bg-gradient-to-r from-primary/60 to-primary/40 rounded-sm"
+                    style={{ height: `${10 * previewZoom}px`, marginBottom: `${4 * previewZoom}px` }}
                   />
-                  <div className="flex-1">
-                    <div className="bg-muted rounded" style={{ height: `${4 * previewZoom}px`, width: '70%', marginBottom: `${2 * previewZoom}px` }} />
-                    <div className="bg-muted/60 rounded" style={{ height: `${3 * previewZoom}px`, width: '50%' }} />
+                  
+                  {/* Simulasi Logo + Company Info */}
+                  <div className="flex items-start gap-1" style={{ marginBottom: `${6 * previewZoom}px` }}>
+                    <div 
+                      className="bg-muted rounded flex-shrink-0"
+                      style={{ width: `${20 * previewZoom}px`, height: `${20 * previewZoom}px` }}
+                    />
+                    <div className="flex-1">
+                      <div className="bg-muted rounded" style={{ height: `${4 * previewZoom}px`, width: '70%', marginBottom: `${2 * previewZoom}px` }} />
+                      <div className="bg-muted/60 rounded" style={{ height: `${3 * previewZoom}px`, width: '50%' }} />
+                    </div>
+                    <div 
+                      className="bg-primary/10 border border-primary/30 rounded px-1 flex-shrink-0"
+                      style={{ fontSize: `${4 * previewZoom}px` }}
+                    >
+                      INV-XXX
+                    </div>
                   </div>
+                  
+                  {/* Simulasi Tabel */}
                   <div 
-                    className="bg-primary/10 border border-primary/30 rounded px-1 flex-shrink-0"
-                    style={{ fontSize: `${4 * previewZoom}px` }}
-                  >
-                    INV-XXX
-                  </div>
-                </div>
-                
-                {/* Simulasi Tabel */}
-                <div 
-                  className="bg-muted/40 rounded" 
-                  style={{ height: `${35 * previewZoom}px`, marginBottom: `${6 * previewZoom}px` }} 
-                />
-                
-                {/* Simulasi Summary */}
-                <div className="flex justify-end" style={{ marginBottom: `${6 * previewZoom}px` }}>
-                  <div 
-                    className="bg-muted/50 rounded" 
-                    style={{ width: '40%', height: `${18 * previewZoom}px` }} 
+                    className="bg-muted/40 rounded" 
+                    style={{ height: `${35 * previewZoom}px`, marginBottom: `${6 * previewZoom}px` }} 
                   />
-                </div>
-                
-                {/* Simulasi Terbilang */}
-                <div 
-                  className="bg-primary/5 rounded" 
-                  style={{ height: `${10 * previewZoom}px`, marginBottom: `${12 * previewZoom}px` }} 
-                />
-                
-                {/* ============= SIGNATURE SECTION - Sama dengan dokumen asli ============= */}
-                {/* Signature Text Block - flex justify-end seperti dokumen asli */}
-                <div className="flex justify-end">
+                  
+                  {/* Simulasi Summary */}
+                  <div className="flex justify-end" style={{ marginBottom: `${6 * previewZoom}px` }}>
+                    <div 
+                      className="bg-muted/50 rounded" 
+                      style={{ width: '40%', height: `${18 * previewZoom}px` }} 
+                    />
+                  </div>
+                  
+                  {/* Simulasi Terbilang */}
                   <div 
-                    className="flex flex-col items-center text-center"
-                    style={{ minWidth: `${50 * previewZoom}px` }}
-                  >
-                    {/* Label */}
-                    <p 
-                      style={{
-                        fontSize: `${5 * previewZoom}px`,
-                        fontFamily: getLabelFontFamily() === 'inherit' ? 'inherit' : getLabelFontFamily(),
-                        color: getLabelColor(),
-                        fontWeight: getLabelFontWeight(),
-                        fontStyle: getLabelFontStyle(),
-                        textDecoration: getLabelTextDecoration(),
-                      }}
+                    className="bg-primary/5 rounded" 
+                    style={{ height: `${10 * previewZoom}px`, marginBottom: `${12 * previewZoom}px` }} 
+                  />
+                  
+                  {/* ============= SIGNATURE SECTION - Sama dengan dokumen asli ============= */}
+                  {/* Signature Text Block - flex justify-end seperti dokumen asli */}
+                  <div className="flex justify-end">
+                    <div 
+                      className="flex flex-col items-center text-center"
+                      style={{ minWidth: `${50 * previewZoom}px` }}
                     >
-                      {settings.signature_label || 'Hormat Kami,'}
-                    </p>
-                    
-                    {/* Space untuk signature */}
-                    <div style={{ height: `${20 * previewZoom}px` }} />
-                    
-                    {/* Name */}
-                    <p 
-                      style={{
-                        fontSize: `${5 * previewZoom}px`,
-                        fontFamily: getNameFontFamily() === 'inherit' ? 'inherit' : getNameFontFamily(),
-                        color: getNameColor(),
-                        fontWeight: getNameFontWeight(),
-                        fontStyle: getNameFontStyle(),
-                        textDecoration: getNameTextDecoration(),
-                      }}
-                    >
-                      {settings.signer_name || 'Nama Penanda'}
-                    </p>
-                    
-                    {/* Title */}
-                    {settings.signer_title && (
+                      {/* Label */}
                       <p 
                         style={{
-                          fontSize: `${4 * previewZoom}px`,
-                          fontFamily: getTitleFontFamily() === 'inherit' ? 'inherit' : getTitleFontFamily(),
-                          color: getTitleColor(),
-                          fontWeight: getTitleFontWeight(),
-                          fontStyle: getTitleFontStyle(),
-                          textDecoration: getTitleTextDecoration(),
+                          fontSize: `${5 * previewZoom}px`,
+                          fontFamily: getLabelFontFamily() === 'inherit' ? 'inherit' : getLabelFontFamily(),
+                          color: getLabelColor(),
+                          fontWeight: getLabelFontWeight(),
+                          fontStyle: getLabelFontStyle(),
+                          textDecoration: getLabelTextDecoration(),
                         }}
                       >
-                        {settings.signer_title}
+                        {settings.signature_label || 'Hormat Kami,'}
                       </p>
-                    )}
+                      
+                      {/* Space untuk signature */}
+                      <div style={{ height: `${20 * previewZoom}px` }} />
+                      
+                      {/* Name */}
+                      <p 
+                        style={{
+                          fontSize: `${5 * previewZoom}px`,
+                          fontFamily: getNameFontFamily() === 'inherit' ? 'inherit' : getNameFontFamily(),
+                          color: getNameColor(),
+                          fontWeight: getNameFontWeight(),
+                          fontStyle: getNameFontStyle(),
+                          textDecoration: getNameTextDecoration(),
+                        }}
+                      >
+                        {settings.signer_name || 'Nama Penanda'}
+                      </p>
+                      
+                      {/* Title */}
+                      {settings.signer_title && (
+                        <p 
+                          style={{
+                            fontSize: `${4 * previewZoom}px`,
+                            fontFamily: getTitleFontFamily() === 'inherit' ? 'inherit' : getTitleFontFamily(),
+                            color: getTitleColor(),
+                            fontWeight: getTitleFontWeight(),
+                            fontStyle: getTitleFontStyle(),
+                            textDecoration: getTitleTextDecoration(),
+                          }}
+                        >
+                          {settings.signer_title}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
-                {/* Signature Image - Absolute positioned dengan proporsi yang sama */}
+                {/* ===== SIGNATURE IMAGE - DIRECT CHILD dari container A4 (di luar wrapper konten) ===== */}
                 {settings.signature_url && (() => {
                   // A4 width in px at 96dpi ≈ 793px, preview container = 200px * previewZoom
                   const containerScaleFactor = (200 * previewZoom) / 793;
@@ -800,7 +803,7 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                 
                 {/* Indicator posisi */}
                 <div 
-                  className="absolute bottom-0 left-0 right-0 bg-background/90 text-center text-muted-foreground py-0.5"
+                  className="absolute bottom-0 left-0 right-0 bg-background/90 text-center text-muted-foreground py-0.5 z-40"
                   style={{ fontSize: `${6 * previewZoom}px` }}
                 >
                   X={posX}% Y={posY}% | Skala: {Math.round(scale * 100)}%
