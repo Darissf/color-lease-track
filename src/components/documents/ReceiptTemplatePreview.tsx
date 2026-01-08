@@ -510,7 +510,7 @@ export function ReceiptTemplatePreview({
             className="absolute pointer-events-none z-20 footer-positioned"
             style={{
               left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
-              top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
+              top: `${((layoutSettings?.qr_verification_position_y ?? 92) / 100) * 297}mm`,
               transform: `translate(-50%, -50%) scale(${layoutSettings?.qr_verification_scale ?? 1})`,
             }}
           >
@@ -542,7 +542,7 @@ export function ReceiptTemplatePreview({
             className="absolute pointer-events-none z-30 footer-positioned"
             style={{
               left: `${layoutSettings?.signature_position_x ?? 80}%`,
-              top: `${layoutSettings?.signature_position_y ?? 85}%`,
+              top: `${((layoutSettings?.signature_position_y ?? 85) / 100) * 297}mm`,
               transform: `translate(-50%, -50%) scale(${layoutSettings?.signature_scale ?? 1})`,
               opacity: (layoutSettings?.signature_opacity ?? 100) / 100,
             }}
@@ -561,7 +561,7 @@ export function ReceiptTemplatePreview({
             className="absolute pointer-events-none z-40"
             style={{
               left: `${layoutSettings?.stamp_position_x ?? settings.stamp_position_x ?? 10}%`,
-              top: `${layoutSettings?.stamp_position_y ?? 70}%`,
+              top: `${((layoutSettings?.stamp_position_y ?? 70) / 100) * 297}mm`,
               transform: `translate(-50%, -50%) rotate(${layoutSettings?.stamp_rotation ?? settings.stamp_rotation ?? 0}deg) scale(${layoutSettings?.stamp_scale ?? settings.stamp_scale ?? 1})`
             }}
           >
