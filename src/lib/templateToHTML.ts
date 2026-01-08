@@ -177,9 +177,9 @@ export function generateFullHTMLDocument<P extends object>(
   console.log("📄 [templateToHTML] templateComponent:", (templateComponent as any)?.name || "anonymous");
   console.log("📄 [templateToHTML] props keys:", Object.keys(props || {}));
   
-  // Render React component to static HTML
+  // Render React component to static HTML with forPdfCapture flag
   const templateHTML = renderToStaticMarkup(
-    createElement(templateComponent, props)
+    createElement(templateComponent, { ...props, forPdfCapture: true })
   );
   
   console.log("📄 [templateToHTML] templateHTML length:", templateHTML.length);
@@ -236,10 +236,10 @@ export function generateMultiPageHTMLDocument(pages: Array<{
   component: ComponentType<any>;
   props: any;
 }>): string {
-  // Render all pages
+  // Render all pages with forPdfCapture flag
   const pagesHTML = pages.map((page, index) => {
     const pageHTML = renderToStaticMarkup(
-      createElement(page.component, page.props)
+      createElement(page.component, { ...page.props, forPdfCapture: true })
     );
     
     // Add page break between pages (except last)
