@@ -73,13 +73,16 @@ function getPDFOverrideCSS(): string {
       background: white;
     }
     
-    /* A4 Paper dimensions */
+    /* A4 Paper dimensions - WITH POSITION RELATIVE for absolute children */
     .paper-document {
       width: 210mm !important;
       min-height: 297mm !important;
       padding: 32px !important;
+      padding-bottom: 48px !important;
       background: white !important;
       box-sizing: border-box !important;
+      position: relative !important;
+      overflow: visible !important;
     }
     
     /* Print page setup */
@@ -102,11 +105,27 @@ function getPDFOverrideCSS(): string {
       display: none !important;
     }
     
-    /* Watermark transform comes from inline styles - DO NOT override */
-    /* Rotation is dynamic from database settings (watermark_rotation) */
+    /* ========== CRITICAL: Preserve transforms for positioned elements ========== */
     
+    /* Footer-positioned elements (QR Verification, Signature Image) */
+    .footer-positioned {
+      position: absolute !important;
+      pointer-events: none !important;
+      /* transform is set via inline styles - DO NOT override */
+    }
+    
+    /* Watermark centering */
+    .watermark-centered {
+      position: absolute !important;
+      pointer-events: none !important;
+      /* transform is set via inline styles - DO NOT override */
+    }
+    
+    /* Stamp positioning */
     .stamp-positioned {
-      /* Preserve stamp rotation */
+      position: absolute !important;
+      pointer-events: none !important;
+      /* transform is set via inline styles - DO NOT override */
     }
     
     /* Ensure colors are printed */
