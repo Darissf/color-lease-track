@@ -507,7 +507,7 @@ export function ReceiptTemplatePreview({
         {/* QR Verification - Positioned from top for consistent PDF capture (match ReceiptTemplate) */}
         {settings.show_qr_code && (
           <div 
-            className="absolute pointer-events-none z-20"
+            className="absolute pointer-events-none z-20 footer-positioned"
             style={{
               left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
               top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
@@ -539,7 +539,7 @@ export function ReceiptTemplatePreview({
         {/* Signature Image Only - Positioned from top for consistent PDF capture (match ReceiptTemplate) */}
         {settings.show_signature !== false && settings.signature_url && (
           <div 
-            className="absolute pointer-events-none z-30"
+            className="absolute pointer-events-none z-30 footer-positioned"
             style={{
               left: `${settings.receipt_layout_settings?.signature_position_x ?? 80}%`,
               top: `${settings.receipt_layout_settings?.signature_position_y ?? 85}%`,

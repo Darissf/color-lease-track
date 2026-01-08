@@ -579,7 +579,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
         {/* QR Verification - Absolute Positioned (synced with Settings Preview) */}
         {settings.show_qr_code && (
           <div 
-            className="absolute pointer-events-none z-20"
+            className="absolute pointer-events-none z-20 footer-positioned"
             style={{
               left: `${layoutSettings?.qr_verification_position_x ?? 85}%`,
               top: `${layoutSettings?.qr_verification_position_y ?? 92}%`,
@@ -611,7 +611,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
         {/* Signature Image - Absolute Positioned for layout control (synced with Settings Preview) */}
         {settings.show_signature !== false && settings.signature_url && (
           <div 
-            className="absolute pointer-events-none z-30"
+            className="absolute pointer-events-none z-30 footer-positioned"
             style={{
               left: `${layoutSettings?.signature_position_x ?? 80}%`,
               top: `${layoutSettings?.signature_position_y ?? 85}%`,
