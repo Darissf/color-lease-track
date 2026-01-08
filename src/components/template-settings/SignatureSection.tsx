@@ -652,7 +652,10 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                     src={settings.signature_url} 
                     alt="Signature" 
                     className="max-h-12 max-w-24 mx-auto object-contain"
-                    style={{ opacity: opacity / 100 }}
+                    style={{ 
+                      opacity: opacity / 100,
+                      transform: `translate(${(posX - 80) * 2}px, ${(posY - 85) * 2}px) scale(${scale})`,
+                    }}
                   />
                 ) : (
                   <div className="h-8 w-20 border-b border-gray-400 mx-auto" />
