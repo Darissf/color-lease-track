@@ -625,75 +625,105 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Preview */}
-          <div className="space-y-2 p-4 rounded-lg border bg-white relative overflow-hidden" style={{ minHeight: '180px' }}>
+          {/* Preview - Simulasi dokumen dengan absolute positioning seperti dokumen asli */}
+          <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">Preview ({documentMode === 'receipt' ? 'Kwitansi' : 'Invoice'}):</Label>
-            <div className="flex flex-col items-center text-center pt-8">
-              {/* Label Preview */}
-              <p 
-                className="mb-1"
-                style={{
-                  fontSize: `${getLabelFontSize()}px`,
-                  fontFamily: getLabelFontFamily() === 'inherit' ? 'inherit' : getLabelFontFamily(),
-                  color: getLabelColor(),
-                  fontWeight: getLabelFontWeight(),
-                  fontStyle: getLabelFontStyle(),
-                  textDecoration: getLabelTextDecoration(),
-                  transform: `translate(${getLabelPosX()}px, ${getLabelPosY()}px)`
-                }}
-              >
-                {settings.signature_label || 'Hormat Kami,'}
-              </p>
-              
-              {/* Signature Image Preview */}
-              <div className="my-2">
-                {settings.signature_url ? (
+            
+            {/* Container simulasi dokumen */}
+            <div 
+              className="rounded-lg border bg-white relative overflow-hidden" 
+              style={{ 
+                width: '100%',
+                height: '160px',
+                backgroundColor: '#fafafa'
+              }}
+            >
+              {/* Signature Image - Absolute positioned seperti dokumen asli */}
+              {settings.signature_url && (
+                <div 
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: `${posX}%`,
+                    top: `${posY}%`,
+                    transform: `translate(-50%, -50%) scale(${scale * 0.5})`,
+                    opacity: opacity / 100,
+                  }}
+                >
                   <img 
                     src={settings.signature_url} 
                     alt="Signature" 
-                    className="max-h-12 max-w-24 mx-auto object-contain"
-                    style={{ 
-                      opacity: opacity / 100,
-                      transform: `translate(${(posX - 80) * 2}px, ${(posY - 85) * 2}px) scale(${scale})`,
-                    }}
+                    className="max-w-[200px] max-h-[100px] object-contain"
                   />
-                ) : (
-                  <div className="h-8 w-20 border-b border-gray-400 mx-auto" />
+                </div>
+              )}
+              
+              {/* Signature Text Block - Di kanan bawah seperti dokumen asli */}
+              <div 
+                className="absolute text-center"
+                style={{
+                  right: '10%',
+                  bottom: '15px',
+                  maxWidth: '45%'
+                }}
+              >
+                {/* Label */}
+                <p 
+                  style={{
+                    fontSize: `${Math.max(8, getLabelFontSize() * 0.7)}px`,
+                    fontFamily: getLabelFontFamily() === 'inherit' ? 'inherit' : getLabelFontFamily(),
+                    color: getLabelColor(),
+                    fontWeight: getLabelFontWeight(),
+                    fontStyle: getLabelFontStyle(),
+                    textDecoration: getLabelTextDecoration(),
+                    transform: `translate(${getLabelPosX() * 0.5}px, ${getLabelPosY() * 0.5}px)`
+                  }}
+                >
+                  {settings.signature_label || 'Hormat Kami,'}
+                </p>
+                
+                {/* Placeholder garis jika tidak ada signature */}
+                {!settings.signature_url && (
+                  <div className="h-6 w-16 border-b border-gray-400 mx-auto my-2" />
+                )}
+                
+                {/* Name */}
+                <p 
+                  className="mt-6"
+                  style={{
+                    fontSize: `${Math.max(8, getNameFontSize() * 0.7)}px`,
+                    fontFamily: getNameFontFamily() === 'inherit' ? 'inherit' : getNameFontFamily(),
+                    color: getNameColor(),
+                    fontWeight: getNameFontWeight(),
+                    fontStyle: getNameFontStyle(),
+                    textDecoration: getNameTextDecoration(),
+                    transform: `translate(${getNamePosX() * 0.5}px, ${getNamePosY() * 0.5}px)`
+                  }}
+                >
+                  {settings.signer_name || 'Nama Penanda'}
+                </p>
+                
+                {/* Title */}
+                {settings.signer_title && (
+                  <p 
+                    style={{
+                      fontSize: `${Math.max(8, getTitleFontSize() * 0.7)}px`,
+                      fontFamily: getTitleFontFamily() === 'inherit' ? 'inherit' : getTitleFontFamily(),
+                      color: getTitleColor(),
+                      fontWeight: getTitleFontWeight(),
+                      fontStyle: getTitleFontStyle(),
+                      textDecoration: getTitleTextDecoration(),
+                      transform: `translate(${getTitlePosX() * 0.5}px, ${getTitlePosY() * 0.5}px)`
+                    }}
+                  >
+                    {settings.signer_title}
+                  </p>
                 )}
               </div>
               
-              {/* Name Preview */}
-              <p 
-                className="mt-1"
-                style={{
-                  fontSize: `${getNameFontSize()}px`,
-                  fontFamily: getNameFontFamily() === 'inherit' ? 'inherit' : getNameFontFamily(),
-                  color: getNameColor(),
-                  fontWeight: getNameFontWeight(),
-                  fontStyle: getNameFontStyle(),
-                  textDecoration: getNameTextDecoration(),
-                  transform: `translate(${getNamePosX()}px, ${getNamePosY()}px)`
-                }}
-              >
-                {settings.signer_name || 'Nama Penanda'}
-              </p>
-              
-              {/* Title Preview */}
-              {settings.signer_title && (
-                <p 
-                  style={{
-                    fontSize: `${getTitleFontSize()}px`,
-                    fontFamily: getTitleFontFamily() === 'inherit' ? 'inherit' : getTitleFontFamily(),
-                    color: getTitleColor(),
-                    fontWeight: getTitleFontWeight(),
-                    fontStyle: getTitleFontStyle(),
-                    textDecoration: getTitleTextDecoration(),
-                    transform: `translate(${getTitlePosX()}px, ${getTitlePosY()}px)`
-                  }}
-                >
-                  {settings.signer_title}
-                </p>
-              )}
+              {/* Indicator posisi */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gray-100/80 text-[9px] text-center text-muted-foreground py-0.5">
+                Gambar: X={posX}% Y={posY}% | Skala: {Math.round(scale * 100)}%
+              </div>
             </div>
           </div>
         </>
