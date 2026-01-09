@@ -75,6 +75,7 @@ const TransactionHistory = lazy(() => import("./pages/TransactionHistory"));
 const ShortLinkManager = lazy(() => import("./pages/ShortLinkManager"));
 const InvoiceSettings = lazy(() => import("./pages/InvoiceSettings"));
 const InvoiceTemplateSettings = lazy(() => import("./pages/InvoiceTemplateSettings"));
+const InvoiceApiDocs = lazy(() => import("./pages/InvoiceApiDocs"));
 
 const PaymentAutoSettings = lazy(() => import("./pages/PaymentAutoSettings"));
 const BankScraperSettings = lazy(() => import("./pages/CloudScraperSettings"));
@@ -208,6 +209,7 @@ const App = () => (
                                   <Route path="/settings/invoice" element={<InvoiceSettings />} />
                                   <Route path="/settings/invoice/signature" element={<DocumentSignatureSettings />} />
                                   <Route path="/settings/invoice/template" element={<InvoiceTemplateSettings />} />
+                                  <Route path="/settings/invoice/api-docs" element={<InvoiceApiDocs />} />
                                   
                                   <Route path="/settings/payment-auto" element={<PaymentAutoSettings />} />
                                   <Route path="/settings/bank-scraper" element={<BankScraperSettings />} />

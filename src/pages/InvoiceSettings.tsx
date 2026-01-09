@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, FileImage, Hash, Palette, ScrollText, FileSignature, ChevronRight, Stamp, FileEdit } from "lucide-react";
+import { ArrowLeft, FileText, FileImage, Hash, Palette, ScrollText, FileSignature, ChevronRight, Stamp, FileEdit, Code } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -62,10 +62,18 @@ const InvoiceSettings = () => {
       href: "/vip/settings/custom-stamp",
     },
     {
+      icon: Code,
+      title: "API Documentation",
+      description: "Dokumentasi API untuk integrasi eksternal",
+      color: "bg-purple-600",
+      comingSoon: false,
+      href: "/vip/settings/invoice/api-docs",
+    },
+    {
       icon: FileImage,
       title: "Format PDF",
       description: "Ukuran kertas, margin, orientasi",
-      color: "bg-purple-600",
+      color: "bg-indigo-600",
       comingSoon: true,
     },
     {
