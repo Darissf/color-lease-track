@@ -495,18 +495,28 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
             </div>
           )}
 
-        {/* Footer Section - Unified Flex Layout for Print Stability */}
-        <div className="invoice-footer-section flex justify-between items-end px-0 pb-4 mt-8" style={{ pageBreakInside: 'avoid' }}>
-          
-          {/* Left Side: Spacer - QR is now absolute positioned */}
-          <div />
-          
-          {/* Right Side: Unified Signature Block - All elements stacked together */}
-          {settings.show_signature !== false && (
-            <div className="flex flex-col items-center text-center min-w-[200px]">
-              {/* 1. Signature Label with individual styling */}
+        {/* Footer Text - positioned at bottom of content area */}
+        {settings.show_footer !== false && settings.footer_text && (
+          <div className="text-center text-sm text-gray-500 mt-auto pt-4">
+            {settings.footer_text}
+          </div>
+        )}
+
+        </div>
+
+        {/* Signature Text Block - Absolute Positioned */}
+        {settings.show_signature !== false && (
+          <div 
+            className="absolute pointer-events-none z-25 footer-positioned"
+            style={{
+              left: `${layoutSettings?.signature_position_x ?? 80}%`,
+              top: `${((layoutSettings?.signature_text_position_y ?? 78) / 100) * 297}mm`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <div className="flex flex-col items-center text-center">
+              {/* Signature Label */}
               <p 
-                className="mb-2"
                 style={{
                   fontSize: `${settings.signature_label_font_size ?? 14}px`,
                   fontFamily: settings.signature_label_font_family === 'inherit' 
@@ -516,20 +526,14 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                   fontWeight: settings.signature_label_font_weight ?? 'normal',
                   fontStyle: settings.signature_label_font_style ?? 'normal',
                   textDecoration: settings.signature_label_text_decoration ?? 'none',
-                  transform: `translate(${settings.signature_label_position_x ?? 0}px, ${settings.signature_label_position_y ?? 0}px)`,
                 }}
               >
                 {settings.signature_label || 'Hormat Kami,'}
               </p>
               
-              {/* 2. Signature Space - image is absolute positioned for layout control */}
-              <div className="relative h-20 w-full my-2">
-                {/* Placeholder space - actual signature image is absolutely positioned */}
-              </div>
-              
-              {/* 3. Signer Name with individual styling */}
+              {/* Signer Name */}
               <p 
-                className="mt-2"
+                className="mt-16"
                 style={{
                   fontSize: `${settings.signer_name_font_size ?? 14}px`,
                   fontFamily: settings.signer_name_font_family === 'inherit' 
@@ -539,13 +543,12 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                   fontWeight: settings.signer_name_font_weight ?? 'bold',
                   fontStyle: settings.signer_name_font_style ?? 'normal',
                   textDecoration: settings.signer_name_text_decoration ?? 'none',
-                  transform: `translate(${settings.signer_name_position_x ?? 0}px, ${settings.signer_name_position_y ?? 0}px)`,
                 }}
               >
                 {settings.signer_name || settings.company_name}
               </p>
               
-              {/* 4. Signer Title with individual styling */}
+              {/* Signer Title */}
               {settings.signer_title && (
                 <p 
                   style={{
@@ -557,26 +560,16 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
                     fontWeight: settings.signer_title_font_weight ?? 'normal',
                     fontStyle: settings.signer_title_font_style ?? 'normal',
                     textDecoration: settings.signer_title_text_decoration ?? 'none',
-                    transform: `translate(${settings.signer_title_position_x ?? 0}px, ${settings.signer_title_position_y ?? 0}px)`,
                   }}
                 >
                   {settings.signer_title}
                 </p>
               )}
             </div>
-          )}
-        </div>
-        
-        {/* Footer Text - Centered below */}
-        {settings.show_footer !== false && settings.footer_text && (
-          <div className="text-center text-sm text-gray-500 mb-4">
-            {settings.footer_text}
           </div>
         )}
 
-        </div>
-
-        {/* QR Verification - Bottom-relative Positioned for consistent PDF */}
+        {/* QR Verification - Absolute Positioned for consistent PDF */}
         {settings.show_qr_code && (
           <div 
             className="absolute pointer-events-none z-20 footer-positioned"

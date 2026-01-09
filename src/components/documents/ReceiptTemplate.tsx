@@ -451,18 +451,24 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
 
         </div>
         
-        {/* Footer Section - Unified Flex Layout untuk Print Stability */}
-        <div className="invoice-footer-section flex justify-between items-end px-8 pb-4 mt-8" style={{ pageBreakInside: 'avoid' }}>
-          
-          {/* Left Side: Spacer - QR is now absolute positioned */}
-          <div />
-          
-          {/* Right Side: Unified Signature Block */}
-          {settings.show_signature !== false && (
-            <div className="flex flex-col items-center text-center min-w-[200px]">
-              {/* 1. Label with individual styling - using receipt_ properties */}
+        {/* Footer Text - positioned at bottom of content area */}
+        {settings.show_footer !== false && settings.footer_text && (
+          <div className="text-center text-sm text-gray-500 mt-auto pt-4 px-8">{settings.footer_text}</div>
+        )}
+
+        {/* Signature Text Block - Absolute Positioned */}
+        {settings.show_signature !== false && (
+          <div 
+            className="absolute pointer-events-none z-25 footer-positioned"
+            style={{
+              left: `${layoutSettings?.signature_position_x ?? 80}%`,
+              top: `${((layoutSettings?.signature_text_position_y ?? 78) / 100) * 297}mm`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <div className="flex flex-col items-center text-center">
+              {/* Signature Label */}
               <p 
-                className="mb-2"
                 style={{
                   fontSize: `${settings.receipt_signature_label_font_size ?? settings.signature_label_font_size ?? 14}px`,
                   fontFamily: (settings.receipt_signature_label_font_family ?? settings.signature_label_font_family) === 'inherit' 
@@ -472,20 +478,14 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                   fontWeight: settings.receipt_signature_label_font_weight ?? settings.signature_label_font_weight ?? 'normal',
                   fontStyle: settings.receipt_signature_label_font_style ?? settings.signature_label_font_style ?? 'normal',
                   textDecoration: settings.receipt_signature_label_text_decoration ?? settings.signature_label_text_decoration ?? 'none',
-                  transform: `translate(${settings.receipt_signature_label_position_x ?? settings.signature_label_position_x ?? 0}px, ${settings.receipt_signature_label_position_y ?? settings.signature_label_position_y ?? 0}px)`,
                 }}
               >
                 {settings.signature_label || 'Hormat Kami,'}
               </p>
               
-              {/* 2. Signature Space - image is absolute positioned for layout control */}
-              <div className="relative h-20 w-full my-2">
-                {/* Placeholder space - actual signature image is absolutely positioned */}
-              </div>
-              
-              {/* 3. Name with individual styling - using receipt_ properties */}
+              {/* Signer Name */}
               <p 
-                className="mt-2"
+                className="mt-16"
                 style={{
                   fontSize: `${settings.receipt_signer_name_font_size ?? settings.signer_name_font_size ?? 14}px`,
                   fontFamily: (settings.receipt_signer_name_font_family ?? settings.signer_name_font_family) === 'inherit' 
@@ -495,13 +495,12 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                   fontWeight: settings.receipt_signer_name_font_weight ?? settings.signer_name_font_weight ?? 'bold',
                   fontStyle: settings.receipt_signer_name_font_style ?? settings.signer_name_font_style ?? 'normal',
                   textDecoration: settings.receipt_signer_name_text_decoration ?? settings.signer_name_text_decoration ?? 'none',
-                  transform: `translate(${settings.receipt_signer_name_position_x ?? settings.signer_name_position_x ?? 0}px, ${settings.receipt_signer_name_position_y ?? settings.signer_name_position_y ?? 0}px)`,
                 }}
               >
                 {settings.signer_name || settings.company_name}
               </p>
               
-              {/* 4. Title with individual styling - using receipt_ properties */}
+              {/* Signer Title */}
               {settings.signer_title && (
                 <p 
                   style={{
@@ -513,22 +512,16 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                     fontWeight: settings.receipt_signer_title_font_weight ?? settings.signer_title_font_weight ?? 'normal',
                     fontStyle: settings.receipt_signer_title_font_style ?? settings.signer_title_font_style ?? 'normal',
                     textDecoration: settings.receipt_signer_title_text_decoration ?? settings.signer_title_text_decoration ?? 'none',
-                    transform: `translate(${settings.receipt_signer_title_position_x ?? settings.signer_title_position_x ?? 0}px, ${settings.receipt_signer_title_position_y ?? settings.signer_title_position_y ?? 0}px)`,
                   }}
                 >
                   {settings.signer_title}
                 </p>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Footer Text - Centered below */}
-        {settings.show_footer !== false && settings.footer_text && (
-          <div className="text-center text-sm text-gray-500 mb-4 px-8">{settings.footer_text}</div>
+          </div>
         )}
 
-        {/* QR Verification - Top-relative Positioned for consistent PDF */}
+        {/* QR Verification - Absolute Positioned for consistent PDF */}
         {settings.show_qr_code && (
           <div 
             className="absolute pointer-events-none z-20 footer-positioned"
