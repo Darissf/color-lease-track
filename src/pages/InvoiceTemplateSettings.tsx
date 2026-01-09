@@ -10,8 +10,8 @@ import { ArrowLeft, Save, RotateCcw, Palette, Type, Layout, FileText, Settings2,
 import { toast } from 'sonner';
 import { ImageCropper } from '@/components/ImageCropper';
 import { SignatureCropper } from '@/components/SignatureCropper';
-import { InvoiceTemplatePreview } from '@/components/documents/InvoiceTemplatePreview';
-import { ReceiptTemplatePreview } from '@/components/documents/ReceiptTemplatePreview';
+import { InvoiceTemplate } from '@/components/documents/InvoiceTemplate';
+import { ReceiptTemplate } from '@/components/documents/ReceiptTemplate';
 import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
 import { BrandingSection } from '@/components/template-settings/BrandingSection';
 import { ColorsSection } from '@/components/template-settings/ColorsSection';
@@ -434,18 +434,22 @@ const InvoiceTemplateSettings = () => {
                         transform: 'scale(0.4)',
                         transformOrigin: 'top left',
                         width: '210mm',
-                        minHeight: '297mm',
+                        height: '297mm',
                         position: 'absolute',
                         top: 0,
                         left: 0
                       }}>
-                        <InvoiceTemplatePreview 
+                        <InvoiceTemplate 
+                          documentNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
+                          verificationCode="SAMPLE123"
+                          issuedAt={new Date()}
+                          clientName="PT. Contoh Klien"
+                          clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
+                          description="Sewa Scaffolding 50 Set"
+                          amount={15000000}
+                          period="01 Jan 2025 - 31 Jan 2025"
                           settings={settings}
                           customTextElements={customTextElements}
-                          selectedElementId={selectedElementId}
-                          onSelectElement={setSelectedElementId}
-                          onUpdateElement={handleUpdateTextElement}
-                          isEditing={isEditingMode}
                         />
                       </div>
                     </div>
@@ -466,18 +470,23 @@ const InvoiceTemplateSettings = () => {
                         transform: 'scale(0.4)',
                         transformOrigin: 'top left',
                         width: '210mm',
-                        minHeight: '297mm',
+                        height: '297mm',
                         position: 'absolute',
                         top: 0,
                         left: 0
                       }}>
-                        <ReceiptTemplatePreview 
+                        <ReceiptTemplate 
+                          documentNumber={`${settings.receipt_prefix || 'KW'}-2025-0001`}
+                          verificationCode="SAMPLE123"
+                          issuedAt={new Date()}
+                          clientName="PT. Contoh Klien"
+                          clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
+                          description="Pembayaran Lunas - Sewa Scaffolding 50 Set"
+                          amount={15000000}
+                          period="01 Jan 2025 - 31 Jan 2025"
+                          invoiceNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
                           settings={settings}
                           customTextElements={customTextElements}
-                          selectedElementId={selectedElementId}
-                          onSelectElement={setSelectedElementId}
-                          onUpdateElement={handleUpdateTextElement}
-                          isEditing={isEditingMode}
                         />
                       </div>
                     </div>
@@ -571,18 +580,22 @@ const InvoiceTemplateSettings = () => {
                         transform: 'scale(0.6)',
                         transformOrigin: 'top left',
                         width: '210mm',
-                        minHeight: '297mm',
+                        height: '297mm',
                         position: 'absolute',
                         top: 0,
                         left: 0
                       }}>
-                        <InvoiceTemplatePreview 
+                        <InvoiceTemplate 
+                          documentNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
+                          verificationCode="SAMPLE123"
+                          issuedAt={new Date()}
+                          clientName="PT. Contoh Klien"
+                          clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
+                          description="Sewa Scaffolding 50 Set"
+                          amount={15000000}
+                          period="01 Jan 2025 - 31 Jan 2025"
                           settings={settings}
                           customTextElements={customTextElements}
-                          selectedElementId={selectedElementId}
-                          onSelectElement={setSelectedElementId}
-                          onUpdateElement={handleUpdateTextElement}
-                          isEditing={isEditingMode}
                         />
                       </div>
                     </div>
@@ -603,18 +616,23 @@ const InvoiceTemplateSettings = () => {
                         transform: 'scale(0.6)',
                         transformOrigin: 'top left',
                         width: '210mm',
-                        minHeight: '297mm',
+                        height: '297mm',
                         position: 'absolute',
                         top: 0,
                         left: 0
                       }}>
-                        <ReceiptTemplatePreview 
+                        <ReceiptTemplate 
+                          documentNumber={`${settings.receipt_prefix || 'KW'}-2025-0001`}
+                          verificationCode="SAMPLE123"
+                          issuedAt={new Date()}
+                          clientName="PT. Contoh Klien"
+                          clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
+                          description="Pembayaran Lunas - Sewa Scaffolding 50 Set"
+                          amount={15000000}
+                          period="01 Jan 2025 - 31 Jan 2025"
+                          invoiceNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
                           settings={settings}
                           customTextElements={customTextElements}
-                          selectedElementId={selectedElementId}
-                          onSelectElement={setSelectedElementId}
-                          onUpdateElement={handleUpdateTextElement}
-                          isEditing={isEditingMode}
                         />
                       </div>
                     </div>
