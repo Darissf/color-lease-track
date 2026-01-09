@@ -48,6 +48,9 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
   const posY = layoutSettings?.signature_position_y ?? 85;
   const scale = layoutSettings?.signature_scale ?? 1;
   const opacity = layoutSettings?.signature_opacity ?? 100;
+  // Signature text position (separate from image)
+  const textPosX = layoutSettings?.signature_text_position_x ?? 80;
+  const textPosY = layoutSettings?.signature_text_position_y ?? 78;
 
   const getFontFamilyLabel = (value: string) => {
     if (value === 'inherit') return 'Ikuti Dokumen';
@@ -194,6 +197,41 @@ export const SignatureSection: React.FC<SignatureSectionProps> = ({
                   min={20}
                   max={100}
                   step={5}
+                />
+              </div>
+
+              {/* Signature Text Position Section */}
+              <div className="border-t pt-4 mt-4">
+                <Label className="text-xs font-medium mb-3 block text-muted-foreground">Posisi Blok Teks (Hormat Kami + Nama)</Label>
+              </div>
+
+              {/* Text Position X Slider */}
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-xs">Posisi Horizontal Teks (X)</Label>
+                  <span className="text-xs text-muted-foreground">{textPosX}%</span>
+                </div>
+                <Slider
+                  value={[textPosX]}
+                  onValueChange={([value]) => updateLayoutSetting('signature_text_position_x', value)}
+                  min={5}
+                  max={95}
+                  step={1}
+                />
+              </div>
+
+              {/* Text Position Y Slider */}
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-xs">Posisi Vertikal Teks (Y)</Label>
+                  <span className="text-xs text-muted-foreground">{textPosY}%</span>
+                </div>
+                <Slider
+                  value={[textPosY]}
+                  onValueChange={([value]) => updateLayoutSetting('signature_text_position_y', value)}
+                  min={50}
+                  max={95}
+                  step={1}
                 />
               </div>
             </>
