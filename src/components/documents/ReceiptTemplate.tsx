@@ -478,6 +478,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                   fontWeight: settings.receipt_signature_label_font_weight ?? settings.signature_label_font_weight ?? 'normal',
                   fontStyle: settings.receipt_signature_label_font_style ?? settings.signature_label_font_style ?? 'normal',
                   textDecoration: settings.receipt_signature_label_text_decoration ?? settings.signature_label_text_decoration ?? 'none',
+                  transform: `translate(${settings.receipt_signature_label_position_x ?? settings.signature_label_position_x ?? 0}px, ${settings.receipt_signature_label_position_y ?? settings.signature_label_position_y ?? 0}px)`,
                 }}
               >
                 {settings.signature_label || 'Hormat Kami,'}
@@ -495,6 +496,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                   fontWeight: settings.receipt_signer_name_font_weight ?? settings.signer_name_font_weight ?? 'bold',
                   fontStyle: settings.receipt_signer_name_font_style ?? settings.signer_name_font_style ?? 'normal',
                   textDecoration: settings.receipt_signer_name_text_decoration ?? settings.signer_name_text_decoration ?? 'none',
+                  transform: `translate(${settings.receipt_signer_name_position_x ?? settings.signer_name_position_x ?? 0}px, ${settings.receipt_signer_name_position_y ?? settings.signer_name_position_y ?? 0}px)`,
                 }}
               >
                 {settings.signer_name || settings.company_name}
@@ -512,6 +514,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
                     fontWeight: settings.receipt_signer_title_font_weight ?? settings.signer_title_font_weight ?? 'normal',
                     fontStyle: settings.receipt_signer_title_font_style ?? settings.signer_title_font_style ?? 'normal',
                     textDecoration: settings.receipt_signer_title_text_decoration ?? settings.signer_title_text_decoration ?? 'none',
+                    transform: `translate(${settings.receipt_signer_title_position_x ?? settings.signer_title_position_x ?? 0}px, ${settings.receipt_signer_title_position_y ?? settings.signer_title_position_y ?? 0}px)`,
                   }}
                 >
                   {settings.signer_title}
