@@ -1585,7 +1585,7 @@ All colors MUST be HSL.
   /* Paper document - exact A4 sizing for print */
   .paper-document {
     width: 210mm !important;
-    min-height: 297mm !important;
+    height: 297mm !important;
     box-shadow: none !important;
     border: none !important;
     margin: 0 !important;
@@ -1598,7 +1598,7 @@ All colors MUST be HSL.
     display: block !important;
     position: relative !important;
     width: 210mm !important;
-    min-height: 297mm !important;
+    height: 297mm !important;
     max-width: 210mm !important;
     margin: 0 !important;
     padding: 0 !important;
