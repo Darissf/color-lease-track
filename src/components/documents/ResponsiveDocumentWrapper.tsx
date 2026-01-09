@@ -30,16 +30,29 @@ export const ResponsiveDocumentWrapper = ({
 
   return (
     <div ref={containerRef} className="w-full overflow-hidden">
+      {/* Outer container dengan ukuran yang sudah di-scale */}
       <div
         style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
-          width: A4_WIDTH_PX,
+          width: A4_WIDTH_PX * scale,
           height: A4_HEIGHT_PX * scale,
-          marginBottom: scale < 1 ? -(A4_HEIGHT_PX * (1 - scale)) : 0,
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        {children}
+        {/* Inner container dengan ukuran A4 tetap untuk positioning konsisten */}
+        <div
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            width: A4_WIDTH_PX,
+            height: A4_HEIGHT_PX, // FIXED - tidak dikalikan scale
+            position: 'absolute',
+            top: 0,
+            left: 0,
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
