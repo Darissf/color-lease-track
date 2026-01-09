@@ -96,7 +96,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
     return (
       <div
         ref={ref}
-        className="paper-document bg-white text-gray-900 p-8 pb-12 relative overflow-visible"
+        className="paper-document bg-white text-gray-900 p-8 pb-12 relative"
         style={{
           fontFamily: getFontFamily(),
           fontSize: `${settings.font_size_base || 14}px`,
