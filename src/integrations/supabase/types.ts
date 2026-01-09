@@ -306,6 +306,39 @@ export type Database = {
           },
         ]
       }
+      api_docs_public_links: {
+        Row: {
+          access_code: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          access_code: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          access_code?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
           created_at: string | null
@@ -6478,6 +6511,7 @@ export type Database = {
       cleanup_old_agent_outputs: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       expire_burst_requests: { Args: never; Returns: number }
+      generate_api_docs_access_code: { Args: never; Returns: string }
       generate_contract_access_code: { Args: never; Returns: string }
       generate_tracking_code: { Args: never; Returns: string }
       generate_trip_code: { Args: never; Returns: string }
@@ -6587,6 +6621,10 @@ export type Database = {
           temp_email: boolean
           username: string
         }[]
+      }
+      increment_api_docs_link_views: {
+        Args: { p_access_code: string }
+        Returns: undefined
       }
       increment_contract_link_views: {
         Args: { p_access_code: string }
