@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ApiDocsPublicLinkManager } from "@/components/api-docs/ApiDocsPublicLinkManager";
 
 const InvoiceApiDocs = () => {
   const navigate = useNavigate();
@@ -630,6 +631,9 @@ console.log(response.data);`;
             </div>
           )}
         </Card>
+
+        {/* Public Link Manager */}
+        <ApiDocsPublicLinkManager />
 
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="mb-4 w-full flex-wrap h-auto gap-1">

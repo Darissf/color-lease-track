@@ -98,6 +98,7 @@ const DeliveryTripDetail = lazy(() => import("./pages/DeliveryTripDetail"));
 const DriverDeliveryPage = lazy(() => import("./pages/DriverDeliveryPage"));
 const PublicTrackingPage = lazy(() => import("./pages/PublicTrackingPage"));
 const PublicContractPage = lazy(() => import("./pages/PublicContractPage"));
+const PublicApiDocsPage = lazy(() => import("./pages/PublicApiDocsPage"));
 const ScaffoldingConfigurator = lazy(() => import("./pages/ScaffoldingConfigurator"));
 const DocumentSignatureSettings = lazy(() => import("./pages/DocumentSignatureSettings"));
 const VerifyDocument = lazy(() => import("./pages/VerifyDocument"));
@@ -143,6 +144,9 @@ const App = () => (
                     
                     {/* Public Contract View Route */}
                     <Route path="/contract/:accessCode" element={<PublicContractPage />} />
+                    
+                    {/* Public API Docs View Route */}
+                    <Route path="/api-docs/:accessCode" element={<PublicApiDocsPage />} />
                     
                     {/* Public Document Verification Route */}
                     <Route path="/verify/:verificationCode" element={<VerifyDocument />} />
