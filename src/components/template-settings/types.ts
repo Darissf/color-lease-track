@@ -16,6 +16,8 @@ export interface LayoutSettings {
   signature_position_y: number;
   signature_scale: number;
   signature_opacity: number;
+  // Signature text position (separate from image)
+  signature_text_position_y: number;
   // QR Verification position settings
   qr_verification_position_x: number;
   qr_verification_position_y: number;
@@ -39,6 +41,8 @@ export const defaultLayoutSettings: LayoutSettings = {
   signature_position_y: 85,
   signature_scale: 1.0,
   signature_opacity: 100,
+  // Signature text position - above signature image
+  signature_text_position_y: 78,
   // QR Verification defaults - bottom right
   qr_verification_position_x: 85,
   qr_verification_position_y: 92,
