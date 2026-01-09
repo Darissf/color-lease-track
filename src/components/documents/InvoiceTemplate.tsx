@@ -509,7 +509,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceTemplateProps>(
           <div 
             className="absolute pointer-events-none z-25 footer-positioned"
             style={{
-              left: `${layoutSettings?.signature_position_x ?? 80}%`,
+              left: `${layoutSettings?.signature_text_position_x ?? 80}%`,
               top: `${((layoutSettings?.signature_text_position_y ?? 78) / 100) * 297}mm`,
               transform: 'translate(-50%, -50%)',
             }}
