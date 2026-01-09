@@ -1,16 +1,26 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Copy, Check, Code, Key, FileJson, Terminal } from "lucide-react";
+import { ArrowLeft, Copy, Check, Code, Key, FileJson, Terminal, ChevronDown, ChevronRight, Database } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const InvoiceApiDocs = () => {
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -32,6 +42,10 @@ const InvoiceApiDocs = () => {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
   const CopyButton = ({ text, field }: { text: string; field: string }) => (
     <Button
       variant="ghost"
@@ -48,25 +62,30 @@ const InvoiceApiDocs = () => {
   );
 
   const requestExample = `{
-  "access_code": "ABC123",
+  "access_code": "CTR-ABC12345",
   "document_type": "invoice",
-  "payment_id": "uuid-optional"
+  "payment_id": "uuid-optional-for-kwitansi"
 }`;
 
   const responseExample = `{
   "success": true,
   "document_type": "invoice",
-  "verification_code": "VRF-2024-001234",
+  "verification_code": "A1B2C3D4",
+  "access_code": "CTR-ABC12345",
   
   "contract": {
-    "id": "uuid",
+    "id": "550e8400-e29b-41d4-a716-446655440000",
     "invoice": "INV-2024-001",
-    "keterangan": "Sewa Gedung Lantai 5",
+    "keterangan": "Sewa Scaffolding Proyek A",
     "start_date": "2024-01-01",
     "end_date": "2024-12-31",
     "tanggal": "2024-01-15",
     "tagihan": 50000000,
-    "tagihan_belum_bayar": 0
+    "tagihan_belum_bayar": 0,
+    "jumlah_lunas": 50000000,
+    "tanggal_lunas": "2024-01-20",
+    "tanggal_bayar_terakhir": "2024-01-20",
+    "status": "lunas"
   },
   
   "client": {
@@ -78,7 +97,7 @@ const InvoiceApiDocs = () => {
     "id": "uuid",
     "payment_date": "2024-01-20",
     "amount": 50000000,
-    "payment_method": "Transfer Bank",
+    "payment_number": 1,
     "notes": "Pembayaran lunas"
   },
   
@@ -90,23 +109,283 @@ const InvoiceApiDocs = () => {
   
   "template_settings": {
     "company_name": "PT Company Indonesia",
-    "company_address": "Jl. Sudirman No. 123",
+    "company_address": "Jl. Sudirman No. 123, Jakarta",
     "company_phone": "021-12345678",
     "company_email": "info@company.com",
+    "company_website": "www.company.com",
+    "company_npwp": "12.345.678.9-012.345",
+    "company_tagline": "Trusted Partner",
+    "owner_name": "John Doe",
+    
     "invoice_logo_url": "https://storage.../logo.png",
     "signature_url": "https://storage.../signature.png",
-    "font_family": "Inter",
+    "signature_image_url": "https://storage.../sig.png",
+    "custom_stamp_url": "https://storage.../stamp.png",
+    "bank_logo_url": "https://storage.../bank.png",
+    
+    "font_family": "Inter, sans-serif",
+    "heading_font_family": "Poppins, sans-serif",
+    "font_size_base": 14,
+    
     "header_color_primary": "#1a365d",
-    "invoice_layout_settings": { "..." : "..." },
-    "receipt_layout_settings": { "..." : "..." },
-    "...": "100+ properties"
+    "header_color_secondary": "#2d4a7c",
+    "accent_color": "#3182ce",
+    "border_color": "#e2e8f0",
+    "company_name_color": "#1a202c",
+    "company_info_color": "#4a5568",
+    "document_title_color": "#2d3748",
+    "label_color": "#4a5568",
+    "value_color": "#1a202c",
+    
+    "table_header_bg": "#f7fafc",
+    "table_header_text_color": "#2d3748",
+    "table_border_style": "solid",
+    "table_alternating_rows": true,
+    "table_alternating_color": "#f9fafb",
+    
+    "invoice_layout_settings": {
+      "logo_position_x": 10,
+      "logo_position_y": 10,
+      "logo_scale": 1.0,
+      "signature_position_x": 80,
+      "signature_position_y": 85,
+      "signature_scale": 1.0,
+      "stamp_position_x": 50,
+      "stamp_position_y": 85,
+      "stamp_scale": 1.0,
+      "qr_verification_position_x": 85,
+      "qr_verification_position_y": 90,
+      "watermark_position_x": 50,
+      "watermark_position_y": 50
+    },
+    "receipt_layout_settings": { "...": "same structure" },
+    
+    "signature_label": "Hormat Kami,",
+    "signer_name": "John Doe",
+    "signer_title": "Direktur",
+    "signature_label_font_size": 14,
+    "signature_label_color": "#1a202c",
+    "signer_name_font_size": 16,
+    "signer_name_font_weight": "bold",
+    
+    "stamp_type": "auto",
+    "stamp_text": "LUNAS",
+    "stamp_color_lunas": "#22c55e",
+    "stamp_color_belum_lunas": "#ef4444",
+    "stamp_rotation": -15,
+    "stamp_opacity": 80,
+    "stamp_scale": 1.0,
+    
+    "watermark_type": "text",
+    "watermark_text": "CONFIDENTIAL",
+    "watermark_opacity": 10,
+    "watermark_rotation": -30,
+    
+    "show_company_name": true,
+    "show_company_address": true,
+    "show_signature": true,
+    "show_stamp": true,
+    "show_stamp_on_invoice": false,
+    "show_stamp_on_receipt": true,
+    "show_watermark": false,
+    "show_qr_code": true,
+    "show_bank_info": true,
+    "show_terbilang": true,
+    
+    "label_client": "Kepada Yth:",
+    "label_description": "Keterangan",
+    "label_amount": "Jumlah",
+    "label_total": "Total",
+    "document_title": "INVOICE",
+    "receipt_title": "KWITANSI",
+    
+    "terms_conditions": "Pembayaran dalam 14 hari...",
+    "footer_text": "Dokumen ini sah tanpa tanda tangan basah",
+    
+    "invoice_prefix": "INV",
+    "receipt_prefix": "KWT",
+    "number_format": "YYYY-NNNN"
   },
   
-  "custom_text_elements": [],
+  "custom_text_elements": [
+    {
+      "id": "uuid",
+      "content": "Catatan Khusus",
+      "position_x": 10,
+      "position_y": 95,
+      "font_size": 10,
+      "font_color": "#666666",
+      "font_weight": "normal",
+      "font_family": "Inter",
+      "is_visible": true,
+      "order_index": 0
+    }
+  ],
   
   "generated_at": "2024-01-20T10:30:00Z",
   "api_version": "1.0"
 }`;
+
+  // Schema documentation data
+  const schemaCategories = [
+    {
+      name: "Company Info",
+      fields: [
+        { name: "company_name", type: "string", description: "Nama perusahaan" },
+        { name: "company_address", type: "string", description: "Alamat perusahaan" },
+        { name: "company_phone", type: "string", description: "Nomor telepon" },
+        { name: "company_email", type: "string", description: "Email perusahaan" },
+        { name: "company_website", type: "string", description: "Website perusahaan" },
+        { name: "company_npwp", type: "string", description: "Nomor NPWP" },
+        { name: "company_tagline", type: "string", description: "Tagline/slogan" },
+        { name: "owner_name", type: "string", description: "Nama pemilik" },
+      ]
+    },
+    {
+      name: "Images & URLs",
+      fields: [
+        { name: "invoice_logo_url", type: "string", description: "URL logo invoice" },
+        { name: "signature_url", type: "string", description: "URL tanda tangan" },
+        { name: "signature_image_url", type: "string", description: "URL gambar tanda tangan" },
+        { name: "custom_stamp_url", type: "string", description: "URL stempel custom" },
+        { name: "bank_logo_url", type: "string", description: "URL logo bank" },
+        { name: "icon_email_url", type: "string", description: "URL ikon email" },
+        { name: "icon_website_url", type: "string", description: "URL ikon website" },
+        { name: "icon_maps_url", type: "string", description: "URL ikon maps" },
+        { name: "icon_whatsapp_url", type: "string", description: "URL ikon WhatsApp" },
+      ]
+    },
+    {
+      name: "Typography",
+      fields: [
+        { name: "font_family", type: "string", description: "Font utama" },
+        { name: "heading_font_family", type: "string", description: "Font heading" },
+        { name: "font_size_base", type: "number", description: "Ukuran font dasar (px)" },
+      ]
+    },
+    {
+      name: "Colors",
+      fields: [
+        { name: "header_color_primary", type: "string", description: "Warna primer header" },
+        { name: "header_color_secondary", type: "string", description: "Warna sekunder header" },
+        { name: "accent_color", type: "string", description: "Warna aksen" },
+        { name: "border_color", type: "string", description: "Warna border" },
+        { name: "company_name_color", type: "string", description: "Warna nama perusahaan" },
+        { name: "company_info_color", type: "string", description: "Warna info perusahaan" },
+        { name: "document_title_color", type: "string", description: "Warna judul dokumen" },
+        { name: "label_color", type: "string", description: "Warna label" },
+        { name: "value_color", type: "string", description: "Warna nilai" },
+        { name: "tagline_color", type: "string", description: "Warna tagline" },
+      ]
+    },
+    {
+      name: "Table Settings",
+      fields: [
+        { name: "table_header_bg", type: "string", description: "Warna background header tabel" },
+        { name: "table_header_text_color", type: "string", description: "Warna teks header tabel" },
+        { name: "table_border_style", type: "string", description: "Style border tabel" },
+        { name: "table_alternating_rows", type: "boolean", description: "Aktifkan baris bergantian" },
+        { name: "table_alternating_color", type: "string", description: "Warna baris bergantian" },
+      ]
+    },
+    {
+      name: "Layout Settings (JSONB)",
+      fields: [
+        { name: "invoice_layout_settings", type: "object", description: "Posisi elemen di invoice" },
+        { name: "receipt_layout_settings", type: "object", description: "Posisi elemen di kwitansi" },
+        { name: "logo_position_x/y", type: "number", description: "Posisi logo (0-100)" },
+        { name: "logo_scale", type: "number", description: "Skala logo (0.1-2.0)" },
+        { name: "signature_position_x/y", type: "number", description: "Posisi tanda tangan" },
+        { name: "stamp_position_x/y", type: "number", description: "Posisi stempel" },
+        { name: "qr_verification_position_x/y", type: "number", description: "Posisi QR verifikasi" },
+        { name: "watermark_position_x/y", type: "number", description: "Posisi watermark" },
+      ]
+    },
+    {
+      name: "Signature Text Styling",
+      fields: [
+        { name: "signature_label", type: "string", description: "Label tanda tangan (e.g., 'Hormat Kami,')" },
+        { name: "signer_name", type: "string", description: "Nama penandatangan" },
+        { name: "signer_title", type: "string", description: "Jabatan penandatangan" },
+        { name: "signature_label_font_size", type: "number", description: "Ukuran font label" },
+        { name: "signature_label_color", type: "string", description: "Warna label" },
+        { name: "signature_label_font_weight", type: "string", description: "Tebal font label" },
+        { name: "signer_name_font_size", type: "number", description: "Ukuran font nama" },
+        { name: "signer_name_font_weight", type: "string", description: "Tebal font nama" },
+        { name: "signer_title_font_size", type: "number", description: "Ukuran font jabatan" },
+      ]
+    },
+    {
+      name: "Stamp Settings",
+      fields: [
+        { name: "stamp_type", type: "string", description: "'auto', 'custom', atau 'none'" },
+        { name: "stamp_text", type: "string", description: "Teks stempel" },
+        { name: "stamp_color_lunas", type: "string", description: "Warna stempel LUNAS" },
+        { name: "stamp_color_belum_lunas", type: "string", description: "Warna stempel BELUM LUNAS" },
+        { name: "stamp_rotation", type: "number", description: "Rotasi stempel (derajat)" },
+        { name: "stamp_opacity", type: "number", description: "Opacity stempel (0-100)" },
+        { name: "stamp_scale", type: "number", description: "Skala stempel" },
+        { name: "stamp_border_width", type: "number", description: "Lebar border stempel" },
+        { name: "stamp_border_style", type: "string", description: "Style border stempel" },
+      ]
+    },
+    {
+      name: "Watermark Settings",
+      fields: [
+        { name: "watermark_type", type: "string", description: "'text' atau 'image'" },
+        { name: "watermark_text", type: "string", description: "Teks watermark" },
+        { name: "watermark_opacity", type: "number", description: "Opacity watermark (0-100)" },
+        { name: "watermark_rotation", type: "number", description: "Rotasi watermark (derajat)" },
+        { name: "watermark_size", type: "number", description: "Ukuran watermark" },
+      ]
+    },
+    {
+      name: "Visibility Flags",
+      fields: [
+        { name: "show_company_name", type: "boolean", description: "Tampilkan nama perusahaan" },
+        { name: "show_company_address", type: "boolean", description: "Tampilkan alamat" },
+        { name: "show_company_phone", type: "boolean", description: "Tampilkan telepon" },
+        { name: "show_company_email", type: "boolean", description: "Tampilkan email" },
+        { name: "show_company_website", type: "boolean", description: "Tampilkan website" },
+        { name: "show_signature", type: "boolean", description: "Tampilkan tanda tangan" },
+        { name: "show_stamp", type: "boolean", description: "Tampilkan stempel" },
+        { name: "show_stamp_on_invoice", type: "boolean", description: "Stempel di invoice" },
+        { name: "show_stamp_on_receipt", type: "boolean", description: "Stempel di kwitansi" },
+        { name: "show_watermark", type: "boolean", description: "Tampilkan watermark" },
+        { name: "show_qr_code", type: "boolean", description: "Tampilkan QR code" },
+        { name: "show_bank_info", type: "boolean", description: "Tampilkan info bank" },
+        { name: "show_terbilang", type: "boolean", description: "Tampilkan terbilang" },
+        { name: "show_terms", type: "boolean", description: "Tampilkan syarat & ketentuan" },
+        { name: "show_footer", type: "boolean", description: "Tampilkan footer" },
+      ]
+    },
+    {
+      name: "Labels & Content",
+      fields: [
+        { name: "label_client", type: "string", description: "Label klien (e.g., 'Kepada Yth:')" },
+        { name: "label_description", type: "string", description: "Label keterangan" },
+        { name: "label_amount", type: "string", description: "Label jumlah" },
+        { name: "label_total", type: "string", description: "Label total" },
+        { name: "label_terbilang", type: "string", description: "Label terbilang" },
+        { name: "document_title", type: "string", description: "Judul invoice" },
+        { name: "receipt_title", type: "string", description: "Judul kwitansi" },
+        { name: "terms_conditions", type: "string", description: "Syarat & ketentuan" },
+        { name: "footer_text", type: "string", description: "Teks footer" },
+        { name: "custom_note", type: "string", description: "Catatan khusus" },
+      ]
+    },
+    {
+      name: "Numbering & Counters",
+      fields: [
+        { name: "invoice_prefix", type: "string", description: "Prefix nomor invoice" },
+        { name: "receipt_prefix", type: "string", description: "Prefix nomor kwitansi" },
+        { name: "number_format", type: "string", description: "Format penomoran" },
+        { name: "counter_invoice", type: "number", description: "Counter invoice" },
+        { name: "counter_receipt", type: "number", description: "Counter kwitansi" },
+        { name: "default_due_days", type: "number", description: "Default hari jatuh tempo" },
+      ]
+    },
+  ];
 
   const jsExample = `const response = await fetch(
   '${baseUrl}',
