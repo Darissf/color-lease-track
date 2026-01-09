@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Copy, Check, Code, Key, FileJson, Terminal, ChevronDown, ChevronRight, Database } from "lucide-react";
+import { ArrowLeft, Copy, Check, Code, Key, FileJson, Terminal, ChevronDown, ChevronRight, Database, Eye, EyeOff, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
   TableBody,
@@ -15,19 +16,113 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const InvoiceApiDocs = () => {
   const navigate = useNavigate();
   const { isSuperAdmin } = useAuth();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  
+  // API Key state
+  const [apiKeyData, setApiKeyData] = useState<{
+    has_key: boolean;
+    api_key: {
+      id: string;
+      key_preview: string;
+      created_at: string;
+      last_used_at: string | null;
+    } | null;
+  } | null>(null);
+  const [fullApiKey, setFullApiKey] = useState<string | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   useEffect(() => {
     if (!isSuperAdmin) {
       navigate("/");
       return;
     }
+    fetchApiKey();
   }, [isSuperAdmin]);
+
+  const fetchApiKey = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await supabase.functions.invoke('manage-api-key', {
+        method: 'GET',
+      });
+
+      if (response.data?.success) {
+        setApiKeyData(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching API key:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateApiKey = async () => {
+    try {
+      setIsGenerating(true);
+      const response = await supabase.functions.invoke('manage-api-key', {
+        method: 'POST',
+      });
+
+      if (response.data?.success) {
+        setFullApiKey(response.data.api_key.full_key);
+        setShowApiKey(true);
+        toast.success("API Key berhasil dibuat! Simpan key ini - hanya ditampilkan sekali!");
+        fetchApiKey();
+      } else {
+        toast.error(response.data?.error || "Gagal membuat API key");
+      }
+    } catch (error) {
+      console.error("Error generating API key:", error);
+      toast.error("Gagal membuat API key");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const regenerateApiKey = async () => {
+    try {
+      setIsRegenerating(true);
+      const response = await supabase.functions.invoke('manage-api-key', {
+        method: 'PUT',
+      });
+
+      if (response.data?.success) {
+        setFullApiKey(response.data.api_key.full_key);
+        setShowApiKey(true);
+        toast.success("API Key berhasil di-regenerate! Simpan key baru ini!");
+        fetchApiKey();
+      } else {
+        toast.error(response.data?.error || "Gagal regenerate API key");
+      }
+    } catch (error) {
+      console.error("Error regenerating API key:", error);
+      toast.error("Gagal regenerate API key");
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   if (!isSuperAdmin) {
     return null;
@@ -109,118 +204,10 @@ const InvoiceApiDocs = () => {
   
   "template_settings": {
     "company_name": "PT Company Indonesia",
-    "company_address": "Jl. Sudirman No. 123, Jakarta",
-    "company_phone": "021-12345678",
-    "company_email": "info@company.com",
-    "company_website": "www.company.com",
-    "company_npwp": "12.345.678.9-012.345",
-    "company_tagline": "Trusted Partner",
-    "owner_name": "John Doe",
-    
-    "invoice_logo_url": "https://storage.../logo.png",
-    "signature_url": "https://storage.../signature.png",
-    "signature_image_url": "https://storage.../sig.png",
-    "custom_stamp_url": "https://storage.../stamp.png",
-    "bank_logo_url": "https://storage.../bank.png",
-    
-    "font_family": "Inter, sans-serif",
-    "heading_font_family": "Poppins, sans-serif",
-    "font_size_base": 14,
-    
-    "header_color_primary": "#1a365d",
-    "header_color_secondary": "#2d4a7c",
-    "accent_color": "#3182ce",
-    "border_color": "#e2e8f0",
-    "company_name_color": "#1a202c",
-    "company_info_color": "#4a5568",
-    "document_title_color": "#2d3748",
-    "label_color": "#4a5568",
-    "value_color": "#1a202c",
-    
-    "table_header_bg": "#f7fafc",
-    "table_header_text_color": "#2d3748",
-    "table_border_style": "solid",
-    "table_alternating_rows": true,
-    "table_alternating_color": "#f9fafb",
-    
-    "invoice_layout_settings": {
-      "logo_position_x": 10,
-      "logo_position_y": 10,
-      "logo_scale": 1.0,
-      "signature_position_x": 80,
-      "signature_position_y": 85,
-      "signature_scale": 1.0,
-      "stamp_position_x": 50,
-      "stamp_position_y": 85,
-      "stamp_scale": 1.0,
-      "qr_verification_position_x": 85,
-      "qr_verification_position_y": 90,
-      "watermark_position_x": 50,
-      "watermark_position_y": 50
-    },
-    "receipt_layout_settings": { "...": "same structure" },
-    
-    "signature_label": "Hormat Kami,",
-    "signer_name": "John Doe",
-    "signer_title": "Direktur",
-    "signature_label_font_size": 14,
-    "signature_label_color": "#1a202c",
-    "signer_name_font_size": 16,
-    "signer_name_font_weight": "bold",
-    
-    "stamp_type": "auto",
-    "stamp_text": "LUNAS",
-    "stamp_color_lunas": "#22c55e",
-    "stamp_color_belum_lunas": "#ef4444",
-    "stamp_rotation": -15,
-    "stamp_opacity": 80,
-    "stamp_scale": 1.0,
-    
-    "watermark_type": "text",
-    "watermark_text": "CONFIDENTIAL",
-    "watermark_opacity": 10,
-    "watermark_rotation": -30,
-    
-    "show_company_name": true,
-    "show_company_address": true,
-    "show_signature": true,
-    "show_stamp": true,
-    "show_stamp_on_invoice": false,
-    "show_stamp_on_receipt": true,
-    "show_watermark": false,
-    "show_qr_code": true,
-    "show_bank_info": true,
-    "show_terbilang": true,
-    
-    "label_client": "Kepada Yth:",
-    "label_description": "Keterangan",
-    "label_amount": "Jumlah",
-    "label_total": "Total",
-    "document_title": "INVOICE",
-    "receipt_title": "KWITANSI",
-    
-    "terms_conditions": "Pembayaran dalam 14 hari...",
-    "footer_text": "Dokumen ini sah tanpa tanda tangan basah",
-    
-    "invoice_prefix": "INV",
-    "receipt_prefix": "KWT",
-    "number_format": "YYYY-NNNN"
+    "...": "150+ properties"
   },
   
-  "custom_text_elements": [
-    {
-      "id": "uuid",
-      "content": "Catatan Khusus",
-      "position_x": 10,
-      "position_y": 95,
-      "font_size": 10,
-      "font_color": "#666666",
-      "font_weight": "normal",
-      "font_family": "Inter",
-      "is_visible": true,
-      "order_index": 0
-    }
-  ],
+  "custom_text_elements": [...],
   
   "generated_at": "2024-01-20T10:30:00Z",
   "api_version": "1.0"
@@ -453,6 +440,60 @@ print(data)`;
     "document_type": "invoice"
   }'`;
 
+  const goExample = `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    url := "${baseUrl}"
+    
+    payload := map[string]string{
+        "access_code":   "ABC123",
+        "document_type": "invoice",
+    }
+    jsonPayload, _ := json.Marshal(payload)
+    
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("x-api-key", "YOUR_API_KEY")
+    
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+    
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println(string(body))
+}`;
+
+  const axiosExample = `const axios = require('axios');
+
+const response = await axios.post(
+  '${baseUrl}',
+  {
+    access_code: 'ABC123',
+    document_type: 'invoice'
+  },
+  {
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+console.log(response.data);`;
+
+  const displayApiKey = fullApiKey || (apiKeyData?.api_key?.key_preview ?? '');
+
   return (
     <div className="h-[calc(100vh-104px)] relative overflow-hidden flex flex-col">
       {/* Header */}
@@ -474,6 +515,122 @@ print(data)`;
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-4">
+        {/* API Key Management Card */}
+        <Card className="mb-4 p-4 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Key className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">API Key</h3>
+                {isLoading ? (
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Loading...
+                  </p>
+                ) : apiKeyData?.has_key ? (
+                  <p className="text-sm text-green-600 dark:text-green-400">
+                    ✓ Connected
+                    {apiKeyData.api_key?.last_used_at && (
+                      <span className="text-muted-foreground ml-2">
+                        • Last used: {new Date(apiKeyData.api_key.last_used_at).toLocaleDateString('id-ID')}
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    ⚠ Not configured
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {isLoading ? (
+                <div className="h-10 w-32 bg-muted animate-pulse rounded" />
+              ) : apiKeyData?.has_key ? (
+                <>
+                  <div className="flex items-center gap-1 bg-muted px-3 py-2 rounded-md flex-1 sm:flex-initial">
+                    <code className="text-sm font-mono">
+                      {showApiKey && fullApiKey ? fullApiKey : displayApiKey}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 ml-1"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      disabled={!fullApiKey}
+                    >
+                      {showApiKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => copyToClipboard(fullApiKey || displayApiKey, 'apiKey')}
+                    >
+                      {copiedField === 'apiKey' ? (
+                        <Check className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" disabled={isRegenerating}>
+                        {isRegenerating ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                        )}
+                        Regenerate
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-amber-500" />
+                          Regenerate API Key?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          API key lama akan dinonaktifkan dan tidak bisa digunakan lagi. 
+                          Pastikan untuk menyimpan API key baru setelah di-regenerate.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={regenerateApiKey}>
+                          Ya, Regenerate
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              ) : (
+                <Button onClick={generateApiKey} disabled={isGenerating}>
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Key className="h-4 w-4 mr-2" />
+                  )}
+                  Generate API Key
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Warning message when new key is generated */}
+          {fullApiKey && (
+            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
+              <p className="text-sm text-amber-600 dark:text-amber-400 font-medium flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Simpan API Key ini sekarang! Key hanya ditampilkan sekali.
+              </p>
+            </div>
+          )}
+        </Card>
+
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="mb-4 w-full flex-wrap h-auto gap-1">
             <TabsTrigger value="overview" className="gap-2">
@@ -487,6 +644,10 @@ print(data)`;
             <TabsTrigger value="endpoints" className="gap-2">
               <Code className="h-4 w-4" />
               Endpoints
+            </TabsTrigger>
+            <TabsTrigger value="schema" className="gap-2">
+              <Database className="h-4 w-4" />
+              Response Schema
             </TabsTrigger>
             <TabsTrigger value="examples" className="gap-2">
               <Terminal className="h-4 w-4" />
@@ -547,7 +708,7 @@ print(data)`;
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                  <span>Semua template settings (100+ properti)</span>
+                  <span>Semua template settings (150+ properti)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
@@ -666,16 +827,106 @@ print(data)`;
             </Card>
           </TabsContent>
 
+          {/* Response Schema Tab */}
+          <TabsContent value="schema" className="space-y-4">
+            <Card className="p-4 sm:p-6">
+              <h2 className="text-lg font-semibold mb-3">Response Schema</h2>
+              <p className="text-muted-foreground mb-4">
+                Dokumentasi lengkap untuk semua field dalam <code className="bg-muted px-1 rounded">template_settings</code>.
+                Total 150+ properti tersedia.
+              </p>
+            </Card>
+
+            {schemaCategories.map((category) => (
+              <Collapsible
+                key={category.name}
+                open={openSections[category.name]}
+                onOpenChange={() => toggleSection(category.name)}
+              >
+                <Card className="overflow-hidden">
+                  <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{category.name}</span>
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
+                        {category.fields.length} fields
+                      </span>
+                    </div>
+                    {openSections[category.name] ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border-t">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[200px]">Field</TableHead>
+                            <TableHead className="w-[100px]">Type</TableHead>
+                            <TableHead>Description</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {category.fields.map((field) => (
+                            <TableRow key={field.name}>
+                              <TableCell className="font-mono text-sm">{field.name}</TableCell>
+                              <TableCell>
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  field.type === 'string' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' :
+                                  field.type === 'number' ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
+                                  field.type === 'boolean' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' :
+                                  'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                }`}>
+                                  {field.type}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">{field.description}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            ))}
+          </TabsContent>
+
           {/* Code Examples Tab */}
           <TabsContent value="examples" className="space-y-4">
             <Card className="p-4 sm:p-6">
-              <h3 className="font-semibold mb-3">JavaScript / TypeScript</h3>
+              <h3 className="font-semibold mb-3">JavaScript / TypeScript (Fetch)</h3>
               <div className="relative">
                 <pre className="bg-muted rounded-md p-3 text-xs overflow-x-auto">
                   <code>{jsExample}</code>
                 </pre>
                 <div className="absolute top-2 right-2">
                   <CopyButton text={jsExample} field="js" />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4 sm:p-6">
+              <h3 className="font-semibold mb-3">Node.js (Axios)</h3>
+              <div className="relative">
+                <pre className="bg-muted rounded-md p-3 text-xs overflow-x-auto">
+                  <code>{axiosExample}</code>
+                </pre>
+                <div className="absolute top-2 right-2">
+                  <CopyButton text={axiosExample} field="axios" />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4 sm:p-6">
+              <h3 className="font-semibold mb-3">Go (Golang)</h3>
+              <div className="relative">
+                <pre className="bg-muted rounded-md p-3 text-xs overflow-x-auto">
+                  <code>{goExample}</code>
+                </pre>
+                <div className="absolute top-2 right-2">
+                  <CopyButton text={goExample} field="go" />
                 </div>
               </div>
             </Card>

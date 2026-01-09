@@ -12,24 +12,51 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Validate API Key
+    // Helper function to hash API key
+    async function hashApiKey(key: string): Promise<string> {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(key);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // 1. Validate API Key from database
     const apiKey = req.headers.get('x-api-key');
-    const validApiKey = Deno.env.get('DOCUMENT_API_KEY');
     
-    if (!validApiKey) {
-      console.error("DOCUMENT_API_KEY not configured");
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ success: false, error: "API not configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: "API key required" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    if (!apiKey || apiKey !== validApiKey) {
+
+    // Initialize Supabase client early for API key validation
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Hash the provided API key and check against database
+    const apiKeyHash = await hashApiKey(apiKey);
+    const { data: keyData, error: keyError } = await supabase
+      .from('api_keys')
+      .select('id, user_id, is_active')
+      .eq('key_hash', apiKeyHash)
+      .eq('is_active', true)
+      .single();
+
+    if (keyError || !keyData) {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid API key" }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Update last_used_at
+    await supabase
+      .from('api_keys')
+      .update({ last_used_at: new Date().toISOString() })
+      .eq('id', keyData.id);
 
     // 2. Parse request body
     const { access_code, document_type, payment_id } = await req.json();
@@ -51,10 +78,7 @@ serve(async (req) => {
 
     console.log(`[document-api] Generating ${document_type} for access_code:`, access_code);
 
-    // 4. Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Note: supabase client already initialized above for API key validation
 
     // 5. Validate access code
     const { data: linkData, error: linkError } = await supabase
