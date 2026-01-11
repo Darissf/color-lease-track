@@ -66,10 +66,14 @@ serve(async (req) => {
       );
     }
 
-    const method = req.method;
+    // Parse body to get action (supabase.functions.invoke always sends POST)
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || 'get';
+
+    console.log(`[manage-api-key] Action: ${action}, User: ${user.id}`);
 
     // GET - Retrieve current API key info (not the actual key, just metadata)
-    if (method === 'GET') {
+    if (action === 'get') {
       const { data: apiKey, error } = await supabase
         .from('api_keys')
         .select('id, key_name, key_preview, created_at, last_used_at, is_active')
@@ -96,8 +100,8 @@ serve(async (req) => {
       );
     }
 
-    // POST - Generate new API key
-    if (method === 'POST') {
+    // CREATE - Generate new API key
+    if (action === 'create') {
       // Check if user already has an active key
       const { data: existingKey } = await supabase
         .from('api_keys')
@@ -109,7 +113,7 @@ serve(async (req) => {
 
       if (existingKey) {
         return new Response(
-          JSON.stringify({ success: false, error: "API key already exists. Use PUT to regenerate." }),
+          JSON.stringify({ success: false, error: "API key already exists. Use regenerate action instead." }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -154,8 +158,8 @@ serve(async (req) => {
       );
     }
 
-    // PUT - Regenerate API key
-    if (method === 'PUT') {
+    // REGENERATE - Regenerate API key
+    if (action === 'regenerate') {
       // Generate new key
       const newKey = generateApiKey();
       const keyHash = await hashApiKey(newKey);
@@ -231,8 +235,8 @@ serve(async (req) => {
       );
     }
 
-    // DELETE - Revoke API key
-    if (method === 'DELETE') {
+    // REVOKE - Revoke API key
+    if (action === 'revoke') {
       const { error: deleteError } = await supabase
         .from('api_keys')
         .update({ is_active: false })
@@ -254,8 +258,8 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: false, error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: false, error: `Unknown action: ${action}` }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {

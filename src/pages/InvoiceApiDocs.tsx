@@ -67,7 +67,7 @@ const InvoiceApiDocs = () => {
       if (!session) return;
 
       const response = await supabase.functions.invoke('manage-api-key', {
-        method: 'GET',
+        body: { action: 'get' },
       });
 
       if (response.data?.success) {
@@ -84,7 +84,7 @@ const InvoiceApiDocs = () => {
     try {
       setIsGenerating(true);
       const response = await supabase.functions.invoke('manage-api-key', {
-        method: 'POST',
+        body: { action: 'create' },
       });
 
       if (response.data?.success) {
@@ -107,7 +107,7 @@ const InvoiceApiDocs = () => {
     try {
       setIsRegenerating(true);
       const response = await supabase.functions.invoke('manage-api-key', {
-        method: 'PUT',
+        body: { action: 'regenerate' },
       });
 
       if (response.data?.success) {
