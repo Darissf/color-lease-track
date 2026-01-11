@@ -159,16 +159,23 @@ const InvoiceApiDocs = () => {
   );
 
   const requestExample = `{
-  "access_code": "CTR-ABC12345",
-  "document_type": "invoice",
-  "payment_id": "uuid-optional-for-kwitansi"
+  // PILIH SALAH SATU:
+  "invoice_number": "000254",       // Permanen (RECOMMENDED)
+  "access_code": "CTR-ABC12345",    // Temporary (ada expiry)
+  
+  // REQUIRED:
+  "document_type": "invoice",       // "invoice" atau "kwitansi"
+  
+  // OPTIONAL:
+  "payment_id": "uuid"              // Untuk kwitansi spesifik
 }`;
 
   const responseExample = `{
   "success": true,
   "document_type": "invoice",
   "verification_code": "A1B2C3D4",
-  "access_code": "CTR-ABC12345",
+  "access_method": "invoice_number",
+  "identifier": "000254",
   
   "contract": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -212,7 +219,11 @@ const InvoiceApiDocs = () => {
   "custom_text_elements": [...],
   
   "generated_at": "2024-01-20T10:30:00Z",
-  "api_version": "1.0"
+  "api_version": "1.1",
+  "rate_limits": {
+    "per_api_key": "100 requests/minute",
+    "per_invoice": "10 requests/minute"
+  }
 }`;
 
   // Schema documentation data
@@ -376,7 +387,8 @@ const InvoiceApiDocs = () => {
     },
   ];
 
-  const jsExample = `const response = await fetch(
+  const jsExample = `// RECOMMENDED: Menggunakan invoice_number (permanen)
+const response = await fetch(
   '${baseUrl}',
   {
     method: 'POST',
@@ -385,23 +397,30 @@ const InvoiceApiDocs = () => {
       'x-api-key': 'YOUR_API_KEY'
     },
     body: JSON.stringify({
-      access_code: 'ABC123',
+      invoice_number: '000254',  // Nomor invoice (RECOMMENDED)
       document_type: 'invoice'
     })
   }
 );
 
 const data = await response.json();
-console.log(data);`;
+console.log(data);
+
+// ALTERNATIVE: Menggunakan access_code (temporary)
+// body: JSON.stringify({ access_code: 'CTR-XXXXXXXX', document_type: 'invoice' })`;
 
   const phpExample = `<?php
+// RECOMMENDED: Menggunakan invoice_number (permanen)
 $apiUrl = '${baseUrl}';
 $apiKey = 'YOUR_API_KEY';
 
 $data = [
-  'access_code' => 'ABC123',
+  'invoice_number' => '000254',  // Nomor invoice (RECOMMENDED)
   'document_type' => 'invoice'
 ];
+
+// ALTERNATIVE: Menggunakan access_code (temporary)
+// $data = ['access_code' => 'CTR-XXXXXXXX', 'document_type' => 'invoice'];
 
 $ch = curl_init($apiUrl);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -420,27 +439,35 @@ print_r($result);`;
 
   const pythonExample = `import requests
 
+# RECOMMENDED: Menggunakan invoice_number (permanen)
 url = '${baseUrl}'
 headers = {
     'Content-Type': 'application/json',
     'x-api-key': 'YOUR_API_KEY'
 }
 payload = {
-    'access_code': 'ABC123',
+    'invoice_number': '000254',  # Nomor invoice (RECOMMENDED)
     'document_type': 'invoice'
 }
+
+# ALTERNATIVE: Menggunakan access_code (temporary)
+# payload = {'access_code': 'CTR-XXXXXXXX', 'document_type': 'invoice'}
 
 response = requests.post(url, json=payload, headers=headers)
 data = response.json()
 print(data)`;
 
-  const curlExample = `curl -X POST '${baseUrl}' \\
+  const curlExample = `# RECOMMENDED: Menggunakan invoice_number (permanen)
+curl -X POST '${baseUrl}' \\
   -H 'Content-Type: application/json' \\
   -H 'x-api-key: YOUR_API_KEY' \\
   -d '{
-    "access_code": "ABC123",
+    "invoice_number": "000254",
     "document_type": "invoice"
-  }'`;
+  }'
+
+# ALTERNATIVE: Menggunakan access_code (temporary)
+# -d '{"access_code": "CTR-XXXXXXXX", "document_type": "invoice"}'`;
 
   const goExample = `package main
 
@@ -478,10 +505,11 @@ func main() {
 
   const axiosExample = `const axios = require('axios');
 
+// RECOMMENDED: Menggunakan invoice_number (permanen)
 const response = await axios.post(
   '${baseUrl}',
   {
-    access_code: 'ABC123',
+    invoice_number: '000254',  // Nomor invoice (RECOMMENDED)
     document_type: 'invoice'
   },
   {
@@ -492,7 +520,10 @@ const response = await axios.post(
   }
 );
 
-console.log(response.data);`;
+console.log(response.data);
+
+// ALTERNATIVE: Menggunakan access_code (temporary)
+// { access_code: 'CTR-XXXXXXXX', document_type: 'invoice' }`;
 
   const displayApiKey = fullApiKey || (apiKeyData?.api_key?.key_preview ?? '');
 
