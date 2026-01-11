@@ -4979,6 +4979,7 @@ export type Database = {
           invoice: string | null
           invoice_full_rincian: boolean | null
           jenis_scaffolding: string | null
+          jumlah_lunas: number | null
           jumlah_unit: number | null
           keterangan: string | null
           lokasi_detail: string | null
@@ -4995,6 +4996,7 @@ export type Database = {
           tanggal_ambil: string | null
           tanggal_bayar_terakhir: string | null
           tanggal_kirim: string | null
+          tanggal_lunas: string | null
           transport_cost_delivery: number | null
           transport_cost_pickup: number | null
           updated_at: string
@@ -5019,6 +5021,7 @@ export type Database = {
           invoice?: string | null
           invoice_full_rincian?: boolean | null
           jenis_scaffolding?: string | null
+          jumlah_lunas?: number | null
           jumlah_unit?: number | null
           keterangan?: string | null
           lokasi_detail?: string | null
@@ -5035,6 +5038,7 @@ export type Database = {
           tanggal_ambil?: string | null
           tanggal_bayar_terakhir?: string | null
           tanggal_kirim?: string | null
+          tanggal_lunas?: string | null
           transport_cost_delivery?: number | null
           transport_cost_pickup?: number | null
           updated_at?: string
@@ -5059,6 +5063,7 @@ export type Database = {
           invoice?: string | null
           invoice_full_rincian?: boolean | null
           jenis_scaffolding?: string | null
+          jumlah_lunas?: number | null
           jumlah_unit?: number | null
           keterangan?: string | null
           lokasi_detail?: string | null
@@ -5075,6 +5080,7 @@ export type Database = {
           tanggal_ambil?: string | null
           tanggal_bayar_terakhir?: string | null
           tanggal_kirim?: string | null
+          tanggal_lunas?: string | null
           transport_cost_delivery?: number | null
           transport_cost_pickup?: number | null
           updated_at?: string
