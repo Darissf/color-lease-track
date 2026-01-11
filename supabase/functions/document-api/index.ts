@@ -6,6 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
+// Rate limit configuration
+const RATE_LIMIT_PER_KEY = 100; // requests per minute per API key
+const RATE_LIMIT_PER_INVOICE = 10; // requests per minute per invoice
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -19,6 +26,212 @@ serve(async (req) => {
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Helper function to log access
+    async function logAccess(
+      supabase: any,
+      apiKeyId: string,
+      identifier: string,
+      accessMethod: 'invoice_number' | 'access_code',
+      documentType: string,
+      request: Request,
+      success: boolean,
+      errorMessage?: string
+    ) {
+      try {
+        await supabase.from('api_access_logs').insert({
+          api_key_id: apiKeyId,
+          invoice_number: identifier,
+          access_method: accessMethod,
+          document_type: documentType,
+          ip_address: request.headers.get('x-forwarded-for') || request.headers.get('cf-connecting-ip') || 'unknown',
+          user_agent: request.headers.get('user-agent') || 'unknown',
+          success,
+          error_message: errorMessage
+        });
+      } catch (e) {
+        console.error('Failed to log access:', e);
+      }
+    }
+
+    // Helper function to check rate limit
+    async function checkRateLimit(
+      supabase: any,
+      apiKeyId: string,
+      invoiceNumber?: string
+    ): Promise<{ allowed: boolean; retryAfter?: number }> {
+      const now = new Date();
+      const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS);
+
+      // Check per-key rate limit
+      const { data: keyRateLimit } = await supabase
+        .from('api_rate_limits')
+        .select('*')
+        .eq('api_key_id', apiKeyId)
+        .is('invoice_number', null)
+        .single();
+
+      if (keyRateLimit) {
+        // Check if locked out
+        if (keyRateLimit.locked_until && new Date(keyRateLimit.locked_until) > now) {
+          const retryAfter = Math.ceil((new Date(keyRateLimit.locked_until).getTime() - now.getTime()) / 1000);
+          return { allowed: false, retryAfter };
+        }
+
+        // Check if within current window
+        if (new Date(keyRateLimit.window_start) > windowStart) {
+          if (keyRateLimit.request_count >= RATE_LIMIT_PER_KEY) {
+            const retryAfter = Math.ceil((new Date(keyRateLimit.window_start).getTime() + RATE_LIMIT_WINDOW_MS - now.getTime()) / 1000);
+            return { allowed: false, retryAfter };
+          }
+        }
+      }
+
+      // Check per-invoice rate limit if invoice_number provided
+      if (invoiceNumber) {
+        const { data: invoiceRateLimit } = await supabase
+          .from('api_rate_limits')
+          .select('*')
+          .eq('api_key_id', apiKeyId)
+          .eq('invoice_number', invoiceNumber)
+          .single();
+
+        if (invoiceRateLimit) {
+          // Check if locked out
+          if (invoiceRateLimit.locked_until && new Date(invoiceRateLimit.locked_until) > now) {
+            const retryAfter = Math.ceil((new Date(invoiceRateLimit.locked_until).getTime() - now.getTime()) / 1000);
+            return { allowed: false, retryAfter };
+          }
+
+          // Check if within current window
+          if (new Date(invoiceRateLimit.window_start) > windowStart) {
+            if (invoiceRateLimit.request_count >= RATE_LIMIT_PER_INVOICE) {
+              const retryAfter = Math.ceil((new Date(invoiceRateLimit.window_start).getTime() + RATE_LIMIT_WINDOW_MS - now.getTime()) / 1000);
+              return { allowed: false, retryAfter };
+            }
+          }
+        }
+      }
+
+      return { allowed: true };
+    }
+
+    // Helper function to increment rate limit counter
+    async function incrementRateLimit(supabase: any, apiKeyId: string, invoiceNumber?: string) {
+      const now = new Date();
+      const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS);
+
+      // Increment per-key rate limit
+      const { data: existingKeyLimit } = await supabase
+        .from('api_rate_limits')
+        .select('*')
+        .eq('api_key_id', apiKeyId)
+        .is('invoice_number', null)
+        .single();
+
+      if (existingKeyLimit) {
+        if (new Date(existingKeyLimit.window_start) > windowStart) {
+          await supabase
+            .from('api_rate_limits')
+            .update({ 
+              request_count: existingKeyLimit.request_count + 1,
+              updated_at: now.toISOString()
+            })
+            .eq('id', existingKeyLimit.id);
+        } else {
+          await supabase
+            .from('api_rate_limits')
+            .update({ 
+              request_count: 1, 
+              window_start: now.toISOString(),
+              updated_at: now.toISOString()
+            })
+            .eq('id', existingKeyLimit.id);
+        }
+      } else {
+        await supabase.from('api_rate_limits').insert({
+          api_key_id: apiKeyId,
+          invoice_number: null,
+          request_count: 1,
+          window_start: now.toISOString()
+        });
+      }
+
+      // Increment per-invoice rate limit if invoice_number provided
+      if (invoiceNumber) {
+        const { data: existingInvoiceLimit } = await supabase
+          .from('api_rate_limits')
+          .select('*')
+          .eq('api_key_id', apiKeyId)
+          .eq('invoice_number', invoiceNumber)
+          .single();
+
+        if (existingInvoiceLimit) {
+          if (new Date(existingInvoiceLimit.window_start) > windowStart) {
+            await supabase
+              .from('api_rate_limits')
+              .update({ 
+                request_count: existingInvoiceLimit.request_count + 1,
+                updated_at: now.toISOString()
+              })
+              .eq('id', existingInvoiceLimit.id);
+          } else {
+            await supabase
+              .from('api_rate_limits')
+              .update({ 
+                request_count: 1, 
+                window_start: now.toISOString(),
+                updated_at: now.toISOString()
+              })
+              .eq('id', existingInvoiceLimit.id);
+          }
+        } else {
+          await supabase.from('api_rate_limits').insert({
+            api_key_id: apiKeyId,
+            invoice_number: invoiceNumber,
+            request_count: 1,
+            window_start: now.toISOString()
+          });
+        }
+      }
+    }
+
+    // Helper function to increment failed attempts
+    async function incrementFailedAttempts(supabase: any, apiKeyId: string, invoiceNumber: string) {
+      const now = new Date();
+
+      const { data: existing } = await supabase
+        .from('api_rate_limits')
+        .select('*')
+        .eq('api_key_id', apiKeyId)
+        .eq('invoice_number', invoiceNumber)
+        .single();
+
+      if (existing) {
+        const newFailedAttempts = existing.failed_attempts + 1;
+        const updateData: any = { 
+          failed_attempts: newFailedAttempts,
+          updated_at: now.toISOString()
+        };
+
+        if (newFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+          updateData.locked_until = new Date(now.getTime() + LOCKOUT_DURATION_MS).toISOString();
+        }
+
+        await supabase
+          .from('api_rate_limits')
+          .update(updateData)
+          .eq('id', existing.id);
+      } else {
+        await supabase.from('api_rate_limits').insert({
+          api_key_id: apiKeyId,
+          invoice_number: invoiceNumber,
+          request_count: 0,
+          failed_attempts: 1,
+          window_start: now.toISOString()
+        });
+      }
     }
 
     // 1. Validate API Key from database
@@ -59,12 +272,16 @@ serve(async (req) => {
       .eq('id', keyData.id);
 
     // 2. Parse request body
-    const { access_code, document_type, payment_id } = await req.json();
+    const { access_code, invoice_number, document_type, payment_id } = await req.json();
 
-    // 3. Validate required fields
-    if (!access_code) {
+    // 3. Validate: at least one identifier required
+    if (!access_code && !invoice_number) {
       return new Response(
-        JSON.stringify({ success: false, error: "access_code is required" }),
+        JSON.stringify({ 
+          success: false, 
+          error: "Either access_code or invoice_number is required",
+          hint: "Provide 'access_code' (temporary) OR 'invoice_number' (permanent, recommended)"
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -76,73 +293,167 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[document-api] Generating ${document_type} for access_code:`, access_code);
+    // Determine access method
+    const accessMethod = invoice_number ? 'invoice_number' : 'access_code';
+    const identifier = invoice_number || access_code;
 
-    // Note: supabase client already initialized above for API key validation
+    console.log(`[document-api] Generating ${document_type} via ${accessMethod}:`, identifier);
 
-    // 5. Validate access code
-    const { data: linkData, error: linkError } = await supabase
-      .from('contract_public_links')
-      .select('*')
-      .eq('access_code', access_code)
-      .eq('is_active', true)
-      .single();
-
-    if (linkError || !linkData) {
-      console.error("Link not found:", linkError);
+    // 4. Check rate limit
+    const rateLimitCheck = await checkRateLimit(supabase, keyData.id, invoice_number);
+    if (!rateLimitCheck.allowed) {
+      await logAccess(supabase, keyData.id, identifier, accessMethod, document_type, req, false, 'Rate limit exceeded');
       return new Response(
-        JSON.stringify({ success: false, error: "Access code tidak valid", code: "NOT_FOUND" }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          error: "Rate limit exceeded",
+          retry_after_seconds: rateLimitCheck.retryAfter,
+          limits: {
+            per_api_key: `${RATE_LIMIT_PER_KEY} requests/minute`,
+            per_invoice: `${RATE_LIMIT_PER_INVOICE} requests/minute`
+          }
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if link has expired
-    const now = new Date();
-    const expiresAt = new Date(linkData.expires_at);
-    if (now > expiresAt) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Access code sudah expired", code: "EXPIRED" }),
-        { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    let contractData: any;
+    let userId: string;
 
-    // 6. Get contract details with bank account
-    const { data: contractData, error: contractError } = await supabase
-      .from('rental_contracts')
-      .select(`
-        id,
-        invoice,
-        keterangan,
-        start_date,
-        end_date,
-        tanggal,
-        tagihan,
-        tagihan_belum_bayar,
-        jumlah_lunas,
-        tanggal_lunas,
-        tanggal_bayar_terakhir,
-        status,
-        client_group_id,
-        bank_account_id,
-        bank_accounts (
-          bank_name,
-          account_number,
-          account_holder_name
-        )
-      `)
-      .eq('id', linkData.contract_id)
-      .single();
+    // 5. Handle access via invoice_number (NEW - Permanent access)
+    if (invoice_number) {
+      // Use API key owner's user_id for template settings
+      userId = keyData.user_id;
 
-    if (contractError || !contractData) {
-      console.error("Contract not found:", contractError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Kontrak tidak ditemukan" }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const { data: contract, error: contractError } = await supabase
+        .from('rental_contracts')
+        .select(`
+          id,
+          invoice,
+          keterangan,
+          start_date,
+          end_date,
+          tanggal,
+          tagihan,
+          tagihan_belum_bayar,
+          jumlah_lunas,
+          tanggal_lunas,
+          tanggal_bayar_terakhir,
+          status,
+          client_group_id,
+          bank_account_id,
+          api_access_enabled,
+          bank_accounts (
+            bank_name,
+            account_number,
+            account_holder_name
+          )
+        `)
+        .eq('invoice', invoice_number)
+        .eq('user_id', keyData.user_id)
+        .single();
+
+      if (contractError || !contract) {
+        await logAccess(supabase, keyData.id, invoice_number, 'invoice_number', document_type, req, false, 'Invoice not found');
+        await incrementFailedAttempts(supabase, keyData.id, invoice_number);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Invoice tidak ditemukan",
+            code: "NOT_FOUND"
+          }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check if API access is enabled for this contract
+      if (contract.api_access_enabled === false) {
+        await logAccess(supabase, keyData.id, invoice_number, 'invoice_number', document_type, req, false, 'API access disabled for this contract');
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Akses API dinonaktifkan untuk kontrak ini",
+            code: "ACCESS_DISABLED"
+          }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      contractData = contract;
+
+    } else {
+      // 6. Handle access via access_code (EXISTING - Temporary access)
+      const { data: linkData, error: linkError } = await supabase
+        .from('contract_public_links')
+        .select('*')
+        .eq('access_code', access_code)
+        .eq('is_active', true)
+        .single();
+
+      if (linkError || !linkData) {
+        console.error("Link not found:", linkError);
+        await logAccess(supabase, keyData.id, access_code, 'access_code', document_type, req, false, 'Access code not found');
+        return new Response(
+          JSON.stringify({ success: false, error: "Access code tidak valid", code: "NOT_FOUND" }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check if link has expired
+      const now = new Date();
+      const expiresAt = new Date(linkData.expires_at);
+      if (now > expiresAt) {
+        await logAccess(supabase, keyData.id, access_code, 'access_code', document_type, req, false, 'Access code expired');
+        return new Response(
+          JSON.stringify({ success: false, error: "Access code sudah expired", code: "EXPIRED" }),
+          { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      userId = linkData.user_id;
+
+      // Get contract details with bank account
+      const { data: contract, error: contractError } = await supabase
+        .from('rental_contracts')
+        .select(`
+          id,
+          invoice,
+          keterangan,
+          start_date,
+          end_date,
+          tanggal,
+          tagihan,
+          tagihan_belum_bayar,
+          jumlah_lunas,
+          tanggal_lunas,
+          tanggal_bayar_terakhir,
+          status,
+          client_group_id,
+          bank_account_id,
+          bank_accounts (
+            bank_name,
+            account_number,
+            account_holder_name
+          )
+        `)
+        .eq('id', linkData.contract_id)
+        .single();
+
+      if (contractError || !contract) {
+        console.error("Contract not found:", contractError);
+        await logAccess(supabase, keyData.id, access_code, 'access_code', document_type, req, false, 'Contract not found');
+        return new Response(
+          JSON.stringify({ success: false, error: "Kontrak tidak ditemukan" }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      contractData = contract;
     }
 
     // For kwitansi, check if fully paid
     if (document_type === 'kwitansi' && contractData.tagihan_belum_bayar > 0) {
+      await logAccess(supabase, keyData.id, identifier, accessMethod, document_type, req, false, 'Contract not fully paid');
       return new Response(
         JSON.stringify({ success: false, error: "Kwitansi hanya dapat dibuat jika tagihan sudah lunas 100%", code: "NOT_PAID" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -160,14 +471,14 @@ serve(async (req) => {
     const { data: templateSettings } = await supabase
       .from('document_settings')
       .select('*')
-      .eq('user_id', linkData.user_id)
+      .eq('user_id', userId)
       .single();
 
     // 9. Get brand settings for logo fallback
     const { data: brandSettings } = await supabase
       .from('brand_settings')
       .select('logo_url, sidebar_logo_url, brand_image_url, site_name')
-      .eq('user_id', linkData.user_id)
+      .eq('user_id', userId)
       .single();
 
     // 10. Generate verification code
@@ -176,6 +487,7 @@ serve(async (req) => {
 
     if (vcError) {
       console.error("Error generating verification code:", vcError);
+      await logAccess(supabase, keyData.id, identifier, accessMethod, document_type, req, false, 'Failed to generate verification code');
       return new Response(
         JSON.stringify({ success: false, error: "Gagal generate verification code" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -190,7 +502,7 @@ serve(async (req) => {
           .from('contract_payments')
           .select('*')
           .eq('id', payment_id)
-          .eq('contract_id', linkData.contract_id)
+          .eq('contract_id', contractData.id)
           .single();
         paymentData = payment;
       } else {
@@ -198,7 +510,7 @@ serve(async (req) => {
         const { data: payment } = await supabase
           .from('contract_payments')
           .select('*')
-          .eq('contract_id', linkData.contract_id)
+          .eq('contract_id', contractData.id)
           .order('payment_date', { ascending: false })
           .limit(1)
           .single();
@@ -211,7 +523,7 @@ serve(async (req) => {
     const { data: customTextElements } = await supabase
       .from('custom_text_elements')
       .select('*')
-      .eq('user_id', linkData.user_id)
+      .eq('user_id', userId)
       .eq('document_type', customTextDocType)
       .eq('is_visible', true)
       .order('order_index');
@@ -235,12 +547,17 @@ serve(async (req) => {
       receipt_layout_settings: {},
     };
 
+    // Log successful access and increment rate limit
+    await logAccess(supabase, keyData.id, identifier, accessMethod, document_type, req, true);
+    await incrementRateLimit(supabase, keyData.id, invoice_number);
+
     // 14. Build comprehensive response
     const response = {
       success: true,
       document_type,
       verification_code: verificationCode,
-      access_code,
+      access_method: accessMethod,
+      identifier: identifier,
       contract: {
         id: contractData.id,
         invoice: contractData.invoice,
@@ -265,10 +582,14 @@ serve(async (req) => {
       template_settings: mergedTemplateSettings,
       custom_text_elements: customTextElements || [],
       generated_at: new Date().toISOString(),
-      api_version: "1.0",
+      api_version: "1.1",
+      rate_limits: {
+        per_api_key: `${RATE_LIMIT_PER_KEY} requests/minute`,
+        per_invoice: `${RATE_LIMIT_PER_INVOICE} requests/minute`
+      }
     };
 
-    console.log(`[document-api] Successfully generated ${document_type} data for ${access_code}`);
+    console.log(`[document-api] Successfully generated ${document_type} data via ${accessMethod}: ${identifier}`);
     return new Response(
       JSON.stringify(response),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

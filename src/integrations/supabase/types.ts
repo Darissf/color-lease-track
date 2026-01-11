@@ -306,6 +306,53 @@ export type Database = {
           },
         ]
       }
+      api_access_logs: {
+        Row: {
+          access_method: string
+          api_key_id: string | null
+          created_at: string | null
+          document_type: string
+          error_message: string | null
+          id: string
+          invoice_number: string | null
+          ip_address: string | null
+          success: boolean | null
+          user_agent: string | null
+        }
+        Insert: {
+          access_method: string
+          api_key_id?: string | null
+          created_at?: string | null
+          document_type: string
+          error_message?: string | null
+          id?: string
+          invoice_number?: string | null
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+        }
+        Update: {
+          access_method?: string
+          api_key_id?: string | null
+          created_at?: string | null
+          document_type?: string
+          error_message?: string | null
+          id?: string
+          invoice_number?: string | null
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_access_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_docs_public_links: {
         Row: {
           access_code: string
@@ -371,6 +418,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      api_rate_limits: {
+        Row: {
+          api_key_id: string | null
+          created_at: string | null
+          failed_attempts: number | null
+          id: string
+          invoice_number: string | null
+          locked_until: string | null
+          request_count: number | null
+          updated_at: string | null
+          window_start: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string | null
+          failed_attempts?: number | null
+          id?: string
+          invoice_number?: string | null
+          locked_until?: string | null
+          request_count?: number | null
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string | null
+          failed_attempts?: number | null
+          id?: string
+          invoice_number?: string | null
+          locked_until?: string | null
+          request_count?: number | null
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_rate_limits_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_logs: {
         Row: {
@@ -4874,6 +4965,7 @@ export type Database = {
           admin_notes: string | null
           admin_notes_edited_at: string | null
           admin_notes_edited_by: string | null
+          api_access_enabled: boolean | null
           bank_account_id: string | null
           biaya_kirim: number | null
           bukti_pembayaran_files: Json | null
@@ -4913,6 +5005,7 @@ export type Database = {
           admin_notes?: string | null
           admin_notes_edited_at?: string | null
           admin_notes_edited_by?: string | null
+          api_access_enabled?: boolean | null
           bank_account_id?: string | null
           biaya_kirim?: number | null
           bukti_pembayaran_files?: Json | null
@@ -4952,6 +5045,7 @@ export type Database = {
           admin_notes?: string | null
           admin_notes_edited_at?: string | null
           admin_notes_edited_by?: string | null
+          api_access_enabled?: boolean | null
           bank_account_id?: string | null
           biaya_kirim?: number | null
           bukti_pembayaran_files?: Json | null
