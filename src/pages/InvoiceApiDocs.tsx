@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Copy, Check, Code, Key, FileJson, Terminal, ChevronDown, ChevronRight, Database, Eye, EyeOff, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Copy, Check, Code, Key, FileJson, Terminal, ChevronDown, ChevronRight, Database, Eye, EyeOff, RefreshCw, Loader2, AlertTriangle, Bot, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,6 +34,7 @@ const InvoiceApiDocs = () => {
   const { isSuperAdmin } = useAuth();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [selectedPromptType, setSelectedPromptType] = useState<'lengkap' | 'ringkas' | 'pdf_rendering'>('lengkap');
   
   // API Key state
   const [apiKeyData, setApiKeyData] = useState<{
@@ -657,6 +658,10 @@ console.log(response.data);`;
               <Terminal className="h-4 w-4" />
               Code Examples
             </TabsTrigger>
+            <TabsTrigger value="ai-prompt" className="gap-2">
+              <Bot className="h-4 w-4" />
+              AI Prompt
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -969,6 +974,474 @@ console.log(response.data);`;
                   <CopyButton text={curlExample} field="curl" />
                 </div>
               </div>
+            </Card>
+          </TabsContent>
+
+          {/* AI Prompt Tab */}
+          <TabsContent value="ai-prompt" className="space-y-4">
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Bot className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">AI Prompt Generator</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Copy prompt untuk diberikan ke AI lain (ChatGPT, Claude, Gemini, dll)
+                  </p>
+                </div>
+              </div>
+
+              {/* Prompt Type Selection */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Button
+                  variant={selectedPromptType === 'lengkap' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedPromptType('lengkap')}
+                  className="gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Prompt Lengkap
+                </Button>
+                <Button
+                  variant={selectedPromptType === 'ringkas' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedPromptType('ringkas')}
+                >
+                  Prompt Ringkas
+                </Button>
+                <Button
+                  variant={selectedPromptType === 'pdf_rendering' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedPromptType('pdf_rendering')}
+                >
+                  PDF Rendering
+                </Button>
+              </div>
+
+              {/* Prompt Content */}
+              <div className="relative">
+                <pre className="bg-muted rounded-md p-4 text-xs overflow-x-auto max-h-[500px] overflow-y-auto whitespace-pre-wrap">
+                  <code>{
+                    selectedPromptType === 'lengkap' ? `## INSTRUKSI UNTUK AI: DOCUMENT API INTEGRATION
+
+Kamu adalah AI assistant yang akan membantu mengintegrasikan Document API untuk generate/render dokumen invoice dan kwitansi.
+
+### INFORMASI API
+
+**Base URL:** 
+${baseUrl}
+
+**Method:** POST
+
+**Authentication:**
+- Header: \`x-api-key\`
+- Nilai: API Key yang diberikan oleh admin
+
+### REQUEST BODY
+
+\`\`\`json
+{
+  "access_code": "CTR-XXXXXXXX",  // [REQUIRED] Kode akses dari public link kontrak
+  "document_type": "invoice"      // [OPTIONAL] "invoice" atau "receipt", default: "invoice"
+}
+\`\`\`
+
+### RESPONSE DATA
+
+API akan mengembalikan data lengkap dalam format JSON:
+
+1. **contract** - Data kontrak
+   - \`id\` (UUID): ID kontrak
+   - \`nomor_invoice\` (string): Nomor invoice
+   - \`tanggal\` (date): Tanggal kontrak
+   - \`total_harga\` (number): Total harga kontrak
+   - \`jumlah_lunas\` (number): Jumlah yang sudah dibayar
+   - \`tagihan_belum_bayar\` (number): Sisa tagihan
+   - \`status\` (string): Status kontrak (lunas/belum_lunas)
+   - \`lokasi\` (string): Lokasi proyek
+   - \`tanggal_kirim\` (date): Tanggal pengiriman
+   - \`tanggal_ambil\` (date): Tanggal pengambilan
+
+2. **client** - Data klien
+   - \`nama\` (string): Nama klien
+   - \`nomor_telepon\` (string): Nomor telepon klien
+
+3. **payments** - Riwayat pembayaran (array)
+   - \`amount\` (number): Jumlah pembayaran
+   - \`payment_date\` (date): Tanggal pembayaran
+   - \`payment_number\` (number): Nomor urut pembayaran
+   - \`notes\` (string): Catatan pembayaran
+
+4. **bank_info** - Informasi bank
+   - \`bank_name\` (string): Nama bank
+   - \`account_number\` (string): Nomor rekening
+   - \`account_name\` (string): Nama pemilik rekening
+
+5. **template_settings** - Pengaturan template dokumen (150+ fields)
+   Kategori:
+   - Branding (15 fields): company_name, company_tagline, invoice_logo_url
+   - Typography (12 fields): font_family, font_size_base, heading_font_family
+   - Colors (20 fields): header_color_primary, accent_color, label_color
+   - Layout (18 fields): paper_size, logo_position, header_style
+   - Signature (25 fields): signature_url, signer_name, signature_position
+   - Stamp (20 fields): stamp_type, stamp_color, stamp_position
+   - Labels (10 fields): label_client, label_total, label_terbilang
+   - Visibility (20 fields): show_header_stripe, show_qr_code, show_stamp
+   - Payment (10 fields): payment_qr_enabled, payment_wa_number
+   - Table (8 fields): table_header_bg, table_border_style
+   - QR Code (6 fields): qr_size, qr_position, qr_include_amount
+   - Watermark (6 fields): watermark_text, watermark_opacity
+
+### CONTOH REQUEST (JavaScript)
+
+\`\`\`javascript
+const response = await fetch('${baseUrl}', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    access_code: 'CTR-XXXXXXXX',
+    document_type: 'invoice'
+  })
+});
+
+const data = await response.json();
+console.log(data);
+\`\`\`
+
+### TUGAS KAMU
+
+Gunakan data dari API ini untuk [TASK SPESIFIK, contoh: generate PDF, render template, dll].
+Data template_settings berisi pengaturan lengkap untuk desain dokumen termasuk warna, font, posisi elemen, dll.` :
+                    selectedPromptType === 'ringkas' ? `## QUICK REFERENCE: DOCUMENT API
+
+**URL:** ${baseUrl}
+**Method:** POST
+**Auth:** Header \`x-api-key: YOUR_API_KEY\`
+
+**Request:**
+\`\`\`json
+{
+  "access_code": "CTR-XXXXXXXX",
+  "document_type": "invoice"  // atau "receipt"
+}
+\`\`\`
+
+**Response utama:**
+- \`contract\`: Data kontrak (invoice, tanggal, total, status)
+- \`client\`: Data klien (nama, telepon)
+- \`payments\`: Riwayat pembayaran
+- \`bank_info\`: Info rekening bank
+- \`template_settings\`: 150+ pengaturan template
+
+**Contoh:**
+\`\`\`javascript
+const res = await fetch('${baseUrl}', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'YOUR_KEY'
+  },
+  body: JSON.stringify({ access_code: 'CTR-XXX' })
+});
+const data = await res.json();
+\`\`\`` :
+                    `## INSTRUKSI PDF RENDERING
+
+Kamu akan menerima data dari Document API untuk merender dokumen PDF.
+
+### DATA YANG TERSEDIA
+
+**1. Informasi Kontrak & Klien**
+- Nomor invoice, tanggal, total harga
+- Nama dan telepon klien
+- Status pembayaran (lunas/belum lunas)
+- Riwayat pembayaran
+
+**2. Template Settings (150+ fields)**
+Data \`template_settings\` berisi semua pengaturan visual:
+
+- **Posisi Elemen (dalam mm dari kiri/atas A4)**
+  - \`logo_position_x/y\`: Posisi logo
+  - \`signature_position_x/y\`: Posisi tanda tangan
+  - \`stamp_position_x/y\`: Posisi stempel
+  - \`qr_position_x/y\`: Posisi QR code
+  - \`watermark_position_x/y\`: Posisi watermark
+
+- **Ukuran & Skala**
+  - \`logo_scale\`: Skala logo (0.1-2.0)
+  - \`stamp_scale\`: Skala stempel
+  - \`qr_size\`: Ukuran QR code (px)
+  - \`font_size_base\`: Ukuran font dasar
+
+- **Warna (format hex)**
+  - \`header_color_primary/secondary\`
+  - \`accent_color\`, \`border_color\`
+  - \`table_header_bg\`, \`table_header_text_color\`
+  - \`stamp_color_lunas\`, \`stamp_color_belum_lunas\`
+
+- **Font**
+  - \`font_family\`: Font utama
+  - \`heading_font_family\`: Font heading
+
+- **Visibility Flags**
+  - \`show_signature\`, \`show_stamp\`, \`show_watermark\`
+  - \`show_qr_code\`, \`show_bank_info\`, \`show_terbilang\`
+
+**3. Asset URLs**
+- \`invoice_logo_url\`: URL logo perusahaan
+- \`signature_url\`: URL gambar tanda tangan
+- \`custom_stamp_url\`: URL stempel custom
+- \`bank_logo_url\`: URL logo bank
+
+### WORKFLOW RENDERING
+
+1. Fetch data dari API
+2. Buat canvas PDF ukuran A4 (210mm x 297mm)
+3. Render elemen sesuai posisi dari template_settings
+4. Terapkan warna, font, dan visibility sesuai settings
+5. Load dan posisikan gambar (logo, signature, stamp)
+6. Generate QR code jika \`show_qr_code\` = true
+7. Export sebagai PDF
+
+### CATATAN PENTING
+- Semua posisi dalam satuan mm dari sudut kiri atas A4
+- Gunakan visibility flags untuk menentukan elemen yang ditampilkan
+- Status pembayaran menentukan warna stempel (lunas/belum_lunas)`
+                  }</code>
+                </pre>
+                <div className="absolute top-2 right-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const promptContent = selectedPromptType === 'lengkap' 
+                        ? `## INSTRUKSI UNTUK AI: DOCUMENT API INTEGRATION
+
+Kamu adalah AI assistant yang akan membantu mengintegrasikan Document API untuk generate/render dokumen invoice dan kwitansi.
+
+### INFORMASI API
+
+**Base URL:** 
+${baseUrl}
+
+**Method:** POST
+
+**Authentication:**
+- Header: \`x-api-key\`
+- Nilai: API Key yang diberikan oleh admin
+
+### REQUEST BODY
+
+\`\`\`json
+{
+  "access_code": "CTR-XXXXXXXX",  // [REQUIRED] Kode akses dari public link kontrak
+  "document_type": "invoice"      // [OPTIONAL] "invoice" atau "receipt", default: "invoice"
+}
+\`\`\`
+
+### RESPONSE DATA
+
+API akan mengembalikan data lengkap dalam format JSON:
+
+1. **contract** - Data kontrak
+   - \`id\` (UUID): ID kontrak
+   - \`nomor_invoice\` (string): Nomor invoice
+   - \`tanggal\` (date): Tanggal kontrak
+   - \`total_harga\` (number): Total harga kontrak
+   - \`jumlah_lunas\` (number): Jumlah yang sudah dibayar
+   - \`tagihan_belum_bayar\` (number): Sisa tagihan
+   - \`status\` (string): Status kontrak (lunas/belum_lunas)
+   - \`lokasi\` (string): Lokasi proyek
+   - \`tanggal_kirim\` (date): Tanggal pengiriman
+   - \`tanggal_ambil\` (date): Tanggal pengambilan
+
+2. **client** - Data klien
+   - \`nama\` (string): Nama klien
+   - \`nomor_telepon\` (string): Nomor telepon klien
+
+3. **payments** - Riwayat pembayaran (array)
+   - \`amount\` (number): Jumlah pembayaran
+   - \`payment_date\` (date): Tanggal pembayaran
+   - \`payment_number\` (number): Nomor urut pembayaran
+   - \`notes\` (string): Catatan pembayaran
+
+4. **bank_info** - Informasi bank
+   - \`bank_name\` (string): Nama bank
+   - \`account_number\` (string): Nomor rekening
+   - \`account_name\` (string): Nama pemilik rekening
+
+5. **template_settings** - Pengaturan template dokumen (150+ fields)
+   Kategori:
+   - Branding (15 fields): company_name, company_tagline, invoice_logo_url
+   - Typography (12 fields): font_family, font_size_base, heading_font_family
+   - Colors (20 fields): header_color_primary, accent_color, label_color
+   - Layout (18 fields): paper_size, logo_position, header_style
+   - Signature (25 fields): signature_url, signer_name, signature_position
+   - Stamp (20 fields): stamp_type, stamp_color, stamp_position
+   - Labels (10 fields): label_client, label_total, label_terbilang
+   - Visibility (20 fields): show_header_stripe, show_qr_code, show_stamp
+   - Payment (10 fields): payment_qr_enabled, payment_wa_number
+   - Table (8 fields): table_header_bg, table_border_style
+   - QR Code (6 fields): qr_size, qr_position, qr_include_amount
+   - Watermark (6 fields): watermark_text, watermark_opacity
+
+### CONTOH REQUEST (JavaScript)
+
+\`\`\`javascript
+const response = await fetch('${baseUrl}', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    access_code: 'CTR-XXXXXXXX',
+    document_type: 'invoice'
+  })
+});
+
+const data = await response.json();
+console.log(data);
+\`\`\`
+
+### TUGAS KAMU
+
+Gunakan data dari API ini untuk [TASK SPESIFIK, contoh: generate PDF, render template, dll].
+Data template_settings berisi pengaturan lengkap untuk desain dokumen termasuk warna, font, posisi elemen, dll.`
+                        : selectedPromptType === 'ringkas' 
+                        ? `## QUICK REFERENCE: DOCUMENT API
+
+**URL:** ${baseUrl}
+**Method:** POST
+**Auth:** Header \`x-api-key: YOUR_API_KEY\`
+
+**Request:**
+\`\`\`json
+{
+  "access_code": "CTR-XXXXXXXX",
+  "document_type": "invoice"  // atau "receipt"
+}
+\`\`\`
+
+**Response utama:**
+- \`contract\`: Data kontrak (invoice, tanggal, total, status)
+- \`client\`: Data klien (nama, telepon)
+- \`payments\`: Riwayat pembayaran
+- \`bank_info\`: Info rekening bank
+- \`template_settings\`: 150+ pengaturan template
+
+**Contoh:**
+\`\`\`javascript
+const res = await fetch('${baseUrl}', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'YOUR_KEY'
+  },
+  body: JSON.stringify({ access_code: 'CTR-XXX' })
+});
+const data = await res.json();
+\`\`\``
+                        : `## INSTRUKSI PDF RENDERING
+
+Kamu akan menerima data dari Document API untuk merender dokumen PDF.
+
+### DATA YANG TERSEDIA
+
+**1. Informasi Kontrak & Klien**
+- Nomor invoice, tanggal, total harga
+- Nama dan telepon klien
+- Status pembayaran (lunas/belum lunas)
+- Riwayat pembayaran
+
+**2. Template Settings (150+ fields)**
+Data \`template_settings\` berisi semua pengaturan visual:
+
+- **Posisi Elemen (dalam mm dari kiri/atas A4)**
+  - \`logo_position_x/y\`: Posisi logo
+  - \`signature_position_x/y\`: Posisi tanda tangan
+  - \`stamp_position_x/y\`: Posisi stempel
+  - \`qr_position_x/y\`: Posisi QR code
+  - \`watermark_position_x/y\`: Posisi watermark
+
+- **Ukuran & Skala**
+  - \`logo_scale\`: Skala logo (0.1-2.0)
+  - \`stamp_scale\`: Skala stempel
+  - \`qr_size\`: Ukuran QR code (px)
+  - \`font_size_base\`: Ukuran font dasar
+
+- **Warna (format hex)**
+  - \`header_color_primary/secondary\`
+  - \`accent_color\`, \`border_color\`
+  - \`table_header_bg\`, \`table_header_text_color\`
+  - \`stamp_color_lunas\`, \`stamp_color_belum_lunas\`
+
+- **Font**
+  - \`font_family\`: Font utama
+  - \`heading_font_family\`: Font heading
+
+- **Visibility Flags**
+  - \`show_signature\`, \`show_stamp\`, \`show_watermark\`
+  - \`show_qr_code\`, \`show_bank_info\`, \`show_terbilang\`
+
+**3. Asset URLs**
+- \`invoice_logo_url\`: URL logo perusahaan
+- \`signature_url\`: URL gambar tanda tangan
+- \`custom_stamp_url\`: URL stempel custom
+- \`bank_logo_url\`: URL logo bank
+
+### WORKFLOW RENDERING
+
+1. Fetch data dari API
+2. Buat canvas PDF ukuran A4 (210mm x 297mm)
+3. Render elemen sesuai posisi dari template_settings
+4. Terapkan warna, font, dan visibility sesuai settings
+5. Load dan posisikan gambar (logo, signature, stamp)
+6. Generate QR code jika \`show_qr_code\` = true
+7. Export sebagai PDF
+
+### CATATAN PENTING
+- Semua posisi dalam satuan mm dari sudut kiri atas A4
+- Gunakan visibility flags untuk menentukan elemen yang ditampilkan
+- Status pembayaran menentukan warna stempel (lunas/belum_lunas)`;
+                      copyToClipboard(promptContent, 'aiPrompt');
+                    }}
+                    className="gap-2"
+                  >
+                    {copiedField === 'aiPrompt' ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    Copy Prompt
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Tips Card */}
+            <Card className="p-4 sm:p-6 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Tips Penggunaan
+              </h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span><strong>Prompt Lengkap:</strong> Gunakan untuk AI yang belum pernah mengintegrasikan API ini. Berisi penjelasan lengkap struktur data.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span><strong>Prompt Ringkas:</strong> Quick reference untuk AI yang sudah familiar. Hanya berisi info esensial.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span><strong>PDF Rendering:</strong> Fokus pada data yang diperlukan untuk merender PDF. Termasuk koordinat posisi dan workflow rendering.</span>
+                </li>
+              </ul>
             </Card>
           </TabsContent>
         </Tabs>
