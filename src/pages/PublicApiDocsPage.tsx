@@ -23,7 +23,9 @@ import {
   CheckCircle,
   BookOpen,
   Key,
-  Send
+  Send,
+  Bot,
+  Sparkles
 } from "lucide-react";
 
 interface ApiDocsData {
@@ -45,6 +47,11 @@ interface ApiDocsData {
     };
   };
   code_examples: Record<string, string>;
+  ai_prompts?: {
+    lengkap: string;
+    ringkas: string;
+    pdf_rendering: string;
+  };
 }
 
 export default function PublicApiDocsPage() {
@@ -56,6 +63,7 @@ export default function PublicApiDocsPage() {
   const [viewCount, setViewCount] = useState(0);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [selectedPromptType, setSelectedPromptType] = useState<'lengkap' | 'ringkas' | 'pdf_rendering'>('lengkap');
 
   useEffect(() => {
     if (accessCode) {
@@ -229,22 +237,26 @@ export default function PublicApiDocsPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="gap-2">
               <BookOpen className="h-4 w-4" />
-              Overview
+              <span className="hidden sm:inline">Overview</span>
             </TabsTrigger>
             <TabsTrigger value="auth" className="gap-2">
               <Key className="h-4 w-4" />
-              Authentication
+              <span className="hidden sm:inline">Auth</span>
             </TabsTrigger>
             <TabsTrigger value="schema" className="gap-2">
               <Database className="h-4 w-4" />
-              Response Schema
+              <span className="hidden sm:inline">Schema</span>
             </TabsTrigger>
             <TabsTrigger value="examples" className="gap-2">
               <Code className="h-4 w-4" />
-              Code Examples
+              <span className="hidden sm:inline">Code</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-prompt" className="gap-2">
+              <Bot className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Prompt</span>
             </TabsTrigger>
           </TabsList>
 
@@ -436,6 +448,83 @@ export default function PublicApiDocsPage() {
                 </CardContent>
               </Card>
             ))}
+          </TabsContent>
+
+          {/* AI Prompt Tab */}
+          <TabsContent value="ai-prompt" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-amber-500" />
+                  AI Prompt Generator
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Pilih jenis prompt dan copy ke AI favorit Anda (ChatGPT, Claude, Gemini, dll) untuk membantu integrasi API.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Prompt Type Selector */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedPromptType === 'lengkap' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedPromptType('lengkap')}
+                  >
+                    📋 Prompt Lengkap
+                  </Button>
+                  <Button
+                    variant={selectedPromptType === 'ringkas' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedPromptType('ringkas')}
+                  >
+                    ⚡ Prompt Ringkas
+                  </Button>
+                  <Button
+                    variant={selectedPromptType === 'pdf_rendering' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedPromptType('pdf_rendering')}
+                  >
+                    📄 PDF Rendering
+                  </Button>
+                </div>
+
+                {/* Prompt Content */}
+                {data.ai_prompts && (
+                  <div className="relative">
+                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm whitespace-pre-wrap max-h-[500px] overflow-y-auto">
+                      <code>{data.ai_prompts[selectedPromptType]}</code>
+                    </pre>
+                    <Button
+                      className="absolute top-2 right-2"
+                      size="sm"
+                      onClick={() => data.ai_prompts && copyToClipboard(data.ai_prompts[selectedPromptType], `prompt_${selectedPromptType}`)}
+                    >
+                      {copiedField === `prompt_${selectedPromptType}` ? (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+                          Disalin!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy Prompt
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Tips */}
+                <div className="p-4 bg-sky-50 border border-sky-200 rounded-lg">
+                  <h4 className="font-medium text-sky-800 mb-2">💡 Tips Penggunaan</h4>
+                  <ul className="text-sm text-sky-700 space-y-1">
+                    <li>• <strong>Prompt Lengkap:</strong> Berisi semua informasi API termasuk schema dan contoh kode</li>
+                    <li>• <strong>Prompt Ringkas:</strong> Hanya informasi esensial untuk quick start</li>
+                    <li>• <strong>PDF Rendering:</strong> Fokus pada data yang diperlukan untuk render PDF dokumen</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
