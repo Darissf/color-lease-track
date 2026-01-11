@@ -191,6 +191,197 @@ func main() {
   }'`
   };
 
+  const aiPrompts = {
+    lengkap: `## INSTRUKSI UNTUK AI: DOCUMENT API INTEGRATION
+
+Kamu adalah AI assistant yang akan membantu mengintegrasikan Document API untuk generate/render dokumen invoice dan receipt.
+
+### INFORMASI API
+
+**Base URL:** 
+${baseUrl}
+
+**Method:** POST
+
+**Authentication:**
+- Header: \`x-api-key\`
+- Nilai: API Key yang diberikan oleh admin
+- API Key hanya ditampilkan sekali saat generate, simpan dengan aman!
+
+### REQUEST BODY
+
+\`\`\`json
+{
+  "access_code": "CTR-XXXXXXXX",  // [REQUIRED] Kode akses dari public link kontrak
+  "document_type": "invoice"      // [OPTIONAL] "invoice" atau "receipt", default: "invoice"
+}
+\`\`\`
+
+### RESPONSE DATA
+
+API akan mengembalikan data lengkap dalam format JSON:
+
+1. **contract** - Data kontrak
+   - \`id\` (UUID): ID kontrak
+   - \`nomor_invoice\` (string): Nomor invoice
+   - \`tanggal\` (date): Tanggal kontrak
+   - \`total_harga\` (number): Total harga kontrak
+   - \`jumlah_lunas\` (number): Jumlah yang sudah dibayar
+   - \`tagihan_belum_bayar\` (number): Sisa tagihan
+   - \`status\` (string): Status kontrak
+   - \`lokasi\` (string): Lokasi proyek
+   - \`tanggal_kirim\` (date): Tanggal pengiriman
+   - \`tanggal_ambil\` (date): Tanggal pengambilan
+
+2. **client** - Data klien
+   - \`nama\` (string): Nama klien
+   - \`nomor_telepon\` (string): Nomor telepon klien
+
+3. **payments** - Riwayat pembayaran (array)
+   - \`amount\` (number): Jumlah pembayaran
+   - \`payment_date\` (date): Tanggal pembayaran
+   - \`payment_number\` (number): Nomor urut pembayaran
+   - \`notes\` (string): Catatan pembayaran
+
+4. **bank_info** - Informasi bank
+   - \`bank_name\` (string): Nama bank
+   - \`account_number\` (string): Nomor rekening
+   - \`account_name\` (string): Nama pemilik rekening
+
+5. **settings** - Pengaturan template dokumen (150+ fields)
+   Kategori:
+   - Branding (15 fields): company_name, company_tagline, invoice_logo_url
+   - Typography (12 fields): font_family, font_size_base, heading_font_family
+   - Colors (20 fields): header_color_primary, accent_color, label_color
+   - Layout (18 fields): paper_size, logo_position, header_style
+   - Signature (25 fields): signature_url, signer_name, signature_position
+   - Stamp (20 fields): stamp_type, stamp_color, stamp_position
+   - Labels (10 fields): label_client, label_total, label_terbilang
+   - Visibility (20 fields): show_header_stripe, show_qr_code, show_stamp
+   - Payment (10 fields): payment_qr_enabled, payment_wa_number
+   - Table (8 fields): table_header_bg, table_border_style
+   - QR Code (6 fields): qr_size, qr_position, qr_include_amount
+   - Watermark (6 fields): watermark_text, watermark_opacity
+
+### CONTOH REQUEST (JavaScript)
+
+\`\`\`javascript
+const response = await fetch('${baseUrl}', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    access_code: 'CTR-XXXXXXXX',
+    document_type: 'invoice'
+  })
+});
+
+const data = await response.json();
+\`\`\`
+
+### TUGAS KAMU
+
+Gunakan data dari API ini untuk membantu integrasi dengan sistem eksternal. Data settings berisi pengaturan lengkap untuk desain dokumen termasuk warna, font, posisi elemen, dll.`,
+
+    ringkas: `## DOCUMENT API - Quick Reference
+
+**URL:** ${baseUrl}
+**Method:** POST
+**Auth Header:** x-api-key: YOUR_API_KEY
+
+### Request Body:
+\`\`\`json
+{
+  "access_code": "CTR-XXXXXXXX",
+  "document_type": "invoice"
+}
+\`\`\`
+
+### Response Data:
+- \`contract\`: Data kontrak (id, nomor_invoice, total_harga, status, dll)
+- \`client\`: Data klien (nama, nomor_telepon)
+- \`payments\`: Array riwayat pembayaran
+- \`bank_info\`: Info rekening bank
+- \`settings\`: 150+ pengaturan template (warna, font, posisi, dll)
+
+### Contoh (JavaScript):
+\`\`\`javascript
+const res = await fetch('${baseUrl}', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'x-api-key': 'KEY' },
+  body: JSON.stringify({ access_code: 'CTR-XXXXXXXX' })
+});
+const data = await res.json();
+\`\`\``,
+
+    pdf_rendering: `## INSTRUKSI AI: PDF RENDERING DARI DOCUMENT API
+
+Kamu akan membantu render dokumen PDF (invoice/receipt) menggunakan data dari Document API.
+
+### API ENDPOINT
+- **URL:** ${baseUrl}
+- **Method:** POST
+- **Auth:** Header \`x-api-key\` dengan API Key
+
+### DATA YANG AKAN KAMU TERIMA
+
+1. **contract** - Informasi utama dokumen:
+   - nomor_invoice, tanggal, total_harga, jumlah_lunas, tagihan_belum_bayar
+   - status pembayaran, lokasi, tanggal_kirim, tanggal_ambil
+
+2. **client** - Penerima dokumen:
+   - nama, nomor_telepon
+
+3. **payments** - Untuk kwitansi:
+   - Daftar pembayaran dengan amount, payment_date, notes
+
+4. **bank_info** - Info transfer:
+   - bank_name, account_number, account_name
+
+5. **settings** - PENTING untuk desain PDF:
+   
+   **Branding:**
+   - company_name, company_tagline, invoice_logo_url
+   - company_address, company_phone, company_email
+   
+   **Typography:**
+   - font_family, font_size_base, heading_font_family
+   
+   **Warna (gunakan untuk styling):**
+   - header_color_primary, header_color_secondary
+   - accent_color, label_color, value_color
+   - table_header_bg, table_header_text_color
+   
+   **Layout:**
+   - paper_size (A4), logo_position
+   - header_style, header_stripe_height
+   
+   **Signature (posisi dalam mm dari top-left):**
+   - signature_url, signature_scale
+   - signature_label_position_x/y
+   - signer_name, signer_name_position_x/y
+   - signer_title, signer_title_position_x/y
+   
+   **Stamp:**
+   - stamp_type, stamp_color, stamp_opacity
+   - stamp_position_x/y, stamp_rotation
+   - stamp_text, custom_stamp_url
+   
+   **Visibility flags:**
+   - show_header_stripe, show_qr_code, show_stamp
+   - show_signature, show_bank_info, show_terbilang
+
+### TUGAS KAMU
+
+1. Panggil API dengan access_code yang diberikan
+2. Gunakan data settings untuk menentukan styling PDF
+3. Posisi elemen (signature, stamp) sudah dalam milimeter
+4. Render sesuai dengan visibility flags (show_*)
+5. Format angka sebagai Rupiah (Rp X.XXX.XXX)`
+  };
+
   const authentication = {
     method: 'API Key',
     header: 'x-api-key',
@@ -199,12 +390,13 @@ func main() {
   };
 
   return {
-    version: '1.0.0',
+    version: '1.1.0',
     base_url: baseUrl,
     authentication,
     request_schema: requestSchema,
     response_schema: responseSchema,
-    code_examples: codeExamples
+    code_examples: codeExamples,
+    ai_prompts: aiPrompts
   };
 };
 
