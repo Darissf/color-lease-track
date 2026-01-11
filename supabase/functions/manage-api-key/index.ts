@@ -156,37 +156,66 @@ serve(async (req) => {
 
     // PUT - Regenerate API key
     if (method === 'PUT') {
-      // Deactivate existing key
-      await supabase
-        .from('api_keys')
-        .update({ is_active: false })
-        .eq('user_id', user.id)
-        .eq('key_name', 'Document API Key');
-
       // Generate new key
       const newKey = generateApiKey();
       const keyHash = await hashApiKey(newKey);
       const keyPreview = createKeyPreview(newKey);
 
-      // Store new key
-      const { data: insertedKey, error: insertError } = await supabase
+      // Check if key exists (regardless of is_active status)
+      const { data: existingKey } = await supabase
         .from('api_keys')
-        .insert({
-          user_id: user.id,
-          key_name: 'Document API Key',
-          key_hash: keyHash,
-          key_preview: keyPreview,
-          is_active: true,
-        })
-        .select('id, key_name, key_preview, created_at')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('key_name', 'Document API Key')
         .single();
 
-      if (insertError) {
-        console.error("Error regenerating API key:", insertError);
-        return new Response(
-          JSON.stringify({ success: false, error: "Failed to regenerate API key" }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      let resultKey;
+
+      if (existingKey) {
+        // UPDATE existing key (not INSERT new one) to avoid UNIQUE constraint violation
+        const { data, error } = await supabase
+          .from('api_keys')
+          .update({
+            key_hash: keyHash,
+            key_preview: keyPreview,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            last_used_at: null,
+          })
+          .eq('id', existingKey.id)
+          .select('id, key_name, key_preview, created_at')
+          .single();
+
+        if (error) {
+          console.error("Error updating API key:", error);
+          return new Response(
+            JSON.stringify({ success: false, error: "Failed to regenerate API key" }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        resultKey = data;
+      } else {
+        // INSERT new key (no existing key for this user)
+        const { data, error } = await supabase
+          .from('api_keys')
+          .insert({
+            user_id: user.id,
+            key_name: 'Document API Key',
+            key_hash: keyHash,
+            key_preview: keyPreview,
+            is_active: true,
+          })
+          .select('id, key_name, key_preview, created_at')
+          .single();
+
+        if (error) {
+          console.error("Error creating API key:", error);
+          return new Response(
+            JSON.stringify({ success: false, error: "Failed to regenerate API key" }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        resultKey = data;
       }
 
       return new Response(
@@ -194,7 +223,7 @@ serve(async (req) => {
           success: true, 
           message: "API key regenerated successfully. Save this key - it will only be shown once!",
           api_key: {
-            ...insertedKey,
+            ...resultKey,
             full_key: newKey,
           }
         }),
