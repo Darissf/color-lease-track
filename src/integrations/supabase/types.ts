@@ -2056,13 +2056,22 @@ export type Database = {
           accent_color: string | null
           bank_account_name: string | null
           bank_account_number: string | null
+          bank_info_position_x: number | null
+          bank_info_position_y: number | null
+          bank_info_width: number | null
           bank_logo_url: string | null
           bank_name: string | null
           border_color: string | null
+          client_block_position_x: number | null
+          client_block_position_y: number | null
+          client_block_width: number | null
           color_preset: string | null
           company_address: string | null
           company_email: string | null
           company_info_color: string | null
+          company_info_position_x: number | null
+          company_info_position_y: number | null
+          company_info_width: number | null
           company_name: string | null
           company_name_color: string | null
           company_npwp: string | null
@@ -2075,11 +2084,20 @@ export type Database = {
           custom_note: string | null
           custom_stamp_url: string | null
           default_due_days: number | null
+          doc_number_position_x: number | null
+          doc_number_position_y: number | null
+          doc_number_width: number | null
           document_title: string | null
           document_title_color: string | null
           font_family: string | null
           font_size_base: number | null
+          footer_position_x: number | null
+          footer_position_y: number | null
           footer_text: string | null
+          footer_width: number | null
+          header_block_position_x: number | null
+          header_block_position_y: number | null
+          header_block_width: number | null
           header_color_primary: string | null
           header_color_secondary: string | null
           header_stripe_height: number | null
@@ -2109,6 +2127,9 @@ export type Database = {
           payment_instruction_text: string | null
           payment_link_text: string | null
           payment_qr_enabled: boolean | null
+          payment_section_position_x: number | null
+          payment_section_position_y: number | null
+          payment_section_width: number | null
           payment_wa_hyperlink_enabled: boolean | null
           payment_wa_number: string | null
           qr_include_amount: boolean | null
@@ -2230,9 +2251,17 @@ export type Database = {
           table_border_style: string | null
           table_header_bg: string | null
           table_header_text_color: string | null
+          table_position_x: number | null
+          table_position_y: number | null
+          table_width: number | null
           tagline_color: string | null
           template_style: string | null
+          terbilang_position_x: number | null
+          terbilang_position_y: number | null
           terms_conditions: string | null
+          terms_position_x: number | null
+          terms_position_y: number | null
+          terms_width: number | null
           updated_at: string
           use_payment_link: boolean | null
           user_id: string
@@ -2249,13 +2278,22 @@ export type Database = {
           accent_color?: string | null
           bank_account_name?: string | null
           bank_account_number?: string | null
+          bank_info_position_x?: number | null
+          bank_info_position_y?: number | null
+          bank_info_width?: number | null
           bank_logo_url?: string | null
           bank_name?: string | null
           border_color?: string | null
+          client_block_position_x?: number | null
+          client_block_position_y?: number | null
+          client_block_width?: number | null
           color_preset?: string | null
           company_address?: string | null
           company_email?: string | null
           company_info_color?: string | null
+          company_info_position_x?: number | null
+          company_info_position_y?: number | null
+          company_info_width?: number | null
           company_name?: string | null
           company_name_color?: string | null
           company_npwp?: string | null
@@ -2268,11 +2306,20 @@ export type Database = {
           custom_note?: string | null
           custom_stamp_url?: string | null
           default_due_days?: number | null
+          doc_number_position_x?: number | null
+          doc_number_position_y?: number | null
+          doc_number_width?: number | null
           document_title?: string | null
           document_title_color?: string | null
           font_family?: string | null
           font_size_base?: number | null
+          footer_position_x?: number | null
+          footer_position_y?: number | null
           footer_text?: string | null
+          footer_width?: number | null
+          header_block_position_x?: number | null
+          header_block_position_y?: number | null
+          header_block_width?: number | null
           header_color_primary?: string | null
           header_color_secondary?: string | null
           header_stripe_height?: number | null
@@ -2302,6 +2349,9 @@ export type Database = {
           payment_instruction_text?: string | null
           payment_link_text?: string | null
           payment_qr_enabled?: boolean | null
+          payment_section_position_x?: number | null
+          payment_section_position_y?: number | null
+          payment_section_width?: number | null
           payment_wa_hyperlink_enabled?: boolean | null
           payment_wa_number?: string | null
           qr_include_amount?: boolean | null
@@ -2423,9 +2473,17 @@ export type Database = {
           table_border_style?: string | null
           table_header_bg?: string | null
           table_header_text_color?: string | null
+          table_position_x?: number | null
+          table_position_y?: number | null
+          table_width?: number | null
           tagline_color?: string | null
           template_style?: string | null
+          terbilang_position_x?: number | null
+          terbilang_position_y?: number | null
           terms_conditions?: string | null
+          terms_position_x?: number | null
+          terms_position_y?: number | null
+          terms_width?: number | null
           updated_at?: string
           use_payment_link?: boolean | null
           user_id: string
@@ -2442,13 +2500,22 @@ export type Database = {
           accent_color?: string | null
           bank_account_name?: string | null
           bank_account_number?: string | null
+          bank_info_position_x?: number | null
+          bank_info_position_y?: number | null
+          bank_info_width?: number | null
           bank_logo_url?: string | null
           bank_name?: string | null
           border_color?: string | null
+          client_block_position_x?: number | null
+          client_block_position_y?: number | null
+          client_block_width?: number | null
           color_preset?: string | null
           company_address?: string | null
           company_email?: string | null
           company_info_color?: string | null
+          company_info_position_x?: number | null
+          company_info_position_y?: number | null
+          company_info_width?: number | null
           company_name?: string | null
           company_name_color?: string | null
           company_npwp?: string | null
@@ -2461,11 +2528,20 @@ export type Database = {
           custom_note?: string | null
           custom_stamp_url?: string | null
           default_due_days?: number | null
+          doc_number_position_x?: number | null
+          doc_number_position_y?: number | null
+          doc_number_width?: number | null
           document_title?: string | null
           document_title_color?: string | null
           font_family?: string | null
           font_size_base?: number | null
+          footer_position_x?: number | null
+          footer_position_y?: number | null
           footer_text?: string | null
+          footer_width?: number | null
+          header_block_position_x?: number | null
+          header_block_position_y?: number | null
+          header_block_width?: number | null
           header_color_primary?: string | null
           header_color_secondary?: string | null
           header_stripe_height?: number | null
@@ -2495,6 +2571,9 @@ export type Database = {
           payment_instruction_text?: string | null
           payment_link_text?: string | null
           payment_qr_enabled?: boolean | null
+          payment_section_position_x?: number | null
+          payment_section_position_y?: number | null
+          payment_section_width?: number | null
           payment_wa_hyperlink_enabled?: boolean | null
           payment_wa_number?: string | null
           qr_include_amount?: boolean | null
@@ -2616,9 +2695,17 @@ export type Database = {
           table_border_style?: string | null
           table_header_bg?: string | null
           table_header_text_color?: string | null
+          table_position_x?: number | null
+          table_position_y?: number | null
+          table_width?: number | null
           tagline_color?: string | null
           template_style?: string | null
+          terbilang_position_x?: number | null
+          terbilang_position_y?: number | null
           terms_conditions?: string | null
+          terms_position_x?: number | null
+          terms_position_y?: number | null
+          terms_width?: number | null
           updated_at?: string
           use_payment_link?: boolean | null
           user_id?: string
