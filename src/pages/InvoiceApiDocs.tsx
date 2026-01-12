@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Copy, Check, Code, Key, FileJson, Terminal, ChevronDown, ChevronRight, Database, Eye, EyeOff, RefreshCw, Loader2, AlertTriangle, Bot, Sparkles } from "lucide-react";
+import { ArrowLeft, Copy, Check, Code, Key, FileJson, Terminal, ChevronDown, ChevronRight, Database, Eye, EyeOff, RefreshCw, Loader2, AlertTriangle, Bot, Sparkles, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -739,6 +739,10 @@ console.log(response.data);
             <TabsTrigger value="ai-prompt" className="gap-2">
               <Bot className="h-4 w-4" />
               AI Prompt
+            </TabsTrigger>
+            <TabsTrigger value="release-notes" className="gap-2">
+              <History className="h-4 w-4" />
+              Release Notes
             </TabsTrigger>
           </TabsList>
 
@@ -1518,6 +1522,137 @@ Data \`template_settings\` berisi semua pengaturan visual:
                 <li className="flex items-start gap-2">
                   <span className="text-primary font-bold">•</span>
                   <span><strong>PDF Rendering:</strong> Fokus pada data yang diperlukan untuk merender PDF. Termasuk koordinat posisi dan workflow rendering.</span>
+                </li>
+              </ul>
+            </Card>
+          </TabsContent>
+
+          {/* Release Notes Tab */}
+          <TabsContent value="release-notes" className="space-y-4">
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-lg font-semibold">API Version History</h2>
+                <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full font-medium">
+                  Current: v1.2
+                </span>
+              </div>
+              <p className="text-muted-foreground">
+                Daftar perubahan dan fitur baru di setiap versi Document API.
+              </p>
+            </Card>
+
+            {/* v1.2 */}
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-lg font-bold">v1.2</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 font-medium">
+                  feature
+                </span>
+                <span className="text-xs text-muted-foreground">2026-01-12</span>
+              </div>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Tambah <code className="bg-muted px-1 rounded">line_items[]</code> array - data rincian item tagihan untuk halaman 2</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Tambah <code className="bg-muted px-1 rounded">page_2_settings</code> object - biaya transport, diskon, mode tampilan</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Tambah kolom <code className="bg-muted px-1 rounded">jumlah_lunas</code> dan <code className="bg-muted px-1 rounded">tanggal_lunas</code> ke response contract</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Auto-sync pembayaran dengan trigger database</span>
+                </li>
+              </ul>
+            </Card>
+
+            {/* v1.1.1 */}
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-lg font-bold">v1.1.1</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium">
+                  security
+                </span>
+                <span className="text-xs text-muted-foreground">2026-01-10</span>
+              </div>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Dual Access Method: akses via <code className="bg-muted px-1 rounded">invoice_number</code> (permanen) atau <code className="bg-muted px-1 rounded">access_code</code> (temporary)</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>4-layer security protection model</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Rate limiting: 100 req/min per key, 10 req/min per invoice</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>15-menit lockout setelah 5 failed attempts</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Admin dapat revoke API access per kontrak via <code className="bg-muted px-1 rounded">api_access_enabled</code></span>
+                </li>
+              </ul>
+            </Card>
+
+            {/* v1.1 */}
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-lg font-bold">v1.1</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 font-medium">
+                  feature
+                </span>
+                <span className="text-xs text-muted-foreground">2026-01-08</span>
+              </div>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Initial public API release</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Support invoice dan kwitansi document types</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>150+ template settings properties</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Custom text elements support</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Bank info integration</span>
+                </li>
+              </ul>
+            </Card>
+
+            {/* v1.0 */}
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-lg font-bold">v1.0</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-500/10 text-gray-600 font-medium">
+                  initial
+                </span>
+                <span className="text-xs text-muted-foreground">2026-01-05</span>
+              </div>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Internal API untuk testing</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Basic contract data fetching</span>
                 </li>
               </ul>
             </Card>
