@@ -343,6 +343,10 @@ serve(async (req) => {
           client_group_id,
           bank_account_id,
           api_access_enabled,
+          transport_cost_delivery,
+          transport_cost_pickup,
+          discount,
+          invoice_full_rincian,
           bank_accounts (
             bank_name,
             account_number,
@@ -430,6 +434,10 @@ serve(async (req) => {
           status,
           client_group_id,
           bank_account_id,
+          transport_cost_delivery,
+          transport_cost_pickup,
+          discount,
+          invoice_full_rincian,
           bank_accounts (
             bank_name,
             account_number,
@@ -551,7 +559,14 @@ serve(async (req) => {
     await logAccess(supabase, keyData.id, identifier, accessMethod, document_type, req, true);
     await incrementRateLimit(supabase, keyData.id, invoice_number);
 
-    // 14. Build comprehensive response
+    // 14. Fetch line items for Page 2 (Rincian Tagihan)
+    const { data: lineItemsData } = await supabase
+      .from('contract_line_items')
+      .select('item_name, quantity, unit_price_per_day, duration_days, subtotal, sort_order')
+      .eq('contract_id', contractData.id)
+      .order('sort_order', { ascending: true });
+
+    // 15. Build comprehensive response
     const response = {
       success: true,
       document_type,
@@ -579,10 +594,18 @@ serve(async (req) => {
         account_number: (contractData.bank_accounts as any).account_number,
         account_holder_name: (contractData.bank_accounts as any).account_holder_name,
       } : null,
+      // Page 2 data (Rincian Tagihan)
+      line_items: lineItemsData || [],
+      page_2_settings: {
+        transport_delivery: contractData.transport_cost_delivery || 0,
+        transport_pickup: contractData.transport_cost_pickup || 0,
+        discount: contractData.discount || 0,
+        full_rincian: contractData.invoice_full_rincian ?? true,
+      },
       template_settings: mergedTemplateSettings,
       custom_text_elements: customTextElements || [],
       generated_at: new Date().toISOString(),
-      api_version: "1.1",
+      api_version: "1.2",
       rate_limits: {
         per_api_key: `${RATE_LIMIT_PER_KEY} requests/minute`,
         per_invoice: `${RATE_LIMIT_PER_INVOICE} requests/minute`
