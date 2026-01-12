@@ -292,6 +292,61 @@ export interface TemplateSettings {
   payment_wa_number?: string;
   payment_wa_hyperlink_enabled?: boolean;
 
+  // =====================================================
+  // ELEMENT POSITIONING FIELDS (for third-party drag-drop)
+  // x, width = percentage (0-100%)
+  // y = millimeters from top (0-297mm), 0 = flow-based
+  // =====================================================
+
+  // Header Block Positioning
+  header_block_position_x: number;
+  header_block_position_y: number;
+  header_block_width: number;
+
+  // Company Info Block Positioning
+  company_info_position_x: number;
+  company_info_position_y: number;
+  company_info_width: number;
+
+  // Document Number Box Positioning
+  doc_number_position_x: number;
+  doc_number_position_y: number;
+  doc_number_width: number;
+
+  // Client Info Block Positioning
+  client_block_position_x: number;
+  client_block_position_y: number;
+  client_block_width: number;
+
+  // Item Table Positioning
+  table_position_x: number;
+  table_position_y: number;
+  table_width: number;
+
+  // Terbilang Positioning
+  terbilang_position_x: number;
+  terbilang_position_y: number;
+
+  // Payment Section Positioning
+  payment_section_position_x: number;
+  payment_section_position_y: number;
+  payment_section_width: number;
+
+  // Bank Info Positioning
+  bank_info_position_x: number;
+  bank_info_position_y: number;
+  bank_info_width: number;
+
+  // Terms Section Positioning
+  terms_position_x: number;
+  terms_position_y: number;
+  terms_width: number;
+
+  // Footer Text Positioning
+  footer_position_x: number;
+  footer_position_y: number;
+  footer_width: number;
+
   // Separate layout settings for Invoice and Receipt
   invoice_layout_settings: LayoutSettings;
   receipt_layout_settings: LayoutSettings;
@@ -523,6 +578,59 @@ export const defaultSettings: TemplateSettings = {
   payment_qr_enabled: true,
   payment_wa_number: '+6289666666632',
   payment_wa_hyperlink_enabled: true,
+
+  // =====================================================
+  // ELEMENT POSITIONING DEFAULTS (0 = flow-based position)
+  // =====================================================
+
+  // Header Block Positioning
+  header_block_position_x: 0,
+  header_block_position_y: 0,
+  header_block_width: 100,
+
+  // Company Info Block Positioning
+  company_info_position_x: 0,
+  company_info_position_y: 0,
+  company_info_width: 60,
+
+  // Document Number Box Positioning
+  doc_number_position_x: 60,
+  doc_number_position_y: 0,
+  doc_number_width: 40,
+
+  // Client Info Block Positioning
+  client_block_position_x: 0,
+  client_block_position_y: 0,
+  client_block_width: 100,
+
+  // Item Table Positioning
+  table_position_x: 0,
+  table_position_y: 0,
+  table_width: 100,
+
+  // Terbilang Positioning
+  terbilang_position_x: 0,
+  terbilang_position_y: 0,
+
+  // Payment Section Positioning
+  payment_section_position_x: 0,
+  payment_section_position_y: 0,
+  payment_section_width: 100,
+
+  // Bank Info Positioning
+  bank_info_position_x: 0,
+  bank_info_position_y: 0,
+  bank_info_width: 100,
+
+  // Terms Section Positioning
+  terms_position_x: 0,
+  terms_position_y: 0,
+  terms_width: 100,
+
+  // Footer Text Positioning
+  footer_position_x: 0,
+  footer_position_y: 0,
+  footer_width: 100,
 
   // Separate layout settings
   invoice_layout_settings: { ...defaultLayoutSettings },
