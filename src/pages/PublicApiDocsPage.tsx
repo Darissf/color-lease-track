@@ -198,7 +198,7 @@ export default function PublicApiDocsPage() {
 
   if (!data) return null;
 
-  const responseProperties = data.response_schema.data.properties as Record<string, { type: string; description: string; fields?: Array<{ name: string; type: string; description: string }>; categories?: Array<{ name: string; count: number; examples: string[] }> }>;
+  const responseProperties = data.response_schema.data.properties as Record<string, { type: string; description: string; fields?: Array<{ name: string; type: string; description: string }>; categories?: Array<{ name: string; count: number; examples: string[]; fields?: Array<{ name: string; type: string; description: string }> }> }>;
 
   return (
     <div className="min-h-screen bg-background pb-16">
@@ -426,21 +426,63 @@ export default function PublicApiDocsPage() {
                         </Table>
                       )}
                       {value.categories && (
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="space-y-2">
                           {value.categories.map((cat) => (
-                            <div key={cat.name} className="p-3 bg-muted/50 rounded-lg">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="font-medium">{cat.name}</span>
-                                <Badge variant="secondary">{cat.count} fields</Badge>
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                {cat.examples.map((ex) => (
-                                  <code key={ex} className="text-xs bg-background px-1.5 py-0.5 rounded">
-                                    {ex}
-                                  </code>
-                                ))}
-                              </div>
-                            </div>
+                            <Collapsible
+                              key={cat.name}
+                              open={openSections[`cat-${cat.name}`]}
+                              onOpenChange={() => toggleSection(`cat-${cat.name}`)}
+                            >
+                              <CollapsibleTrigger className="w-full">
+                                <div className="p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      {openSections[`cat-${cat.name}`] ? (
+                                        <ChevronDown className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronRight className="h-4 w-4" />
+                                      )}
+                                      <span className="font-medium">{cat.name}</span>
+                                      {cat.name.includes('v1.4') && (
+                                        <Badge className="bg-emerald-500 text-white text-xs">NEW</Badge>
+                                      )}
+                                    </div>
+                                    <Badge variant="secondary">{cat.count} fields</Badge>
+                                  </div>
+                                  {!openSections[`cat-${cat.name}`] && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {cat.examples.map((ex) => (
+                                        <code key={ex} className="text-xs bg-background px-1.5 py-0.5 rounded">
+                                          {ex}
+                                        </code>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="mt-2 border rounded-lg overflow-hidden">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Field</TableHead>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead>Description</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {cat.fields?.map((field) => (
+                                        <TableRow key={field.name}>
+                                          <TableCell className="font-mono text-sm">{field.name}</TableCell>
+                                          <TableCell className="text-sm">{field.type}</TableCell>
+                                          <TableCell className="text-sm text-muted-foreground">{field.description}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
                           ))}
                         </div>
                       )}
