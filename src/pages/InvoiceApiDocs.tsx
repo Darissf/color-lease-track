@@ -211,6 +211,32 @@ const InvoiceApiDocs = () => {
     "account_holder_name": "PT Company"
   },
   
+  "line_items": [
+    {
+      "item_name": "Scaffolding 1.7M Galvanis Las",
+      "quantity": 10,
+      "unit_price_per_day": 1000,
+      "duration_days": 30,
+      "subtotal": 300000,
+      "sort_order": 1
+    },
+    {
+      "item_name": "Cross Brace / Silang 220CM Galvanis",
+      "quantity": 14,
+      "unit_price_per_day": 1500,
+      "duration_days": 30,
+      "subtotal": 630000,
+      "sort_order": 2
+    }
+  ],
+  
+  "page_2_settings": {
+    "transport_delivery": 50000,
+    "transport_pickup": 50000,
+    "discount": 0,
+    "full_rincian": true
+  },
+  
   "template_settings": {
     "company_name": "PT Company Indonesia",
     "...": "150+ properties"
@@ -219,7 +245,7 @@ const InvoiceApiDocs = () => {
   "custom_text_elements": [...],
   
   "generated_at": "2024-01-20T10:30:00Z",
-  "api_version": "1.1",
+  "api_version": "1.2",
   "rate_limits": {
     "per_api_key": "100 requests/minute",
     "per_invoice": "10 requests/minute"
@@ -383,6 +409,27 @@ const InvoiceApiDocs = () => {
         { name: "counter_invoice", type: "number", description: "Counter invoice" },
         { name: "counter_receipt", type: "number", description: "Counter kwitansi" },
         { name: "default_due_days", type: "number", description: "Default hari jatuh tempo" },
+      ]
+    },
+    {
+      name: "Page 2 - Line Items (Rincian Tagihan)",
+      fields: [
+        { name: "line_items[]", type: "array", description: "Array item tagihan di halaman 2" },
+        { name: "line_items[].item_name", type: "string", description: "Nama item (e.g., 'Scaffolding 1.7M Galvanis')" },
+        { name: "line_items[].quantity", type: "number", description: "Jumlah unit yang disewa" },
+        { name: "line_items[].unit_price_per_day", type: "number", description: "Harga per unit per hari (Rp)" },
+        { name: "line_items[].duration_days", type: "number", description: "Durasi sewa dalam hari" },
+        { name: "line_items[].subtotal", type: "number", description: "Subtotal = qty × price × duration" },
+        { name: "line_items[].sort_order", type: "number", description: "Urutan tampilan item" },
+      ]
+    },
+    {
+      name: "Page 2 - Settings",
+      fields: [
+        { name: "page_2_settings.transport_delivery", type: "number", description: "Biaya antar/delivery (Rp)" },
+        { name: "page_2_settings.transport_pickup", type: "number", description: "Biaya jemput/pickup (Rp)" },
+        { name: "page_2_settings.discount", type: "number", description: "Diskon total (Rp)" },
+        { name: "page_2_settings.full_rincian", type: "boolean", description: "Mode tampilan: true = rincian lengkap, false = ringkas" },
       ]
     },
   ];
