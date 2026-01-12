@@ -432,6 +432,40 @@ const InvoiceApiDocs = () => {
         { name: "page_2_settings.full_rincian", type: "boolean", description: "Mode tampilan: true = rincian lengkap, false = ringkas" },
       ]
     },
+    {
+      name: "Element Positioning (Full Drag-Drop v1.4)",
+      fields: [
+        { name: "header_block_position_x", type: "number", description: "Posisi X header (% dari lebar page, 0-100)" },
+        { name: "header_block_position_y", type: "number", description: "Posisi Y header (mm dari top, 0=flow)" },
+        { name: "header_block_width", type: "number", description: "Lebar header (% dari lebar page)" },
+        { name: "company_info_position_x", type: "number", description: "Posisi X info perusahaan (%)" },
+        { name: "company_info_position_y", type: "number", description: "Posisi Y info perusahaan (mm, 0=flow)" },
+        { name: "company_info_width", type: "number", description: "Lebar info perusahaan (%)" },
+        { name: "doc_number_position_x", type: "number", description: "Posisi X nomor dokumen (%)" },
+        { name: "doc_number_position_y", type: "number", description: "Posisi Y nomor dokumen (mm, 0=flow)" },
+        { name: "doc_number_width", type: "number", description: "Lebar nomor dokumen (%)" },
+        { name: "client_block_position_x", type: "number", description: "Posisi X blok klien (%)" },
+        { name: "client_block_position_y", type: "number", description: "Posisi Y blok klien (mm, 0=flow)" },
+        { name: "client_block_width", type: "number", description: "Lebar blok klien (%)" },
+        { name: "table_position_x", type: "number", description: "Posisi X tabel item (%)" },
+        { name: "table_position_y", type: "number", description: "Posisi Y tabel item (mm, 0=flow)" },
+        { name: "table_width", type: "number", description: "Lebar tabel item (%)" },
+        { name: "terbilang_position_x", type: "number", description: "Posisi X terbilang (%)" },
+        { name: "terbilang_position_y", type: "number", description: "Posisi Y terbilang (mm, 0=flow)" },
+        { name: "payment_section_position_x", type: "number", description: "Posisi X section pembayaran (%)" },
+        { name: "payment_section_position_y", type: "number", description: "Posisi Y section pembayaran (mm, 0=flow)" },
+        { name: "payment_section_width", type: "number", description: "Lebar section pembayaran (%)" },
+        { name: "bank_info_position_x", type: "number", description: "Posisi X info bank (%)" },
+        { name: "bank_info_position_y", type: "number", description: "Posisi Y info bank (mm, 0=flow)" },
+        { name: "bank_info_width", type: "number", description: "Lebar info bank (%)" },
+        { name: "terms_position_x", type: "number", description: "Posisi X terms & conditions (%)" },
+        { name: "terms_position_y", type: "number", description: "Posisi Y terms & conditions (mm, 0=flow)" },
+        { name: "terms_width", type: "number", description: "Lebar terms & conditions (%)" },
+        { name: "footer_position_x", type: "number", description: "Posisi X footer (%)" },
+        { name: "footer_position_y", type: "number", description: "Posisi Y footer (mm, default: 270)" },
+        { name: "footer_width", type: "number", description: "Lebar footer (%)" },
+      ]
+    },
   ];
 
   const jsExample = `// RECOMMENDED: Menggunakan invoice_number (permanen)
@@ -1533,12 +1567,76 @@ Data \`template_settings\` berisi semua pengaturan visual:
               <div className="flex items-center gap-3 mb-4">
                 <h2 className="text-lg font-semibold">API Version History</h2>
                 <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full font-medium">
-                  Current: v1.2
+                  Current: v1.4
                 </span>
               </div>
               <p className="text-muted-foreground">
                 Daftar perubahan dan fitur baru di setiap versi Document API.
               </p>
+            </Card>
+
+            {/* v1.4 */}
+            <Card className="p-4 sm:p-6 border-primary/20">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-lg font-bold">v1.4</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 font-medium">
+                  major
+                </span>
+                <span className="text-xs text-muted-foreground">2026-01-12</span>
+              </div>
+              <h4 className="font-medium mb-2">Full Element Positioning (Drag-Drop Support)</h4>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Tambah <strong>24 positioning fields</strong> untuk semua elemen dokumen</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Header, Company Info, Doc Number block sekarang bisa diposisikan</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Client block, Table, Terbilang bisa diposisikan</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Payment section, Bank info, Terms, Footer bisa diposisikan</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Unit: X & Width dalam %, Y dalam mm (0=flow, &gt;0=absolute)</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Full drag-drop support untuk third-party integrators</span>
+                </li>
+              </ul>
+            </Card>
+
+            {/* v1.3 */}
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-lg font-bold">v1.3</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-500/10 text-gray-600 font-medium">
+                  internal
+                </span>
+                <span className="text-xs text-muted-foreground">2026-01-12</span>
+              </div>
+              <h4 className="font-medium mb-2">Database Preparation for Element Positioning</h4>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Database schema updated dengan 24 kolom positioning</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>TypeScript types updated untuk positioning fields</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>Default values maintain backward compatibility</span>
+                </li>
+              </ul>
             </Card>
 
             {/* v1.2 */}
@@ -1550,6 +1648,7 @@ Data \`template_settings\` berisi semua pengaturan visual:
                 </span>
                 <span className="text-xs text-muted-foreground">2026-01-12</span>
               </div>
+              <h4 className="font-medium mb-2">Line Items & Page 2 Support</h4>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2 text-sm text-muted-foreground">
                   <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />

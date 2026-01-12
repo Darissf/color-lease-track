@@ -605,7 +605,7 @@ serve(async (req) => {
       template_settings: mergedTemplateSettings,
       custom_text_elements: customTextElements || [],
       generated_at: new Date().toISOString(),
-      api_version: "1.2",
+      api_version: "1.4",
       rate_limits: {
         per_api_key: `${RATE_LIMIT_PER_KEY} requests/minute`,
         per_invoice: `${RATE_LIMIT_PER_INVOICE} requests/minute`

@@ -19,7 +19,7 @@ const getApiDocsData = () => {
   const responseSchema = {
     success: { type: 'boolean', description: 'Status keberhasilan request' },
     access_method: { type: 'string', description: 'Metode akses yang digunakan: "invoice_number" atau "access_code"' },
-    api_version: { type: 'string', description: 'Versi API (current: 1.2)' },
+    api_version: { type: 'string', description: 'Versi API (current: 1.4)' },
     data: {
       type: 'object',
       description: 'Data dokumen lengkap',
@@ -105,6 +105,7 @@ const getApiDocsData = () => {
             { name: 'Table', count: 8, examples: ['table_header_bg', 'table_border_style'] },
             { name: 'QR Code', count: 6, examples: ['qr_size', 'qr_position', 'qr_include_amount'] },
             { name: 'Watermark', count: 6, examples: ['watermark_text', 'watermark_opacity'] },
+            { name: 'Element Positioning (v1.4)', count: 24, examples: ['header_block_position_x', 'table_position_y', 'footer_width'] },
           ]
         }
       }
@@ -278,7 +279,7 @@ curl -X POST '${baseUrl}' \\
   };
 
   const aiPrompts = {
-    lengkap: `## INSTRUKSI UNTUK AI: DOCUMENT API INTEGRATION v1.2
+    lengkap: `## INSTRUKSI UNTUK AI: DOCUMENT API INTEGRATION v1.4
 
 Kamu adalah AI assistant yang akan membantu mengintegrasikan Document API untuk generate/render dokumen invoice dan kwitansi.
 
@@ -331,8 +332,8 @@ API akan mengembalikan data lengkap dalam format JSON:
    - \`invoice\` (string): Nomor invoice
    - \`tanggal\` (date): Tanggal kontrak
    - \`tagihan\` (number): Total tagihan
-   - \`jumlah_lunas\` (number): Jumlah yang sudah dibayar ✨ NEW v1.2
-   - \`tanggal_lunas\` (date | null): Tanggal lunas terakhir ✨ NEW v1.2
+   - \`jumlah_lunas\` (number): Jumlah yang sudah dibayar
+   - \`tanggal_lunas\` (date | null): Tanggal lunas terakhir
    - \`tagihan_belum_bayar\` (number): Sisa tagihan
    - \`status\` (string): Status kontrak (lunas/belum_lunas)
 
@@ -350,7 +351,7 @@ API akan mengembalikan data lengkap dalam format JSON:
    - \`account_number\` (string): Nomor rekening
    - \`account_holder_name\` (string): Nama pemilik rekening
 
-5. **line_items[]** - Rincian item untuk Page 2 ✨ NEW v1.2
+5. **line_items[]** - Rincian item untuk Page 2
    - \`item_name\` (string): Nama item
    - \`quantity\` (number): Jumlah unit
    - \`unit_price_per_day\` (number): Harga per unit per hari
@@ -358,29 +359,46 @@ API akan mengembalikan data lengkap dalam format JSON:
    - \`subtotal\` (number): Subtotal item (qty × price × days)
    - \`sort_order\` (number): Urutan tampilan
 
-6. **page_2_settings** - Pengaturan khusus Page 2 ✨ NEW v1.2
+6. **page_2_settings** - Pengaturan khusus Page 2
    - \`transport_delivery\` (number): Biaya antar
    - \`transport_pickup\` (number): Biaya jemput
    - \`discount\` (number): Diskon
    - \`full_rincian\` (boolean): Mode tampilan (true=full table, false=simplified)
 
-7. **template_settings** - Pengaturan template dokumen (150+ fields)
-   Kategori: Branding, Typography, Colors, Layout, Signature, Stamp, Labels, Visibility, Payment, Table, QR Code, Watermark
+7. **template_settings** - Pengaturan template dokumen (170+ fields)
+   Kategori: Branding, Typography, Colors, Layout, Signature, Stamp, Labels, Visibility, Payment, Table, QR Code, Watermark, **Element Positioning (v1.4)**
 
-### KALKULASI PAGE 2 (LAMPIRAN RINCIAN)
+### ELEMENT POSITIONING (v1.4 - FULL DRAG-DROP)
 
-\`\`\`javascript
-// Hitung subtotal dari line_items
-const subtotalItems = line_items.reduce((sum, item) => sum + item.subtotal, 0);
+Semua elemen utama sekarang bisa diposisikan bebas:
 
-// Hitung total transport
-const totalTransport = page_2_settings.transport_delivery + page_2_settings.transport_pickup;
+| Elemen | Fields | Unit | Default |
+|--------|--------|------|---------|
+| Header Block | header_block_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
+| Company Info | company_info_position_x/y, width | x,w=%, y=mm | 0, 0, 60 |
+| Doc Number | doc_number_position_x/y, width | x,w=%, y=mm | 75, 0, 25 |
+| Client Block | client_block_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
+| Table | table_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
+| Terbilang | terbilang_position_x/y | x=%, y=mm | 0, 0 |
+| Payment Section | payment_section_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
+| Bank Info | bank_info_position_x/y, width | x,w=%, y=mm | 60, 0, 40 |
+| Terms | terms_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
+| Footer | footer_position_x/y, width | x,w=%, y=mm | 0, 270, 100 |
 
-// Hitung subtotal sebelum diskon
-const subtotalBeforeDiscount = subtotalItems + totalTransport;
+**Aturan Positioning:**
+- \`position_x\` & \`width\`: Persentase (0-100%)
+- \`position_y\`: Milimeter dari top page (0-297mm)
+- \`position_y = 0\`: Flow-based (ikuti elemen sebelumnya)
+- \`position_y > 0\`: Absolute positioning dari top
 
-// Grand total (harus sama dengan contract.tagihan)
-const grandTotal = subtotalBeforeDiscount - page_2_settings.discount;
+**CSS Implementation:**
+\`\`\`css
+.element {
+  position: positionY > 0 ? 'absolute' : 'relative';
+  left: \${positionX}%;
+  top: positionY > 0 ? \${positionY}mm : 'auto';
+  width: \${width}%;
+}
 \`\`\`
 
 ### CONTOH REQUEST (JavaScript)
@@ -401,28 +419,17 @@ const response = await fetch('${baseUrl}', {
 
 const data = await response.json();
 
-// v1.2: Akses data baru
-const { line_items, page_2_settings, contract } = data.data;
-console.log('Line items:', line_items);
-console.log('Page 2 settings:', page_2_settings);
-console.log('Jumlah lunas:', contract.jumlah_lunas);
+// v1.4: Akses positioning data
+const { template_settings } = data;
+console.log('Header position:', template_settings.header_block_position_x, template_settings.header_block_position_y);
+console.log('Table position:', template_settings.table_position_x, template_settings.table_position_y);
 \`\`\`
-
-### ERROR RESPONSES
-
-| Code | Error | Penjelasan |
-|------|-------|------------|
-| 400 | Missing required fields | access_code atau invoice_number harus ada |
-| 401 | Invalid API key | API key tidak valid atau tidak aktif |
-| 403 | Access disabled | Akses API dinonaktifkan untuk kontrak ini |
-| 404 | Not found | Invoice atau access_code tidak ditemukan |
-| 429 | Rate limit exceeded | Terlalu banyak request, coba lagi nanti |
 
 ### TUGAS KAMU
 
-Gunakan data dari API ini untuk membantu integrasi dengan sistem eksternal. Data template_settings berisi pengaturan lengkap untuk desain dokumen termasuk warna, font, posisi elemen, dll. Untuk Page 2 (Lampiran Rincian), gunakan line_items dan page_2_settings.`,
+Gunakan data dari API ini untuk membantu integrasi dengan sistem eksternal. Data template_settings berisi pengaturan lengkap untuk desain dokumen termasuk warna, font, dan **posisi semua elemen** (v1.4).`,
 
-    ringkas: `## DOCUMENT API v1.2 - Quick Reference
+    ringkas: `## DOCUMENT API v1.4 - Quick Reference
 
 **URL:** ${baseUrl}
 **Method:** POST
@@ -445,19 +452,29 @@ Gunakan data dari API ini untuk membantu integrasi dengan sistem eksternal. Data
 - 10 req/min per invoice
 
 ### Response Data:
-- \`contract\`: Data kontrak (invoice, tanggal, tagihan, status, jumlah_lunas✨, tanggal_lunas✨)
+- \`contract\`: Data kontrak (invoice, tanggal, tagihan, status, jumlah_lunas, tanggal_lunas)
 - \`client\`: Data klien (nama, nomor_telepon)
 - \`payment\`: Data pembayaran (untuk kwitansi)
 - \`bank_info\`: Info rekening bank
-- \`line_items[]\`: Rincian item untuk Page 2 ✨ NEW v1.2
-- \`page_2_settings\`: Pengaturan Page 2 ✨ NEW v1.2
-- \`template_settings\`: 150+ pengaturan template
+- \`line_items[]\`: Rincian item untuk Page 2
+- \`page_2_settings\`: Pengaturan Page 2
+- \`template_settings\`: 170+ pengaturan template
 
-### v1.2 New Fields:
-- \`line_items[]\`: item_name, quantity, unit_price_per_day, duration_days, subtotal, sort_order
-- \`page_2_settings\`: transport_delivery, transport_pickup, discount, full_rincian
-- \`contract.jumlah_lunas\`: Total yang sudah dibayar
-- \`contract.tanggal_lunas\`: Tanggal lunas terakhir
+### v1.4 Element Positioning Fields:
+| Elemen | Fields |
+|--------|--------|
+| Header Block | header_block_position_x/y, width |
+| Company Info | company_info_position_x/y, width |
+| Doc Number | doc_number_position_x/y, width |
+| Client Block | client_block_position_x/y, width |
+| Table | table_position_x/y, width |
+| Terbilang | terbilang_position_x/y |
+| Payment Section | payment_section_position_x/y, width |
+| Bank Info | bank_info_position_x/y, width |
+| Terms | terms_position_x/y, width |
+| Footer | footer_position_x/y, width |
+
+**Unit:** x,width=% (0-100), y=mm (0-297, 0=flow)
 
 ### Contoh (JavaScript):
 \`\`\`javascript
@@ -466,10 +483,10 @@ const res = await fetch('${baseUrl}', {
   headers: { 'Content-Type': 'application/json', 'x-api-key': 'KEY' },
   body: JSON.stringify({ invoice_number: '000254', document_type: 'invoice' })
 });
-const { line_items, page_2_settings } = (await res.json()).data;
+const { template_settings } = (await res.json());
 \`\`\``,
 
-    pdf_rendering: `## INSTRUKSI AI: PDF RENDERING DARI DOCUMENT API v1.2
+    pdf_rendering: `## INSTRUKSI AI: PDF RENDERING DARI DOCUMENT API v1.4
 
 Kamu akan membantu render dokumen PDF (invoice/kwitansi) menggunakan data dari Document API.
 
@@ -494,8 +511,8 @@ Kamu akan membantu render dokumen PDF (invoice/kwitansi) menggunakan data dari D
 
 1. **contract** - Informasi utama dokumen:
    - invoice, tanggal, tagihan, tagihan_belum_bayar
-   - \`jumlah_lunas\` (number): Total yang sudah dibayar ✨ NEW
-   - \`tanggal_lunas\` (date | null): Tanggal lunas terakhir ✨ NEW
+   - \`jumlah_lunas\` (number): Total yang sudah dibayar
+   - \`tanggal_lunas\` (date | null): Tanggal lunas terakhir
    - status pembayaran, start_date, end_date
 
 2. **client** - Penerima dokumen:
@@ -507,7 +524,7 @@ Kamu akan membantu render dokumen PDF (invoice/kwitansi) menggunakan data dari D
 4. **bank_info** - Info transfer:
    - bank_name, account_number, account_holder_name
 
-5. **line_items[]** - Rincian item untuk Page 2 ✨ NEW v1.2:
+5. **line_items[]** - Rincian item untuk Page 2:
    - \`item_name\` (string): Nama item
    - \`quantity\` (number): Jumlah unit
    - \`unit_price_per_day\` (number): Harga per unit per hari
@@ -515,7 +532,7 @@ Kamu akan membantu render dokumen PDF (invoice/kwitansi) menggunakan data dari D
    - \`subtotal\` (number): Subtotal item (qty × price × days)
    - \`sort_order\` (number): Urutan tampilan
 
-6. **page_2_settings** - Pengaturan Page 2 ✨ NEW v1.2:
+6. **page_2_settings** - Pengaturan Page 2:
    - \`transport_delivery\` (number): Biaya antar
    - \`transport_pickup\` (number): Biaya jemput
    - \`discount\` (number): Diskon
@@ -535,9 +552,24 @@ Kamu akan membantu render dokumen PDF (invoice/kwitansi) menggunakan data dari D
    - accent_color, label_color, value_color
    - table_header_bg, table_header_text_color
    
-   **Layout:**
-   - paper_size (A4), logo_position
-   - header_style, header_stripe_height
+   **ELEMENT POSITIONING (v1.4 - FULL DRAG-DROP):**
+   
+   | Elemen | X (%) | Y (mm) | Width (%) |
+   |--------|-------|--------|-----------|
+   | header_block | position_x | position_y | width |
+   | company_info | position_x | position_y | width |
+   | doc_number | position_x | position_y | width |
+   | client_block | position_x | position_y | width |
+   | table | position_x | position_y | width |
+   | terbilang | position_x | position_y | - |
+   | payment_section | position_x | position_y | width |
+   | bank_info | position_x | position_y | width |
+   | terms | position_x | position_y | width |
+   | footer | position_x | position_y | width |
+   
+   **Aturan Y (position_y):**
+   - Y = 0: Flow-based (ikuti elemen sebelumnya)
+   - Y > 0: Absolute positioning dari top page (dalam mm)
    
    **Signature (posisi dalam mm dari top-left):**
    - signature_url, signature_scale
@@ -551,6 +583,17 @@ Kamu akan membantu render dokumen PDF (invoice/kwitansi) menggunakan data dari D
    **Visibility flags:**
    - show_header_stripe, show_qr_code, show_stamp
    - show_signature, show_bank_info, show_terbilang
+
+### CSS IMPLEMENTATION UNTUK POSITIONING
+
+\`\`\`css
+.element {
+  position: positionY > 0 ? 'absolute' : 'relative';
+  left: \${positionX}%;
+  top: positionY > 0 ? \${positionY}mm : 'auto';
+  width: \${width}%;
+}
+\`\`\`
 
 ### KALKULASI PAGE 2 (LAMPIRAN RINCIAN)
 
@@ -572,15 +615,41 @@ const grandTotal = subtotalBeforeDiscount - page_2_settings.discount;
 
 1. Panggil API dengan invoice_number atau access_code
 2. **Page 1:** Gunakan contract, client, bank_info, template_settings untuk styling
-3. **Page 2:** Gunakan line_items untuk tabel rincian, page_2_settings untuk transport/discount
-4. Posisi elemen (signature, stamp) sudah dalam milimeter
-5. Render sesuai dengan visibility flags (show_*)
-6. Format angka sebagai Rupiah (Rp X.XXX.XXX)`
+3. **Posisikan elemen** sesuai positioning fields (v1.4):
+   - Jika position_y = 0 → flow-based
+   - Jika position_y > 0 → absolute dari top
+4. **Page 2:** Gunakan line_items untuk tabel rincian, page_2_settings untuk transport/discount
+5. Posisi elemen (signature, stamp) sudah dalam milimeter
+6. Render sesuai dengan visibility flags (show_*)
+7. Format angka sebagai Rupiah (Rp X.XXX.XXX)`
   };
 
   const updateInfo = {
-    version: '1.2',
+    version: '1.4',
     changes: [
+      {
+        version: '1.4',
+        date: '2026-01-12',
+        title: 'Full Element Positioning (Drag-Drop Support)',
+        items: [
+          'Tambah 24 positioning fields untuk semua elemen dokumen',
+          'Header, Company Info, Doc Number block sekarang bisa diposisikan',
+          'Client block, Table, Terbilang bisa diposisikan',
+          'Payment section, Bank info, Terms, Footer bisa diposisikan',
+          'Unit: X & Width dalam %, Y dalam mm (0=flow, >0=absolute)',
+          'Full drag-drop support untuk third-party integrators'
+        ]
+      },
+      {
+        version: '1.3',
+        date: '2026-01-12',
+        title: 'Database Preparation for Element Positioning',
+        items: [
+          'Database schema updated dengan 24 kolom positioning',
+          'TypeScript types updated untuk positioning fields',
+          'Default values maintain backward compatibility'
+        ]
+      },
       {
         version: '1.2',
         date: '2026-01-12',
@@ -624,10 +693,10 @@ const grandTotal = subtotalBeforeDiscount - page_2_settings.discount;
       }
     ],
     migration: {
-      from: 'v1.1',
-      to: 'v1.2',
+      from: 'v1.3',
+      to: 'v1.4',
       backward_compatible: true,
-      notes: 'Semua response v1.1 tetap ada, v1.2 menambahkan line_items[] dan page_2_settings'
+      notes: 'Semua response v1.3 tetap ada, v1.4 menambahkan 24 positioning fields untuk full drag-drop support'
     }
   };
 
@@ -639,7 +708,7 @@ const grandTotal = subtotalBeforeDiscount - page_2_settings.discount;
   };
 
   return {
-    version: '1.2.0',
+    version: '1.4.0',
     base_url: baseUrl,
     authentication,
     request_schema: requestSchema,
