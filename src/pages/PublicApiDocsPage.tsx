@@ -25,8 +25,16 @@ import {
   Key,
   Send,
   Bot,
-  Sparkles
+  Sparkles,
+  History
 } from "lucide-react";
+
+interface UpdateInfoChange {
+  version: string;
+  date: string;
+  title: string;
+  items: string[];
+}
 
 interface ApiDocsData {
   version: string;
@@ -51,6 +59,16 @@ interface ApiDocsData {
     lengkap: string;
     ringkas: string;
     pdf_rendering: string;
+  };
+  update_info?: {
+    version: string;
+    changes: UpdateInfoChange[];
+    migration?: {
+      from: string;
+      to: string;
+      backward_compatible: boolean;
+      notes?: string;
+    };
   };
 }
 
@@ -237,7 +255,7 @@ export default function PublicApiDocsPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview" className="gap-2">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -257,6 +275,10 @@ export default function PublicApiDocsPage() {
             <TabsTrigger value="ai-prompt" className="gap-2">
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">AI Prompt</span>
+            </TabsTrigger>
+            <TabsTrigger value="release-notes" className="gap-2">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Release</span>
             </TabsTrigger>
           </TabsList>
 
@@ -365,6 +387,9 @@ export default function PublicApiDocsPage() {
                           )}
                           <span className="font-mono font-semibold">{key}</span>
                           <Badge variant="outline">{value.type}</Badge>
+                          {(key === 'line_items' || key === 'page_2_settings') && (
+                            <Badge className="bg-emerald-500 text-white text-xs">NEW v1.2</Badge>
+                          )}
                         </div>
                         <span className="text-sm text-muted-foreground">
                           {value.fields?.length || value.categories?.length || 0} items
@@ -387,7 +412,12 @@ export default function PublicApiDocsPage() {
                           <TableBody>
                             {value.fields.map((field) => (
                               <TableRow key={field.name}>
-                                <TableCell className="font-mono">{field.name}</TableCell>
+                                <TableCell className="font-mono">
+                                  {field.name}
+                                  {(field.name === 'jumlah_lunas' || field.name === 'tanggal_lunas') && (
+                                    <Badge className="ml-2 bg-emerald-500 text-white text-xs">NEW</Badge>
+                                  )}
+                                </TableCell>
                                 <TableCell>{field.type}</TableCell>
                                 <TableCell>{field.description}</TableCell>
                               </TableRow>
@@ -523,6 +553,59 @@ export default function PublicApiDocsPage() {
                     <li>• <strong>PDF Rendering:</strong> Fokus pada data yang diperlukan untuk render PDF dokumen</li>
                   </ul>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Release Notes Tab */}
+          <TabsContent value="release-notes" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Release Notes
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Riwayat perubahan dan update Document API
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {data.update_info?.changes?.map((change, index) => (
+                  <div key={index} className="border-l-4 border-sky-500 pl-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant={index === 0 ? "default" : "secondary"}>
+                        v{change.version}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">{change.date}</span>
+                      {index === 0 && (
+                        <Badge className="bg-emerald-500 text-white text-xs">LATEST</Badge>
+                      )}
+                    </div>
+                    <h4 className="font-semibold mb-2">{change.title}</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      {change.items.map((item, itemIndex) => (
+                        <li key={itemIndex} className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+
+                {/* Migration Info */}
+                {data.update_info?.migration && (
+                  <div className="p-4 bg-sky-50 border border-sky-200 rounded-lg">
+                    <h4 className="font-medium text-sky-800 mb-2">🔄 Migration Info</h4>
+                    <div className="text-sm text-sky-700 space-y-1">
+                      <p><strong>From:</strong> {data.update_info.migration.from} → <strong>To:</strong> {data.update_info.migration.to}</p>
+                      <p><strong>Backward Compatible:</strong> {data.update_info.migration.backward_compatible ? 'Ya ✅' : 'Tidak ❌'}</p>
+                      {data.update_info.migration.notes && (
+                        <p><strong>Notes:</strong> {data.update_info.migration.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
