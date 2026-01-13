@@ -7,8 +7,8 @@ const corsHeaders = {
 };
 
 // Rate limit configuration
-const RATE_LIMIT_PER_KEY = 100; // requests per minute per API key
-const RATE_LIMIT_PER_INVOICE = 10; // requests per minute per invoice
+const RATE_LIMIT_PER_KEY = 500; // requests per minute per API key (5x increase)
+const RATE_LIMIT_PER_INVOICE = 100; // requests per minute per invoice (10x increase)
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
