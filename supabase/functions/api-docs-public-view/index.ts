@@ -609,9 +609,149 @@ Anda adalah **PDF Generator Service** yang akan menerima request dari Web Lovabl
 \`\`\`json
 {
   "invoice_number": "000254",
-  "document_type": "invoice"  // atau "receipt" untuk kwitansi
+  "document_type": "invoice"  // atau "kwitansi"
 }
 \`\`\`
+
+---
+
+## ⚠️ CONTOH RESPONSE API (LENGKAP)
+
+Berikut adalah contoh **actual response** dari API yang harus Anda gunakan sebagai referensi:
+
+\`\`\`json
+{
+  "success": true,
+  "api_version": "1.6",
+  "access_method": "invoice_number",
+  "identifier": "000254",
+  "document_type": "invoice",
+  
+  "contract": {
+    "id": "b49c0c6c-52f2-41d3-b015-8063a013bafe",
+    "invoice": "000254",
+    "keterangan": "Proyek Umalas",
+    "jenis_scaffolding": "Galvanis Las 1.7M",
+    "lokasi_detail": "Jl. Raya Umalas No. 10",
+    "start_date": "2025-12-07",
+    "end_date": "2026-01-07",
+    "tanggal": "2025-12-07",
+    "tanggal_kirim": "2025-12-07",
+    "tanggal_ambil": null,
+    "jumlah_unit": 10,
+    "tagihan": 840000,
+    "jumlah_lunas": 840000,
+    "tanggal_lunas": "2026-01-06",
+    "tanggal_bayar_terakhir": "2026-01-06",
+    "tagihan_belum_bayar": 0,
+    "status": "lunas",
+    "status_pengiriman": "sudah_kirim",
+    "status_pengambilan": null,
+    "penanggung_jawab": "Pak Wayan",
+    "biaya_kirim": 50000,
+    "transport_cost_delivery": 50000,
+    "transport_cost_pickup": 50000
+  },
+  
+  "client": {
+    "nama": "PT Contoh Indonesia",
+    "nomor_telepon": "+6281234567890",
+    "icon": null
+  },
+  
+  "payment": null,
+  
+  "bank_info": {
+    "bank_name": "BCA",
+    "account_number": "1234567890",
+    "account_holder_name": "PT Company Name"
+  },
+  
+  "line_items": [
+    {
+      "id": "uuid-1",
+      "item_name": "Scaffolding 1.7M Galvanis Las",
+      "quantity": 10,
+      "unit_price_per_day": 1000,
+      "duration_days": 30,
+      "subtotal": 300000,
+      "sort_order": 0
+    },
+    {
+      "id": "uuid-2",
+      "item_name": "Papan Cor 200x30cm",
+      "quantity": 20,
+      "unit_price_per_day": 500,
+      "duration_days": 30,
+      "subtotal": 300000,
+      "sort_order": 1
+    }
+  ],
+  
+  "page_2_settings": {
+    "transport_delivery": 50000,
+    "transport_pickup": 50000,
+    "discount": 0,
+    "full_rincian": true
+  },
+  
+  "template_settings": {
+    "company_name": "LARISSO SCAFFOLDING",
+    "company_address": "Jl. Kebudayaan No.2B, Padang Sambian Kaja",
+    "company_phone": "+6281234567890",
+    "header_color_primary": "#06b6d4",
+    "font_family": "Segoe UI",
+    "show_stamp": true,
+    "stamp_color_lunas": "#22c55e",
+    "stamp_color_belum_lunas": "#ef4444"
+  },
+  
+  "generated_at": "2026-01-17T10:42:22.423Z",
+  "rate_limits": {
+    "per_api_key": "500 requests/minute",
+    "per_invoice": "100 requests/minute"
+  }
+}
+\`\`\`
+
+---
+
+## ⚠️ CATATAN PENTING - FIELD NAMES YANG BENAR
+
+Banyak developer menggunakan nama field yang **SALAH**. Berikut mapping yang benar:
+
+| ❌ SALAH (Jangan Gunakan) | ✅ BENAR (Gunakan Ini) | Lokasi di Response |
+|---------------------------|------------------------|-------------------|
+| \`invoice_number\` | \`invoice\` | \`contract.invoice\` |
+| \`total\`, \`amount\`, \`grand_total\` | \`tagihan\` | \`contract.tagihan\` |
+| \`remaining\`, \`balance\`, \`outstanding\` | \`tagihan_belum_bayar\` | \`contract.tagihan_belum_bayar\` |
+| \`paid\`, \`total_paid\`, \`amount_paid\` | \`jumlah_lunas\` | \`contract.jumlah_lunas\` |
+| \`name\`, \`client_name\`, \`customer_name\` | \`nama\` | \`client.nama\` |
+| \`phone\`, \`phone_number\`, \`mobile\` | \`nomor_telepon\` | \`client.nomor_telepon\` |
+| \`date\`, \`contract_date\` | \`tanggal\` | \`contract.tanggal\` |
+| \`delivery_date\` | \`tanggal_kirim\` | \`contract.tanggal_kirim\` |
+| \`pickup_date\` | \`tanggal_ambil\` | \`contract.tanggal_ambil\` |
+| \`units\`, \`qty\` | \`jumlah_unit\` | \`contract.jumlah_unit\` |
+| \`description\`, \`notes\` | \`keterangan\` | \`contract.keterangan\` |
+
+### Contoh Akses Field yang Benar (JavaScript):
+\`\`\`javascript
+const response = await fetch(API_URL, { ... });
+const data = await response.json();
+
+// ✅ BENAR
+const invoiceNumber = data.contract.invoice;           // "000254"
+const totalTagihan = data.contract.tagihan;            // 840000
+const sisaTagihan = data.contract.tagihan_belum_bayar; // 0
+const namaClient = data.client.nama;                   // "PT Contoh Indonesia"
+
+// ❌ SALAH - field ini TIDAK ADA
+const wrong1 = data.contract.invoice_number;  // undefined
+const wrong2 = data.contract.total;           // undefined
+const wrong3 = data.client.name;              // undefined
+\`\`\`
+
+---
 
 ### Document Types
 | Type | Halaman | Description |
@@ -997,8 +1137,20 @@ Jika ada pertanyaan tentang integrasi, hubungi tim Web Lovable melalui channel y
   };
 
   const updateInfo = {
-    version: '1.6',
+    version: '1.6.1',
     changes: [
+      {
+        version: '1.6.1',
+        date: '2026-01-17',
+        title: 'Dokumentasi Response Diperjelas',
+        items: [
+          'Ditambahkan contoh JSON response lengkap di dokumentasi',
+          'Tabel perbandingan field names yang benar vs salah',
+          'Catatan khusus: contract.invoice (bukan invoice_number)',
+          'Catatan khusus: contract.tagihan (bukan total/amount)',
+          'Contoh kode JavaScript untuk akses field yang benar'
+        ]
+      },
       {
         version: '1.6',
         date: '2026-01-17',
@@ -1091,10 +1243,10 @@ Jika ada pertanyaan tentang integrasi, hubungi tim Web Lovable melalui channel y
       }
     ],
     migration: {
-      from: 'v1.5',
-      to: 'v1.6',
+      from: 'v1.6',
+      to: 'v1.6.1',
       backward_compatible: true,
-      notes: 'Kwitansi sekarang 2 halaman dengan Page 2 custom. Data line_items & page_2_settings sudah tersedia untuk kwitansi sejak v1.2, sekarang didokumentasikan dengan jelas.'
+      notes: 'Perbaikan dokumentasi: ditambahkan contoh JSON response lengkap dan tabel field names yang benar untuk membantu integrasi third-party.'
     }
   };
 
@@ -1106,7 +1258,7 @@ Jika ada pertanyaan tentang integrasi, hubungi tim Web Lovable melalui channel y
   };
 
   return {
-    version: '1.6.0',
+    version: '1.6.1',
     base_url: baseUrl,
     authentication,
     request_schema: requestSchema,
