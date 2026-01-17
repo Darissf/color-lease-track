@@ -131,8 +131,9 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
         {/* Header Stripe Bar - SAME AS PAGE 1 */}
         {settings.show_header_stripe && (
           <div
-            className="-mx-8 -mt-8 mb-6"
             style={{ 
+              marginTop: '-10mm',
+              marginBottom: '6mm',
               height: `${settings.header_stripe_height || 12}px`,
               background: `linear-gradient(to right, ${settings.header_color_primary}, ${settings.header_color_secondary})` 
             }}
