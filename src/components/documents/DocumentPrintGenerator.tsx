@@ -74,6 +74,14 @@ export const DocumentPrintGenerator = ({
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
+        .paper-document {
+          width: 210mm !important;
+          height: 297mm !important;
+          padding: 10mm !important;
+          padding-bottom: 15mm !important;
+          box-sizing: border-box !important;
+          margin: 0 !important;
+        }
         .print-container {
           display: block !important;
           position: relative !important;
