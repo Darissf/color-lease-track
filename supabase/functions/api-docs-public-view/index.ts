@@ -614,10 +614,35 @@ Anda adalah **PDF Generator Service** yang akan menerima request dari Web Lovabl
 \`\`\`
 
 ### Document Types
-| Type | Description |
-|------|-------------|
-| \`invoice\` | Generate Invoice (Page 1 + Page 2 Lampiran) |
-| \`receipt\` | Generate Kwitansi Pembayaran |
+| Type | Halaman | Description |
+|------|---------|-------------|
+| \`invoice\` | 2 | Page 1: Invoice utama, Page 2: Lampiran Rincian Tagihan |
+| \`receipt\` | 2 | Page 1: Kwitansi, Page 2: Custom (bebas Anda desain) |
+
+---
+
+## STRUKTUR DOKUMEN
+
+### INVOICE = 2 Halaman
+| Halaman | Konten | Data yang Digunakan |
+|---------|--------|---------------------|
+| **Page 1** | Invoice utama (header, client, total, bank info, signature) | \`contract\`, \`client\`, \`bank_info\`, \`template_settings\` |
+| **Page 2** | Lampiran Rincian Tagihan (tabel item, transport, diskon) | \`line_items\`, \`page_2_settings\`, \`template_settings\` |
+
+**Catatan Page 2 Invoice:**
+- Jika \`page_2_settings.full_rincian = true\`: Tampilkan kolom lengkap (No, Nama, Qty, Harga, Durasi, Subtotal)
+- Jika \`page_2_settings.full_rincian = false\`: Tampilkan kolom minimal (No, Nama, Qty)
+
+### KWITANSI = 2 Halaman
+| Halaman | Konten | Data yang Digunakan |
+|---------|--------|---------------------|
+| **Page 1** | Kwitansi pembayaran (header, client, amount paid, bank, signature) | \`contract\`, \`client\`, \`payment\`, \`bank_info\`, \`template_settings\` |
+| **Page 2** | **Custom** - Anda bebas mendesain sesuai kebutuhan | \`line_items\`, \`page_2_settings\`, \`payment\`, \`contract\`, \`template_settings\` |
+
+**Catatan Page 2 Kwitansi:**
+- Page 2 kwitansi **SELALU MUNCUL** (tidak kondisional)
+- Anda bebas menentukan isi Page 2: rincian item, riwayat pembayaran, atau custom lainnya
+- Data yang tersedia: \`line_items[]\`, \`page_2_settings\`, \`payment\`, \`contract\`
 
 ---
 
@@ -741,11 +766,11 @@ const terbilang = angkaTerbilang(grandTotal); // "Satu Juta Lima Ratus Ribu Rupi
 
 ## CONTOH IMPLEMENTASI SERVER ANDA
 
-### Node.js (Express)
+### Node.js (Express) - Multi-Page PDF
 
 \`\`\`javascript
 const express = require('express');
-const PDFDocument = require('pdfkit'); // atau library PDF lainnya
+const PDFDocument = require('pdfkit');
 const app = express();
 
 // Endpoint untuk generate PDF
@@ -766,13 +791,14 @@ app.post('/generate-pdf', async (req, res) => {
     const { data } = await response.json();
     const { contract, client, payment, bank_info, line_items, page_2_settings, template_settings } = data;
     
-    // 2. Render PDF dengan design Anda
-    const pdfBuffer = await renderPDF({
+    // 2. Render PDF dengan design Anda (2 HALAMAN)
+    const pdfBuffer = await renderMultiPagePDF({
+      document_type,
       contract,
       client,
-      payment,        // untuk kwitansi
+      payment,
       bank_info,
-      line_items,     // untuk page 2
+      line_items,
       page_2_settings,
       template_settings
     });
@@ -791,6 +817,47 @@ app.post('/generate-pdf', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate PDF' });
   }
 });
+
+// Fungsi render multi-page PDF
+async function renderMultiPagePDF(data) {
+  const { document_type, contract, client, payment, bank_info, line_items, page_2_settings, template_settings } = data;
+  
+  const doc = new PDFDocument({ size: 'A4' });
+  const buffers = [];
+  doc.on('data', buffers.push.bind(buffers));
+  
+  // ============ PAGE 1 ============
+  if (document_type === 'invoice') {
+    // Invoice Page 1: Header, Client, Total Tagihan, Bank Info, Signature
+    renderInvoicePage1(doc, { contract, client, bank_info, template_settings });
+  } else {
+    // Kwitansi Page 1: Header, Client, Amount Paid, Bank Info, Signature
+    renderReceiptPage1(doc, { contract, client, payment, bank_info, template_settings });
+  }
+  
+  // ============ PAGE 2 (SELALU ADA) ============
+  doc.addPage();
+  
+  if (document_type === 'invoice') {
+    // Invoice Page 2: Lampiran Rincian Tagihan (standar)
+    renderInvoicePage2(doc, { line_items, page_2_settings, template_settings });
+  } else {
+    // Kwitansi Page 2: CUSTOM - Anda bebas mendesain!
+    // Contoh: tampilkan rincian item + info pembayaran
+    renderReceiptPage2Custom(doc, { 
+      payment,           // Data pembayaran ini (amount, payment_date, payment_number)
+      contract,          // Data kontrak (tagihan, jumlah_lunas, sisa)
+      line_items,        // Rincian item (opsional, jika ingin ditampilkan)
+      page_2_settings,   // Transport & diskon (opsional)
+      template_settings 
+    });
+  }
+  
+  doc.end();
+  return new Promise(resolve => {
+    doc.on('end', () => resolve(Buffer.concat(buffers)));
+  });
+}
 
 app.listen(3000, () => console.log('PDF Generator running on port 3000'));
 \`\`\`
@@ -930,8 +997,21 @@ Jika ada pertanyaan tentang integrasi, hubungi tim Web Lovable melalui channel y
   };
 
   const updateInfo = {
-    version: '1.5',
+    version: '1.6',
     changes: [
+      {
+        version: '1.6',
+        date: '2026-01-17',
+        title: 'Kwitansi 2 Halaman Support',
+        items: [
+          'Kwitansi sekarang 2 halaman: Page 1 (Kwitansi) + Page 2 (Custom)',
+          'Page 2 kwitansi SELALU MUNCUL (tidak kondisional)',
+          'Page 2 kwitansi bebas didesain: rincian item, riwayat bayar, atau custom',
+          'Data line_items & page_2_settings tersedia untuk kwitansi',
+          'Tambah section STRUKTUR DOKUMEN di AI Prompt',
+          'Update contoh kode Node.js untuk multi-page rendering'
+        ]
+      },
       {
         version: '1.5',
         date: '2026-01-17',
@@ -1011,10 +1091,10 @@ Jika ada pertanyaan tentang integrasi, hubungi tim Web Lovable melalui channel y
       }
     ],
     migration: {
-      from: 'v1.4',
-      to: 'v1.5',
+      from: 'v1.5',
+      to: 'v1.6',
       backward_compatible: true,
-      notes: 'Rate limits increased 5-10x, AI Prompt disederhanakan menjadi 1 panduan komprehensif untuk PDF Generator Service workflow'
+      notes: 'Kwitansi sekarang 2 halaman dengan Page 2 custom. Data line_items & page_2_settings sudah tersedia untuk kwitansi sejak v1.2, sekarang didokumentasikan dengan jelas.'
     }
   };
 
@@ -1026,7 +1106,7 @@ Jika ada pertanyaan tentang integrasi, hubungi tim Web Lovable melalui channel y
   };
 
   return {
-    version: '1.5.0',
+    version: '1.6.0',
     base_url: baseUrl,
     authentication,
     request_schema: requestSchema,
