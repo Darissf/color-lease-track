@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Upload, Database, AlertTriangle, Check, Loader2, FileJson, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Download, Upload, Database, AlertTriangle, Check, Loader2, FileJson, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,6 +65,9 @@ const BackupRestore = () => {
   const [importStrategy, setImportStrategy] = useState<ImportStrategy>('merge');
   const [backupPreview, setBackupPreview] = useState<BackupPreview | null>(null);
   const [showTableList, setShowTableList] = useState(false);
+  const [lastExportTime, setLastExportTime] = useState<string | null>(() => {
+    return localStorage.getItem('lastDatabaseExport');
+  });
 
   if (!isSuperAdmin) {
     return (
@@ -109,6 +112,11 @@ const BackupRestore = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      // Save last export time
+      const now = new Date().toISOString();
+      setLastExportTime(now);
+      localStorage.setItem('lastDatabaseExport', now);
 
       toast({
         title: "Export Berhasil",
@@ -244,6 +252,25 @@ const BackupRestore = () => {
               <span className="text-muted-foreground">Tabel:</span>
               <Badge variant="secondary">{ALL_TABLES.length} tabel</Badge>
             </div>
+
+            {lastExportTime && (
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Terakhir export:</span>
+                <span className="font-medium text-green-600">
+                  {new Date(lastExportTime).toLocaleString('id-ID', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    timeZoneName: 'short'
+                  })}
+                </span>
+              </div>
+            )}
 
             <Collapsible open={showTableList} onOpenChange={setShowTableList}>
               <CollapsibleTrigger asChild>
