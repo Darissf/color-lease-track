@@ -911,6 +911,13 @@ export default function ContractDetail() {
       return;
     }
     
+    // Fetch line items for Page 2 (Rincian Sewa)
+    const { data: contractLineItems } = await supabase
+      .from('contract_line_items')
+      .select('*')
+      .eq('contract_id', contract.id)
+      .order('sort_order', { ascending: true });
+    
     // Check if receipt document already exists for this payment - use existing verification code
     const { data: existingDoc } = await supabase
       .from('invoice_receipts')
@@ -931,6 +938,15 @@ export default function ContractDetail() {
       ? new Date() 
       : paymentDateValue;
     
+    // Transform line items for Page 2
+    const lineItemsData = (contractLineItems || []).map(item => ({
+      item_name: item.item_name,
+      quantity: item.quantity,
+      unit_price_per_day: item.unit_price_per_day,
+      duration_days: item.duration_days,
+      subtotal: item.subtotal,
+    }));
+    
     setDocumentData({
       documentType: 'kwitansi',
       documentNumber: contract.invoice || contract.id.slice(0, 6).toUpperCase(),
@@ -946,6 +962,13 @@ export default function ContractDetail() {
       paymentDate: validPaymentDate,
       contractId: contract.id,
       paymentId: payment.id,
+      // Page 2: Rincian Sewa data
+      lineItems: lineItemsData,
+      transportDelivery: contract.transport_cost_delivery || 0,
+      transportPickup: contract.transport_cost_pickup || 0,
+      discount: 0,
+      period: `${format(new Date(contract.start_date), 'dd MMM yyyy', { locale: localeId })} - ${format(new Date(contract.end_date), 'dd MMM yyyy', { locale: localeId })}`,
+      fullRincian: true,
     });
     setDocumentPreviewOpen(true);
   };

@@ -8,6 +8,7 @@ import {
 import { InvoiceTemplate } from "./InvoiceTemplate";
 import { InvoiceRincianTemplate } from "./InvoiceRincianTemplate";
 import { ReceiptTemplate } from "./ReceiptTemplate";
+import { ReceiptRincianTemplate } from "./ReceiptRincianTemplate";
 import { ResponsiveDocumentWrapper } from "./ResponsiveDocumentWrapper";
 import { ZoomableDocumentWrapper } from "./ZoomableDocumentWrapper";
 import { DocumentPrintGenerator } from "./DocumentPrintGenerator";
@@ -81,8 +82,8 @@ export const DocumentPreviewModal = ({
   // Use fullRincian from documentData (saved per-contract)
   const fullRincian = documentData?.fullRincian !== false; // Default to true
   
-  // Determine if we should show page 2 (Rincian Tagihan)
-  const showPage2 = documentData?.documentType === 'invoice' && 
+  // Determine if we should show page 2 (Rincian Tagihan) - for both Invoice and Kwitansi
+  const showPage2 = (documentData?.documentType === 'invoice' || documentData?.documentType === 'kwitansi') && 
                     documentData?.lineItems && 
                     documentData.lineItems.length > 0;
   
@@ -297,7 +298,7 @@ export const DocumentPreviewModal = ({
             documentType={documentData.documentType}
             templateComponent={documentData.documentType === 'invoice' ? InvoiceTemplate : ReceiptTemplate}
             templateProps={documentData.documentType === 'invoice' ? invoiceProps : receiptProps}
-            page2Component={showPage2 ? InvoiceRincianTemplate : undefined}
+            page2Component={showPage2 ? (documentData.documentType === 'invoice' ? InvoiceRincianTemplate : ReceiptRincianTemplate) : undefined}
             page2Props={showPage2 ? rincianProps : undefined}
             useBackendPDF={true}
           />
@@ -325,7 +326,10 @@ export const DocumentPreviewModal = ({
                     <div className="print-page-break" aria-hidden="true" />
                     <div className="w-full border-t-2 border-dashed border-gray-300 my-2 no-print" />
                     <div className="print-page">
-                      <InvoiceRincianTemplate {...rincianProps} />
+                      {documentData.documentType === 'invoice' 
+                        ? <InvoiceRincianTemplate {...rincianProps} />
+                        : <ReceiptRincianTemplate {...rincianProps} />
+                      }
                     </div>
                   </>
                 )}
@@ -357,7 +361,10 @@ export const DocumentPreviewModal = ({
                     </div>
                     <div className="print-page">
                       <ResponsiveDocumentWrapper>
-                        <InvoiceRincianTemplate {...rincianProps} />
+                        {documentData.documentType === 'invoice' 
+                          ? <InvoiceRincianTemplate {...rincianProps} />
+                          : <ReceiptRincianTemplate {...rincianProps} />
+                        }
                       </ResponsiveDocumentWrapper>
                     </div>
                   </>
@@ -382,7 +389,10 @@ export const DocumentPreviewModal = ({
                 <>
                   <div className="print-page-break" aria-hidden="true" />
                   <div className="print-page">
-                    <InvoiceRincianTemplate {...rincianProps} />
+                    {documentData.documentType === 'invoice' 
+                      ? <InvoiceRincianTemplate {...rincianProps} />
+                      : <ReceiptRincianTemplate {...rincianProps} />
+                    }
                   </div>
                 </>
               )}
