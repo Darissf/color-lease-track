@@ -14,7 +14,7 @@ interface LineItem {
   subtotal?: number;
 }
 
-interface InvoiceRincianTemplateProps {
+interface ReceiptRincianTemplateProps {
   documentNumber: string;
   issuedAt: Date;
   clientName: string;
@@ -29,7 +29,7 @@ interface InvoiceRincianTemplateProps {
   fullRincian?: boolean; // When false, only show No, Nama Item, Qty
 }
 
-export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianTemplateProps>(
+export const ReceiptRincianTemplate = forwardRef<HTMLDivElement, ReceiptRincianTemplateProps>(
   (
     {
       documentNumber,
@@ -100,10 +100,10 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
           <div 
             className="absolute pointer-events-none z-50"
             style={{ 
-              left: `${settings.invoice_layout_settings?.watermark_position_x ?? settings.watermark_position_x ?? 50}%`,
-              top: `${settings.invoice_layout_settings?.watermark_position_y ?? settings.watermark_position_y ?? 50}%`,
-              transform: `translate(-50%, -50%) rotate(${settings.invoice_layout_settings?.watermark_rotation ?? settings.watermark_rotation ?? -45}deg)`,
-              opacity: (settings.invoice_layout_settings?.watermark_opacity ?? settings.watermark_opacity ?? 10) / 100
+              left: `${settings.receipt_layout_settings?.watermark_position_x ?? settings.watermark_position_x ?? 50}%`,
+              top: `${settings.receipt_layout_settings?.watermark_position_y ?? settings.watermark_position_y ?? 50}%`,
+              transform: `translate(-50%, -50%) rotate(${settings.receipt_layout_settings?.watermark_rotation ?? settings.watermark_rotation ?? -45}deg)`,
+              opacity: (settings.receipt_layout_settings?.watermark_opacity ?? settings.watermark_opacity ?? 10) / 100
             }}
           >
             {settings.watermark_type === 'logo' && settings.invoice_logo_url ? (
@@ -111,7 +111,7 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
                 src={settings.invoice_logo_url} 
                 alt="" 
                 style={{ 
-                  width: `${settings.invoice_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`,
+                  width: `${settings.receipt_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`,
                   height: 'auto'
                 }}
               />
@@ -120,7 +120,7 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
                 className="font-bold text-gray-400 whitespace-nowrap"
                 style={{ 
                   fontFamily: getHeadingFontFamily(),
-                  fontSize: `${settings.invoice_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`
+                  fontSize: `${settings.receipt_layout_settings?.watermark_size ?? settings.watermark_size ?? 300}px`
                 }}
               >
                 {settings.watermark_text || 'DRAFT'}
@@ -139,7 +139,7 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
           />
         )}
 
-        {/* Header - EXACT COPY FROM InvoiceTemplate */}
+        {/* Header - EXACT COPY FROM ReceiptTemplate */}
         <div 
           className="flex items-start justify-between pb-4 mb-6 border-b-2"
           style={{ borderColor: settings.border_color }}
@@ -474,7 +474,7 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
 
             <div className="flex justify-between py-2 px-3">
               <span className="text-sm" style={{ color: '#4b5563' }}>Potongan Harga</span>
-              <span className="text-sm font-bold" style={{ color: '#dc2626' }}>-{formatRupiah(discount)}</span>
+              <span className="text-sm font-bold text-red-600">-{formatRupiah(discount)}</span>
             </div>
           </>
         )}
@@ -482,10 +482,10 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
         {/* Grand Total - Only show if fullRincian */}
         {fullRincian && (
           <div 
-            className="flex justify-between py-3 px-3 mt-4"
+            className="flex justify-between items-center py-3 px-4 mt-4 rounded-lg border-2"
             style={{ 
               backgroundColor: `${settings.accent_color}15`,
-              borderTop: `2px solid ${settings.header_color_primary}`,
+              borderColor: settings.header_color_primary 
             }}
           >
             <span className="text-lg font-bold">GRAND TOTAL</span>
@@ -500,14 +500,17 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
 
         {/* Terbilang - Only show if fullRincian */}
         {fullRincian && settings.show_terbilang && (
-          <p className="text-sm italic mt-3" style={{ color: '#4b5563' }}>
+          <p className="text-sm italic text-gray-600 mt-3 text-center">
             {settings.label_terbilang || "Terbilang:"} {terbilang(grandTotal)}
           </p>
         )}
 
         {/* Footer */}
         {settings.show_footer !== false && settings.footer_text && (
-          <p className="text-sm text-center text-gray-500 mt-8">
+          <p 
+            className="text-center text-sm mt-8"
+            style={{ color: '#6b7280' }}
+          >
             {settings.footer_text}
           </p>
         )}
@@ -516,6 +519,6 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
   }
 );
 
-InvoiceRincianTemplate.displayName = "InvoiceRincianTemplate";
+ReceiptRincianTemplate.displayName = "ReceiptRincianTemplate";
 
-export default InvoiceRincianTemplate;
+export default ReceiptRincianTemplate;

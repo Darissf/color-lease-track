@@ -50,6 +50,13 @@ interface ReceiptPDFData {
   invoiceNumber?: string;
   paymentDate?: Date;
   customTextElements?: CustomTextElement[];
+  period?: string;
+  // Page 2: Rincian Sewa
+  lineItems?: LineItem[];
+  transportDelivery?: number;
+  transportPickup?: number;
+  discount?: number;
+  fullRincian?: boolean;
 }
 
 // Generate QR code as data URL
