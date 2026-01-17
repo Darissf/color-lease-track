@@ -12,6 +12,8 @@ import { ImageCropper } from '@/components/ImageCropper';
 import { SignatureCropper } from '@/components/SignatureCropper';
 import { InvoiceTemplate } from '@/components/documents/InvoiceTemplate';
 import { ReceiptTemplate } from '@/components/documents/ReceiptTemplate';
+import { InvoiceRincianTemplate } from '@/components/documents/InvoiceRincianTemplate';
+import { ReceiptRincianTemplate } from '@/components/documents/ReceiptRincianTemplate';
 import { TemplateSettings, defaultSettings } from '@/components/template-settings/types';
 import { BrandingSection } from '@/components/template-settings/BrandingSection';
 import { ColorsSection } from '@/components/template-settings/ColorsSection';
@@ -47,6 +49,15 @@ const InvoiceTemplateSettings = () => {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [isEditingMode, setIsEditingMode] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Sample data for Page 2 preview
+  const sampleLineItems = [
+    { item_name: "Scaffolding Set A", quantity: 25, unit_price_per_day: 15000, duration_days: 30, subtotal: 11250000 },
+    { item_name: "Scaffolding Set B", quantity: 25, unit_price_per_day: 12000, duration_days: 30, subtotal: 9000000 },
+  ];
+  const sampleTransportDelivery = 500000;
+  const sampleTransportPickup = 500000;
+  const sampleDiscount = 1250000;
 
   useEffect(() => {
     fetchSettings();
@@ -420,74 +431,84 @@ const InvoiceTemplateSettings = () => {
                   <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
                 </TabsList>
                 <TabsContent value="invoice">
-                  {/* FRAME LUAR Mobile */}
-                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center p-2">
-                    {/* SCALING CONTAINER: Ukuran = 210mm * 0.4 x 297mm * 0.4 */}
-                    <div style={{
-                      width: 'calc(210mm * 0.4)',
-                      height: 'calc(297mm * 0.4)',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}>
-                      {/* KERTAS ASLI A4: Scale 0.4 dari pojok kiri atas */}
-                      <div style={{
-                        transform: 'scale(0.4)',
-                        transformOrigin: 'top left',
-                        width: '210mm',
-                        height: '297mm',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0
-                      }}>
-                        <InvoiceTemplate 
-                          documentNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
-                          verificationCode="SAMPLE123"
-                          issuedAt={new Date()}
-                          clientName="PT. Contoh Klien"
-                          clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
-                          description="Sewa Scaffolding 50 Set"
-                          amount={15000000}
-                          period="01 Jan 2025 - 31 Jan 2025"
-                          settings={settings}
-                          customTextElements={customTextElements}
-                        />
+                  {/* FRAME LUAR Mobile - 2 Page Scrollable */}
+                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-y-auto p-2" style={{ maxHeight: 'calc(297mm * 0.4 * 2 + 32px)' }}>
+                    <div className="flex flex-col items-center gap-4">
+                      {/* Page 1: Invoice */}
+                      <div style={{ width: 'calc(210mm * 0.4)', height: 'calc(297mm * 0.4)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ transform: 'scale(0.4)', transformOrigin: 'top left', width: '210mm', height: '297mm', position: 'absolute', top: 0, left: 0 }}>
+                          <InvoiceTemplate 
+                            documentNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
+                            verificationCode="SAMPLE123"
+                            issuedAt={new Date()}
+                            clientName="PT. Contoh Klien"
+                            clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
+                            description="Sewa Scaffolding 50 Set"
+                            amount={15000000}
+                            period="01 Jan 2025 - 31 Jan 2025"
+                            settings={settings}
+                            customTextElements={customTextElements}
+                          />
+                        </div>
+                      </div>
+                      {/* Page 2: RINCIAN SEWA */}
+                      <div style={{ width: 'calc(210mm * 0.4)', height: 'calc(297mm * 0.4)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ transform: 'scale(0.4)', transformOrigin: 'top left', width: '210mm', height: '297mm', position: 'absolute', top: 0, left: 0 }}>
+                          <InvoiceRincianTemplate 
+                            documentNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
+                            issuedAt={new Date()}
+                            clientName="PT. Contoh Klien"
+                            period="01 Jan 2025 - 31 Jan 2025"
+                            lineItems={sampleLineItems}
+                            transportDelivery={sampleTransportDelivery}
+                            transportPickup={sampleTransportPickup}
+                            discount={sampleDiscount}
+                            settings={settings}
+                            fullRincian={true}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </TabsContent>
                 <TabsContent value="receipt">
-                  {/* FRAME LUAR Mobile */}
-                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center p-2">
-                    {/* SCALING CONTAINER: Ukuran = 210mm * 0.4 x 297mm * 0.4 */}
-                    <div style={{
-                      width: 'calc(210mm * 0.4)',
-                      height: 'calc(297mm * 0.4)',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}>
-                      {/* KERTAS ASLI A4: Scale 0.4 dari pojok kiri atas */}
-                      <div style={{
-                        transform: 'scale(0.4)',
-                        transformOrigin: 'top left',
-                        width: '210mm',
-                        height: '297mm',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0
-                      }}>
-                        <ReceiptTemplate 
-                          documentNumber={`${settings.receipt_prefix || 'KW'}-2025-0001`}
-                          verificationCode="SAMPLE123"
-                          issuedAt={new Date()}
-                          clientName="PT. Contoh Klien"
-                          clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
-                          description="Pembayaran Lunas - Sewa Scaffolding 50 Set"
-                          amount={15000000}
-                          period="01 Jan 2025 - 31 Jan 2025"
-                          invoiceNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
-                          settings={settings}
-                          customTextElements={customTextElements}
-                        />
+                  {/* FRAME LUAR Mobile - 2 Page Scrollable */}
+                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-y-auto p-2" style={{ maxHeight: 'calc(297mm * 0.4 * 2 + 32px)' }}>
+                    <div className="flex flex-col items-center gap-4">
+                      {/* Page 1: Kwitansi */}
+                      <div style={{ width: 'calc(210mm * 0.4)', height: 'calc(297mm * 0.4)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ transform: 'scale(0.4)', transformOrigin: 'top left', width: '210mm', height: '297mm', position: 'absolute', top: 0, left: 0 }}>
+                          <ReceiptTemplate 
+                            documentNumber={`${settings.receipt_prefix || 'KW'}-2025-0001`}
+                            verificationCode="SAMPLE123"
+                            issuedAt={new Date()}
+                            clientName="PT. Contoh Klien"
+                            clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
+                            description="Pembayaran Lunas - Sewa Scaffolding 50 Set"
+                            amount={15000000}
+                            period="01 Jan 2025 - 31 Jan 2025"
+                            invoiceNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
+                            settings={settings}
+                            customTextElements={customTextElements}
+                          />
+                        </div>
+                      </div>
+                      {/* Page 2: RINCIAN SEWA */}
+                      <div style={{ width: 'calc(210mm * 0.4)', height: 'calc(297mm * 0.4)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ transform: 'scale(0.4)', transformOrigin: 'top left', width: '210mm', height: '297mm', position: 'absolute', top: 0, left: 0 }}>
+                          <ReceiptRincianTemplate 
+                            documentNumber={`${settings.receipt_prefix || 'KW'}-2025-0001`}
+                            issuedAt={new Date()}
+                            clientName="PT. Contoh Klien"
+                            period="01 Jan 2025 - 31 Jan 2025"
+                            lineItems={sampleLineItems}
+                            transportDelivery={sampleTransportDelivery}
+                            transportPickup={sampleTransportPickup}
+                            discount={sampleDiscount}
+                            settings={settings}
+                            fullRincian={true}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -566,74 +587,84 @@ const InvoiceTemplateSettings = () => {
                   <TabsTrigger value="receipt">Kwitansi</TabsTrigger>
                 </TabsList>
                 <TabsContent value="invoice">
-                  {/* FRAME LUAR: Kotak pembatas visual di Admin */}
-                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center p-4">
-                    {/* SCALING CONTAINER: Ukuran sudah dihitung = 210mm * 0.6 x 297mm * 0.6 */}
-                    <div style={{
-                      width: 'calc(210mm * 0.6)',
-                      height: 'calc(297mm * 0.6)',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}>
-                      {/* KERTAS ASLI A4: Di-scale dari pojok kiri atas */}
-                      <div style={{
-                        transform: 'scale(0.6)',
-                        transformOrigin: 'top left',
-                        width: '210mm',
-                        height: '297mm',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0
-                      }}>
-                        <InvoiceTemplate 
-                          documentNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
-                          verificationCode="SAMPLE123"
-                          issuedAt={new Date()}
-                          clientName="PT. Contoh Klien"
-                          clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
-                          description="Sewa Scaffolding 50 Set"
-                          amount={15000000}
-                          period="01 Jan 2025 - 31 Jan 2025"
-                          settings={settings}
-                          customTextElements={customTextElements}
-                        />
+                  {/* FRAME LUAR Desktop - 2 Page Scrollable */}
+                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-y-auto p-4" style={{ maxHeight: 'calc(297mm * 0.6 * 2 + 48px)' }}>
+                    <div className="flex flex-col items-center gap-6">
+                      {/* Page 1: Invoice */}
+                      <div style={{ width: 'calc(210mm * 0.6)', height: 'calc(297mm * 0.6)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left', width: '210mm', height: '297mm', position: 'absolute', top: 0, left: 0 }}>
+                          <InvoiceTemplate 
+                            documentNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
+                            verificationCode="SAMPLE123"
+                            issuedAt={new Date()}
+                            clientName="PT. Contoh Klien"
+                            clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
+                            description="Sewa Scaffolding 50 Set"
+                            amount={15000000}
+                            period="01 Jan 2025 - 31 Jan 2025"
+                            settings={settings}
+                            customTextElements={customTextElements}
+                          />
+                        </div>
+                      </div>
+                      {/* Page 2: RINCIAN SEWA */}
+                      <div style={{ width: 'calc(210mm * 0.6)', height: 'calc(297mm * 0.6)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left', width: '210mm', height: '297mm', position: 'absolute', top: 0, left: 0 }}>
+                          <InvoiceRincianTemplate 
+                            documentNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
+                            issuedAt={new Date()}
+                            clientName="PT. Contoh Klien"
+                            period="01 Jan 2025 - 31 Jan 2025"
+                            lineItems={sampleLineItems}
+                            transportDelivery={sampleTransportDelivery}
+                            transportPickup={sampleTransportPickup}
+                            discount={sampleDiscount}
+                            settings={settings}
+                            fullRincian={true}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </TabsContent>
                 <TabsContent value="receipt">
-                  {/* FRAME LUAR: Kotak pembatas visual di Admin */}
-                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center p-4">
-                    {/* SCALING CONTAINER: Ukuran sudah dihitung = 210mm * 0.6 x 297mm * 0.6 */}
-                    <div style={{
-                      width: 'calc(210mm * 0.6)',
-                      height: 'calc(297mm * 0.6)',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}>
-                      {/* KERTAS ASLI A4: Di-scale dari pojok kiri atas */}
-                      <div style={{
-                        transform: 'scale(0.6)',
-                        transformOrigin: 'top left',
-                        width: '210mm',
-                        height: '297mm',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0
-                      }}>
-                        <ReceiptTemplate 
-                          documentNumber={`${settings.receipt_prefix || 'KW'}-2025-0001`}
-                          verificationCode="SAMPLE123"
-                          issuedAt={new Date()}
-                          clientName="PT. Contoh Klien"
-                          clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
-                          description="Pembayaran Lunas - Sewa Scaffolding 50 Set"
-                          amount={15000000}
-                          period="01 Jan 2025 - 31 Jan 2025"
-                          invoiceNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
-                          settings={settings}
-                          customTextElements={customTextElements}
-                        />
+                  {/* FRAME LUAR Desktop - 2 Page Scrollable */}
+                  <div className="w-full bg-slate-100 rounded-lg border border-slate-200 overflow-y-auto p-4" style={{ maxHeight: 'calc(297mm * 0.6 * 2 + 48px)' }}>
+                    <div className="flex flex-col items-center gap-6">
+                      {/* Page 1: Kwitansi */}
+                      <div style={{ width: 'calc(210mm * 0.6)', height: 'calc(297mm * 0.6)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left', width: '210mm', height: '297mm', position: 'absolute', top: 0, left: 0 }}>
+                          <ReceiptTemplate 
+                            documentNumber={`${settings.receipt_prefix || 'KW'}-2025-0001`}
+                            verificationCode="SAMPLE123"
+                            issuedAt={new Date()}
+                            clientName="PT. Contoh Klien"
+                            clientAddress="Jl. Contoh Alamat No. 123, Denpasar"
+                            description="Pembayaran Lunas - Sewa Scaffolding 50 Set"
+                            amount={15000000}
+                            period="01 Jan 2025 - 31 Jan 2025"
+                            invoiceNumber={`${settings.invoice_prefix || 'INV'}-2025-0001`}
+                            settings={settings}
+                            customTextElements={customTextElements}
+                          />
+                        </div>
+                      </div>
+                      {/* Page 2: RINCIAN SEWA */}
+                      <div style={{ width: 'calc(210mm * 0.6)', height: 'calc(297mm * 0.6)', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left', width: '210mm', height: '297mm', position: 'absolute', top: 0, left: 0 }}>
+                          <ReceiptRincianTemplate 
+                            documentNumber={`${settings.receipt_prefix || 'KW'}-2025-0001`}
+                            issuedAt={new Date()}
+                            clientName="PT. Contoh Klien"
+                            period="01 Jan 2025 - 31 Jan 2025"
+                            lineItems={sampleLineItems}
+                            transportDelivery={sampleTransportDelivery}
+                            transportPickup={sampleTransportPickup}
+                            discount={sampleDiscount}
+                            settings={settings}
+                            fullRincian={true}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
