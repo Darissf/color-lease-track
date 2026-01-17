@@ -1593,6 +1593,10 @@ All colors MUST be HSL.
     margin: 0 !important;
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
+    /* RE-APPLY padding simetris saat print */
+    padding: 10mm !important;
+    padding-bottom: 15mm !important;
+    box-sizing: border-box !important;
   }
   
   /* Each page in block flow, not absolute */

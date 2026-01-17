@@ -98,6 +98,9 @@ function getPDFOverrideCSS(): string {
       position: relative !important;
       overflow: hidden !important;
       visibility: visible !important;
+      /* PADDING SIMETRIS - konsisten dengan index.css */
+      padding: 10mm !important;
+      padding-bottom: 15mm !important;
     }
     
     /* Print page setup */
@@ -218,7 +221,7 @@ export function generateFullHTMLDocument<P extends object>(
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background: white;">
+<body style="margin: 0; padding: 0; background: white; display: flex; justify-content: center;">
   ${templateHTML}
 </body>
 </html>`;
@@ -281,7 +284,7 @@ export function generateMultiPageHTMLDocument(pages: Array<{
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background: white;">
+<body style="margin: 0; padding: 0; background: white; display: flex; justify-content: center;">
   <div class="print-container">
     ${pagesHTML}
   </div>
