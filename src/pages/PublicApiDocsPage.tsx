@@ -56,9 +56,7 @@ interface ApiDocsData {
   };
   code_examples: Record<string, string>;
   ai_prompts?: {
-    lengkap: string;
-    ringkas: string;
-    pdf_rendering: string;
+    integration_guide: string;
   };
   update_info?: {
     version: string;
@@ -81,7 +79,7 @@ export default function PublicApiDocsPage() {
   const [viewCount, setViewCount] = useState(0);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [selectedPromptType, setSelectedPromptType] = useState<'lengkap' | 'ringkas' | 'pdf_rendering'>('lengkap');
+  // Single prompt type now - integration_guide
 
   useEffect(() => {
     if (accessCode) {
@@ -528,50 +526,25 @@ export default function PublicApiDocsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-amber-500" />
-                  AI Prompt Generator
+                  Panduan Integrasi PDF Generator
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Pilih jenis prompt dan copy ke AI favorit Anda (ChatGPT, Claude, Gemini, dll) untuk membantu integrasi API.
+                  Copy prompt ini ke AI favorit Anda (ChatGPT, Claude, Gemini, dll) untuk membantu implementasi PDF Generator Service.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Prompt Type Selector */}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedPromptType === 'lengkap' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedPromptType('lengkap')}
-                  >
-                    📋 Prompt Lengkap
-                  </Button>
-                  <Button
-                    variant={selectedPromptType === 'ringkas' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedPromptType('ringkas')}
-                  >
-                    ⚡ Prompt Ringkas
-                  </Button>
-                  <Button
-                    variant={selectedPromptType === 'pdf_rendering' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedPromptType('pdf_rendering')}
-                  >
-                    📄 PDF Rendering
-                  </Button>
-                </div>
-
                 {/* Prompt Content */}
                 {data.ai_prompts && (
                   <div className="relative">
-                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm whitespace-pre-wrap max-h-[500px] overflow-y-auto">
-                      <code>{data.ai_prompts[selectedPromptType]}</code>
+                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm whitespace-pre-wrap max-h-[600px] overflow-y-auto">
+                      <code>{data.ai_prompts.integration_guide}</code>
                     </pre>
                     <Button
                       className="absolute top-2 right-2"
                       size="sm"
-                      onClick={() => data.ai_prompts && copyToClipboard(data.ai_prompts[selectedPromptType], `prompt_${selectedPromptType}`)}
+                      onClick={() => data.ai_prompts && copyToClipboard(data.ai_prompts.integration_guide, 'prompt_integration')}
                     >
-                      {copiedField === `prompt_${selectedPromptType}` ? (
+                      {copiedField === 'prompt_integration' ? (
                         <>
                           <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
                           Disalin!
@@ -586,14 +559,36 @@ export default function PublicApiDocsPage() {
                   </div>
                 )}
 
-                {/* Tips */}
+                {/* Workflow Info */}
                 <div className="p-4 bg-sky-50 border border-sky-200 rounded-lg">
-                  <h4 className="font-medium text-sky-800 mb-2">💡 Tips Penggunaan</h4>
-                  <ul className="text-sm text-sky-700 space-y-1">
-                    <li>• <strong>Prompt Lengkap:</strong> Berisi semua informasi API termasuk schema dan contoh kode</li>
-                    <li>• <strong>Prompt Ringkas:</strong> Hanya informasi esensial untuk quick start</li>
-                    <li>• <strong>PDF Rendering:</strong> Fokus pada data yang diperlukan untuk render PDF dokumen</li>
-                  </ul>
+                  <h4 className="font-medium text-sky-800 mb-2">🔄 Workflow Integrasi</h4>
+                  <ol className="text-sm text-sky-700 space-y-2 list-decimal list-inside">
+                    <li>User klik "Download Invoice/Kwitansi" di Web ini</li>
+                    <li>Web request ke <strong>server Anda</strong> dengan invoice_number</li>
+                    <li>Server Anda call <strong>Document API</strong> untuk dapat data lengkap</li>
+                    <li>Server Anda <strong>render PDF</strong> dengan design Anda</li>
+                    <li>Server Anda return <strong>PDF file langsung</strong> ke browser user</li>
+                  </ol>
+                </div>
+
+                {/* Key Features */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <h5 className="font-medium text-sm mb-1">📄 Jenis Dokumen</h5>
+                    <p className="text-xs text-muted-foreground">Invoice (+ Page 2 Lampiran) & Kwitansi</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <h5 className="font-medium text-sm mb-1">⚡ Rate Limits</h5>
+                    <p className="text-xs text-muted-foreground">500 req/min per key, 100 req/min per invoice</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <h5 className="font-medium text-sm mb-1">🎨 Template Settings</h5>
+                    <p className="text-xs text-muted-foreground">170+ fields untuk styling dokumen</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <h5 className="font-medium text-sm mb-1">📐 Positioning v1.4</h5>
+                    <p className="text-xs text-muted-foreground">24 fields untuk posisi elemen (drag-drop)</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
