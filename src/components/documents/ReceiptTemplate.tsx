@@ -96,7 +96,7 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
     return (
       <div
         ref={ref}
-        className="paper-document bg-white text-gray-900 p-8 pb-12 relative"
+        className="paper-document bg-white text-gray-900 relative"
         style={{
           fontFamily: getFontFamily(),
           fontSize: `${settings.font_size_base || 14}px`,
@@ -142,8 +142,11 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
           {/* Header Stripe Bar */}
           {settings.show_header_stripe && (
             <div
-              className="-mx-8 -mt-8 mb-6"
               style={{ 
+                marginLeft: '-10mm',
+                marginRight: '-10mm',
+                marginTop: '-10mm',
+                marginBottom: '6mm',
                 height: `${settings.header_stripe_height || 12}px`,
                 background: `linear-gradient(to right, ${settings.header_color_primary}, ${settings.header_color_secondary})` 
               }}

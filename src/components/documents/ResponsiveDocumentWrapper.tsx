@@ -57,6 +57,7 @@ export const ResponsiveDocumentWrapper = ({
           height: scaledHeight,
           position: 'relative',
           overflow: 'hidden',
+          margin: '0 auto',
         }}
       >
         {/* Inner container dengan ukuran A4 FIXED dalam MM untuk positioning konsisten */}
