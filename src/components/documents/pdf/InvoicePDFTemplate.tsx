@@ -974,7 +974,7 @@ export const InvoicePDFTemplate = ({
                     { color: settings.document_title_color || settings.header_color_primary },
                   ]}
                 >
-                  RINCIAN TAGIHAN
+                  RINCIAN SEWA
                 </Text>
                 <View style={[styles.documentNumberBox, { borderColor: settings.header_color_primary }]}>
                   <Text style={styles.documentNumberLabel}>NO.</Text>
