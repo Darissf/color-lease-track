@@ -1,4 +1,4 @@
-import React, { useCallback, useState, ComponentType } from "react";
+import React, { useCallback, useState, useRef, useEffect, ComponentType } from "react";
 import { useReactToPrint } from "react-to-print";
 import html2canvas from "html2canvas";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ interface DocumentPrintGeneratorProps {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const MAX_PDF_TIMEOUT_SECONDS = 90;
+
 export const DocumentPrintGenerator = ({
   printContainerRef,
   fileName,
@@ -36,6 +38,17 @@ export const DocumentPrintGenerator = ({
   useBackendPDF = false,
 }: DocumentPrintGeneratorProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const elapsedSecondsRef = useRef(0);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
 
   // React-to-print hook for native browser PDF generation
   const handlePrintPDF = useReactToPrint({
@@ -137,7 +150,22 @@ export const DocumentPrintGenerator = ({
     }
 
     setIsGenerating(true);
-    const toastId = toast.loading("Membuat PDF via server...");
+    elapsedSecondsRef.current = 0;
+    
+    // Show loading toast with progress
+    const toastId = toast.loading(`Membuat PDF... Mohon tunggu (0/${MAX_PDF_TIMEOUT_SECONDS}s)`, {
+      duration: Infinity,
+    });
+
+    // Start progress interval
+    progressIntervalRef.current = setInterval(() => {
+      elapsedSecondsRef.current += 5;
+      if (elapsedSecondsRef.current <= MAX_PDF_TIMEOUT_SECONDS) {
+        toast.loading(`Membuat PDF... Mohon tunggu (${elapsedSecondsRef.current}/${MAX_PDF_TIMEOUT_SECONDS}s)`, { 
+          id: toastId 
+        });
+      }
+    }, 5000);
 
     try {
       let htmlContent: string;
@@ -165,6 +193,12 @@ export const DocumentPrintGenerator = ({
       console.log("📡 [DocumentPrintGenerator] Memanggil generatePDFFromBackend...");
       const result = await generatePDFFromBackend(htmlContent, fileName);
 
+      // Clear progress interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
       console.log("📡 [DocumentPrintGenerator] Result dari backend:", result);
 
       if (result.success) {
@@ -176,13 +210,31 @@ export const DocumentPrintGenerator = ({
         throw new Error(result.error || 'Unknown error');
       }
     } catch (error) {
+      // Clear progress interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
       console.error("❌ [DocumentPrintGenerator] EXCEPTION:", error);
-      toast.error("Gagal membuat PDF: " + (error as Error).message, { id: toastId });
+      const errorMessage = (error as Error).message;
+      
+      // Check if it's a timeout error - offer fallback
+      if (errorMessage.toLowerCase().includes('timeout')) {
+        toast.warning("Server timeout. Menggunakan PDF browser sebagai alternatif...", { id: toastId });
+        
+        // Wait a moment then fallback to browser PDF
+        setTimeout(() => {
+          generatePDFViaPrint();
+        }, 1000);
+      } else {
+        toast.error("Gagal membuat PDF: " + errorMessage, { id: toastId });
+      }
     } finally {
       setIsGenerating(false);
       console.log("🏁 [DocumentPrintGenerator] generateBackendPDF selesai.");
     }
-  }, [templateComponent, templateProps, page2Component, page2Props, hasPage2, fileName, onComplete, useBackendPDF]);
+  }, [templateComponent, templateProps, page2Component, page2Props, hasPage2, fileName, onComplete, useBackendPDF, generatePDFViaPrint]);
 
   // PNG generation - still uses html2canvas (no native alternative)
   const generatePNG = useCallback(async () => {
