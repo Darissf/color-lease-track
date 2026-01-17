@@ -556,354 +556,395 @@ curl -X POST '${baseUrl}' \\
   };
 
   const aiPrompts = {
-    lengkap: `## INSTRUKSI UNTUK AI: DOCUMENT API INTEGRATION v1.4
+    integration_guide: `## PANDUAN INTEGRASI: PDF GENERATOR SERVICE
 
-Kamu adalah AI assistant yang akan membantu mengintegrasikan Document API untuk generate/render dokumen invoice dan kwitansi.
+### PERAN ANDA
+Anda adalah **PDF Generator Service** yang akan menerima request dari Web Lovable, mengambil data dari Document API, men-design & merender PDF (invoice atau kwitansi), lalu mengembalikan file PDF **langsung ke browser user**.
 
-### INFORMASI API
+### ARSITEKTUR INTEGRASI
 
-**Base URL:** 
-${baseUrl}
+\`\`\`
+┌─────────────────┐                     ┌──────────────────────────┐
+│   Web Lovable   │  1. Request PDF     │   SERVER ANDA           │
+│   (Frontend)    │ ─────────────────►  │   (PDF Generator)       │
+│                 │                     │                          │
+│                 │                     │  2. Call Document API ──►│
+│                 │                     │  3. Receive Data     ◄── │
+│                 │                     │  4. Render PDF           │
+│                 │  5. Return PDF file │                          │
+│                 │ ◄───────────────────│                          │
+└────────┬────────┘                     └──────────────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│   User Browser  │   ← File PDF langsung ter-download
+│   (Download)    │
+└─────────────────┘
+\`\`\`
 
-**Method:** POST
+### WORKFLOW DETAIL
 
-**Authentication:**
-- Header: \`x-api-key\`
-- Nilai: API Key yang diberikan oleh admin
-- API Key hanya ditampilkan sekali saat generate, simpan dengan aman!
+1. **User klik "Download Invoice/Kwitansi"** di Web Lovable
+2. **Web request ke server Anda** dengan: \`{ invoice_number, document_type }\`
+3. **Server Anda call Document API** untuk dapat data lengkap
+4. **Server Anda render PDF** menggunakan design Anda sendiri
+5. **Server Anda return PDF binary** langsung ke browser user
 
-### DUA METODE AKSES
+---
 
-**1. invoice_number (RECOMMENDED - Permanen)**
-Gunakan nomor invoice langsung. Tidak expired, cocok untuk integrasi jangka panjang.
+## DOCUMENT API - UNTUK MENGAMBIL DATA
 
+### Endpoint
+- **URL:** ${baseUrl}
+- **Method:** POST
+- **Content-Type:** application/json
+
+### Authentication
+- **Header:** \`x-api-key: YOUR_API_KEY\`
+- **Rate Limits:** 
+  - 500 requests/menit per API key
+  - 100 requests/menit per invoice_number
+
+### Request Body
 \`\`\`json
 {
   "invoice_number": "000254",
-  "document_type": "invoice"
+  "document_type": "invoice"  // atau "receipt" untuk kwitansi
 }
 \`\`\`
 
-**2. access_code (Alternative - Temporary)**
-Gunakan kode akses dari public link. Ada masa expired.
+### Document Types
+| Type | Description |
+|------|-------------|
+| \`invoice\` | Generate Invoice (Page 1 + Page 2 Lampiran) |
+| \`receipt\` | Generate Kwitansi Pembayaran |
 
-\`\`\`json
-{
-  "access_code": "CTR-XXXXXXXX",
-  "document_type": "invoice"
-}
-\`\`\`
+---
 
-### RATE LIMITS
+## DATA YANG TERSEDIA DARI API
 
-- **Per API Key:** 100 requests/menit
-- **Per Invoice:** 10 requests/menit
-- **Lockout:** 5x gagal berturut-turut = lockout 15 menit
+### 1. contract (Data Kontrak)
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | UUID kontrak |
+| invoice | string | Nomor invoice |
+| tanggal | date | Tanggal kontrak |
+| tagihan | number | Total tagihan (Rp) |
+| jumlah_lunas | number | Total yang sudah dibayar |
+| tanggal_lunas | date | Tanggal lunas terakhir |
+| tagihan_belum_bayar | number | Sisa tagihan |
+| status | string | Status kontrak |
+| start_date | date | Tanggal mulai |
+| end_date | date | Tanggal selesai |
 
-### RESPONSE DATA
+### 2. client (Data Klien)
+| Field | Type | Description |
+|-------|------|-------------|
+| nama | string | Nama klien/penerima |
+| nomor_telepon | string | Nomor telepon klien |
 
-API akan mengembalikan data lengkap dalam format JSON:
+### 3. payment (Data Pembayaran - untuk kwitansi)
+| Field | Type | Description |
+|-------|------|-------------|
+| amount | number | Jumlah pembayaran |
+| payment_date | date | Tanggal pembayaran |
+| payment_number | number | Nomor urut pembayaran |
+| notes | string | Catatan pembayaran |
 
-1. **contract** - Data kontrak
-   - \`id\` (UUID): ID kontrak
-   - \`invoice\` (string): Nomor invoice
-   - \`tanggal\` (date): Tanggal kontrak
-   - \`tagihan\` (number): Total tagihan
-   - \`jumlah_lunas\` (number): Jumlah yang sudah dibayar
-   - \`tanggal_lunas\` (date | null): Tanggal lunas terakhir
-   - \`tagihan_belum_bayar\` (number): Sisa tagihan
-   - \`status\` (string): Status kontrak (lunas/belum_lunas)
+### 4. bank_info (Info Transfer Bank)
+| Field | Type | Description |
+|-------|------|-------------|
+| bank_name | string | Nama bank |
+| account_number | string | Nomor rekening |
+| account_holder_name | string | Nama pemilik rekening |
 
-2. **client** - Data klien
-   - \`nama\` (string): Nama klien
-   - \`nomor_telepon\` (string): Nomor telepon klien
+### 5. line_items[] (Rincian Item - Page 2)
+| Field | Type | Description |
+|-------|------|-------------|
+| item_name | string | Nama item |
+| quantity | number | Jumlah unit |
+| unit_price_per_day | number | Harga per hari |
+| duration_days | number | Durasi sewa (hari) |
+| subtotal | number | qty × price × days |
+| sort_order | number | Urutan tampilan |
 
-3. **payment** - Data pembayaran (untuk kwitansi)
-   - \`amount\` (number): Jumlah pembayaran
-   - \`payment_date\` (date): Tanggal pembayaran
-   - \`payment_number\` (number): Nomor urut pembayaran
+### 6. page_2_settings (Pengaturan Page 2)
+| Field | Type | Description |
+|-------|------|-------------|
+| transport_delivery | number | Biaya antar |
+| transport_pickup | number | Biaya jemput |
+| discount | number | Potongan harga |
+| full_rincian | boolean | Mode tampilan tabel |
 
-4. **bank_info** - Informasi bank
-   - \`bank_name\` (string): Nama bank
-   - \`account_number\` (string): Nomor rekening
-   - \`account_holder_name\` (string): Nama pemilik rekening
+### 7. template_settings (170+ Pengaturan Design)
 
-5. **line_items[]** - Rincian item untuk Page 2
-   - \`item_name\` (string): Nama item
-   - \`quantity\` (number): Jumlah unit
-   - \`unit_price_per_day\` (number): Harga per unit per hari
-   - \`duration_days\` (number): Durasi sewa (hari)
-   - \`subtotal\` (number): Subtotal item (qty × price × days)
-   - \`sort_order\` (number): Urutan tampilan
+**Branding:**
+- company_name, company_tagline, company_address
+- company_phone, company_email, company_website
+- invoice_logo_url, bank_logo_url
 
-6. **page_2_settings** - Pengaturan khusus Page 2
-   - \`transport_delivery\` (number): Biaya antar
-   - \`transport_pickup\` (number): Biaya jemput
-   - \`discount\` (number): Diskon
-   - \`full_rincian\` (boolean): Mode tampilan (true=full table, false=simplified)
+**Typography:**
+- font_family, heading_font_family, font_size_base
 
-7. **template_settings** - Pengaturan template dokumen (170+ fields)
-   Kategori: Branding, Typography, Colors, Layout, Signature, Stamp, Labels, Visibility, Payment, Table, QR Code, Watermark, **Element Positioning (v1.4)**
+**Warna:**
+- header_color_primary, header_color_secondary, accent_color
+- table_header_bg, table_header_text_color
+- stamp_color_lunas, stamp_color_belum_lunas
 
-### ELEMENT POSITIONING (v1.4 - FULL DRAG-DROP)
+**Element Positioning (v1.4 - 24 fields):**
+| Elemen | X (%) | Y (mm) | Width (%) |
+|--------|-------|--------|-----------|
+| header_block | position_x | position_y | width |
+| company_info | position_x | position_y | width |
+| doc_number | position_x | position_y | width |
+| client_block | position_x | position_y | width |
+| table | position_x | position_y | width |
+| terbilang | position_x | position_y | - |
+| payment_section | position_x | position_y | width |
+| bank_info | position_x | position_y | width |
+| terms | position_x | position_y | width |
+| footer | position_x | position_y | width |
 
-Semua elemen utama sekarang bisa diposisikan bebas:
+**Aturan Y:** 0 = flow-based, > 0 = absolute (mm dari top)
 
-| Elemen | Fields | Unit | Default |
-|--------|--------|------|---------|
-| Header Block | header_block_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
-| Company Info | company_info_position_x/y, width | x,w=%, y=mm | 0, 0, 60 |
-| Doc Number | doc_number_position_x/y, width | x,w=%, y=mm | 75, 0, 25 |
-| Client Block | client_block_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
-| Table | table_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
-| Terbilang | terbilang_position_x/y | x=%, y=mm | 0, 0 |
-| Payment Section | payment_section_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
-| Bank Info | bank_info_position_x/y, width | x,w=%, y=mm | 60, 0, 40 |
-| Terms | terms_position_x/y, width | x,w=%, y=mm | 0, 0, 100 |
-| Footer | footer_position_x/y, width | x,w=%, y=mm | 0, 270, 100 |
+**Signature:**
+- signature_url, signer_name, signer_title
+- signature_label_position_x/y, signer_name_position_x/y
 
-**Aturan Positioning:**
-- \`position_x\` & \`width\`: Persentase (0-100%)
-- \`position_y\`: Milimeter dari top page (0-297mm)
-- \`position_y = 0\`: Flow-based (ikuti elemen sebelumnya)
-- \`position_y > 0\`: Absolute positioning dari top
+**Stamp:**
+- stamp_type, stamp_color, stamp_opacity
+- stamp_position_x/y, stamp_rotation
 
-**CSS Implementation:**
-\`\`\`css
-.element {
-  position: positionY > 0 ? 'absolute' : 'relative';
-  left: \${positionX}%;
-  top: positionY > 0 ? \${positionY}mm : 'auto';
-  width: \${width}%;
-}
-\`\`\`
+**Visibility Flags:**
+- show_header_stripe, show_qr_code, show_stamp
+- show_signature, show_bank_info, show_terbilang
 
-### CONTOH REQUEST (JavaScript)
+---
+
+## KALKULASI PAGE 2 (LAMPIRAN RINCIAN)
 
 \`\`\`javascript
-// RECOMMENDED: Gunakan invoice_number
-const response = await fetch('${baseUrl}', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-api-key': 'YOUR_API_KEY'
-  },
-  body: JSON.stringify({
-    invoice_number: '000254',
-    document_type: 'invoice'
-  })
-});
-
-const data = await response.json();
-
-// v1.4: Akses positioning data
-const { template_settings } = data;
-console.log('Header position:', template_settings.header_block_position_x, template_settings.header_block_position_y);
-console.log('Table position:', template_settings.table_position_x, template_settings.table_position_y);
-\`\`\`
-
-### TUGAS KAMU
-
-Gunakan data dari API ini untuk membantu integrasi dengan sistem eksternal. Data template_settings berisi pengaturan lengkap untuk desain dokumen termasuk warna, font, dan **posisi semua elemen** (v1.4).`,
-
-    ringkas: `## DOCUMENT API v1.4 - Quick Reference
-
-**URL:** ${baseUrl}
-**Method:** POST
-**Auth Header:** x-api-key: YOUR_API_KEY
-
-### Dua Metode Akses:
-
-**1. invoice_number (RECOMMENDED):**
-\`\`\`json
-{ "invoice_number": "000254", "document_type": "invoice" }
-\`\`\`
-
-**2. access_code (temporary):**
-\`\`\`json
-{ "access_code": "CTR-XXX", "document_type": "invoice" }
-\`\`\`
-
-### Rate Limits:
-- 100 req/min per API key
-- 10 req/min per invoice
-
-### Response Data:
-- \`contract\`: Data kontrak (invoice, tanggal, tagihan, status, jumlah_lunas, tanggal_lunas)
-- \`client\`: Data klien (nama, nomor_telepon)
-- \`payment\`: Data pembayaran (untuk kwitansi)
-- \`bank_info\`: Info rekening bank
-- \`line_items[]\`: Rincian item untuk Page 2
-- \`page_2_settings\`: Pengaturan Page 2
-- \`template_settings\`: 170+ pengaturan template
-
-### v1.4 Element Positioning Fields:
-| Elemen | Fields |
-|--------|--------|
-| Header Block | header_block_position_x/y, width |
-| Company Info | company_info_position_x/y, width |
-| Doc Number | doc_number_position_x/y, width |
-| Client Block | client_block_position_x/y, width |
-| Table | table_position_x/y, width |
-| Terbilang | terbilang_position_x/y |
-| Payment Section | payment_section_position_x/y, width |
-| Bank Info | bank_info_position_x/y, width |
-| Terms | terms_position_x/y, width |
-| Footer | footer_position_x/y, width |
-
-**Unit:** x,width=% (0-100), y=mm (0-297, 0=flow)
-
-### Contoh (JavaScript):
-\`\`\`javascript
-const res = await fetch('${baseUrl}', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'x-api-key': 'KEY' },
-  body: JSON.stringify({ invoice_number: '000254', document_type: 'invoice' })
-});
-const { template_settings } = (await res.json());
-\`\`\``,
-
-    pdf_rendering: `## INSTRUKSI AI: PDF RENDERING DARI DOCUMENT API v1.4
-
-Kamu akan membantu render dokumen PDF (invoice/kwitansi) menggunakan data dari Document API.
-
-### API ENDPOINT
-- **URL:** ${baseUrl}
-- **Method:** POST
-- **Auth:** Header \`x-api-key\` dengan API Key
-
-### AKSES DATA (Pilih Salah Satu)
-
-**RECOMMENDED - via invoice_number:**
-\`\`\`json
-{ "invoice_number": "000254", "document_type": "invoice" }
-\`\`\`
-
-**Alternative - via access_code:**
-\`\`\`json
-{ "access_code": "CTR-XXX", "document_type": "invoice" }
-\`\`\`
-
-### DATA YANG AKAN KAMU TERIMA
-
-1. **contract** - Informasi utama dokumen:
-   - invoice, tanggal, tagihan, tagihan_belum_bayar
-   - \`jumlah_lunas\` (number): Total yang sudah dibayar
-   - \`tanggal_lunas\` (date | null): Tanggal lunas terakhir
-   - status pembayaran, start_date, end_date
-
-2. **client** - Penerima dokumen:
-   - nama, nomor_telepon
-
-3. **payment** - Untuk kwitansi:
-   - amount, payment_date, payment_number, notes
-
-4. **bank_info** - Info transfer:
-   - bank_name, account_number, account_holder_name
-
-5. **line_items[]** - Rincian item untuk Page 2:
-   - \`item_name\` (string): Nama item
-   - \`quantity\` (number): Jumlah unit
-   - \`unit_price_per_day\` (number): Harga per unit per hari
-   - \`duration_days\` (number): Durasi sewa (hari)
-   - \`subtotal\` (number): Subtotal item (qty × price × days)
-   - \`sort_order\` (number): Urutan tampilan
-
-6. **page_2_settings** - Pengaturan Page 2:
-   - \`transport_delivery\` (number): Biaya antar
-   - \`transport_pickup\` (number): Biaya jemput
-   - \`discount\` (number): Diskon
-   - \`full_rincian\` (boolean): Mode tampilan (true=full table, false=simplified)
-
-7. **template_settings** - PENTING untuk desain PDF:
-   
-   **Branding:**
-   - company_name, company_tagline, invoice_logo_url
-   - company_address, company_phone, company_email
-   
-   **Typography:**
-   - font_family, font_size_base, heading_font_family
-   
-   **Warna (gunakan untuk styling):**
-   - header_color_primary, header_color_secondary
-   - accent_color, label_color, value_color
-   - table_header_bg, table_header_text_color
-   
-   **ELEMENT POSITIONING (v1.4 - FULL DRAG-DROP):**
-   
-   | Elemen | X (%) | Y (mm) | Width (%) |
-   |--------|-------|--------|-----------|
-   | header_block | position_x | position_y | width |
-   | company_info | position_x | position_y | width |
-   | doc_number | position_x | position_y | width |
-   | client_block | position_x | position_y | width |
-   | table | position_x | position_y | width |
-   | terbilang | position_x | position_y | - |
-   | payment_section | position_x | position_y | width |
-   | bank_info | position_x | position_y | width |
-   | terms | position_x | position_y | width |
-   | footer | position_x | position_y | width |
-   
-   **Aturan Y (position_y):**
-   - Y = 0: Flow-based (ikuti elemen sebelumnya)
-   - Y > 0: Absolute positioning dari top page (dalam mm)
-   
-   **Signature (posisi dalam mm dari top-left):**
-   - signature_url, signature_scale
-   - signature_label_position_x/y
-   - signer_name, signer_name_position_x/y
-   
-   **Stamp:**
-   - stamp_type, stamp_color, stamp_opacity
-   - stamp_position_x/y, stamp_rotation
-   
-   **Visibility flags:**
-   - show_header_stripe, show_qr_code, show_stamp
-   - show_signature, show_bank_info, show_terbilang
-
-### CSS IMPLEMENTATION UNTUK POSITIONING
-
-\`\`\`css
-.element {
-  position: positionY > 0 ? 'absolute' : 'relative';
-  left: \${positionX}%;
-  top: positionY > 0 ? \${positionY}mm : 'auto';
-  width: \${width}%;
-}
-\`\`\`
-
-### KALKULASI PAGE 2 (LAMPIRAN RINCIAN)
-
-\`\`\`javascript
-// Hitung subtotal dari line_items
+// Subtotal dari line items
 const subtotalItems = line_items.reduce((sum, item) => sum + item.subtotal, 0);
 
-// Hitung total transport
+// Total transport
 const totalTransport = page_2_settings.transport_delivery + page_2_settings.transport_pickup;
 
-// Hitung subtotal sebelum diskon
-const subtotalBeforeDiscount = subtotalItems + totalTransport;
-
 // Grand total (harus sama dengan contract.tagihan)
-const grandTotal = subtotalBeforeDiscount - page_2_settings.discount;
+const grandTotal = subtotalItems + totalTransport - page_2_settings.discount;
+
+// Terbilang
+const terbilang = angkaTerbilang(grandTotal); // "Satu Juta Lima Ratus Ribu Rupiah"
 \`\`\`
 
-### WORKFLOW RENDERING
+---
 
-1. Panggil API dengan invoice_number atau access_code
-2. **Page 1:** Gunakan contract, client, bank_info, template_settings untuk styling
-3. **Posisikan elemen** sesuai positioning fields (v1.4):
-   - Jika position_y = 0 → flow-based
-   - Jika position_y > 0 → absolute dari top
-4. **Page 2:** Gunakan line_items untuk tabel rincian, page_2_settings untuk transport/discount
-5. Posisi elemen (signature, stamp) sudah dalam milimeter
-6. Render sesuai dengan visibility flags (show_*)
-7. Format angka sebagai Rupiah (Rp X.XXX.XXX)`
+## CONTOH IMPLEMENTASI SERVER ANDA
+
+### Node.js (Express)
+
+\`\`\`javascript
+const express = require('express');
+const PDFDocument = require('pdfkit'); // atau library PDF lainnya
+const app = express();
+
+// Endpoint untuk generate PDF
+app.post('/generate-pdf', async (req, res) => {
+  const { invoice_number, document_type } = req.body;
+  
+  try {
+    // 1. Ambil data dari Document API
+    const response = await fetch('${baseUrl}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.DOCUMENT_API_KEY
+      },
+      body: JSON.stringify({ invoice_number, document_type })
+    });
+    
+    const { data } = await response.json();
+    const { contract, client, payment, bank_info, line_items, page_2_settings, template_settings } = data;
+    
+    // 2. Render PDF dengan design Anda
+    const pdfBuffer = await renderPDF({
+      contract,
+      client,
+      payment,        // untuk kwitansi
+      bank_info,
+      line_items,     // untuk page 2
+      page_2_settings,
+      template_settings
+    });
+    
+    // 3. Return PDF ke browser
+    const filename = document_type === 'invoice' 
+      ? \\\`Invoice-\\\${invoice_number}.pdf\\\`
+      : \\\`Kwitansi-\\\${invoice_number}.pdf\\\`;
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', \\\`attachment; filename="\\\${filename}"\\\`);
+    res.send(pdfBuffer);
+    
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+app.listen(3000, () => console.log('PDF Generator running on port 3000'));
+\`\`\`
+
+### Python (Flask)
+
+\`\`\`python
+from flask import Flask, request, Response
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+import requests
+import io
+import os
+
+app = Flask(__name__)
+
+@app.route('/generate-pdf', methods=['POST'])
+def generate_pdf():
+    data = request.json
+    invoice_number = data.get('invoice_number')
+    document_type = data.get('document_type', 'invoice')
+    
+    # 1. Ambil data dari Document API
+    api_response = requests.post(
+        '${baseUrl}',
+        headers={
+            'Content-Type': 'application/json',
+            'x-api-key': os.environ.get('DOCUMENT_API_KEY')
+        },
+        json={'invoice_number': invoice_number, 'document_type': document_type}
+    )
+    
+    doc_data = api_response.json()['data']
+    
+    # 2. Render PDF
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    
+    # Gunakan doc_data['template_settings'] untuk styling
+    # Gunakan doc_data['contract'], doc_data['client'], dll untuk content
+    
+    pdf.save()
+    buffer.seek(0)
+    
+    # 3. Return PDF
+    filename = f"Invoice-{invoice_number}.pdf" if document_type == 'invoice' else f"Kwitansi-{invoice_number}.pdf"
+    
+    return Response(
+        buffer.getvalue(),
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+    )
+
+if __name__ == '__main__':
+    app.run(port=3000)
+\`\`\`
+
+---
+
+## CARA WEB LOVABLE MEMANGGIL SERVER ANDA
+
+\`\`\`javascript
+// Di sisi Web Lovable
+const handleDownload = async (invoiceNumber, documentType) => {
+  try {
+    const response = await fetch('https://your-server.com/generate-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        invoice_number: invoiceNumber, 
+        document_type: documentType 
+      })
+    });
+    
+    if (!response.ok) throw new Error('Failed to generate PDF');
+    
+    // Download file
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = documentType === 'invoice' 
+      ? \\\`Invoice-\\\${invoiceNumber}.pdf\\\` 
+      : \\\`Kwitansi-\\\${invoiceNumber}.pdf\\\`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+  } catch (error) {
+    console.error('Download failed:', error);
+  }
+};
+\`\`\`
+
+---
+
+## RESPONSE FORMAT (WAJIB DARI SERVER ANDA)
+
+### Success Response
+\`\`\`
+HTTP/1.1 200 OK
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="Invoice-000254.pdf"
+
+[PDF Binary Data]
+\`\`\`
+
+### Error Response
+\`\`\`json
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/json
+
+{
+  "error": "Failed to generate PDF",
+  "message": "Could not retrieve document data"
+}
+\`\`\`
+
+---
+
+## CHECKLIST IMPLEMENTASI
+
+- [ ] Server endpoint POST /generate-pdf sudah dibuat
+- [ ] API Key Document API sudah di-set di environment
+- [ ] Library PDF rendering sudah diinstall (pdfkit, puppeteer, reportlab, dll)
+- [ ] Response mengirim Content-Type: application/pdf
+- [ ] Response mengirim Content-Disposition dengan filename yang benar
+- [ ] Error handling sudah diimplementasi
+- [ ] Support untuk invoice dan kwitansi sudah ada
+- [ ] Kalkulasi Page 2 (line_items + transport - discount) sudah benar
+- [ ] Design mengikuti template_settings dari API
+
+---
+
+## KONTAK & SUPPORT
+
+Jika ada pertanyaan tentang integrasi, hubungi tim Web Lovable melalui channel yang sudah disediakan.`
   };
 
   const updateInfo = {
-    version: '1.4',
+    version: '1.5',
     changes: [
+      {
+        version: '1.5',
+        date: '2026-01-17',
+        title: 'AI Prompt & Rate Limit Update',
+        items: [
+          'AI Prompt baru: Panduan Integrasi PDF Generator Service',
+          'Workflow jelas: Web → Server Anda → Document API → Render → Return PDF',
+          'Contoh implementasi Node.js & Python lengkap',
+          'Rate limit per API key: 100 → 500 req/min (5x increase)',
+          'Rate limit per invoice: 10 → 100 req/min (10x increase)',
+          'Hapus 3 prompt lama (lengkap, ringkas, pdf_rendering) → 1 prompt comprehensive'
+        ]
+      },
       {
         version: '1.4',
         date: '2026-01-12',
@@ -970,10 +1011,10 @@ const grandTotal = subtotalBeforeDiscount - page_2_settings.discount;
       }
     ],
     migration: {
-      from: 'v1.3',
-      to: 'v1.4',
+      from: 'v1.4',
+      to: 'v1.5',
       backward_compatible: true,
-      notes: 'Semua response v1.3 tetap ada, v1.4 menambahkan 24 positioning fields untuk full drag-drop support'
+      notes: 'Rate limits increased 5-10x, AI Prompt disederhanakan menjadi 1 panduan komprehensif untuk PDF Generator Service workflow'
     }
   };
 
@@ -985,7 +1026,7 @@ const grandTotal = subtotalBeforeDiscount - page_2_settings.discount;
   };
 
   return {
-    version: '1.4.0',
+    version: '1.5.0',
     base_url: baseUrl,
     authentication,
     request_schema: requestSchema,
