@@ -143,8 +143,6 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
           {settings.show_header_stripe && (
             <div
               style={{ 
-                marginLeft: '-10mm',
-                marginRight: '-10mm',
                 marginTop: '-10mm',
                 marginBottom: '6mm',
                 height: `${settings.header_stripe_height || 12}px`,
