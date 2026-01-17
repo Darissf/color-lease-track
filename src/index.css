@@ -1525,10 +1525,12 @@ All colors MUST be HSL.
   height: 297mm !important;
   background-color: white !important;
   position: relative;
-  /* Padding dikontrol oleh Tailwind di komponen (p-8 pb-12) */
   margin: 0 auto;
   box-sizing: border-box;
   overflow: hidden !important;
+  /* Padding simetris menggunakan mm untuk konsistensi A4 */
+  padding: 10mm !important;
+  padding-bottom: 15mm !important;
 }
 
 /* TAMPILAN LAYAR (Admin & Preview Modal) */
