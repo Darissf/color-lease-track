@@ -8,7 +8,7 @@ const corsHeaders = {
 interface StatusUpdate {
   secret_key: string;
   version: string;
-  status: "success" | "failed";
+  status: "success" | "failed" | "running";
   error_message?: string;
 }
 
@@ -80,8 +80,19 @@ Deno.serve(async (req) => {
         .eq("id", settings.id);
 
       console.log(`[update-scraper-status] Successfully marked v${version} as deployed`);
+    } else if (status === "running") {
+      // VPS is actively running the scraper - update last seen
+      console.log(`[update-scraper-status] Scraper v${version} is running`);
+      
+      await supabase
+        .from("payment_provider_settings")
+        .update({
+          vps_last_seen_at: new Date().toISOString(),
+          vps_current_version: version,
+        })
+        .eq("id", settings.id);
     } else {
-      // Log failure
+      // status === "failed" - Log failure
       console.log(`[update-scraper-status] Update failed for v${version}: ${error_message}`);
       
       await supabase
