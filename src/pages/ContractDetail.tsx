@@ -644,7 +644,7 @@ export default function ContractDetail() {
       
       setInvoiceFullRincian(value);
       setContract(prev => prev ? { ...prev, invoice_full_rincian: value } : null);
-      toast.success(value ? "Mode Full Rincian aktif" : "Mode Sederhana aktif");
+      toast.success(value ? "Mode Full Rincian aktif (Invoice & Kwitansi)" : "Mode Sederhana aktif (Invoice & Kwitansi)");
     } catch (error) {
       console.error("Error saving invoice full rincian:", error);
       toast.error("Gagal menyimpan pengaturan");
@@ -968,7 +968,7 @@ export default function ContractDetail() {
       transportPickup: contract.transport_cost_pickup || 0,
       discount: 0,
       period: `${format(new Date(contract.start_date), 'dd MMM yyyy', { locale: localeId })} - ${format(new Date(contract.end_date), 'dd MMM yyyy', { locale: localeId })}`,
-      fullRincian: true,
+      fullRincian: invoiceFullRincian,
     });
     setDocumentPreviewOpen(true);
   };
@@ -1302,12 +1302,12 @@ export default function ContractDetail() {
                       disabled={isSavingRincianMode}
                     />
                     <Label htmlFor="invoice-full-rincian" className="text-sm cursor-pointer">
-                      Invoice Full Rincian
+                      Invoice & Kwitansi Full Rincian
                     </Label>
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {invoiceFullRincian 
-                      ? 'Halaman 2: Semua kolom' 
+                      ? 'Halaman 2: Semua kolom (Invoice & Kwitansi)' 
                       : 'Halaman 2: Hanya No, Nama Item, Qty'}
                   </span>
                 </div>
