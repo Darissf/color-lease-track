@@ -16,20 +16,23 @@ import {
   calculateTotalTransport,
   calculateSubtotal,
   calculateGrandTotal,
-  type LineItem,
   type TemplateData
 } from '@/lib/contractTemplateGenerator';
 import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen, Tag, FileSignature, Edit3, RefreshCw, AlertCircle } from 'lucide-react';
+
+// Extended LineItem interface with unit_mode
+interface LineItem {
+  id?: string;
+  item_name: string;
+  quantity: number;
+  unit_price_per_day: number;
+  duration_days: number;
+  unit_mode?: 'pcs' | 'set';
+  pcs_per_set?: number;
+}
 import { toast } from 'sonner';
 
-interface InventoryItem {
-  id: string;
-  item_name: string;
-  item_code: string;
-  category: string;
-  unit_price: number;
-  unit_type: string;
-}
+// Removed InventoryItem interface - no longer needed
 
 interface ContractLineItemsEditorProps {
   contractId: string;
@@ -45,7 +48,6 @@ export function ContractLineItemsEditor({
   onCancel 
 }: ContractLineItemsEditorProps) {
   const { user, isAdmin, isSuperAdmin } = useAuth();
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [transportDelivery, setTransportDelivery] = useState(0);
   const [transportPickup, setTransportPickup] = useState(0);
@@ -67,20 +69,10 @@ export function ContractLineItemsEditor({
   const [billingMode, setBillingMode] = useState<'edit' | 'new'>('edit');
 
   useEffect(() => {
-    fetchInventoryItems();
     fetchExistingLineItems();
   }, [contractId]);
 
-  const fetchInventoryItems = async () => {
-    const { data } = await supabase
-      .from('inventory_items')
-      .select('id, item_name, item_code, category, unit_price, unit_type')
-      .order('item_name');
-    
-    if (data) {
-      setInventoryItems(data);
-    }
-  };
+  // Removed fetchInventoryItems - no longer needed
 
   const fetchExistingLineItems = async () => {
     setLoading(true);
@@ -138,14 +130,16 @@ export function ContractLineItemsEditor({
     setGeneratingFromStock(true);
     
     try {
-      // Fetch stock items for this contract
+      // Fetch stock items for this contract with unit_mode
       const { data: stockItems, error } = await supabase
         .from('contract_stock_items')
         .select(`
           quantity,
+          unit_mode,
           inventory_items (
             item_name,
-            unit_price
+            unit_price,
+            pcs_per_set
           )
         `)
         .eq('contract_id', contractId)
@@ -158,13 +152,24 @@ export function ContractLineItemsEditor({
         return;
       }
       
-      // Map stock items to line items
-      const generatedItems: LineItem[] = stockItems.map((item: any) => ({
-        item_name: item.inventory_items?.item_name || '',
-        quantity: item.quantity,
-        unit_price_per_day: defaultPricePerDay !== '' ? defaultPricePerDay : (item.inventory_items?.unit_price || 0),
-        duration_days: defaultDurationDays !== '' ? defaultDurationDays : 30,
-      }));
+      // Map stock items to line items with unit_mode
+      const generatedItems: LineItem[] = stockItems.map((item: any) => {
+        const unitMode = item.unit_mode || 'pcs';
+        const pcsPerSet = item.inventory_items?.pcs_per_set || 1;
+        // Display quantity based on unit_mode
+        const displayQty = unitMode === 'set' && pcsPerSet > 0 
+          ? Math.floor(item.quantity / pcsPerSet) 
+          : item.quantity;
+        
+        return {
+          item_name: item.inventory_items?.item_name || '',
+          quantity: displayQty,
+          unit_price_per_day: defaultPricePerDay !== '' ? defaultPricePerDay : (item.inventory_items?.unit_price || 0),
+          duration_days: defaultDurationDays !== '' ? defaultDurationDays : 30,
+          unit_mode: unitMode,
+          pcs_per_set: pcsPerSet,
+        };
+      });
       
       setLineItems(generatedItems);
       toast.success(`${generatedItems.length} item berhasil di-generate dari stok barang`);
@@ -203,15 +208,7 @@ export function ContractLineItemsEditor({
     setLineItems(updated);
   };
 
-  const selectInventoryItem = (index: number, itemId: string) => {
-    const item = inventoryItems.find(i => i.id === itemId);
-    if (item) {
-      const updated = [...lineItems];
-      updated[index].item_name = item.item_name;
-      updated[index].unit_price_per_day = item.unit_price;
-      setLineItems(updated);
-    }
-  };
+  // Removed selectInventoryItem - no longer needed
 
   const removeLineItem = (index: number) => {
     setLineItems(lineItems.filter((_, i) => i !== index));
@@ -388,37 +385,19 @@ export function ContractLineItemsEditor({
                 </Button>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Pilih dari Inventori (opsional)</Label>
-                  <Select onValueChange={(value) => selectInventoryItem(index, value)}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Pilih item..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {inventoryItems.map(inv => (
-                        <SelectItem key={inv.id} value={inv.id}>
-                          {inv.item_name} ({inv.item_code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Nama Item</Label>
-                  <Input
-                    value={item.item_name}
-                    onChange={(e) => updateLineItem(index, 'item_name', e.target.value)}
-                    placeholder="Nama item..."
-                    className="h-9"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nama Item</Label>
+                <Input
+                  value={item.item_name}
+                  onChange={(e) => updateLineItem(index, 'item_name', e.target.value)}
+                  placeholder="Nama item..."
+                  className="h-9"
+                />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Jumlah (pcs)</Label>
+                  <Label className="text-xs">Jumlah ({item.unit_mode === 'set' ? 'set' : 'pcs'})</Label>
                   <Input
                     type="number"
                     value={item.quantity}
@@ -426,6 +405,11 @@ export function ContractLineItemsEditor({
                     min={1}
                     className="h-9"
                   />
+                  {item.unit_mode === 'set' && item.pcs_per_set && item.pcs_per_set > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Jadi {item.quantity} set = {item.quantity * item.pcs_per_set} pcs
+                    </p>
+                  )}
                 </div>
                 
                 <div className="space-y-1.5">
