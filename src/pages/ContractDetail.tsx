@@ -231,11 +231,13 @@ export default function ContractDetail() {
       .select(`
         id,
         quantity,
+        unit_mode,
         returned_at,
         inventory_items (
           item_name,
           item_code,
-          unit_type
+          unit_type,
+          pcs_per_set
         )
       `)
       .eq('contract_id', id)
@@ -1638,7 +1640,10 @@ export default function ContractDetail() {
                           )}
                         </div>
                         <Badge variant={item.returned_at ? "outline" : "secondary"} className={`text-base ${item.returned_at ? 'text-muted-foreground' : ''}`}>
-                          {item.quantity} {item.inventory_items?.unit_type}
+                          {item.unit_mode === 'set'
+                            ? `${Math.floor(item.quantity / (item.inventory_items?.pcs_per_set || 1))} set`
+                            : `${item.quantity} pcs`
+                          }
                         </Badge>
                       </div>
                     ))}
