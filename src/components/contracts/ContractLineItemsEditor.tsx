@@ -114,14 +114,24 @@ export function ContractLineItemsEditor({
       setEndDate(contractData.end_date || '');
       
       // Load quick settings (Pengaturan Cepat)
+      // Priority 1: Use saved values from database
+      // Priority 2: Fallback to first line item if database values are null
       if (contractData.default_price_per_day !== null) {
         setDefaultPricePerDay(Number(contractData.default_price_per_day));
+      } else if (lineItemsData && lineItemsData.length > 0) {
+        setDefaultPricePerDay(Number(lineItemsData[0].unit_price_per_day));
       }
+      
       if (contractData.default_duration_days !== null) {
         setDefaultDurationDays(contractData.default_duration_days);
+      } else if (lineItemsData && lineItemsData.length > 0) {
+        setDefaultDurationDays(lineItemsData[0].duration_days);
       }
+      
       if (contractData.default_price_mode) {
         setPriceMode(contractData.default_price_mode as 'pcs' | 'set');
+      } else if (lineItemsData && lineItemsData.length > 0 && lineItemsData[0].unit_mode) {
+        setPriceMode(lineItemsData[0].unit_mode as 'pcs' | 'set');
       }
     }
     
