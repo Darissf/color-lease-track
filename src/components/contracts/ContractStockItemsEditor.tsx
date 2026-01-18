@@ -17,15 +17,18 @@ interface InventoryItem {
   category: string;
   total_quantity: number;
   unit_type: string;
+  pcs_per_set: number;
 }
 
 interface StockItem {
   id?: string;
   inventory_item_id: string;
-  quantity: number;
+  quantity: number; // Always in pcs (base unit)
+  unit_mode: 'pcs' | 'set';
   item_name?: string;
   item_code?: string;
   unit_type?: string;
+  pcs_per_set?: number;
   available_stock?: number;
 }
 
@@ -57,7 +60,7 @@ export function ContractStockItemsEditor({
     // Fetch inventory items with calculated available stock
     const { data: invData } = await supabase
       .from('inventory_items')
-      .select('id, item_name, item_code, category, total_quantity, unit_type')
+      .select('id, item_name, item_code, category, total_quantity, unit_type, pcs_per_set')
       .eq('is_active', true)
       .order('item_name');
     
@@ -79,6 +82,7 @@ export function ContractStockItemsEditor({
       
       const itemsWithStock = invData.map(item => ({
         ...item,
+        pcs_per_set: item.pcs_per_set || 1,
         available_stock: item.total_quantity + (stockUsage[item.id] || 0)
       }));
       
@@ -92,10 +96,12 @@ export function ContractStockItemsEditor({
         id,
         inventory_item_id,
         quantity,
+        unit_mode,
         inventory_items (
           item_name,
           item_code,
-          unit_type
+          unit_type,
+          pcs_per_set
         )
       `)
       .eq('contract_id', contractId)
@@ -105,10 +111,12 @@ export function ContractStockItemsEditor({
       const mapped = existingItems.map((item: any) => ({
         id: item.id,
         inventory_item_id: item.inventory_item_id,
-        quantity: item.quantity,
+        quantity: item.quantity, // This is in pcs
+        unit_mode: (item.unit_mode || 'pcs') as 'pcs' | 'set',
         item_name: item.inventory_items?.item_name,
         item_code: item.inventory_items?.item_code,
         unit_type: item.inventory_items?.unit_type,
+        pcs_per_set: item.inventory_items?.pcs_per_set || 1,
       }));
       setStockItems(mapped);
       setOriginalItems(mapped);
@@ -135,6 +143,7 @@ export function ContractStockItemsEditor({
       {
         inventory_item_id: '',
         quantity: 1,
+        unit_mode: 'pcs',
       }
     ]);
   };
@@ -149,16 +158,44 @@ export function ContractStockItemsEditor({
         item_name: item.item_name,
         item_code: item.item_code,
         unit_type: item.unit_type,
+        pcs_per_set: item.pcs_per_set || 1,
         available_stock: getAvailableStock(itemId),
       };
       setStockItems(updated);
     }
   };
 
-  const updateQuantity = (index: number, quantity: number) => {
+  const updateQuantity = (index: number, displayQty: number) => {
     const updated = [...stockItems];
-    updated[index].quantity = quantity;
+    const item = updated[index];
+    const pcsPerSet = item.pcs_per_set || 1;
+    
+    // Convert to pcs based on mode
+    if (item.unit_mode === 'set') {
+      updated[index].quantity = displayQty * pcsPerSet;
+    } else {
+      updated[index].quantity = displayQty;
+    }
     setStockItems(updated);
+  };
+
+  const updateUnitMode = (index: number, mode: 'pcs' | 'set') => {
+    const updated = [...stockItems];
+    const item = updated[index];
+    const pcsPerSet = item.pcs_per_set || 1;
+    const oldMode = item.unit_mode;
+    
+    // Keep the actual pcs quantity the same, just change the display mode
+    updated[index].unit_mode = mode;
+    setStockItems(updated);
+  };
+
+  const getDisplayQuantity = (item: StockItem): number => {
+    const pcsPerSet = item.pcs_per_set || 1;
+    if (item.unit_mode === 'set' && pcsPerSet > 1) {
+      return Math.floor(item.quantity / pcsPerSet);
+    }
+    return item.quantity;
   };
 
   const removeStockItem = (index: number) => {
@@ -231,7 +268,8 @@ export function ContractStockItemsEditor({
             user_id: user.id,
             contract_id: contractId,
             inventory_item_id: item.inventory_item_id,
-            quantity: item.quantity,
+            quantity: item.quantity, // Always in pcs
+            unit_mode: item.unit_mode,
           })
           .select()
           .single();
@@ -261,7 +299,8 @@ export function ContractStockItemsEditor({
           .from('contract_stock_items')
           .update({
             inventory_item_id: item.inventory_item_id,
-            quantity: item.quantity,
+            quantity: item.quantity, // Always in pcs
+            unit_mode: item.unit_mode,
           })
           .eq('id', item.id);
         
@@ -320,7 +359,10 @@ export function ContractStockItemsEditor({
           ) : (
             stockItems.map((item, index) => {
               const available = item.inventory_item_id ? getAvailableStock(item.inventory_item_id) : 0;
+              const pcsPerSet = item.pcs_per_set || 1;
+              const displayQty = getDisplayQuantity(item);
               const isOverStock = item.quantity > available;
+              const availableInSets = pcsPerSet > 1 ? Math.floor(available / pcsPerSet) : 0;
               
               return (
                 <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/30">
@@ -336,7 +378,7 @@ export function ContractStockItemsEditor({
                     </Button>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div className="md:col-span-2 space-y-1.5">
                       <Label className="text-xs">Pilih Barang</Label>
                       <Select 
@@ -347,16 +389,21 @@ export function ContractStockItemsEditor({
                           <SelectValue placeholder="Pilih item..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {inventoryItems.map(inv => (
-                            <SelectItem key={inv.id} value={inv.id}>
-                              <div className="flex items-center gap-2">
-                                <span>{inv.item_name}</span>
-                                <Badge variant="outline" className="text-xs">
-                                  Stok: {getAvailableStock(inv.id)}
-                                </Badge>
-                              </div>
-                            </SelectItem>
-                          ))}
+                          {inventoryItems.map(inv => {
+                            const invPcsPerSet = inv.pcs_per_set || 1;
+                            const invAvailable = getAvailableStock(inv.id);
+                            return (
+                              <SelectItem key={inv.id} value={inv.id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{inv.item_name}</span>
+                                  <Badge variant="outline" className="text-xs">
+                                    {invAvailable} pcs
+                                    {invPcsPerSet > 1 && ` (${Math.floor(invAvailable / invPcsPerSet)} set)`}
+                                  </Badge>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>
@@ -365,26 +412,59 @@ export function ContractStockItemsEditor({
                       <Label className="text-xs">Jumlah</Label>
                       <Input
                         type="number"
-                        value={item.quantity}
+                        value={displayQty}
                         onChange={(e) => updateQuantity(index, Number(e.target.value) || 1)}
                         min={1}
-                        max={available}
                         className={`h-9 ${isOverStock ? 'border-destructive' : ''}`}
                       />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Satuan</Label>
+                      <Select
+                        value={item.unit_mode}
+                        onValueChange={(value: 'pcs' | 'set') => updateUnitMode(index, value)}
+                        disabled={pcsPerSet <= 1}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pcs">pcs</SelectItem>
+                          <SelectItem value="set" disabled={pcsPerSet <= 1}>
+                            set {pcsPerSet > 1 ? `(${pcsPerSet} pcs)` : ''}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   
                   {item.inventory_item_id && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {item.item_code} • {item.unit_type}
-                      </span>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Stok tersedia:</span>
+                        <span className="text-muted-foreground">
+                          {item.item_code}
+                        </span>
+                        {pcsPerSet > 1 && (
+                          <Badge variant="outline" className="text-xs">
+                            {pcsPerSet} pcs/set
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Stok:</span>
                         <Badge variant={isOverStock ? "destructive" : "secondary"}>
-                          {available} {item.unit_type}
+                          {available} pcs
+                          {pcsPerSet > 1 && ` (${availableInSets} set)`}
                         </Badge>
                       </div>
+                    </div>
+                  )}
+                  
+                  {/* Show conversion info */}
+                  {item.inventory_item_id && item.unit_mode === 'set' && pcsPerSet > 1 && (
+                    <div className="text-xs text-primary bg-primary/10 px-2 py-1 rounded">
+                      {displayQty} set = {item.quantity} pcs
                     </div>
                   )}
                   

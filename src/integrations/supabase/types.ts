@@ -1694,6 +1694,7 @@ export type Database = {
           notes: string | null
           quantity: number
           returned_at: string | null
+          unit_mode: string | null
           user_id: string
         }
         Insert: {
@@ -1705,6 +1706,7 @@ export type Database = {
           notes?: string | null
           quantity?: number
           returned_at?: string | null
+          unit_mode?: string | null
           user_id: string
         }
         Update: {
@@ -1716,6 +1718,7 @@ export type Database = {
           notes?: string | null
           quantity?: number
           returned_at?: string | null
+          unit_mode?: string | null
           user_id?: string
         }
         Relationships: [
@@ -3453,6 +3456,7 @@ export type Database = {
           item_code: string
           item_name: string
           minimum_stock: number
+          pcs_per_set: number | null
           total_quantity: number
           unit_price: number | null
           unit_type: string
@@ -3468,6 +3472,7 @@ export type Database = {
           item_code: string
           item_name: string
           minimum_stock?: number
+          pcs_per_set?: number | null
           total_quantity?: number
           unit_price?: number | null
           unit_type?: string
@@ -3483,6 +3488,7 @@ export type Database = {
           item_code?: string
           item_name?: string
           minimum_stock?: number
+          pcs_per_set?: number | null
           total_quantity?: number
           unit_price?: number | null
           unit_type?: string
