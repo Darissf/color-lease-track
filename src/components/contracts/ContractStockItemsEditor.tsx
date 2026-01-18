@@ -185,7 +185,21 @@ export function ContractStockItemsEditor({
     const pcsPerSet = item.pcs_per_set || 1;
     const oldMode = item.unit_mode;
     
-    // Keep the actual pcs quantity the same, just change the display mode
+    // Get current display quantity based on OLD mode
+    let currentDisplayQty: number;
+    if (oldMode === 'set' && pcsPerSet > 1) {
+      currentDisplayQty = Math.floor(item.quantity / pcsPerSet);
+    } else {
+      currentDisplayQty = item.quantity;
+    }
+    
+    // Re-calculate quantity based on NEW mode with SAME display value
+    if (mode === 'set' && pcsPerSet > 1) {
+      updated[index].quantity = currentDisplayQty * pcsPerSet;
+    } else {
+      updated[index].quantity = currentDisplayQty;
+    }
+    
     updated[index].unit_mode = mode;
     setStockItems(updated);
   };
