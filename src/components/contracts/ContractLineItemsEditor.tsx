@@ -399,7 +399,30 @@ export function ContractLineItemsEditor({
       }
       // Mode Tagihan Baru: tagihanBelumBayar = grandTotal (reset)
 
-      // Update contract with transport costs, discount, template and quick settings
+      // Calculate total units for jumlah_unit: groups billing_qty + non-grouped items qty
+      const totalUnitsForContract = (() => {
+        const indicesInGroups = new Set<number>();
+        const validGroups: typeof groups = [];
+        
+        groups.forEach((group, gIdx) => {
+          const indices = getIndicesInGroup(groupedLineItems, gIdx);
+          if (indices.length > 0) {
+            validGroups.push(group);
+            indices.forEach(idx => indicesInGroups.add(idx));
+          }
+        });
+        
+        // Sum: billing_quantity from groups + quantity from non-grouped items
+        let total = validGroups.reduce((sum, g) => sum + (g.billing_quantity || 0), 0);
+        lineItems.forEach((item, idx) => {
+          if (!indicesInGroups.has(idx)) {
+            total += item.quantity;
+          }
+        });
+        return total;
+      })();
+
+      // Update contract with transport costs, discount, template, quick settings, and jumlah_unit
       const { error: updateError } = await supabase
         .from('rental_contracts')
         .update({
@@ -412,6 +435,7 @@ export function ContractLineItemsEditor({
           default_price_per_day: defaultPricePerDay !== '' ? defaultPricePerDay : null,
           default_duration_days: defaultDurationDays !== '' ? defaultDurationDays : null,
           default_price_mode: priceMode,
+          jumlah_unit: totalUnitsForContract,
         })
         .eq('id', contractId);
 

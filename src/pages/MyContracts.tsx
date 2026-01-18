@@ -200,7 +200,7 @@ export default function MyContracts() {
                           </div>
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <Package className="h-4 w-4" />
-                            <span>{contract.jumlah_unit || 0} unit {contract.jenis_scaffolding || "scaffolding"}</span>
+                            <span>{contract.jumlah_unit || 0} Set {contract.jenis_scaffolding || "scaffolding"}</span>
                           </div>
                         </div>
 
