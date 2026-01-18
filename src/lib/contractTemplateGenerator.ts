@@ -153,7 +153,7 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
   lines.push('Item Sewa:');
   lineItems.forEach((item) => {
     const unitLabel = item.unit_mode === 'set' ? 'Set' : 'Pcs';
-    lines.push(`- ${item.quantity} ${unitLabel} ${item.item_name}`);
+    lines.push(`  - ${item.quantity} ${unitLabel} ${item.item_name}`);
   });
   lines.push(separator);
   
@@ -175,9 +175,9 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
     // Periode Sewa
     if (startDate && endDate) {
       lines.push('📅 Periode Sewa:');
-      lines.push(`    Mulai     : ${formatDateIndo(startDate)}`);
-      lines.push(`    Selesai : ${formatDateIndo(endDate)}`);
-      lines.push(`    Durasi   : ${calc.durationDays} Hari`);
+      lines.push(`   Mulai   : ${formatDateIndo(startDate)}`);
+      lines.push(`   Selesai : ${formatDateIndo(endDate)}`);
+      lines.push(`   Durasi  : ${calc.durationDays} Hari`);
       lines.push('');
       lines.push(`Total : ${formatRupiah(calc.dailyTotal)} x ${calc.durationDays} hari = ${formatRupiah(calc.rentalSubtotal)}`);
     }
@@ -187,8 +187,8 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
     const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
     if (transportDelivery > 0 || transportPickup > 0) {
       lines.push('🚚 Ongkos Transport:');
-      lines.push(`    Pengiriman    : ${formatRupiah(transportDelivery)}`);
-      lines.push(`    Pengambilan : ${formatRupiah(transportPickup)}`);
+      lines.push(`   Pengiriman  : ${formatRupiah(transportDelivery)}`);
+      lines.push(`   Pengambilan : ${formatRupiah(transportPickup)}`);
       lines.push('');
     }
     
@@ -205,9 +205,9 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
     if (startDate && endDate) {
       const durationDays = calculateDurationDays(startDate, endDate);
       lines.push('📅 Periode Sewa:');
-      lines.push(`    Mulai     : ${formatDateIndo(startDate)}`);
-      lines.push(`    Selesai : ${formatDateIndo(endDate)}`);
-      lines.push(`    Durasi   : ${durationDays} Hari`);
+      lines.push(`   Mulai   : ${formatDateIndo(startDate)}`);
+      lines.push(`   Selesai : ${formatDateIndo(endDate)}`);
+      lines.push(`   Durasi  : ${durationDays} Hari`);
       lines.push(separator);
     }
     
@@ -215,8 +215,8 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
     const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
     if (transportDelivery > 0 || transportPickup > 0) {
       lines.push('🚚 Ongkos Transport:');
-      lines.push(`    Pengiriman    : ${formatRupiah(transportDelivery)}`);
-      lines.push(`    Pengambilan : ${formatRupiah(transportPickup)}`);
+      lines.push(`   Pengiriman  : ${formatRupiah(transportDelivery)}`);
+      lines.push(`   Pengambilan : ${formatRupiah(transportPickup)}`);
       lines.push('');
     }
     
@@ -263,7 +263,7 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   lines.push('*Item Sewa:*');
   lineItems.forEach((item) => {
     const unitLabel = item.unit_mode === 'set' ? 'Set' : 'Pcs';
-    lines.push(`- ${item.quantity} ${unitLabel} ${item.item_name}`);
+    lines.push(`  - ${item.quantity} ${unitLabel} ${item.item_name}`);
   });
   lines.push(separator);
   
@@ -284,9 +284,9 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
     // Periode Sewa
     if (startDate && endDate) {
       lines.push('📅 *Periode Sewa:*');
-      lines.push(`    Mulai     : ${formatDateIndo(startDate)}`);
-      lines.push(`    Selesai : ${formatDateIndo(endDate)}`);
-      lines.push(`    Durasi   : ${calc.durationDays} Hari`);
+      lines.push(`   Mulai   : ${formatDateIndo(startDate)}`);
+      lines.push(`   Selesai : ${formatDateIndo(endDate)}`);
+      lines.push(`   Durasi  : ${calc.durationDays} Hari`);
       lines.push('');
       lines.push(`Total : *${formatRupiah(calc.dailyTotal)}* x ${calc.durationDays} hari = *${formatRupiah(calc.rentalSubtotal)}*`);
     }
@@ -296,8 +296,8 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
     const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
     if (transportDelivery > 0 || transportPickup > 0) {
       lines.push('🚚 *Ongkos Transport:*');
-      lines.push(`    Pengiriman    : ${formatRupiah(transportDelivery)}`);
-      lines.push(`    Pengambilan : ${formatRupiah(transportPickup)}`);
+      lines.push(`   Pengiriman  : ${formatRupiah(transportDelivery)}`);
+      lines.push(`   Pengambilan : ${formatRupiah(transportPickup)}`);
       lines.push('');
     }
     
@@ -314,9 +314,9 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
     if (startDate && endDate) {
       const durationDays = calculateDurationDays(startDate, endDate);
       lines.push('📅 *Periode Sewa:*');
-      lines.push(`    Mulai     : ${formatDateIndo(startDate)}`);
-      lines.push(`    Selesai : ${formatDateIndo(endDate)}`);
-      lines.push(`    Durasi   : ${durationDays} Hari`);
+      lines.push(`   Mulai   : ${formatDateIndo(startDate)}`);
+      lines.push(`   Selesai : ${formatDateIndo(endDate)}`);
+      lines.push(`   Durasi  : ${durationDays} Hari`);
       lines.push(separator);
     }
     
@@ -324,8 +324,8 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
     const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
     if (transportDelivery > 0 || transportPickup > 0) {
       lines.push('🚚 *Ongkos Transport:*');
-      lines.push(`    Pengiriman    : ${formatRupiah(transportDelivery)}`);
-      lines.push(`    Pengambilan : ${formatRupiah(transportPickup)}`);
+      lines.push(`   Pengiriman  : ${formatRupiah(transportDelivery)}`);
+      lines.push(`   Pengambilan : ${formatRupiah(transportPickup)}`);
       lines.push('');
     }
     
