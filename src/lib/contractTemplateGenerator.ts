@@ -153,7 +153,7 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
   lines.push('Item Sewa:');
   lineItems.forEach((item) => {
     const unitLabel = item.unit_mode === 'set' ? 'Set' : 'Pcs';
-    lines.push(`       - ${item.quantity} ${unitLabel} ${item.item_name}`);
+    lines.push(`   - ${item.quantity} ${unitLabel} ${item.item_name}`);
   });
   lines.push(separator);
   
@@ -263,7 +263,7 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   lines.push('*Item Sewa:*');
   lineItems.forEach((item) => {
     const unitLabel = item.unit_mode === 'set' ? 'Set' : 'Pcs';
-    lines.push(`       - ${item.quantity} ${unitLabel} ${item.item_name}`);
+    lines.push(`   - ${item.quantity} ${unitLabel} ${item.item_name}`);
   });
   lines.push(separator);
   
