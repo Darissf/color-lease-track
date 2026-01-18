@@ -2054,6 +2054,11 @@ export type Database = {
       document_settings: {
         Row: {
           accent_color: string | null
+          auto_invoice_current: number | null
+          auto_invoice_enabled: boolean | null
+          auto_invoice_padding: number | null
+          auto_invoice_prefix: string | null
+          auto_invoice_start: number | null
           bank_account_name: string | null
           bank_account_number: string | null
           bank_info_position_x: number | null
@@ -2276,6 +2281,11 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          auto_invoice_current?: number | null
+          auto_invoice_enabled?: boolean | null
+          auto_invoice_padding?: number | null
+          auto_invoice_prefix?: string | null
+          auto_invoice_start?: number | null
           bank_account_name?: string | null
           bank_account_number?: string | null
           bank_info_position_x?: number | null
@@ -2498,6 +2508,11 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          auto_invoice_current?: number | null
+          auto_invoice_enabled?: boolean | null
+          auto_invoice_padding?: number | null
+          auto_invoice_prefix?: string | null
+          auto_invoice_start?: number | null
           bank_account_name?: string | null
           bank_account_number?: string | null
           bank_info_position_x?: number | null

@@ -96,6 +96,14 @@ const RentalContracts = () => {
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   
+  // Auto Invoice settings
+  const [autoInvoiceSettings, setAutoInvoiceSettings] = useState<{
+    enabled: boolean;
+    prefix: string;
+    current: number;
+    padding: number;
+  } | null>(null);
+  
   // Payment popover states
   const [paymentContractId, setPaymentContractId] = useState<string | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined);
@@ -170,6 +178,24 @@ const RentalContracts = () => {
 
       if (banksError) throw banksError;
       setBankAccounts(banks || []);
+
+      // Fetch auto invoice settings
+      const { data: docSettings, error: docSettingsError } = await supabase
+        .from("document_settings")
+        .select("auto_invoice_enabled, auto_invoice_prefix, auto_invoice_current, auto_invoice_padding")
+        .eq("user_id", user?.id)
+        .maybeSingle();
+
+      if (!docSettingsError && docSettings) {
+        setAutoInvoiceSettings({
+          enabled: docSettings.auto_invoice_enabled ?? false,
+          prefix: docSettings.auto_invoice_prefix ?? "",
+          current: docSettings.auto_invoice_current ?? 0,
+          padding: docSettings.auto_invoice_padding ?? 6,
+        });
+      } else {
+        setAutoInvoiceSettings(null);
+      }
     } catch (error: any) {
       toast.error("Gagal memuat data: " + error.message);
     } finally {
@@ -224,6 +250,16 @@ const RentalContracts = () => {
         return;
       }
 
+      // Determine invoice number
+      let invoiceNumber = contractForm.invoice || null;
+      
+      // Auto-generate invoice for new contracts if auto invoice is enabled
+      if (!editingContractId && autoInvoiceSettings?.enabled) {
+        const nextNumber = autoInvoiceSettings.current + 1;
+        const paddedNumber = String(nextNumber).padStart(autoInvoiceSettings.padding, '0');
+        invoiceNumber = `${autoInvoiceSettings.prefix}${paddedNumber}`;
+      }
+
       // Untuk kontrak baru, tagihan = 0 (akan diisi dari rincian tagihan)
       // Untuk edit, tidak ubah tagihan (hanya bisa diubah via rincian tagihan)
       const baseContractData = {
@@ -232,7 +268,7 @@ const RentalContracts = () => {
         start_date: format(contractForm.start_date, "yyyy-MM-dd"),
         end_date: format(contractForm.end_date, "yyyy-MM-dd"),
         status: contractForm.status,
-        invoice: contractForm.invoice || null,
+        invoice: invoiceNumber,
         keterangan: contractForm.keterangan || null,
         bank_account_id: contractForm.bank_account_id || null,
         google_maps_link: contractForm.google_maps_link || null,
@@ -263,6 +299,21 @@ const RentalContracts = () => {
           });
 
         if (contractError) throw contractError;
+
+        // Update auto invoice counter if used
+        if (autoInvoiceSettings?.enabled) {
+          const newCounter = autoInvoiceSettings.current + 1;
+          await supabase
+            .from("document_settings")
+            .update({ 
+              auto_invoice_current: newCounter,
+              updated_at: new Date().toISOString()
+            })
+            .eq("user_id", user?.id);
+          
+          // Update local state
+          setAutoInvoiceSettings(prev => prev ? { ...prev, current: newCounter } : null);
+        }
 
         const { data: newContract } = await supabase
           .from("rental_contracts")
@@ -679,13 +730,32 @@ const RentalContracts = () => {
               </div>
 
               <div>
-                <Label>Invoice</Label>
-                <Input
-                  type="text"
-                  value={contractForm.invoice}
-                  onChange={(e) => setContractForm({ ...contractForm, invoice: e.target.value })}
-                  placeholder="Contoh: 000178"
-                />
+                <Label className="flex items-center gap-2">
+                  Invoice
+                  {autoInvoiceSettings?.enabled && !editingContractId && (
+                    <Badge variant="secondary" className="text-xs">Auto</Badge>
+                  )}
+                </Label>
+                {autoInvoiceSettings?.enabled && !editingContractId ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      value={`${autoInvoiceSettings.prefix}${String(autoInvoiceSettings.current + 1).padStart(autoInvoiceSettings.padding, '0')}`}
+                      disabled
+                      className="bg-muted font-mono"
+                    />
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Nomor otomatis
+                    </span>
+                  </div>
+                ) : (
+                  <Input
+                    type="text"
+                    value={contractForm.invoice}
+                    onChange={(e) => setContractForm({ ...contractForm, invoice: e.target.value })}
+                    placeholder="Contoh: 000178"
+                  />
+                )}
               </div>
 
 
