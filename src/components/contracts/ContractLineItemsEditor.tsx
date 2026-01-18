@@ -64,6 +64,7 @@ export function ContractLineItemsEditor({
   // Pengaturan Cepat
   const [defaultPricePerDay, setDefaultPricePerDay] = useState<number | ''>('');
   const [defaultDurationDays, setDefaultDurationDays] = useState<number | ''>('');
+  const [priceMode, setPriceMode] = useState<'pcs' | 'set'>('set');
   
   // Mode Penagihan
   const [billingMode, setBillingMode] = useState<'edit' | 'new'>('edit');
@@ -222,6 +223,8 @@ export function ContractLineItemsEditor({
     discount,
     startDate,
     endDate,
+    priceMode,
+    pricePerUnit: defaultPricePerDay !== '' ? defaultPricePerDay : undefined,
   });
 
   const handleSave = async () => {
@@ -248,7 +251,7 @@ export function ContractLineItemsEditor({
         .delete()
         .eq('contract_id', contractId);
 
-      // Insert new line items
+      // Insert new line items with unit_mode and pcs_per_set
       const lineItemsToInsert = lineItems.map((item, index) => ({
         user_id: user.id,
         contract_id: contractId,
@@ -257,6 +260,8 @@ export function ContractLineItemsEditor({
         unit_price_per_day: item.unit_price_per_day,
         duration_days: item.duration_days,
         sort_order: index,
+        unit_mode: item.unit_mode || 'pcs',
+        pcs_per_set: item.pcs_per_set || 1,
       }));
 
       const { error: insertError } = await supabase
@@ -461,18 +466,35 @@ export function ContractLineItemsEditor({
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label className="text-sm flex items-center gap-1">
                 💰 Harga per Hari (Rp)
               </Label>
-              <Input
-                type="number"
-                value={defaultPricePerDay}
-                onChange={(e) => setDefaultPricePerDay(e.target.value ? Number(e.target.value) : '')}
-                placeholder="Kosongkan jika manual per item"
-                min={0}
-              />
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  value={defaultPricePerDay}
+                  onChange={(e) => setDefaultPricePerDay(e.target.value ? Number(e.target.value) : '')}
+                  placeholder="Harga per unit"
+                  min={0}
+                  className="flex-1"
+                />
+                <Select value={priceMode} onValueChange={(v: 'pcs' | 'set') => setPriceMode(v)}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="set">Per Set</SelectItem>
+                    <SelectItem value="pcs">Per Pcs</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {priceMode === 'set' 
+                  ? 'Harga dihitung per set. Item pcs akan dikonversi ke set.'
+                  : 'Harga dihitung per pcs. Item set akan dikonversi ke pcs.'}
+              </p>
             </div>
             <div className="space-y-2">
               <Label className="text-sm flex items-center gap-1">
@@ -482,20 +504,21 @@ export function ContractLineItemsEditor({
                 type="number"
                 value={defaultDurationDays}
                 onChange={(e) => setDefaultDurationDays(e.target.value ? Number(e.target.value) : '')}
-                placeholder="Kosongkan jika manual per item"
+                placeholder="Kosongkan jika manual"
                 min={1}
               />
             </div>
+            <div className="flex items-end">
+              <Button 
+                variant="secondary" 
+                onClick={applyDefaultsToAll}
+                disabled={lineItems.length === 0 || (defaultPricePerDay === '' && defaultDurationDays === '')}
+                className="w-full"
+              >
+                🔄 Terapkan ({lineItems.length})
+              </Button>
+            </div>
           </div>
-          
-          <Button 
-            variant="secondary" 
-            onClick={applyDefaultsToAll}
-            disabled={lineItems.length === 0 || (defaultPricePerDay === '' && defaultDurationDays === '')}
-            className="w-full"
-          >
-            🔄 Terapkan ke Semua Item ({lineItems.length})
-          </Button>
         </CardContent>
       </Card>
 

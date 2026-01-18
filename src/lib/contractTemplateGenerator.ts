@@ -9,6 +9,8 @@ export interface LineItem {
   unit_price_per_day: number;
   duration_days: number;
   subtotal?: number;
+  unit_mode?: 'pcs' | 'set';
+  pcs_per_set?: number;
 }
 
 export interface TemplateData {
@@ -19,6 +21,9 @@ export interface TemplateData {
   discount?: number;
   startDate?: string;
   endDate?: string;
+  // New fields for unified pricing mode
+  priceMode?: 'pcs' | 'set';
+  pricePerUnit?: number;
 }
 
 // Helper function to convert string to title case
@@ -52,11 +57,25 @@ function calculateDurationDays(startDate: string, endDate: string): number {
   }
 }
 
-// Helper: check if all items have zero pricing (price = 0 AND duration = 0)
-function isZeroPricingMode(lineItems: LineItem[]): boolean {
-  return lineItems.every(item => 
-    item.unit_price_per_day === 0 && item.duration_days === 0
-  );
+// Calculate total sets for all items (converting pcs to sets if needed)
+function calculateTotalSets(lineItems: LineItem[], priceMode: 'pcs' | 'set'): number {
+  return lineItems.reduce((sum, item) => {
+    if (priceMode === 'set') {
+      // Convert pcs to sets if item is in pcs mode
+      const pcsPerSet = item.pcs_per_set || 1;
+      if (item.unit_mode === 'pcs') {
+        return sum + (item.quantity / pcsPerSet);
+      }
+      return sum + item.quantity;
+    } else {
+      // Price per pcs - convert sets to pcs
+      if (item.unit_mode === 'set') {
+        const pcsPerSet = item.pcs_per_set || 1;
+        return sum + (item.quantity * pcsPerSet);
+      }
+      return sum + item.quantity;
+    }
+  }, 0);
 }
 
 export function calculateLineItemSubtotal(item: LineItem): number {
@@ -80,42 +99,112 @@ export function calculateGrandTotal(data: TemplateData): number {
   return subtotal - (data.discount || 0);
 }
 
-// Normal template (default) - clean format for display
+// New unified calculation based on price mode
+function calculateUnifiedTotal(data: TemplateData): {
+  totalUnits: number;
+  pricePerDay: number;
+  dailyTotal: number;
+  durationDays: number;
+  rentalSubtotal: number;
+} {
+  const priceMode = data.priceMode || 'pcs';
+  const pricePerUnit = data.pricePerUnit || 0;
+  const totalUnits = calculateTotalSets(data.lineItems, priceMode);
+  const dailyTotal = totalUnits * pricePerUnit;
+  
+  // Get duration from dates or from first item
+  let durationDays = 0;
+  if (data.startDate && data.endDate) {
+    durationDays = calculateDurationDays(data.startDate, data.endDate);
+  } else if (data.lineItems.length > 0) {
+    durationDays = data.lineItems[0].duration_days;
+  }
+  
+  const rentalSubtotal = dailyTotal * durationDays;
+  
+  return {
+    totalUnits,
+    pricePerDay: pricePerUnit,
+    dailyTotal,
+    durationDays,
+    rentalSubtotal,
+  };
+}
+
+// New unified template format - Normal mode
 export function generateRincianTemplateNormal(data: TemplateData): string {
-  const { lineItems, transportDelivery, transportPickup, contractTitle, discount, startDate, endDate } = data;
+  const { lineItems, transportDelivery, transportPickup, contractTitle, discount, startDate, endDate, priceMode, pricePerUnit } = data;
   
   if (lineItems.length === 0) {
     return '';
   }
 
   const lines: string[] = [];
+  const separator = '──────────────────────';
   
   // Header with optional title
   const headerTitle = contractTitle 
     ? `📦 Rincian Sewa Scaffolding ${toTitleCase(contractTitle)}`
     : '📦 Rincian Sewa Scaffolding';
   lines.push(headerTitle);
+  lines.push(separator);
   lines.push('');
   
-  // Items
-  const zeroPricing = isZeroPricingMode(lineItems);
+  // Items - new format with qty + unit
   lines.push('🔧 Item Sewa:');
-  lineItems.forEach((item, index) => {
-    if (zeroPricing) {
-      // Simplified format: only name × qty pcs
-      lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
-    } else {
-      // Full format: name + price/duration details
-      const subtotal = calculateLineItemSubtotal(item);
-      lines.push(`${index + 1}. ${item.item_name} × ${item.quantity} pcs`);
-      lines.push(`   ${formatRupiah(item.unit_price_per_day)}/hari × ${item.duration_days} hari = ${formatRupiah(subtotal)}`);
-    }
+  lineItems.forEach((item) => {
+    const unitLabel = item.unit_mode === 'set' ? 'Set' : 'Pcs';
+    lines.push(`   • ${item.quantity} ${unitLabel} ${item.item_name}`);
   });
+  lines.push(separator);
   lines.push('');
   
-  // Subtotal Items
-  const totalItems = calculateTotalItems(lineItems);
-  lines.push(`Subtotal Sewa: ${formatRupiah(totalItems)}`);
+  // Unified pricing calculation (only if pricePerUnit is set)
+  if (pricePerUnit && pricePerUnit > 0) {
+    const calc = calculateUnifiedTotal(data);
+    const unitLabel = priceMode === 'set' ? 'set' : 'pcs';
+    
+    lines.push('💰 Perhitungan:');
+    lines.push(`   Per ${unitLabel} per hari = ${formatRupiah(calc.pricePerDay)}`);
+    
+    // Format total units - show decimal if needed
+    const totalUnitsDisplay = Number.isInteger(calc.totalUnits) 
+      ? calc.totalUnits.toString() 
+      : calc.totalUnits.toFixed(1);
+    
+    lines.push(`   Total: ${totalUnitsDisplay} ${unitLabel} × ${formatRupiah(calc.pricePerDay)} = ${formatRupiah(calc.dailyTotal)}`);
+    lines.push('');
+    
+    // Periode Sewa
+    if (startDate && endDate) {
+      lines.push('📅 Periode Sewa:');
+      lines.push(`   Mulai: ${formatDateIndo(startDate)}`);
+      lines.push(`   Selesai: ${formatDateIndo(endDate)}`);
+      lines.push(`   Durasi: ${calc.durationDays} Hari`);
+      lines.push('');
+      lines.push(`   Total: ${formatRupiah(calc.dailyTotal)} × ${calc.durationDays} hari = ${formatRupiah(calc.rentalSubtotal)}`);
+    }
+    lines.push(separator);
+    lines.push('');
+    
+    lines.push(`📊 Subtotal Sewa: ${formatRupiah(calc.rentalSubtotal)}`);
+  } else {
+    // Legacy calculation - per item
+    const totalItems = calculateTotalItems(lineItems);
+    
+    // Periode Sewa
+    if (startDate && endDate) {
+      const durationDays = calculateDurationDays(startDate, endDate);
+      lines.push('📅 Periode Sewa:');
+      lines.push(`   Mulai: ${formatDateIndo(startDate)}`);
+      lines.push(`   Selesai: ${formatDateIndo(endDate)}`);
+      lines.push(`   Durasi: ${durationDays} Hari`);
+      lines.push(separator);
+      lines.push('');
+    }
+    
+    lines.push(`📊 Subtotal Sewa: ${formatRupiah(totalItems)}`);
+  }
   lines.push('');
   
   // Transport
@@ -132,69 +221,96 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
     lines.push('');
   }
   
-  // Periode Sewa
-  if (startDate && endDate) {
-    const durationDays = calculateDurationDays(startDate, endDate);
-    lines.push('📅 Periode Sewa:');
-    lines.push(`   Mulai: ${formatDateIndo(startDate)}`);
-    lines.push(`   Selesai: ${formatDateIndo(endDate)}`);
-    lines.push(`   Durasi: ${durationDays} Hari`);
-    lines.push('');
-  }
-  
   // Discount (only if filled)
   if (discount && discount > 0) {
     lines.push(`🏷️ Diskon: -${formatRupiah(discount)}`);
+    lines.push(separator);
     lines.push('');
   }
   
   // Grand Total
   const grandTotal = calculateGrandTotal(data);
   lines.push(`💵 TOTAL TAGIHAN: ${formatRupiah(grandTotal)}`);
+  lines.push(separator);
   lines.push('');
   lines.push('🙏 Terima kasih!');
   
   return lines.join('\n');
 }
 
-// WhatsApp template - clean format with WhatsApp formatting (no box lines)
+// WhatsApp template - with WhatsApp formatting
 export function generateRincianTemplateWhatsApp(data: TemplateData): string {
-  const { lineItems, transportDelivery, transportPickup, contractTitle, discount, startDate, endDate } = data;
+  const { lineItems, transportDelivery, transportPickup, contractTitle, discount, startDate, endDate, priceMode, pricePerUnit } = data;
   
   if (lineItems.length === 0) {
     return '';
   }
 
   const lines: string[] = [];
+  const separator = '──────────────────────';
   
   // Header with optional title
   const headerTitle = contractTitle 
     ? `📦 *Rincian Sewa Scaffolding ${toTitleCase(contractTitle)}*`
     : '📦 *Rincian Sewa Scaffolding*';
   lines.push(headerTitle);
+  lines.push(separator);
   lines.push('');
   
-  // Items - tanpa garis box, format mobile-friendly
-  const zeroPricing = isZeroPricingMode(lineItems);
+  // Items - new format with qty + unit
   lines.push('🔧 *Item Sewa:*');
-  lineItems.forEach((item, index) => {
-    if (zeroPricing) {
-      // Simplified format: name on first line, qty on second
-      lines.push(`${index + 1}. ${item.item_name}`);
-      lines.push(`   × ${item.quantity} pcs`);
-    } else {
-      // Full format: split into 3 lines for mobile readability
-      const subtotal = calculateLineItemSubtotal(item);
-      lines.push(`${index + 1}. ${item.item_name}`);
-      lines.push(`   ${item.quantity} pcs × ${formatRupiah(item.unit_price_per_day)} × ${item.duration_days} hari`);
-      lines.push(`   = *${formatRupiah(subtotal)}*`);
-    }
+  lineItems.forEach((item) => {
+    const unitLabel = item.unit_mode === 'set' ? 'Set' : 'Pcs';
+    lines.push(`   • ${item.quantity} ${unitLabel} ${item.item_name}`);
   });
+  lines.push(separator);
   lines.push('');
   
-  // Subtotal Items
-  const totalItems = calculateTotalItems(lineItems);
-  lines.push(`📊 *Subtotal Sewa:* ${formatRupiah(totalItems)}`);
+  // Unified pricing calculation (only if pricePerUnit is set)
+  if (pricePerUnit && pricePerUnit > 0) {
+    const calc = calculateUnifiedTotal(data);
+    const unitLabel = priceMode === 'set' ? 'set' : 'pcs';
+    
+    lines.push('💰 *Perhitungan:*');
+    lines.push(`   Per ${unitLabel} per hari = ${formatRupiah(calc.pricePerDay)}`);
+    
+    const totalUnitsDisplay = Number.isInteger(calc.totalUnits) 
+      ? calc.totalUnits.toString() 
+      : calc.totalUnits.toFixed(1);
+    
+    lines.push(`   Total: ${totalUnitsDisplay} ${unitLabel} × ${formatRupiah(calc.pricePerDay)} = *${formatRupiah(calc.dailyTotal)}*`);
+    lines.push('');
+    
+    // Periode Sewa
+    if (startDate && endDate) {
+      lines.push('📅 *Periode Sewa:*');
+      lines.push(`   • Mulai: ${formatDateIndo(startDate)}`);
+      lines.push(`   • Selesai: ${formatDateIndo(endDate)}`);
+      lines.push(`   • Durasi: ${calc.durationDays} Hari`);
+      lines.push('');
+      lines.push(`   Total: ${formatRupiah(calc.dailyTotal)} × ${calc.durationDays} hari = *${formatRupiah(calc.rentalSubtotal)}*`);
+    }
+    lines.push(separator);
+    lines.push('');
+    
+    lines.push(`📊 *Subtotal Sewa:* ${formatRupiah(calc.rentalSubtotal)}`);
+  } else {
+    // Legacy calculation - per item
+    const totalItems = calculateTotalItems(lineItems);
+    
+    // Periode Sewa
+    if (startDate && endDate) {
+      const durationDays = calculateDurationDays(startDate, endDate);
+      lines.push('📅 *Periode Sewa:*');
+      lines.push(`   • Mulai: ${formatDateIndo(startDate)}`);
+      lines.push(`   • Selesai: ${formatDateIndo(endDate)}`);
+      lines.push(`   • Durasi: ${durationDays} Hari`);
+      lines.push(separator);
+      lines.push('');
+    }
+    
+    lines.push(`📊 *Subtotal Sewa:* ${formatRupiah(totalItems)}`);
+  }
   lines.push('');
   
   // Transport
@@ -211,25 +327,17 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
     lines.push('');
   }
   
-  // Periode Sewa
-  if (startDate && endDate) {
-    const durationDays = calculateDurationDays(startDate, endDate);
-    lines.push('📅 *Periode Sewa:*');
-    lines.push(`   • Mulai: ${formatDateIndo(startDate)}`);
-    lines.push(`   • Selesai: ${formatDateIndo(endDate)}`);
-    lines.push(`   • Durasi: ${durationDays} Hari`);
-    lines.push('');
-  }
-  
   // Discount (only if filled)
   if (discount && discount > 0) {
     lines.push(`🏷️ *Diskon:* -${formatRupiah(discount)}`);
+    lines.push(separator);
     lines.push('');
   }
   
-  // Grand Total - tanpa garis
+  // Grand Total
   const grandTotal = calculateGrandTotal(data);
   lines.push(`💵 *TOTAL TAGIHAN:* ${formatRupiah(grandTotal)}`);
+  lines.push(separator);
   lines.push('');
   lines.push('🙏 Terima kasih atas kepercayaan Anda!');
   

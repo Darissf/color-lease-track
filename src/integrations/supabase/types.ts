@@ -1528,9 +1528,11 @@ export type Database = {
           id: string
           inventory_item_id: string | null
           item_name: string
+          pcs_per_set: number | null
           quantity: number
           sort_order: number | null
           subtotal: number | null
+          unit_mode: string | null
           unit_price_per_day: number
           updated_at: string | null
           user_id: string
@@ -1542,9 +1544,11 @@ export type Database = {
           id?: string
           inventory_item_id?: string | null
           item_name: string
+          pcs_per_set?: number | null
           quantity?: number
           sort_order?: number | null
           subtotal?: number | null
+          unit_mode?: string | null
           unit_price_per_day?: number
           updated_at?: string | null
           user_id: string
@@ -1556,9 +1560,11 @@ export type Database = {
           id?: string
           inventory_item_id?: string | null
           item_name?: string
+          pcs_per_set?: number | null
           quantity?: number
           sort_order?: number | null
           subtotal?: number | null
+          unit_mode?: string | null
           unit_price_per_day?: number
           updated_at?: string | null
           user_id?: string
