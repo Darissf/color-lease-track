@@ -358,8 +358,8 @@ const getStatusColor = (status: string) => {
               </div>
             )}
             <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5 sm:gap-2">
-              <span className="text-muted-foreground">Jumlah Unit</span>
-              <span className="font-medium">{contract.jumlah_unit} unit</span>
+              <span className="text-muted-foreground">Jumlah Set</span>
+              <span className="font-medium">{contract.jumlah_unit || 0} Set</span>
             </div>
             <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5 sm:gap-2">
               <span className="text-muted-foreground">Periode Sewa</span>

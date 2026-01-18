@@ -125,7 +125,7 @@ export function WhatsAppMessageGenerator({
     { key: 'periode', value: `${formatDate(contract.start_date)} - ${formatDate(contract.end_date)}`, label: 'Periode' },
     { key: 'lokasi', value: contract.lokasi_proyek || '-', label: 'Lokasi' },
     { key: 'jenis', value: contract.jenis_scaffolding || 'Scaffolding', label: 'Jenis' },
-    { key: 'jumlah_unit', value: String(contract.jumlah_unit || 0), label: 'Jumlah Unit' },
+    { key: 'jumlah_set', value: String(contract.jumlah_unit || 0), label: 'Jumlah Set' },
   ];
 
   const insertVariable = (value: string) => {
