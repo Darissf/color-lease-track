@@ -34,6 +34,7 @@ import { SITE_NAME } from '@/lib/seo';
 import { renderIcon } from '@/lib/renderIcon';
 import { PublicPaymentRequest } from '@/components/payment/PublicPaymentRequest';
 import { PublicDocumentPreviewModal } from '@/components/documents/PublicDocumentPreviewModal';
+import { RincianTagihanCard } from '@/components/contracts/RincianTagihanCard';
 
 export default function PublicContractPage() {
   const { accessCode } = useParams<{ accessCode: string }>();
@@ -450,39 +451,12 @@ const getStatusColor = (status: string) => {
 
         {/* Rincian Tagihan */}
         {contract.rincian_template && (
-          <Card>
-            <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Rincian Tagihan
-                </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(contract.rincian_template || '', 'template')}
-                  className="h-8 gap-1.5"
-                >
-                  {copiedField === 'template' ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-green-500" />
-                      <span className="text-xs">Tersalin</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span className="text-xs">Salin</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-6">
-              <pre className="whitespace-pre-wrap font-mono text-xs sm:text-sm p-3 sm:p-4 bg-muted/50 rounded-lg overflow-x-auto leading-relaxed">
-                {contract.rincian_template}
-              </pre>
-            </CardContent>
-          </Card>
+          <RincianTagihanCard 
+            template={contract.rincian_template}
+            invoiceNumber={contract.invoice}
+            copiedField={copiedField}
+            onCopy={(text) => copyToClipboard(text, 'template')}
+          />
         )}
         {contract.payments && contract.payments.length > 0 && (
           <Card>
