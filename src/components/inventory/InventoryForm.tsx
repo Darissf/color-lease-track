@@ -17,6 +17,7 @@ interface InventoryFormData {
   total_quantity: number;
   minimum_stock: number;
   unit_type: string;
+  pcs_per_set: number;
   description: string;
 }
 
@@ -36,11 +37,8 @@ const CATEGORIES = [
 ];
 
 const UNIT_TYPES = [
-  "unit",
-  "set",
   "pcs",
-  "meter",
-  "kg",
+  "set",
 ];
 
 export function InventoryForm({ open, onOpenChange, onSuccess, editData }: InventoryFormProps) {
@@ -52,13 +50,15 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
       category: "Scaffolding",
       total_quantity: 0,
       minimum_stock: 0,
-      unit_type: "unit",
+      unit_type: "pcs",
+      pcs_per_set: 1,
       description: "",
     },
   });
 
   const selectedCategory = watch("category");
   const selectedUnitType = watch("unit_type");
+  const pcsPerSet = watch("pcs_per_set");
 
   // Sync form values with editData when dialog opens or editData changes
   useEffect(() => {
@@ -69,7 +69,8 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
         category: editData.category || "Scaffolding",
         total_quantity: editData.total_quantity || 0,
         minimum_stock: editData.minimum_stock || 0,
-        unit_type: editData.unit_type || "unit",
+        unit_type: editData.unit_type || "pcs",
+        pcs_per_set: editData.pcs_per_set || 1,
         description: editData.description || "",
       });
     } else if (open && !editData) {
@@ -79,7 +80,8 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
         category: "Scaffolding",
         total_quantity: 0,
         minimum_stock: 0,
-        unit_type: "unit",
+        unit_type: "pcs",
+        pcs_per_set: 1,
         description: "",
       });
     }
@@ -176,7 +178,7 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
             </div>
 
             <div>
-              <Label htmlFor="unit_type">Satuan *</Label>
+              <Label htmlFor="unit_type">Satuan Basis *</Label>
               <Select
                 value={selectedUnitType}
                 onValueChange={(value) => setValue("unit_type", value)}
@@ -192,6 +194,41 @@ export function InventoryForm({ open, onOpenChange, onSuccess, editData }: Inven
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Satuan dasar untuk stok gudang
+              </p>
+            </div>
+          </div>
+
+          {/* PCS per Set field */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="pcs_per_set">PCS per Set</Label>
+              <Input
+                id="pcs_per_set"
+                type="number"
+                {...register("pcs_per_set", { 
+                  valueAsNumber: true,
+                  min: { value: 1, message: "Minimal 1" }
+                })}
+                placeholder="1"
+                min={1}
+              />
+              {errors.pcs_per_set && (
+                <p className="text-sm text-destructive mt-1">{errors.pcs_per_set.message}</p>
+              )}
+            </div>
+            <div className="flex items-end">
+              {pcsPerSet > 1 && (
+                <div className="p-3 bg-muted rounded-lg w-full">
+                  <p className="text-sm font-medium text-primary">
+                    {pcsPerSet} pcs = 1 set
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Konversi untuk rincian kontrak
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

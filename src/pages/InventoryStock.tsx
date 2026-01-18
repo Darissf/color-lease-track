@@ -50,6 +50,7 @@ interface InventoryItem {
   minimum_stock: number;
   unit_price: number;
   unit_type: string;
+  pcs_per_set: number;
   description: string;
   is_active: boolean;
   rented_quantity?: number;
@@ -314,19 +315,20 @@ export default function InventoryStock() {
                   <TableHead className="text-xs sm:text-sm">Nama</TableHead>
                   <TableHead className="text-right text-xs sm:text-sm">Tersedia</TableHead>
                   <TableHead className="text-right text-xs sm:text-sm hidden md:table-cell">Total</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm hidden lg:table-cell">Konversi</TableHead>
                   <TableHead className="text-right text-xs sm:text-sm w-20 sm:w-auto">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       Memuat data...
                     </TableCell>
                   </TableRow>
                 ) : currentItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <Package className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">
                         {searchQuery || categoryFilter !== "all"
@@ -340,6 +342,7 @@ export default function InventoryStock() {
                     const available = getAvailableQuantity(item);
                     const lowStock = isLowStock(item);
                     const rowNumber = (currentPage - 1) * itemsPerPage + index + 1;
+                    const pcsPerSet = item.pcs_per_set || 1;
 
                     return (
                       <TableRow key={item.id}>
@@ -362,11 +365,30 @@ export default function InventoryStock() {
                         </TableCell>
                         <TableCell className="text-right">
                           <span className={`text-xs sm:text-sm ${lowStock ? "text-destructive font-semibold" : ""}`}>
-                            {available} {item.unit_type}
+                            {available} pcs
                           </span>
+                          {pcsPerSet > 1 && (
+                            <div className="text-xs text-muted-foreground">
+                              ({Math.floor(available / pcsPerSet)} set)
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-medium text-xs sm:text-sm hidden md:table-cell">
-                          {item.total_quantity} {item.unit_type}
+                          {item.total_quantity} pcs
+                          {pcsPerSet > 1 && (
+                            <div className="text-xs text-muted-foreground font-normal">
+                              ({Math.floor(item.total_quantity / pcsPerSet)} set)
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center hidden lg:table-cell">
+                          {pcsPerSet > 1 ? (
+                            <Badge variant="secondary" className="text-xs">
+                              {pcsPerSet} pcs/set
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-0.5 sm:gap-1">
