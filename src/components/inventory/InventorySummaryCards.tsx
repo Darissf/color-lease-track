@@ -31,7 +31,7 @@ export function InventorySummaryCards({
         <CardContent>
           <div className="text-2xl font-bold text-foreground">{totalItems}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            {totalQuantity} unit total
+            Jenis
           </p>
         </CardContent>
       </Card>
@@ -44,7 +44,7 @@ export function InventorySummaryCards({
           <CheckCircle className="h-4 w-4 text-green-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-foreground">{availableQuantity}</div>
+          <div className="text-2xl font-bold text-foreground">{availableQuantity.toLocaleString("id-ID")} pcs</div>
           <p className="text-xs text-muted-foreground mt-1">
             Siap disewakan
           </p>
@@ -59,7 +59,7 @@ export function InventorySummaryCards({
           <TrendingUp className="h-4 w-4 text-blue-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-foreground">{rentedQuantity}</div>
+          <div className="text-2xl font-bold text-foreground">{rentedQuantity.toLocaleString("id-ID")} pcs</div>
           <p className="text-xs text-muted-foreground mt-1">
             Di lokasi proyek
           </p>
@@ -74,7 +74,7 @@ export function InventorySummaryCards({
           <AlertCircle className="h-4 w-4 text-destructive" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-foreground">{lowStockCount}</div>
+          <div className="text-2xl font-bold text-foreground">{lowStockCount.toLocaleString("id-ID")} pcs</div>
           <p className="text-xs text-muted-foreground mt-1">
             Perlu penambahan
           </p>
