@@ -153,19 +153,24 @@ function calculateUnifiedTotal(data: TemplateData): {
   const priceMode = data.priceMode || 'pcs';
   const pricePerUnit = data.pricePerUnit || 0;
   
-  // Get duration from dates or from first item
+  // CRITICAL: Only consider groups that have valid item_indices (filter orphan groups)
+  const validGroups = groups.filter(g => g.item_indices && g.item_indices.length > 0);
+  
+  // Get duration - PRIORITY: 1. group billing_duration_days, 2. first item, 3. dates
   let durationDays = 0;
-  if (data.startDate && data.endDate) {
-    durationDays = calculateDurationDays(data.startDate, data.endDate);
-  } else if (data.lineItems.length > 0) {
+  if (validGroups.length > 0 && validGroups[0].billing_duration_days > 0) {
+    // Priority 1: Use billing_duration_days from first valid group
+    durationDays = validGroups[0].billing_duration_days;
+  } else if (data.lineItems.length > 0 && data.lineItems[0].duration_days > 0) {
+    // Priority 2: Use duration_days from first line item
     durationDays = data.lineItems[0].duration_days;
+  } else if (data.startDate && data.endDate) {
+    // Priority 3: Calculate from dates (fallback only)
+    durationDays = calculateDurationDays(data.startDate, data.endDate);
   }
   
-  // If there are groups, calculate based on groups + non-grouped items
-  if (groups.length > 0) {
-    // CRITICAL: Only consider groups that have valid item_indices (filter orphan groups)
-    const validGroups = groups.filter(g => g.item_indices && g.item_indices.length > 0);
-    
+  // If there are valid groups, calculate based on groups + non-grouped items
+  if (validGroups.length > 0) {
     // Collect all indices that are in valid groups
     const indicesInGroups = new Set<number>();
     validGroups.forEach(group => {
@@ -194,7 +199,21 @@ function calculateUnifiedTotal(data: TemplateData): {
     });
     
     const rentalSubtotal = groupedSubtotal + nonGroupedSubtotal;
-    const dailyTotal = durationDays > 0 ? rentalSubtotal / durationDays : 0;
+    
+    // FIXED: dailyTotal = direct multiplication (group billing_qty × price) + (non-grouped qty × price)
+    // NOT division from rentalSubtotal! This ensures "8 set x 4000 = 32.000" is correct
+    const groupDailyTotal = validGroups.reduce((sum, group) => {
+      return sum + (group.billing_quantity * group.billing_unit_price_per_day);
+    }, 0);
+    
+    let nonGroupDailyTotal = 0;
+    data.lineItems.forEach((item, idx) => {
+      if (!indicesInGroups.has(idx)) {
+        nonGroupDailyTotal += item.quantity * item.unit_price_per_day;
+      }
+    });
+    
+    const dailyTotal = groupDailyTotal + nonGroupDailyTotal;
     
     return {
       totalUnits,
