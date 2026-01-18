@@ -92,6 +92,8 @@ export function ContractLineItemsEditor({
         quantity: item.quantity,
         unit_price_per_day: Number(item.unit_price_per_day),
         duration_days: item.duration_days,
+        unit_mode: (item.unit_mode as 'pcs' | 'set') || 'pcs',
+        pcs_per_set: item.pcs_per_set || 1,
       })));
     }
     
