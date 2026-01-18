@@ -1360,6 +1360,9 @@ export default function ContractDetail() {
                 isWhatsAppMode={contract.whatsapp_template_mode || false}
                 onToggleMode={handleToggleWhatsAppMode}
                 isTogglingMode={isTogglingWhatsAppMode}
+                contractId={contract.id}
+                isSuperAdmin={isSuperAdmin}
+                onTemplateUpdated={fetchContractDetail}
               />
               {(isSuperAdmin || isAdmin) && (
                 <div className="flex justify-end">
