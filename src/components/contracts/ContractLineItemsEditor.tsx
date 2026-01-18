@@ -97,10 +97,10 @@ export function ContractLineItemsEditor({
       })));
     }
     
-    // Fetch transport costs, discount, dates and whatsapp mode from contract
+    // Fetch transport costs, discount, dates, whatsapp mode and quick settings from contract
     const { data: contractData } = await supabase
       .from('rental_contracts')
-      .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan, whatsapp_template_mode, start_date, end_date')
+      .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan, whatsapp_template_mode, start_date, end_date, default_price_per_day, default_duration_days, default_price_mode')
       .eq('id', contractId)
       .single();
     
@@ -112,6 +112,17 @@ export function ContractLineItemsEditor({
       setWhatsappMode(contractData.whatsapp_template_mode || false);
       setStartDate(contractData.start_date || '');
       setEndDate(contractData.end_date || '');
+      
+      // Load quick settings (Pengaturan Cepat)
+      if (contractData.default_price_per_day !== null) {
+        setDefaultPricePerDay(Number(contractData.default_price_per_day));
+      }
+      if (contractData.default_duration_days !== null) {
+        setDefaultDurationDays(contractData.default_duration_days);
+      }
+      if (contractData.default_price_mode) {
+        setPriceMode(contractData.default_price_mode as 'pcs' | 'set');
+      }
     }
     
     setLoading(false);
@@ -291,7 +302,7 @@ export function ContractLineItemsEditor({
       }
       // Mode Tagihan Baru: tagihanBelumBayar = grandTotal (reset)
 
-      // Update contract with transport costs, discount and template
+      // Update contract with transport costs, discount, template and quick settings
       const { error: updateError } = await supabase
         .from('rental_contracts')
         .update({
@@ -301,6 +312,9 @@ export function ContractLineItemsEditor({
           rincian_template: template,
           tagihan: grandTotal,
           tagihan_belum_bayar: tagihanBelumBayar,
+          default_price_per_day: defaultPricePerDay !== '' ? defaultPricePerDay : null,
+          default_duration_days: defaultDurationDays !== '' ? defaultDurationDays : null,
+          default_price_mode: priceMode,
         })
         .eq('id', contractId);
 

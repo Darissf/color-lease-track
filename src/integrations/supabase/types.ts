@@ -5085,6 +5085,9 @@ export type Database = {
           bukti_pembayaran_files: Json | null
           client_group_id: string
           created_at: string
+          default_duration_days: number | null
+          default_price_mode: string | null
+          default_price_per_day: number | null
           discount: number | null
           end_date: string
           google_maps_link: string | null
@@ -5127,6 +5130,9 @@ export type Database = {
           bukti_pembayaran_files?: Json | null
           client_group_id: string
           created_at?: string
+          default_duration_days?: number | null
+          default_price_mode?: string | null
+          default_price_per_day?: number | null
           discount?: number | null
           end_date: string
           google_maps_link?: string | null
@@ -5169,6 +5175,9 @@ export type Database = {
           bukti_pembayaran_files?: Json | null
           client_group_id?: string
           created_at?: string
+          default_duration_days?: number | null
+          default_price_mode?: string | null
+          default_price_per_day?: number | null
           discount?: number | null
           end_date?: string
           google_maps_link?: string | null
