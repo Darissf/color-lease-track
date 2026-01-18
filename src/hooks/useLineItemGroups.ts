@@ -46,23 +46,40 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
       return;
     }
 
-    // Also fetch which items belong to which group
+    // Also fetch all line items with their sort_order and group_id
     const { data: lineItems } = await supabase
       .from('contract_line_items')
-      .select('id, group_id')
-      .eq('contract_id', contractId);
+      .select('id, group_id, sort_order')
+      .eq('contract_id', contractId)
+      .order('sort_order');
 
-    const groupsWithItems: LineItemGroup[] = (data || []).map(g => ({
-      id: g.id,
-      contract_id: g.contract_id,
-      group_name: g.group_name || undefined,
-      billing_quantity: g.billing_quantity,
-      billing_unit_price_per_day: Number(g.billing_unit_price_per_day),
-      billing_duration_days: g.billing_duration_days,
-      billing_unit_mode: (g.billing_unit_mode as 'pcs' | 'set') || 'set',
-      sort_order: g.sort_order || 0,
-      item_ids: lineItems?.filter(li => li.group_id === g.id).map(li => li.id) || [],
-    }));
+    // Build a map from group_id to list of local indices (based on sort_order)
+    const groupIdToLocalIndices = new Map<string, number[]>();
+    lineItems?.forEach(li => {
+      if (li.group_id) {
+        const indices = groupIdToLocalIndices.get(li.group_id) || [];
+        // sort_order is the local index
+        indices.push(li.sort_order ?? 0);
+        groupIdToLocalIndices.set(li.group_id, indices);
+      }
+    });
+
+    const groupsWithItems: LineItemGroup[] = (data || []).map(g => {
+      const localIndices = groupIdToLocalIndices.get(g.id) || [];
+      
+      return {
+        id: g.id,
+        contract_id: g.contract_id,
+        group_name: g.group_name || undefined,
+        billing_quantity: g.billing_quantity,
+        billing_unit_price_per_day: Number(g.billing_unit_price_per_day),
+        billing_duration_days: g.billing_duration_days,
+        billing_unit_mode: (g.billing_unit_mode as 'pcs' | 'set') || 'set',
+        sort_order: g.sort_order || 0,
+        // Store as local_X format so saveGroups can parse them correctly
+        item_ids: localIndices.map(idx => `local_${idx}`),
+      };
+    });
 
     setGroups(groupsWithItems);
   }, [contractId]);
@@ -148,12 +165,17 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
     });
   }, []);
 
-  // Save groups to database
-  const saveGroups = useCallback(async (lineItemIds: string[]) => {
-    if (!userId) return { success: false, groupIdMap: new Map<number, string>() };
+  // Save groups to database - returns map of groupIndex -> groupId AND map of localIndex -> groupId
+  const saveGroups = useCallback(async (lineItemIds: string[]): Promise<{ 
+    success: boolean; 
+    groupIdMap: Map<number, string>;
+    indexToGroupIdMap: Map<number, string>;
+  }> => {
+    if (!userId) return { success: false, groupIdMap: new Map<number, string>(), indexToGroupIdMap: new Map<number, string>() };
 
     setLoading(true);
     const groupIdMap = new Map<number, string>();
+    const indexToGroupIdMap = new Map<number, string>();
 
     try {
       // Delete existing groups for this contract
@@ -162,9 +184,20 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
         .delete()
         .eq('contract_id', contractId);
 
-      // Insert new groups
+      // Only insert groups that have items
       for (let i = 0; i < groups.length; i++) {
         const group = groups[i];
+        
+        // Parse item_ids to get local indices
+        const localIndices = group.item_ids
+          .filter(id => id.startsWith('local_'))
+          .map(id => parseInt(id.replace('local_', ''), 10));
+        
+        // Skip empty groups (orphan cleanup)
+        if (localIndices.length === 0 && !group.id) {
+          console.log(`Skipping empty group ${i}`);
+          continue;
+        }
         
         const { data: insertedGroup, error } = await supabase
           .from('contract_line_item_groups')
@@ -184,14 +217,19 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
         if (error) throw error;
         if (insertedGroup) {
           groupIdMap.set(i, insertedGroup.id);
+          
+          // Map each local index to this group ID
+          localIndices.forEach(localIdx => {
+            indexToGroupIdMap.set(localIdx, insertedGroup.id);
+          });
         }
       }
 
-      return { success: true, groupIdMap };
+      return { success: true, groupIdMap, indexToGroupIdMap };
     } catch (error) {
       console.error('Error saving groups:', error);
       toast.error('Gagal menyimpan groups');
-      return { success: false, groupIdMap };
+      return { success: false, groupIdMap, indexToGroupIdMap };
     } finally {
       setLoading(false);
     }
@@ -207,13 +245,21 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
     const group = groups[groupIndex];
     if (!group) return [];
     
+    // Parse local indices from item_ids (format: "local_X")
+    const localIndices = new Set(
+      group.item_ids
+        .filter(id => id.startsWith('local_'))
+        .map(id => parseInt(id.replace('local_', ''), 10))
+    );
+    
     return lineItems
       .map((item, idx) => ({ item, idx }))
-      .filter(({ item }) => {
-        // Check by saved group_id
+      .filter(({ item, idx }) => {
+        // Check by local index tracking
+        if (localIndices.has(idx)) return true;
+        // Also check by saved group_id for existing items
         if (item.group_id && item.group_id === group.id) return true;
-        // Check by local tracking
-        return group.item_ids.includes(`local_${item.local_index}`);
+        return false;
       })
       .map(({ idx }) => idx);
   }, [groups]);
@@ -233,13 +279,14 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
   // Check if item at index is in any group
   const isIndexInGroup = useCallback((lineItems: GroupedLineItem[], index: number): boolean => {
     const item = lineItems[index];
-    if (item.group_id) return true;
+    if (item?.group_id) return true;
     return groups.some(g => g.item_ids.includes(`local_${index}`));
   }, [groups]);
 
   // Get group index for an item
   const getGroupIndexForItem = useCallback((lineItems: GroupedLineItem[], itemIndex: number): number => {
     const item = lineItems[itemIndex];
+    if (!item) return -1;
     
     for (let i = 0; i < groups.length; i++) {
       const group = groups[i];

@@ -347,7 +347,7 @@ export function ContractLineItemsEditor({
 
     try {
       // First, save groups and get the mapping of local indices to group IDs
-      const { success: groupsSaved, groupIdMap } = await saveGroups(
+      const { success: groupsSaved, groupIdMap, indexToGroupIdMap } = await saveGroups(
         lineItems.map(item => item.id || '')
       );
 
@@ -357,18 +357,8 @@ export function ContractLineItemsEditor({
         .delete()
         .eq('contract_id', contractId);
 
-      // Map items to their group IDs
-      const getGroupIdForIndex = (index: number): string | null => {
-        for (let gIdx = 0; gIdx < groups.length; gIdx++) {
-          const group = groups[gIdx];
-          if (group.item_ids.includes(`local_${index}`)) {
-            return groupIdMap.get(gIdx) || null;
-          }
-        }
-        return null;
-      };
-
       // Insert new line items with unit_mode, pcs_per_set, and group_id
+      // Use indexToGroupIdMap which correctly maps each item index to its group ID
       const lineItemsToInsert = lineItems.map((item, index) => ({
         user_id: user.id,
         contract_id: contractId,
@@ -379,7 +369,7 @@ export function ContractLineItemsEditor({
         sort_order: index,
         unit_mode: item.unit_mode || 'pcs',
         pcs_per_set: item.pcs_per_set || 1,
-        group_id: getGroupIdForIndex(index),
+        group_id: indexToGroupIdMap.get(index) || null,
       }));
 
       const { error: insertError } = await supabase

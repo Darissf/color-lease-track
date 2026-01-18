@@ -104,6 +104,36 @@ export function calculateSubtotal(data: TemplateData): number {
 }
 
 export function calculateGrandTotal(data: TemplateData): number {
+  const groups = data.groups || [];
+  
+  // If there are groups, calculate based on groups + non-grouped items
+  if (groups.length > 0) {
+    // Collect all indices that are in groups
+    const indicesInGroups = new Set<number>();
+    groups.forEach(group => {
+      group.item_indices.forEach(idx => indicesInGroups.add(idx));
+    });
+    
+    // Calculate grouped items subtotal (from group billing)
+    const groupedSubtotal = groups.reduce((sum, group) => {
+      return sum + (group.billing_quantity * group.billing_unit_price_per_day * group.billing_duration_days);
+    }, 0);
+    
+    // Calculate non-grouped items subtotal
+    let nonGroupedSubtotal = 0;
+    data.lineItems.forEach((item, idx) => {
+      if (!indicesInGroups.has(idx)) {
+        nonGroupedSubtotal += calculateLineItemSubtotal(item);
+      }
+    });
+    
+    const rentalSubtotal = groupedSubtotal + nonGroupedSubtotal;
+    const totalTransport = calculateTotalTransport(data.transportDelivery, data.transportPickup);
+    
+    return rentalSubtotal + totalTransport - (data.discount || 0);
+  }
+  
+  // No groups - use legacy calculation
   const subtotal = calculateSubtotal(data);
   return subtotal - (data.discount || 0);
 }
