@@ -109,13 +109,11 @@ export default function InventoryStock() {
       if (itemsError) throw itemsError;
       console.log("✅ Fetched inventory items:", itemsData?.length || 0, "items");
 
-      // Fetch rental quantities using inventory_item_id foreign key
+      // Fetch active contracts (NOT closed)
+      // Closed = status 'selesai' AND tagihan_belum_bayar = 0
       let contractsQuery = supabase
         .from("rental_contracts")
-        .select("inventory_item_id, jumlah_unit")
-        .eq("status_pengiriman", "sudah_kirim")
-        .neq("status_pengambilan", "sudah_diambil")
-        .not("inventory_item_id", "is", null);
+        .select("id, status, tagihan_belum_bayar");
 
       // Only filter by user_id for regular users (not admin/super_admin)
       if (!isSuperAdmin && !isAdmin) {
@@ -123,17 +121,33 @@ export default function InventoryStock() {
       }
 
       const { data: contractsData, error: contractsError } = await contractsQuery;
-
       if (contractsError) throw contractsError;
 
-      // Calculate rented quantities by inventory_item_id (UUID)
+      // Filter to get only active (not closed) contract IDs
+      const activeContractIds = (contractsData || [])
+        .filter(c => !(c.status === 'selesai' && (c.tagihan_belum_bayar || 0) === 0))
+        .map(c => c.id);
+
+      // Fetch stock items from active contracts that haven't been returned
       const rentedMap = new Map<string, number>();
-      contractsData?.forEach((contract) => {
-        if (contract.inventory_item_id) {
-          const current = rentedMap.get(contract.inventory_item_id) || 0;
-          rentedMap.set(contract.inventory_item_id, current + contract.jumlah_unit);
-        }
-      });
+      
+      if (activeContractIds.length > 0) {
+        const { data: stockItemsData, error: stockError } = await supabase
+          .from("contract_stock_items")
+          .select("inventory_item_id, quantity")
+          .in("contract_id", activeContractIds)
+          .is("returned_at", null);
+
+        if (stockError) throw stockError;
+
+        // Calculate rented quantities by inventory_item_id
+        stockItemsData?.forEach((item) => {
+          if (item.inventory_item_id) {
+            const current = rentedMap.get(item.inventory_item_id) || 0;
+            rentedMap.set(item.inventory_item_id, current + item.quantity);
+          }
+        });
+      }
 
       // Merge data using item.id (UUID) for lookup
       const itemsWithRented = itemsData?.map((item) => ({
