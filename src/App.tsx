@@ -52,6 +52,7 @@ const RentalContracts = lazy(() => import("./pages/RentalContracts"));
 const AISettings = lazy(() => import("./pages/AISettings"));
 const DatabaseBackup = lazy(() => import("./pages/DatabaseBackup"));
 const BackupRestore = lazy(() => import("./pages/BackupRestore"));
+const SyncContractDetails = lazy(() => import("./pages/SyncContractDetails"));
 const CloudUsageDashboard = lazy(() => import("./pages/CloudUsageDashboard"));
 const ChatBotAI = lazy(() => import("./pages/ChatBotAI"));
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
@@ -221,6 +222,7 @@ const App = () => (
                                   <Route path="/settings/payment-auto" element={<PaymentAutoSettings />} />
                                   <Route path="/settings/bank-scraper" element={<BankScraperSettings />} />
                                   <Route path="/settings/backup" element={<BackupRestore />} />
+                                  <Route path="/settings/sync-contracts" element={<SyncContractDetails />} />
                                   <Route path="/scraper-monitoring" element={<ScraperMonitoring />} />
                                   <Route path="/settings/custom-stamp" element={<CustomStampSettings />} />
                                   <Route path="/settings/invoice/manual" element={<ManualInvoice />} />
