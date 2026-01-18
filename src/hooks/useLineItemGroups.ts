@@ -64,22 +64,26 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
       }
     });
 
-    const groupsWithItems: LineItemGroup[] = (data || []).map(g => {
-      const localIndices = groupIdToLocalIndices.get(g.id) || [];
-      
-      return {
-        id: g.id,
-        contract_id: g.contract_id,
-        group_name: g.group_name || undefined,
-        billing_quantity: g.billing_quantity,
-        billing_unit_price_per_day: Number(g.billing_unit_price_per_day),
-        billing_duration_days: g.billing_duration_days,
-        billing_unit_mode: (g.billing_unit_mode as 'pcs' | 'set') || 'set',
-        sort_order: g.sort_order || 0,
-        // Store as local_X format so saveGroups can parse them correctly
-        item_ids: localIndices.map(idx => `local_${idx}`),
-      };
-    });
+    // Only include groups that have items linked to them (filter orphan groups)
+    const groupsWithItems: LineItemGroup[] = (data || [])
+      .map(g => {
+        const localIndices = groupIdToLocalIndices.get(g.id) || [];
+        
+        return {
+          id: g.id,
+          contract_id: g.contract_id,
+          group_name: g.group_name || undefined,
+          billing_quantity: g.billing_quantity,
+          billing_unit_price_per_day: Number(g.billing_unit_price_per_day),
+          billing_duration_days: g.billing_duration_days,
+          billing_unit_mode: (g.billing_unit_mode as 'pcs' | 'set') || 'set',
+          sort_order: g.sort_order || 0,
+          // Store as local_X format so saveGroups can parse them correctly
+          item_ids: localIndices.map(idx => `local_${idx}`),
+        };
+      })
+      // CRITICAL: Filter out orphan groups (groups without any linked items)
+      .filter(g => g.item_ids.length > 0);
 
     setGroups(groupsWithItems);
   }, [contractId]);
@@ -184,18 +188,20 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
         .delete()
         .eq('contract_id', contractId);
 
-      // Only insert groups that have items
+      // Only insert groups that have items - CRITICAL: Skip orphan groups
+      let insertedGroupIndex = 0;
       for (let i = 0; i < groups.length; i++) {
         const group = groups[i];
         
         // Parse item_ids to get local indices
         const localIndices = group.item_ids
           .filter(id => id.startsWith('local_'))
-          .map(id => parseInt(id.replace('local_', ''), 10));
+          .map(id => parseInt(id.replace('local_', ''), 10))
+          .filter(idx => !isNaN(idx) && idx >= 0);
         
-        // Skip empty groups (orphan cleanup)
-        if (localIndices.length === 0 && !group.id) {
-          console.log(`Skipping empty group ${i}`);
+        // CRITICAL: Skip groups with no valid items (prevents orphan groups)
+        if (localIndices.length === 0) {
+          console.log(`Skipping orphan group ${i} - no valid items`);
           continue;
         }
         
@@ -209,7 +215,7 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
             billing_unit_price_per_day: group.billing_unit_price_per_day,
             billing_duration_days: group.billing_duration_days,
             billing_unit_mode: group.billing_unit_mode,
-            sort_order: i,
+            sort_order: insertedGroupIndex,
           })
           .select()
           .single();
@@ -222,6 +228,7 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
           localIndices.forEach(localIdx => {
             indexToGroupIdMap.set(localIdx, insertedGroup.id);
           });
+          insertedGroupIndex++;
         }
       }
 
@@ -243,14 +250,18 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
   // Get indices that belong to a group
   const getIndicesInGroup = useCallback((lineItems: GroupedLineItem[], groupIndex: number): number[] => {
     const group = groups[groupIndex];
-    if (!group) return [];
+    if (!group || !group.item_ids || group.item_ids.length === 0) return [];
     
     // Parse local indices from item_ids (format: "local_X")
     const localIndices = new Set(
       group.item_ids
         .filter(id => id.startsWith('local_'))
         .map(id => parseInt(id.replace('local_', ''), 10))
+        .filter(idx => !isNaN(idx) && idx >= 0)
     );
+    
+    // If no valid local indices, return empty
+    if (localIndices.size === 0 && !group.id) return [];
     
     return lineItems
       .map((item, idx) => ({ item, idx }))

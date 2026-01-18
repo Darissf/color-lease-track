@@ -108,14 +108,17 @@ export function calculateGrandTotal(data: TemplateData): number {
   
   // If there are groups, calculate based on groups + non-grouped items
   if (groups.length > 0) {
-    // Collect all indices that are in groups
+    // CRITICAL: Only consider groups that have valid item_indices (filter orphan groups)
+    const validGroups = groups.filter(g => g.item_indices && g.item_indices.length > 0);
+    
+    // Collect all indices that are in valid groups
     const indicesInGroups = new Set<number>();
-    groups.forEach(group => {
+    validGroups.forEach(group => {
       group.item_indices.forEach(idx => indicesInGroups.add(idx));
     });
     
-    // Calculate grouped items subtotal (from group billing)
-    const groupedSubtotal = groups.reduce((sum, group) => {
+    // Calculate grouped items subtotal (from valid group billing only)
+    const groupedSubtotal = validGroups.reduce((sum, group) => {
       return sum + (group.billing_quantity * group.billing_unit_price_per_day * group.billing_duration_days);
     }, 0);
     
@@ -160,14 +163,17 @@ function calculateUnifiedTotal(data: TemplateData): {
   
   // If there are groups, calculate based on groups + non-grouped items
   if (groups.length > 0) {
-    // Collect all indices that are in groups
+    // CRITICAL: Only consider groups that have valid item_indices (filter orphan groups)
+    const validGroups = groups.filter(g => g.item_indices && g.item_indices.length > 0);
+    
+    // Collect all indices that are in valid groups
     const indicesInGroups = new Set<number>();
-    groups.forEach(group => {
+    validGroups.forEach(group => {
       group.item_indices.forEach(idx => indicesInGroups.add(idx));
     });
     
-    // Calculate grouped items subtotal (from group billing)
-    const groupedSubtotal = groups.reduce((sum, group) => {
+    // Calculate grouped items subtotal (from valid group billing only)
+    const groupedSubtotal = validGroups.reduce((sum, group) => {
       return sum + (group.billing_quantity * group.billing_unit_price_per_day * group.billing_duration_days);
     }, 0);
     
@@ -179,8 +185,8 @@ function calculateUnifiedTotal(data: TemplateData): {
       }
     });
     
-    // Calculate total units for display: sum of group billing quantities + non-grouped quantities
-    let totalUnits = groups.reduce((sum, group) => sum + group.billing_quantity, 0);
+    // Calculate total units for display: sum of valid group billing quantities + non-grouped quantities
+    let totalUnits = validGroups.reduce((sum, group) => sum + group.billing_quantity, 0);
     data.lineItems.forEach((item, idx) => {
       if (!indicesInGroups.has(idx)) {
         totalUnits += item.quantity;

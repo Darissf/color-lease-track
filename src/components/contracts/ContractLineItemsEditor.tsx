@@ -430,11 +430,17 @@ export function ContractLineItemsEditor({
 
   // Calculate total considering groups - grouped items use group billing, non-grouped items use individual billing
   const calculateTotalWithGroups = (): number => {
-    // Get indices that are in groups
+    // Get indices that are in VALID groups only (groups with actual items)
     const indicesInGroups = new Set<number>();
+    const validGroups: typeof groups = [];
+    
     groups.forEach((group, gIdx) => {
       const indices = getIndicesInGroup(groupedLineItems, gIdx);
-      indices.forEach(idx => indicesInGroups.add(idx));
+      // Only consider groups that have items
+      if (indices.length > 0) {
+        validGroups.push(group);
+        indices.forEach(idx => indicesInGroups.add(idx));
+      }
     });
 
     // Calculate non-grouped items total
@@ -445,8 +451,8 @@ export function ContractLineItemsEditor({
       }
     });
 
-    // Calculate grouped items total (from group billing)
-    const groupedTotal = groups.reduce((sum, group) => sum + calculateGroupSubtotal(group), 0);
+    // Calculate grouped items total (from VALID group billing only)
+    const groupedTotal = validGroups.reduce((sum, group) => sum + calculateGroupSubtotal(group), 0);
 
     // Add transport and subtract discount
     const totalTransportCost = calculateTotalTransport(transportDelivery, transportPickup);
@@ -454,7 +460,32 @@ export function ContractLineItemsEditor({
     return subtotalWithTransport - (discount || 0);
   };
 
-  const totalItems = calculateTotalItems(lineItems);
+  // Calculate subtotal considering groups for display
+  const calculateSubtotalWithGroups = (): number => {
+    const indicesInGroups = new Set<number>();
+    const validGroups: typeof groups = [];
+    
+    groups.forEach((group, gIdx) => {
+      const indices = getIndicesInGroup(groupedLineItems, gIdx);
+      if (indices.length > 0) {
+        validGroups.push(group);
+        indices.forEach(idx => indicesInGroups.add(idx));
+      }
+    });
+
+    let nonGroupedTotal = 0;
+    lineItems.forEach((item, idx) => {
+      if (!indicesInGroups.has(idx)) {
+        nonGroupedTotal += calculateLineItemSubtotal(item);
+      }
+    });
+
+    const groupedTotal = validGroups.reduce((sum, group) => sum + calculateGroupSubtotal(group), 0);
+    return nonGroupedTotal + groupedTotal;
+  };
+
+  // Use group-aware calculation for subtotal items if groups exist
+  const totalItems = groups.length > 0 ? calculateSubtotalWithGroups() : calculateTotalItems(lineItems);
   const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
   const subtotal = calculateSubtotal(getTemplateData());
   // Use group-aware calculation for display
