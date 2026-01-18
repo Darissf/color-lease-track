@@ -424,14 +424,13 @@ export function ContractStockItemsEditor({
                       <Select
                         value={item.unit_mode}
                         onValueChange={(value: 'pcs' | 'set') => updateUnitMode(index, value)}
-                        disabled={pcsPerSet <= 1}
                       >
                         <SelectTrigger className="h-9">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pcs">pcs</SelectItem>
-                          <SelectItem value="set" disabled={pcsPerSet <= 1}>
+                          <SelectItem value="set">
                             set {pcsPerSet > 1 ? `(${pcsPerSet} pcs)` : ''}
                           </SelectItem>
                         </SelectContent>
