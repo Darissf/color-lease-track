@@ -13,8 +13,17 @@ export interface LineItem {
   pcs_per_set?: number;
 }
 
+export interface LineItemGroup {
+  billing_quantity: number;
+  billing_unit_price_per_day: number;
+  billing_duration_days: number;
+  billing_unit_mode: 'pcs' | 'set';
+  item_indices: number[]; // Indices of items in this group
+}
+
 export interface TemplateData {
   lineItems: LineItem[];
+  groups?: LineItemGroup[]; // Billing groups data
   transportDelivery: number;
   transportPickup: number;
   contractTitle?: string;
@@ -99,7 +108,7 @@ export function calculateGrandTotal(data: TemplateData): number {
   return subtotal - (data.discount || 0);
 }
 
-// New unified calculation based on price mode
+// New unified calculation based on price mode - now supports groups
 function calculateUnifiedTotal(data: TemplateData): {
   totalUnits: number;
   pricePerDay: number;
@@ -107,10 +116,9 @@ function calculateUnifiedTotal(data: TemplateData): {
   durationDays: number;
   rentalSubtotal: number;
 } {
+  const groups = data.groups || [];
   const priceMode = data.priceMode || 'pcs';
   const pricePerUnit = data.pricePerUnit || 0;
-  const totalUnits = calculateTotalSets(data.lineItems, priceMode);
-  const dailyTotal = totalUnits * pricePerUnit;
   
   // Get duration from dates or from first item
   let durationDays = 0;
@@ -120,6 +128,50 @@ function calculateUnifiedTotal(data: TemplateData): {
     durationDays = data.lineItems[0].duration_days;
   }
   
+  // If there are groups, calculate based on groups + non-grouped items
+  if (groups.length > 0) {
+    // Collect all indices that are in groups
+    const indicesInGroups = new Set<number>();
+    groups.forEach(group => {
+      group.item_indices.forEach(idx => indicesInGroups.add(idx));
+    });
+    
+    // Calculate grouped items subtotal (from group billing)
+    const groupedSubtotal = groups.reduce((sum, group) => {
+      return sum + (group.billing_quantity * group.billing_unit_price_per_day * group.billing_duration_days);
+    }, 0);
+    
+    // Calculate non-grouped items subtotal
+    let nonGroupedSubtotal = 0;
+    data.lineItems.forEach((item, idx) => {
+      if (!indicesInGroups.has(idx)) {
+        nonGroupedSubtotal += item.quantity * item.unit_price_per_day * item.duration_days;
+      }
+    });
+    
+    // Calculate total units for display: sum of group billing quantities + non-grouped quantities
+    let totalUnits = groups.reduce((sum, group) => sum + group.billing_quantity, 0);
+    data.lineItems.forEach((item, idx) => {
+      if (!indicesInGroups.has(idx)) {
+        totalUnits += item.quantity;
+      }
+    });
+    
+    const rentalSubtotal = groupedSubtotal + nonGroupedSubtotal;
+    const dailyTotal = durationDays > 0 ? rentalSubtotal / durationDays : 0;
+    
+    return {
+      totalUnits,
+      pricePerDay: pricePerUnit || (totalUnits > 0 ? dailyTotal / totalUnits : 0),
+      dailyTotal,
+      durationDays,
+      rentalSubtotal,
+    };
+  }
+  
+  // No groups - use legacy calculation
+  const totalUnits = calculateTotalSets(data.lineItems, priceMode);
+  const dailyTotal = totalUnits * pricePerUnit;
   const rentalSubtotal = dailyTotal * durationDays;
   
   return {
@@ -157,19 +209,27 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
   });
   lines.push(separator);
   
-  // Unified pricing calculation (only if pricePerUnit is set)
-  if (pricePerUnit && pricePerUnit > 0) {
+  // Calculate based on groups if available, otherwise use unified pricing
+  const groups = data.groups || [];
+  const hasGroups = groups.length > 0;
+  
+  if (hasGroups || (pricePerUnit && pricePerUnit > 0)) {
     const calc = calculateUnifiedTotal(data);
     const unitLabel = priceMode === 'set' ? 'set' : 'pcs';
     
-    lines.push(`Per ${unitLabel} per hari = ${formatRupiah(calc.pricePerDay)}`);
+    // Use group's price if available, otherwise use pricePerUnit
+    const displayPricePerDay = hasGroups && groups[0] 
+      ? groups[0].billing_unit_price_per_day 
+      : calc.pricePerDay;
+    
+    lines.push(`Per ${unitLabel} per hari = ${formatRupiah(displayPricePerDay)}`);
     
     // Format total units - show decimal if needed
     const totalUnitsDisplay = Number.isInteger(calc.totalUnits) 
       ? calc.totalUnits.toString() 
       : calc.totalUnits.toFixed(1);
     
-    lines.push(`Total : ${totalUnitsDisplay} ${unitLabel} x ${formatRupiah(calc.pricePerDay)} = ${formatRupiah(calc.dailyTotal)}`);
+    lines.push(`Total : ${totalUnitsDisplay} ${unitLabel} x ${formatRupiah(displayPricePerDay)} = ${formatRupiah(calc.dailyTotal)}`);
     lines.push('');
     
     // Periode Sewa
@@ -267,18 +327,26 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   });
   lines.push(separator);
   
-  // Unified pricing calculation (only if pricePerUnit is set)
-  if (pricePerUnit && pricePerUnit > 0) {
+  // Calculate based on groups if available, otherwise use unified pricing
+  const groups = data.groups || [];
+  const hasGroups = groups.length > 0;
+  
+  if (hasGroups || (pricePerUnit && pricePerUnit > 0)) {
     const calc = calculateUnifiedTotal(data);
     const unitLabel = priceMode === 'set' ? 'set' : 'pcs';
     
-    lines.push(`Per ${unitLabel} per hari = ${formatRupiah(calc.pricePerDay)}`);
+    // Use group's price if available, otherwise use pricePerUnit
+    const displayPricePerDay = hasGroups && groups[0] 
+      ? groups[0].billing_unit_price_per_day 
+      : calc.pricePerDay;
+    
+    lines.push(`Per ${unitLabel} per hari = ${formatRupiah(displayPricePerDay)}`);
     
     const totalUnitsDisplay = Number.isInteger(calc.totalUnits) 
       ? calc.totalUnits.toString() 
       : calc.totalUnits.toFixed(1);
     
-    lines.push(`Total : ${totalUnitsDisplay} ${unitLabel} x ${formatRupiah(calc.pricePerDay)} = *${formatRupiah(calc.dailyTotal)}*`);
+    lines.push(`Total : ${totalUnitsDisplay} ${unitLabel} x ${formatRupiah(displayPricePerDay)} = *${formatRupiah(calc.dailyTotal)}*`);
     lines.push('');
     
     // Periode Sewa

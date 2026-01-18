@@ -372,33 +372,56 @@ export default function ContractDetail() {
     
     setIsTogglingWhatsAppMode(true);
     try {
-      // Fetch line items to regenerate template
+      // Fetch line items with group_id to regenerate template
       const { data: lineItemsData } = await supabase
         .from('contract_line_items')
         .select('*')
         .eq('contract_id', contract.id)
         .order('sort_order');
       
+      // Fetch groups data
+      const { data: groupsData } = await supabase
+        .from('contract_line_item_groups')
+        .select('*')
+        .eq('contract_id', contract.id)
+        .order('sort_order');
+      
       const { data: contractData } = await supabase
         .from('rental_contracts')
-        .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan, start_date, end_date')
+        .select('transport_cost_delivery, transport_cost_pickup, discount, keterangan, start_date, end_date, default_price_per_day, default_price_mode')
         .eq('id', contract.id)
         .single();
       
       if (lineItemsData && lineItemsData.length > 0 && contractData) {
+        // Build groups with item_indices
+        const groups = (groupsData || []).map(g => ({
+          billing_quantity: g.billing_quantity,
+          billing_unit_price_per_day: Number(g.billing_unit_price_per_day),
+          billing_duration_days: g.billing_duration_days,
+          billing_unit_mode: (g.billing_unit_mode as 'pcs' | 'set') || 'set',
+          item_indices: lineItemsData
+            .map((item, idx) => ({ item, idx }))
+            .filter(({ item }) => item.group_id === g.id)
+            .map(({ idx }) => idx),
+        }));
+        
         const templateData: TemplateData = {
           lineItems: lineItemsData.map(item => ({
             item_name: item.item_name,
             quantity: item.quantity,
             unit_price_per_day: Number(item.unit_price_per_day),
             duration_days: item.duration_days,
+            unit_mode: (item.unit_mode as 'pcs' | 'set') || 'pcs',
           })),
+          groups,
           transportDelivery: Number(contractData.transport_cost_delivery) || 0,
           transportPickup: Number(contractData.transport_cost_pickup) || 0,
           contractTitle: contractData.keterangan || '',
           discount: Number(contractData.discount) || 0,
           startDate: contractData.start_date || '',
           endDate: contractData.end_date || '',
+          priceMode: (contractData.default_price_mode as 'pcs' | 'set') || 'set',
+          pricePerUnit: Number(contractData.default_price_per_day) || undefined,
         };
         
         const newTemplate = generateRincianTemplate(templateData, newMode);

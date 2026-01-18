@@ -311,6 +311,13 @@ export function ContractLineItemsEditor({
 
   const getTemplateData = (): TemplateData => ({
     lineItems,
+    groups: groups.map((g, gIdx) => ({
+      billing_quantity: g.billing_quantity,
+      billing_unit_price_per_day: g.billing_unit_price_per_day,
+      billing_duration_days: g.billing_duration_days,
+      billing_unit_mode: g.billing_unit_mode,
+      item_indices: getIndicesInGroup(groupedLineItems, gIdx),
+    })),
     transportDelivery,
     transportPickup,
     contractTitle,

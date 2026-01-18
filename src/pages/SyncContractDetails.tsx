@@ -41,6 +41,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface ContractLineItemGroup {
+  id: string;
+  billing_quantity: number;
+  billing_unit_price_per_day: number;
+  billing_duration_days: number;
+  billing_unit_mode: string;
+}
+
 interface ContractForSync {
   id: string;
   invoice: string;
@@ -56,7 +64,8 @@ interface ContractForSync {
   whatsapp_template_mode: boolean;
   keterangan: string | null;
   client_groups: { nama: string } | null;
-  line_items?: LineItem[];
+  line_items?: (LineItem & { group_id?: string | null })[];
+  groups?: ContractLineItemGroup[];
 }
 
 interface SyncResult {
@@ -128,7 +137,13 @@ const SyncContractDetails = () => {
 
       if (lineItemsError) throw lineItemsError;
 
-      // Map line items to contracts
+      // Fetch groups for all contracts
+      const { data: groupsData } = await supabase
+        .from('contract_line_item_groups')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Map line items and groups to contracts
       const contractsWithItems = (contractsData || []).map(contract => ({
         ...contract,
         line_items: (lineItemsData || [])
@@ -142,6 +157,16 @@ const SyncContractDetails = () => {
             subtotal: item.subtotal,
             unit_mode: item.unit_mode as 'pcs' | 'set' | undefined,
             pcs_per_set: item.pcs_per_set,
+            group_id: item.group_id,
+          })),
+        groups: (groupsData || [])
+          .filter(g => g.contract_id === contract.id)
+          .map(g => ({
+            id: g.id,
+            billing_quantity: g.billing_quantity,
+            billing_unit_price_per_day: Number(g.billing_unit_price_per_day),
+            billing_duration_days: g.billing_duration_days,
+            billing_unit_mode: g.billing_unit_mode || 'set',
           })),
       }));
 
@@ -186,8 +211,21 @@ const SyncContractDetails = () => {
       return '';
     }
 
+    // Build groups with item_indices
+    const groups = (contract.groups || []).map(g => ({
+      billing_quantity: g.billing_quantity,
+      billing_unit_price_per_day: g.billing_unit_price_per_day,
+      billing_duration_days: g.billing_duration_days,
+      billing_unit_mode: (g.billing_unit_mode as 'pcs' | 'set') || 'set',
+      item_indices: contract.line_items!
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => item.group_id === g.id)
+        .map(({ idx }) => idx),
+    }));
+
     const templateData: TemplateData = {
       lineItems: contract.line_items,
+      groups,
       transportDelivery: contract.transport_cost_delivery || 0,
       transportPickup: contract.transport_cost_pickup || 0,
       contractTitle: contract.keterangan || undefined,
