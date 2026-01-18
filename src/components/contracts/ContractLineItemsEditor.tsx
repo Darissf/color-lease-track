@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatRupiah } from '@/lib/currency';
@@ -18,9 +19,12 @@ import {
   calculateGrandTotal,
   type TemplateData
 } from '@/lib/contractTemplateGenerator';
-import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen, Tag, FileSignature, Edit3, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen, Tag, FileSignature, Edit3, RefreshCw, AlertCircle, Layers, Unlink } from 'lucide-react';
+import { useLineItemGroups, type LineItemGroup, type GroupedLineItem } from '@/hooks/useLineItemGroups';
+import { CombineItemsDialog } from './CombineItemsDialog';
+import { toast } from 'sonner';
 
-// Extended LineItem interface with unit_mode
+// Extended LineItem interface with unit_mode and group_id
 interface LineItem {
   id?: string;
   item_name: string;
@@ -29,10 +33,8 @@ interface LineItem {
   duration_days: number;
   unit_mode?: 'pcs' | 'set';
   pcs_per_set?: number;
+  group_id?: string | null;
 }
-import { toast } from 'sonner';
-
-// Removed InventoryItem interface - no longer needed
 
 interface ContractLineItemsEditorProps {
   contractId: string;
@@ -69,9 +71,37 @@ export function ContractLineItemsEditor({
   // Mode Penagihan
   const [billingMode, setBillingMode] = useState<'edit' | 'new'>('edit');
 
+  // Combine feature
+  const [showCombineDialog, setShowCombineDialog] = useState(false);
+  
+  // Convert lineItems to GroupedLineItem format for the hook
+  const groupedLineItems: GroupedLineItem[] = useMemo(() => 
+    lineItems.map((item, index) => ({
+      ...item,
+      local_index: index,
+    })), [lineItems]);
+
+  const {
+    groups,
+    setGroups,
+    selectedIndices,
+    toggleSelection,
+    clearSelection,
+    fetchGroups,
+    combineSelectedItems,
+    uncombineGroup,
+    updateGroupBilling,
+    saveGroups,
+    calculateGroupSubtotal,
+    getIndicesInGroup,
+    isIndexInGroup,
+    getGroupIndexForItem,
+  } = useLineItemGroups(contractId, user?.id);
+
   useEffect(() => {
     fetchExistingLineItems();
-  }, [contractId]);
+    fetchGroups();
+  }, [contractId, fetchGroups]);
 
   // Removed fetchInventoryItems - no longer needed
 
@@ -94,6 +124,7 @@ export function ContractLineItemsEditor({
         duration_days: item.duration_days,
         unit_mode: (item.unit_mode as 'pcs' | 'set') || 'pcs',
         pcs_per_set: item.pcs_per_set || 1,
+        group_id: item.group_id,
       })));
     }
     
@@ -235,7 +266,47 @@ export function ContractLineItemsEditor({
   // Removed selectInventoryItem - no longer needed
 
   const removeLineItem = (index: number) => {
+    // Also check if this item is in a group and remove from group
+    const groupIdx = getGroupIndexForItem(groupedLineItems, index);
+    if (groupIdx >= 0) {
+      // Item is in a group - we need to handle this
+      toast.error('Un-combine group terlebih dahulu sebelum menghapus item');
+      return;
+    }
     setLineItems(lineItems.filter((_, i) => i !== index));
+  };
+
+  // Handle combine confirmation
+  const handleCombineConfirm = async (
+    billingQuantity: number,
+    billingPricePerDay: number,
+    billingDurationDays: number,
+    billingUnitMode: 'pcs' | 'set'
+  ) => {
+    await combineSelectedItems(
+      groupedLineItems,
+      billingQuantity,
+      billingPricePerDay,
+      billingDurationDays,
+      billingUnitMode
+    );
+    toast.success(`${selectedIndices.size} item berhasil di-combine`);
+  };
+
+  // Handle uncombine
+  const handleUncombine = (groupIndex: number) => {
+    uncombineGroup(groupIndex);
+    toast.success('Group berhasil di-uncombine');
+  };
+
+  // Get selected items for dialog
+  const getSelectedItemsForDialog = () => {
+    return Array.from(selectedIndices).map(idx => lineItems[idx]).filter(Boolean);
+  };
+
+  // Check if any selected item is already in a group
+  const hasSelectedInGroup = () => {
+    return Array.from(selectedIndices).some(idx => isIndexInGroup(groupedLineItems, idx));
   };
 
   const getTemplateData = (): TemplateData => ({
@@ -268,13 +339,29 @@ export function ContractLineItemsEditor({
     setSaving(true);
 
     try {
+      // First, save groups and get the mapping of local indices to group IDs
+      const { success: groupsSaved, groupIdMap } = await saveGroups(
+        lineItems.map(item => item.id || '')
+      );
+
       // Delete existing line items
       await supabase
         .from('contract_line_items')
         .delete()
         .eq('contract_id', contractId);
 
-      // Insert new line items with unit_mode and pcs_per_set
+      // Map items to their group IDs
+      const getGroupIdForIndex = (index: number): string | null => {
+        for (let gIdx = 0; gIdx < groups.length; gIdx++) {
+          const group = groups[gIdx];
+          if (group.item_ids.includes(`local_${index}`)) {
+            return groupIdMap.get(gIdx) || null;
+          }
+        }
+        return null;
+      };
+
+      // Insert new line items with unit_mode, pcs_per_set, and group_id
       const lineItemsToInsert = lineItems.map((item, index) => ({
         user_id: user.id,
         contract_id: contractId,
@@ -285,6 +372,7 @@ export function ContractLineItemsEditor({
         sort_order: index,
         unit_mode: item.unit_mode || 'pcs',
         pcs_per_set: item.pcs_per_set || 1,
+        group_id: getGroupIdForIndex(index),
       }));
 
       const { error: insertError } = await supabase
@@ -295,7 +383,9 @@ export function ContractLineItemsEditor({
 
       // Generate template with current whatsapp mode
       const template = generateRincianTemplate(getTemplateData(), whatsappMode);
-      const grandTotal = calculateGrandTotal(getTemplateData());
+      
+      // Calculate grand total considering groups
+      const grandTotal = calculateTotalWithGroups();
 
       // Calculate tagihan_belum_bayar based on billing mode
       let tagihanBelumBayar = grandTotal;
@@ -341,10 +431,37 @@ export function ContractLineItemsEditor({
     }
   };
 
+  // Calculate total considering groups - grouped items use group billing, non-grouped items use individual billing
+  const calculateTotalWithGroups = (): number => {
+    // Get indices that are in groups
+    const indicesInGroups = new Set<number>();
+    groups.forEach((group, gIdx) => {
+      const indices = getIndicesInGroup(groupedLineItems, gIdx);
+      indices.forEach(idx => indicesInGroups.add(idx));
+    });
+
+    // Calculate non-grouped items total
+    let nonGroupedTotal = 0;
+    lineItems.forEach((item, idx) => {
+      if (!indicesInGroups.has(idx)) {
+        nonGroupedTotal += calculateLineItemSubtotal(item);
+      }
+    });
+
+    // Calculate grouped items total (from group billing)
+    const groupedTotal = groups.reduce((sum, group) => sum + calculateGroupSubtotal(group), 0);
+
+    // Add transport and subtract discount
+    const totalTransportCost = calculateTotalTransport(transportDelivery, transportPickup);
+    const subtotalWithTransport = nonGroupedTotal + groupedTotal + totalTransportCost;
+    return subtotalWithTransport - (discount || 0);
+  };
+
   const totalItems = calculateTotalItems(lineItems);
   const totalTransport = calculateTotalTransport(transportDelivery, transportPickup);
   const subtotal = calculateSubtotal(getTemplateData());
-  const grandTotal = calculateGrandTotal(getTemplateData());
+  // Use group-aware calculation for display
+  const grandTotal = groups.length > 0 ? calculateTotalWithGroups() : calculateGrandTotal(getTemplateData());
 
   if (loading) {
     return (
@@ -381,97 +498,250 @@ export function ContractLineItemsEditor({
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
               Rincian Item Sewa
             </CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={generateFromStock}
-              disabled={generatingFromStock}
-              className="border-primary/50 text-primary hover:bg-primary/10"
-            >
-              <PackageOpen className="h-4 w-4 mr-2" />
-              {generatingFromStock ? 'Generating...' : 'Generate dari Stok'}
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Combine toolbar */}
+              {selectedIndices.size >= 2 && !hasSelectedInGroup() && (
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => setShowCombineDialog(true)}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <Layers className="h-4 w-4 mr-2" />
+                  Combine ({selectedIndices.size})
+                </Button>
+              )}
+              {selectedIndices.size > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={clearSelection}
+                >
+                  Batal Pilih
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={generateFromStock}
+                disabled={generatingFromStock}
+                className="border-primary/50 text-primary hover:bg-primary/10"
+              >
+                <PackageOpen className="h-4 w-4 mr-2" />
+                {generatingFromStock ? 'Generating...' : 'Generate dari Stok'}
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Klik "Generate dari Stok" untuk otomatis mengisi dari Rincian Stok Barang
+            Klik "Generate dari Stok" untuk otomatis mengisi dari Rincian Stok Barang. Pilih 2+ item lalu klik "Combine" untuk menggabungkan billing.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {lineItems.map((item, index) => (
-            <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/30">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-sm">Item #{index + 1}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeLineItem(index)}
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+          {/* Render groups first */}
+          {groups.map((group, groupIndex) => {
+            const itemsInGroup = getIndicesInGroup(groupedLineItems, groupIndex);
+            if (itemsInGroup.length === 0) return null;
+            
+            return (
+              <div key={`group-${groupIndex}`} className="border-2 border-purple-400/50 rounded-lg overflow-hidden bg-purple-50/30 dark:bg-purple-950/20">
+                {/* Group header */}
+                <div className="bg-purple-100 dark:bg-purple-900/50 px-4 py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-purple-600" />
+                    <span className="font-medium text-sm text-purple-800 dark:text-purple-200">
+                      📦 Group {groupIndex + 1}
+                    </span>
+                    <span className="text-xs text-purple-600 dark:text-purple-300">
+                      ({itemsInGroup.length} item)
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleUncombine(groupIndex)}
+                    className="h-7 text-purple-700 hover:text-purple-900 hover:bg-purple-200"
+                  >
+                    <Unlink className="h-3 w-3 mr-1" />
+                    Un-combine
+                  </Button>
+                </div>
+                
+                {/* Items in group (display only - no editing quantity/price/duration) */}
+                <div className="p-3 space-y-2">
+                  {itemsInGroup.map(idx => {
+                    const item = lineItems[idx];
+                    if (!item) return null;
+                    return (
+                      <div key={idx} className="flex items-center gap-2 text-sm bg-white dark:bg-gray-800 rounded px-3 py-2">
+                        <span className="text-muted-foreground">•</span>
+                        <span>{item.quantity} {item.unit_mode === 'set' ? 'Set' : 'Pcs'}</span>
+                        <span className="font-medium">{item.item_name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Group billing settings */}
+                <div className="border-t border-purple-200 dark:border-purple-700 p-4 bg-white/50 dark:bg-gray-900/50">
+                  <Label className="text-xs text-purple-700 dark:text-purple-300 mb-2 block">Pengaturan Billing Group</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Jumlah</Label>
+                      <Input
+                        type="number"
+                        value={group.billing_quantity}
+                        onChange={(e) => updateGroupBilling(groupIndex, 'billing_quantity', e.target.value)}
+                        min={1}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Mode</Label>
+                      <Select 
+                        value={group.billing_unit_mode} 
+                        onValueChange={(v: 'pcs' | 'set') => updateGroupBilling(groupIndex, 'billing_unit_mode', v)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="set">Set</SelectItem>
+                          <SelectItem value="pcs">Pcs</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Harga/Hari</Label>
+                      <Input
+                        type="number"
+                        value={group.billing_unit_price_per_day}
+                        onChange={(e) => updateGroupBilling(groupIndex, 'billing_unit_price_per_day', e.target.value)}
+                        min={0}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Durasi (hari)</Label>
+                      <Input
+                        type="number"
+                        value={group.billing_duration_days}
+                        onChange={(e) => updateGroupBilling(groupIndex, 'billing_duration_days', e.target.value)}
+                        min={1}
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-right">
+                    <span className="text-xs text-muted-foreground">Subtotal Group: </span>
+                    <span className="font-semibold text-purple-700 dark:text-purple-300">
+                      {formatRupiah(calculateGroupSubtotal(group))}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({group.billing_quantity} {group.billing_unit_mode} × {formatRupiah(group.billing_unit_price_per_day)} × {group.billing_duration_days} hari)
+                    </span>
+                  </div>
+                </div>
               </div>
-              
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nama Item</Label>
-                <Input
-                  value={item.item_name}
-                  onChange={(e) => updateLineItem(index, 'item_name', e.target.value)}
-                  placeholder="Nama item..."
-                  className="h-9"
-                />
-              </div>
+            );
+          })}
+          
+          {/* Render non-grouped items with checkboxes */}
+          {lineItems.map((item, index) => {
+            // Skip items that are in a group
+            if (isIndexInGroup(groupedLineItems, index)) return null;
+            
+            const isSelected = selectedIndices.has(index);
+            
+            return (
+              <div 
+                key={index} 
+                className={`p-4 border rounded-lg space-y-3 transition-colors ${
+                  isSelected 
+                    ? 'bg-purple-50/50 dark:bg-purple-950/30 border-purple-300' 
+                    : 'bg-muted/30'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSelection(index)}
+                      className="border-purple-400 data-[state=checked]:bg-purple-600"
+                    />
+                    <span className="font-medium text-sm">Item #{index + 1}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeLineItem(index)}
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nama Item</Label>
+                  <Input
+                    value={item.item_name}
+                    onChange={(e) => updateLineItem(index, 'item_name', e.target.value)}
+                    placeholder="Nama item..."
+                    className="h-9"
+                  />
+                </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Jumlah ({item.unit_mode === 'set' ? 'set' : 'pcs'})</Label>
-                  <Input
-                    type="number"
-                    value={item.quantity}
-                    onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
-                    min={1}
-                    className="h-9"
-                  />
-                  {item.unit_mode === 'set' && item.pcs_per_set && item.pcs_per_set > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      Jadi {item.quantity} set = {item.quantity * item.pcs_per_set} pcs
-                    </p>
-                  )}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Jumlah ({item.unit_mode === 'set' ? 'set' : 'pcs'})</Label>
+                    <Input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
+                      min={1}
+                      className="h-9"
+                    />
+                    {item.unit_mode === 'set' && item.pcs_per_set && item.pcs_per_set > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Jadi {item.quantity} set = {item.quantity * item.pcs_per_set} pcs
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Harga/Hari (Rp)</Label>
+                    <Input
+                      type="number"
+                      value={item.unit_price_per_day}
+                      onChange={(e) => updateLineItem(index, 'unit_price_per_day', e.target.value)}
+                      min={0}
+                      className="h-9"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Durasi (hari)</Label>
+                    <Input
+                      type="number"
+                      value={item.duration_days}
+                      onChange={(e) => updateLineItem(index, 'duration_days', e.target.value)}
+                      min={1}
+                      className="h-9"
+                    />
+                  </div>
                 </div>
                 
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Harga/Hari (Rp)</Label>
-                  <Input
-                    type="number"
-                    value={item.unit_price_per_day}
-                    onChange={(e) => updateLineItem(index, 'unit_price_per_day', e.target.value)}
-                    min={0}
-                    className="h-9"
-                  />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Durasi (hari)</Label>
-                  <Input
-                    type="number"
-                    value={item.duration_days}
-                    onChange={(e) => updateLineItem(index, 'duration_days', e.target.value)}
-                    min={1}
-                    className="h-9"
-                  />
+                <div className="text-right text-sm">
+                  <span className="text-muted-foreground">Subtotal: </span>
+                  <span className="font-semibold text-primary">{formatRupiah(calculateLineItemSubtotal(item))}</span>
                 </div>
               </div>
-              
-              <div className="text-right text-sm">
-                <span className="text-muted-foreground">Subtotal: </span>
-                <span className="font-semibold text-primary">{formatRupiah(calculateLineItemSubtotal(item))}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           <Button variant="outline" onClick={addLineItem} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
@@ -479,6 +749,17 @@ export function ContractLineItemsEditor({
           </Button>
         </CardContent>
       </Card>
+
+      {/* Combine Dialog */}
+      <CombineItemsDialog
+        open={showCombineDialog}
+        onClose={() => setShowCombineDialog(false)}
+        onConfirm={handleCombineConfirm}
+        selectedItems={getSelectedItemsForDialog()}
+        defaultPrice={defaultPricePerDay !== '' ? defaultPricePerDay : 0}
+        defaultDuration={defaultDurationDays !== '' ? defaultDurationDays : 30}
+        defaultMode={priceMode}
+      />
 
       {/* Pengaturan Cepat */}
       <Card className="border-dashed border-2 border-amber-400/50 bg-amber-50/30 dark:bg-amber-950/20">

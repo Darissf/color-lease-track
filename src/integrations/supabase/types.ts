@@ -1520,11 +1520,62 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_line_item_groups: {
+        Row: {
+          billing_duration_days: number
+          billing_quantity: number
+          billing_unit_mode: string | null
+          billing_unit_price_per_day: number
+          contract_id: string
+          created_at: string | null
+          group_name: string | null
+          id: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_duration_days?: number
+          billing_quantity?: number
+          billing_unit_mode?: string | null
+          billing_unit_price_per_day?: number
+          contract_id: string
+          created_at?: string | null
+          group_name?: string | null
+          id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_duration_days?: number
+          billing_quantity?: number
+          billing_unit_mode?: string | null
+          billing_unit_price_per_day?: number
+          contract_id?: string
+          created_at?: string | null
+          group_name?: string | null
+          id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_line_item_groups_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_line_items: {
         Row: {
           contract_id: string
           created_at: string | null
           duration_days: number
+          group_id: string | null
           id: string
           inventory_item_id: string | null
           item_name: string
@@ -1541,6 +1592,7 @@ export type Database = {
           contract_id: string
           created_at?: string | null
           duration_days?: number
+          group_id?: string | null
           id?: string
           inventory_item_id?: string | null
           item_name: string
@@ -1557,6 +1609,7 @@ export type Database = {
           contract_id?: string
           created_at?: string | null
           duration_days?: number
+          group_id?: string | null
           id?: string
           inventory_item_id?: string | null
           item_name?: string
@@ -1575,6 +1628,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_line_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "contract_line_item_groups"
             referencedColumns: ["id"]
           },
           {
