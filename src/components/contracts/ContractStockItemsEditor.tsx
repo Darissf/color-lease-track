@@ -461,7 +461,7 @@ export function ContractStockItemsEditor({
                   )}
                   
                   {/* Show conversion info */}
-                  {item.inventory_item_id && item.unit_mode === 'set' && pcsPerSet > 1 && (
+                  {item.inventory_item_id && item.unit_mode === 'set' && (
                     <div className="text-xs text-primary bg-primary/10 px-2 py-1 rounded">
                       {displayQty} set = {item.quantity} pcs
                     </div>
