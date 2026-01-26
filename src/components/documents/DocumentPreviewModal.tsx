@@ -80,7 +80,7 @@ export const DocumentPreviewModal = ({
   const [customTextElements, setCustomTextElements] = useState<CustomTextElement[]>([]);
   
   // Use fullRincian from documentData (saved per-contract)
-  const fullRincian = documentData?.fullRincian !== false; // Default to true
+  const fullRincian = documentData?.fullRincian === true; // Default to false
   
   // Determine if we should show page 2 (Rincian Tagihan) - for both Invoice and Kwitansi
   const showPage2 = (documentData?.documentType === 'invoice' || documentData?.documentType === 'kwitansi') && 

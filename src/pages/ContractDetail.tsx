@@ -189,7 +189,7 @@ export default function ContractDetail() {
   const [documentData, setDocumentData] = useState<any>(null);
   
   // Invoice full rincian toggle state
-  const [invoiceFullRincian, setInvoiceFullRincian] = useState(true);
+  const [invoiceFullRincian, setInvoiceFullRincian] = useState(false);
   const [isSavingRincianMode, setIsSavingRincianMode] = useState(false);
   
   // Cash payment states
@@ -314,7 +314,7 @@ export default function ContractDetail() {
 
     setContract(processedContract as unknown as Contract);
     setAdminNotes(contractData.admin_notes || "");
-    setInvoiceFullRincian(contractData.invoice_full_rincian !== false); // Default to true
+    setInvoiceFullRincian(contractData.invoice_full_rincian === true); // Default to false
 
     // Fetch payment history from contract_payments table
     const { data: paymentData, error: paymentError } = await supabase
