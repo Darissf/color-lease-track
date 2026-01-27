@@ -51,6 +51,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PaymentEditDialog } from "@/components/contracts/PaymentEditDialog";
 import { EditRequestDialog } from "@/components/contracts/EditRequestDialog";
 import { PendingEditRequests } from "@/components/contracts/PendingEditRequests";
@@ -196,6 +197,7 @@ export default function ContractDetail() {
   const [isCashPaymentOpen, setIsCashPaymentOpen] = useState(false);
   const [cashPaymentAmount, setCashPaymentAmount] = useState("");
   const [isProcessingCashPayment, setIsProcessingCashPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash');
 
   const fetchPendingPaymentRequest = useCallback(async () => {
     if (!id) return;
@@ -705,7 +707,12 @@ export default function ContractDetail() {
       
       const paymentNumber = (count || 0) + 1;
       const paymentDate = format(new Date(), "yyyy-MM-dd");
-      const sourceName = `${contract.invoice || "Sewa"} ${contract.keterangan || contract.client_groups?.nama || ""} #${paymentNumber} (Cash)`.trim();
+      
+      // Determine source based on payment method
+      const bankName = paymentMethod === 'cash' ? 'Cash' : 'Transfer Manual';
+      const notesText = paymentMethod === 'cash' ? 'Pembayaran Cash' : 'Pembayaran Transfer Manual';
+      const sourceSuffix = paymentMethod === 'cash' ? '(Cash)' : '(Transfer)';
+      const sourceName = `${contract.invoice || "Sewa"} ${contract.keterangan || contract.client_groups?.nama || ""} #${paymentNumber} ${sourceSuffix}`.trim();
       
       // Insert to income_sources
       const { data: incomeData, error: incomeError } = await supabase
@@ -715,7 +722,7 @@ export default function ContractDetail() {
           source_name: sourceName,
           amount: amount,
           date: paymentDate,
-          bank_name: "Cash",
+          bank_name: bankName,
           contract_id: contract.id,
         })
         .select("id")
@@ -733,9 +740,9 @@ export default function ContractDetail() {
           amount: amount,
           payment_number: paymentNumber,
           income_source_id: incomeData?.id,
-          notes: "Pembayaran Cash",
+          notes: notesText,
           confirmed_by: user.id,
-          payment_source: "cash",
+          payment_source: paymentMethod,
         });
       
       if (paymentError) throw paymentError;
@@ -752,9 +759,11 @@ export default function ContractDetail() {
       
       if (updateError) throw updateError;
       
-      toast.success(`Pembayaran Cash #${paymentNumber} berhasil dicatat`);
+      const methodLabel = paymentMethod === 'cash' ? 'Cash' : 'Transfer';
+      toast.success(`Pembayaran ${methodLabel} #${paymentNumber} berhasil dicatat`);
       setIsCashPaymentOpen(false);
       setCashPaymentAmount("");
+      setPaymentMethod('cash'); // Reset to default
       fetchContractDetail();
     } catch (error: any) {
       console.error("Error processing cash payment:", error);
@@ -1822,18 +1831,38 @@ export default function ContractDetail() {
                             className="w-full border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
                           >
                             <Banknote className="h-4 w-4 mr-2" />
-                            Bayar Cash
+                            Bayar Cash / Transfer
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle className="flex items-center gap-2">
                               <Banknote className="h-5 w-5 text-green-600" />
-                              Catat Pembayaran Cash
+                              Catat Pembayaran Cash / Transfer
                             </AlertDialogTitle>
                             <AlertDialogDescription asChild>
                               <div className="space-y-4 pt-2">
-                                <p>Client sudah membayar secara cash. Masukkan jumlah pembayaran:</p>
+                                <div className="space-y-3">
+                                  <Label>Metode Pembayaran</Label>
+                                  <RadioGroup 
+                                    value={paymentMethod} 
+                                    onValueChange={(v) => setPaymentMethod(v as 'cash' | 'transfer')}
+                                    className="flex gap-4"
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="cash" id="pay-cash" />
+                                      <Label htmlFor="pay-cash" className="cursor-pointer flex items-center gap-1">
+                                        💵 Cash
+                                      </Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="transfer" id="pay-transfer" />
+                                      <Label htmlFor="pay-transfer" className="cursor-pointer flex items-center gap-1">
+                                        🏦 Transfer Manual
+                                      </Label>
+                                    </div>
+                                  </RadioGroup>
+                                </div>
                                 <div className="space-y-2">
                                   <Label htmlFor="cash-amount">Jumlah Pembayaran</Label>
                                   <Input
@@ -1877,7 +1906,7 @@ export default function ContractDetail() {
                               disabled={!cashPaymentAmount || isProcessingCashPayment}
                               className="bg-green-600 hover:bg-green-700"
                             >
-                              {isProcessingCashPayment ? "Memproses..." : "Konfirmasi Cash"}
+                              {isProcessingCashPayment ? "Memproses..." : `Konfirmasi ${paymentMethod === 'cash' ? 'Cash' : 'Transfer'}`}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
