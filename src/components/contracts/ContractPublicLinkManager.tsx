@@ -30,12 +30,16 @@ import {
   Trash2, 
   Plus,
   ExternalLink,
-  QrCode
+  QrCode,
+  Pencil,
+  TimerReset
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, addHours, addDays } from 'date-fns';
+import { format, addHours, addDays, subHours, subDays } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import QRCode from 'react-qr-code';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface PublicLink {
   id: string;
@@ -70,6 +74,19 @@ export function ContractPublicLinkManager({ contractId }: ContractPublicLinkMana
   const [customUnit, setCustomUnit] = useState<'hours' | 'days'>('hours');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedLink, setSelectedLink] = useState<PublicLink | null>(null);
+  
+  // Edit Link Dialog states
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState<PublicLink | null>(null);
+  const [customAccessCode, setCustomAccessCode] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Adjust Duration Dialog states
+  const [isDurationDialogOpen, setIsDurationDialogOpen] = useState(false);
+  const [durationLink, setDurationLink] = useState<PublicLink | null>(null);
+  const [durationAdjustment, setDurationAdjustment] = useState<number>(1);
+  const [adjustmentUnit, setAdjustmentUnit] = useState<'hours' | 'days'>('days');
+  const [adjustmentMode, setAdjustmentMode] = useState<'add' | 'subtract'>('add');
 
   useEffect(() => {
     if (user && contractId) {
@@ -197,6 +214,106 @@ export function ContractPublicLinkManager({ contractId }: ContractPublicLinkMana
 
   const isExpired = (expiresAt: string) => {
     return new Date(expiresAt) < new Date();
+  };
+
+  // Update access code (custom link)
+  const updateAccessCode = async () => {
+    if (!editingLink || !customAccessCode.trim()) return;
+    
+    // Validasi: 4-30 karakter, alphanumeric + dash + underscore
+    const isValid = /^[a-zA-Z0-9_-]{4,30}$/.test(customAccessCode);
+    if (!isValid) {
+      toast.error("Kode harus 4-30 karakter (huruf, angka, dash, underscore)");
+      return;
+    }
+    
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('contract_public_links')
+        .update({ access_code: customAccessCode })
+        .eq('id', editingLink.id);
+      
+      if (error) {
+        if (error.code === '23505') {
+          toast.error("Kode sudah digunakan, pilih kode lain");
+        } else {
+          throw error;
+        }
+        return;
+      }
+      
+      toast.success("Link berhasil diubah");
+      setIsEditDialogOpen(false);
+      setCustomAccessCode('');
+      fetchLinks();
+    } catch (error) {
+      console.error('Error updating link:', error);
+      toast.error("Gagal mengubah link");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Adjust expiration
+  const adjustExpiration = async () => {
+    if (!durationLink) return;
+    
+    const currentExpires = new Date(durationLink.expires_at);
+    let newExpires: Date;
+    
+    if (adjustmentMode === 'add') {
+      newExpires = adjustmentUnit === 'days'
+        ? addDays(currentExpires, durationAdjustment)
+        : addHours(currentExpires, durationAdjustment);
+    } else {
+      newExpires = adjustmentUnit === 'days'
+        ? subDays(currentExpires, durationAdjustment)
+        : subHours(currentExpires, durationAdjustment);
+      
+      // Validasi tidak boleh kurang dari sekarang
+      if (newExpires < new Date()) {
+        toast.error("Durasi tidak boleh kurang dari waktu sekarang");
+        return;
+      }
+    }
+    
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('contract_public_links')
+        .update({ expires_at: newExpires.toISOString() })
+        .eq('id', durationLink.id);
+      
+      if (error) throw error;
+      
+      toast.success("Durasi berhasil diubah");
+      setIsDurationDialogOpen(false);
+      setDurationAdjustment(1);
+      fetchLinks();
+    } catch (error) {
+      console.error('Error adjusting duration:', error);
+      toast.error("Gagal mengubah durasi");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Calculate new expiration for preview
+  const getNewExpirationPreview = () => {
+    if (!durationLink) return null;
+    
+    const currentExpires = new Date(durationLink.expires_at);
+    
+    if (adjustmentMode === 'add') {
+      return adjustmentUnit === 'days'
+        ? addDays(currentExpires, durationAdjustment)
+        : addHours(currentExpires, durationAdjustment);
+    } else {
+      return adjustmentUnit === 'days'
+        ? subDays(currentExpires, durationAdjustment)
+        : subHours(currentExpires, durationAdjustment);
+    }
   };
 
   const activeLinks = links.filter(l => l.is_active && !isExpired(l.expires_at));
@@ -338,6 +455,34 @@ export function ContractPublicLinkManager({ contractId }: ContractPublicLinkMana
                         <Button 
                           variant="ghost" 
                           size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setEditingLink(link);
+                            setCustomAccessCode(link.access_code);
+                            setIsEditDialogOpen(true);
+                          }}
+                          title="Edit Link"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setDurationLink(link);
+                            setDurationAdjustment(1);
+                            setAdjustmentUnit('days');
+                            setAdjustmentMode('add');
+                            setIsDurationDialogOpen(true);
+                          }}
+                          title="Ubah Durasi"
+                        >
+                          <TimerReset className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
                           className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => revokeLink(link.id)}
                         >
@@ -439,6 +584,158 @@ export function ContractPublicLinkManager({ contractId }: ContractPublicLinkMana
               </>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Link Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4" />
+              Edit Link
+            </DialogTitle>
+            <DialogDescription>
+              Ubah kode akses link menjadi custom
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {editingLink && (
+              <>
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Kode saat ini: </span>
+                  <span className="font-mono font-semibold">{editingLink.access_code}</span>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="custom-code">Kode Baru</Label>
+                  <Input
+                    id="custom-code"
+                    value={customAccessCode}
+                    onChange={(e) => setCustomAccessCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                    placeholder="Contoh: INV-000251-BUDI"
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    4-30 karakter (huruf, angka, dash -, underscore _)
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsEditDialogOpen(false);
+                setCustomAccessCode('');
+              }}
+            >
+              Batal
+            </Button>
+            <Button 
+              onClick={updateAccessCode} 
+              disabled={isUpdating || !customAccessCode.trim() || customAccessCode === editingLink?.access_code}
+            >
+              {isUpdating ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adjust Duration Dialog */}
+      <Dialog open={isDurationDialogOpen} onOpenChange={setIsDurationDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TimerReset className="h-4 w-4" />
+              Ubah Durasi
+            </DialogTitle>
+            <DialogDescription>
+              Tambah atau kurangi masa berlaku link
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {durationLink && (
+              <>
+                <div className="text-sm bg-muted/50 p-3 rounded-lg">
+                  <span className="text-muted-foreground">Berlaku saat ini: </span>
+                  <span className="font-semibold">
+                    {format(new Date(durationLink.expires_at), 'dd MMM yyyy HH:mm', { locale: localeId })}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <RadioGroup 
+                    value={adjustmentMode} 
+                    onValueChange={(v) => setAdjustmentMode(v as 'add' | 'subtract')}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="add" id="mode-add" />
+                      <Label htmlFor="mode-add" className="cursor-pointer">Tambah</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="subtract" id="mode-subtract" />
+                      <Label htmlFor="mode-subtract" className="cursor-pointer">Kurangi</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={durationAdjustment}
+                    onChange={(e) => setDurationAdjustment(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-24"
+                  />
+                  <Select value={adjustmentUnit} onValueChange={(v) => setAdjustmentUnit(v as 'hours' | 'days')}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hours">Jam</SelectItem>
+                      <SelectItem value="days">Hari</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {getNewExpirationPreview() && (
+                  <div className={`text-sm p-3 rounded-lg ${
+                    getNewExpirationPreview()! < new Date() 
+                      ? 'bg-destructive/10 text-destructive' 
+                      : 'bg-green-500/10 text-green-600'
+                  }`}>
+                    <span className="text-muted-foreground">Hasil baru: </span>
+                    <span className="font-semibold">
+                      {format(getNewExpirationPreview()!, 'dd MMM yyyy HH:mm', { locale: localeId })}
+                    </span>
+                    {getNewExpirationPreview()! < new Date() && (
+                      <p className="text-xs mt-1">⚠️ Tanggal tidak valid (sudah lewat)</p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDurationDialogOpen(false);
+                setDurationAdjustment(1);
+              }}
+            >
+              Batal
+            </Button>
+            <Button 
+              onClick={adjustExpiration} 
+              disabled={isUpdating || (getNewExpirationPreview() && getNewExpirationPreview()! < new Date())}
+            >
+              {isUpdating ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>
