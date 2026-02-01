@@ -1,269 +1,183 @@
 
 
-## Fitur Baru: Edit Link, Adjust Durasi, dan Pilihan Metode Pembayaran
+## Fitur Auto-Click Link pada Email Masuk
 
-### Ringkasan Permintaan
-
-1. **Public Link Manager** (untuk Admin) - Tambah menu:
-   - Edit Link / Custom Link 
-   - Tambah/Kurangi Durasi
-
-2. **Ringkasan Pembayaran** - Ubah "Bayar Cash" menjadi "Bayar Cash / Transfer" dengan pilihan metode
+### Ringkasan Fitur
+Menambahkan toggle button ON/OFF di Mail Inbox. Ketika ON, setiap email baru masuk yang memiliki link akan otomatis "diklik" (di-fetch) oleh sistem secara real-time saat webhook menerima email.
 
 ---
 
-## Bagian 1: Edit Link & Durasi pada Public Link Manager
+## Arsitektur Solusi
 
-### File: `src/components/contracts/ContractPublicLinkManager.tsx`
-
-#### A. Tambah State Baru
-
-```typescript
-// Edit Link Dialog
-const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-const [editingLink, setEditingLink] = useState<PublicLink | null>(null);
-const [customAccessCode, setCustomAccessCode] = useState('');
-const [isUpdating, setIsUpdating] = useState(false);
-
-// Adjust Duration Dialog
-const [isDurationDialogOpen, setIsDurationDialogOpen] = useState(false);
-const [durationLink, setDurationLink] = useState<PublicLink | null>(null);
-const [durationAdjustment, setDurationAdjustment] = useState<number>(1);
-const [adjustmentUnit, setAdjustmentUnit] = useState<'hours' | 'days'>('days');
-const [adjustmentMode, setAdjustmentMode] = useState<'add' | 'subtract'>('add');
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. Email Masuk → Resend Webhook                                 │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 2. inbound-mail-webhook Edge Function                           │
+│    ├── Cek setting: auto_click_links = true?                    │
+│    ├── Ekstrak semua link dari body_html/body_text              │
+│    ├── Untuk setiap link: fetch(url) di background              │
+│    └── Simpan hasil ke tabel mail_auto_clicked_links            │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 3. Database Tables                                              │
+│    ├── app_settings: auto_click_links boolean                   │
+│    └── mail_auto_clicked_links: log setiap link yang diklik     │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-#### B. Tambah Import Icon
+---
 
-```typescript
-import { Pencil, TimerReset } from 'lucide-react';
+## Perubahan Database
+
+### 1. Tambah Tabel: `mail_auto_clicked_links`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| mail_inbox_id | uuid | FK ke mail_inbox |
+| url | text | URL yang diklik |
+| clicked_at | timestamptz | Waktu diklik |
+| status_code | integer | HTTP status code dari response |
+| response_preview | text | Preview 500 char pertama dari response |
+| error_message | text | Jika gagal, pesan error |
+| created_at | timestamptz | Default now() |
+
+### 2. Tambah Kolom di `app_settings` (jika ada) atau buat tabel baru `mail_settings`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| auto_click_links | boolean | Default false |
+| updated_at | timestamptz | Last update |
+| updated_by | uuid | User yang terakhir update |
+
+---
+
+## Perubahan UI
+
+### File: `src/pages/Mail.tsx`
+
+Tambahkan toggle button di header (dekat tombol Refresh):
+
+```text
+┌───────────────────────────────────────────────────────────────────┐
+│ 📬 Mail Inbox                                                      │
+│                                                                   │
+│  [Compose] [Manage] [Refresh] [🔗 Auto-Click: ON/OFF]             │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
-#### C. Tambah Fungsi Update
+**Komponen yang ditambahkan:**
+- Import `Switch` dari `@/components/ui/switch`
+- State `autoClickEnabled` dan `loadingAutoClick`
+- Fetch setting dari database saat load
+- Update setting ke database saat toggle
+
+**Tooltip/Info:**
+- Saat ON: "Link di email baru akan otomatis diklik di background"
+- Saat OFF: "Link tidak akan diklik otomatis"
+
+---
+
+## Perubahan Edge Function
+
+### File: `supabase/functions/inbound-mail-webhook/index.ts`
+
+Tambahkan logic setelah email disimpan ke database:
 
 ```typescript
-// Update access code (custom link)
-const updateAccessCode = async () => {
-  if (!editingLink || !customAccessCode.trim()) return;
+// 1. Cek apakah auto-click diaktifkan
+const { data: settings } = await supabase
+  .from('mail_settings')
+  .select('auto_click_links')
+  .single();
+
+if (settings?.auto_click_links) {
+  // 2. Ekstrak semua link dari email
+  const links = extractLinksFromHtml(bodyHtml) || extractLinksFromText(bodyText);
   
-  // Validasi: 4-30 karakter, alphanumeric + dash + underscore
-  const isValid = /^[a-zA-Z0-9_-]{4,30}$/.test(customAccessCode);
-  if (!isValid) {
-    toast.error("Kode harus 4-30 karakter (huruf, angka, dash, underscore)");
-    return;
-  }
-  
-  setIsUpdating(true);
-  try {
-    const { error } = await supabase
-      .from('contract_public_links')
-      .update({ access_code: customAccessCode })
-      .eq('id', editingLink.id);
-    
-    if (error) {
-      if (error.code === '23505') {
-        toast.error("Kode sudah digunakan, pilih kode lain");
-      } else {
-        throw error;
-      }
-      return;
+  // 3. Untuk setiap link, fetch di background
+  for (const url of links) {
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'User-Agent': 'Mozilla/5.0 ...' },
+        redirect: 'follow',
+      });
+      
+      const preview = await response.text();
+      
+      // 4. Simpan hasil ke database
+      await supabase.from('mail_auto_clicked_links').insert({
+        mail_inbox_id: insertedEmailId,
+        url: url,
+        status_code: response.status,
+        response_preview: preview.substring(0, 500),
+        clicked_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      await supabase.from('mail_auto_clicked_links').insert({
+        mail_inbox_id: insertedEmailId,
+        url: url,
+        error_message: error.message,
+        clicked_at: new Date().toISOString(),
+      });
     }
-    
-    toast.success("Link berhasil diubah");
-    setIsEditDialogOpen(false);
-    fetchLinks();
-  } catch (error) {
-    console.error('Error updating link:', error);
-    toast.error("Gagal mengubah link");
-  } finally {
-    setIsUpdating(false);
   }
-};
-
-// Adjust expiration
-const adjustExpiration = async () => {
-  if (!durationLink) return;
-  
-  const currentExpires = new Date(durationLink.expires_at);
-  let newExpires: Date;
-  
-  const adjustment = adjustmentUnit === 'days' 
-    ? durationAdjustment * 24 * 60 * 60 * 1000 
-    : durationAdjustment * 60 * 60 * 1000;
-  
-  if (adjustmentMode === 'add') {
-    newExpires = new Date(currentExpires.getTime() + adjustment);
-  } else {
-    newExpires = new Date(currentExpires.getTime() - adjustment);
-    // Validasi tidak boleh kurang dari sekarang
-    if (newExpires < new Date()) {
-      toast.error("Durasi tidak boleh kurang dari waktu sekarang");
-      return;
-    }
-  }
-  
-  setIsUpdating(true);
-  try {
-    const { error } = await supabase
-      .from('contract_public_links')
-      .update({ expires_at: newExpires.toISOString() })
-      .eq('id', durationLink.id);
-    
-    if (error) throw error;
-    
-    toast.success("Durasi berhasil diubah");
-    setIsDurationDialogOpen(false);
-    fetchLinks();
-  } catch (error) {
-    console.error('Error adjusting duration:', error);
-    toast.error("Gagal mengubah durasi");
-  } finally {
-    setIsUpdating(false);
-  }
-};
+}
 ```
 
-#### D. Tambah Tombol Edit & Durasi pada UI Link Aktif
+**Fungsi Helper:**
+```typescript
+// Ekstrak link dari HTML menggunakan regex
+function extractLinksFromHtml(html: string): string[] {
+  const linkRegex = /href=["'](https?:\/\/[^"']+)["']/gi;
+  const matches = [...html.matchAll(linkRegex)];
+  return [...new Set(matches.map(m => m[1]))]; // Unique links only
+}
 
-Pada bagian active links (sekitar baris 306-346), tambahkan tombol baru:
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ [Aktif] CL-A7X9B2    [📋] [🔗] [QR] [✏️ Edit] [⏱️ Durasi] [🗑️]  │
-│ Berlaku hingga 28 Jan 2026 14:00   | 5 views                        │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-#### E. Tambah Dialog Edit Link
-
-```text
-┌─────────────────────────────────────────┐
-│ Edit Link                               │
-├─────────────────────────────────────────┤
-│ Kode saat ini: CL-A7X9B2                │
-│                                         │
-│ Kode Baru:                              │
-│ [INV-000251-BUDI_______________]        │
-│                                         │
-│ * 4-30 karakter (huruf, angka, -, _)    │
-│                                         │
-│                    [Batal] [Simpan]     │
-└─────────────────────────────────────────┘
-```
-
-#### F. Tambah Dialog Adjust Duration
-
-```text
-┌─────────────────────────────────────────┐
-│ Ubah Durasi                             │
-├─────────────────────────────────────────┤
-│ Berlaku saat ini: 28 Jan 2026 14:00     │
-│                                         │
-│ [Tambah ▼] [+7_] [Hari ▼]               │
-│                                         │
-│ Hasil baru: 04 Feb 2026 14:00           │
-│                                         │
-│                    [Batal] [Simpan]     │
-└─────────────────────────────────────────┘
+// Ekstrak link dari text
+function extractLinksFromText(text: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s<>"']+)/gi;
+  const matches = text.match(urlRegex) || [];
+  return [...new Set(matches)];
+}
 ```
 
 ---
 
-## Bagian 2: Ubah "Bayar Cash" menjadi "Bayar Cash / Transfer"
+## Keamanan dan Pertimbangan
 
-### File: `src/pages/ContractDetail.tsx`
-
-#### A. Tambah State untuk Metode Pembayaran
-
-```typescript
-// Payment method selection
-const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash');
-```
-
-#### B. Ubah Teks Tombol
-
-```typescript
-// SEBELUM:
-<Banknote className="h-4 w-4 mr-2" />
-Bayar Cash
-
-// SESUDAH:
-<Banknote className="h-4 w-4 mr-2" />
-Bayar Cash / Transfer
-```
-
-#### C. Tambah Pilihan Metode di Dialog
-
-Di dalam `AlertDialogContent`, sebelum input jumlah, tambahkan pilihan:
-
-```text
-┌─────────────────────────────────────────┐
-│ Catat Pembayaran Cash / Transfer        │
-├─────────────────────────────────────────┤
-│                                         │
-│ Metode Pembayaran:                      │
-│ ┌─────────────┐  ┌─────────────────┐    │
-│ │ 💵 Cash     │  │ 🏦 Transfer     │    │
-│ │   (terpilih)│  │    Manual       │    │
-│ └─────────────┘  └─────────────────┘    │
-│                                         │
-│ Jumlah Pembayaran:                      │
-│ [500000________________________]        │
-│ = Rp 500.000                            │
-│                                         │
-│ Sisa Tagihan: Rp 2.150.000              │
-│                                         │
-│                    [Batal] [Simpan]     │
-└─────────────────────────────────────────┘
-```
-
-#### D. Update handleCashPayment Function
-
-Modifikasi logic untuk menghandle kedua metode:
-
-```typescript
-const handleCashPayment = async () => {
-  // ... existing validation ...
-  
-  // Tentukan source berdasarkan metode
-  const paymentSource = paymentMethod; // 'cash' atau 'transfer'
-  const bankName = paymentMethod === 'cash' ? 'Cash' : 'Transfer Manual';
-  const notesText = paymentMethod === 'cash' 
-    ? 'Pembayaran Cash' 
-    : 'Transfer Manual';
-  const sourceSuffix = paymentMethod === 'cash' ? '(Cash)' : '(Transfer)';
-  
-  // Update sourceName
-  const sourceName = `${contract.invoice || "Sewa"} ${contract.keterangan || contract.client_groups?.nama || ""} #${paymentNumber} ${sourceSuffix}`.trim();
-  
-  // Insert ke income_sources dengan bank_name yang sesuai
-  // ...
-  
-  // Insert ke contract_payments dengan payment_source yang sesuai
-  // ...
-};
-```
+1. **Timeout**: Set timeout 10 detik per link untuk mencegah webhook timeout
+2. **Limit**: Maksimal 10 link per email untuk mencegah abuse
+3. **Blacklist**: Skip link dari domain yang diketahui berbahaya
+4. **RLS**: Tabel `mail_auto_clicked_links` hanya bisa diakses super_admin
 
 ---
 
-## Rangkuman File yang Diubah
+## File yang Akan Diubah/Dibuat
 
-| File | Perubahan |
-|------|-----------|
-| `src/components/contracts/ContractPublicLinkManager.tsx` | Tambah fitur Edit Link & Adjust Duration dengan dialog dan fungsi update |
-| `src/pages/ContractDetail.tsx` | Ubah tombol "Bayar Cash" → "Bayar Cash / Transfer", tambah pilihan metode pembayaran |
+| File | Aksi | Deskripsi |
+|------|------|-----------|
+| Database Migration | CREATE | Tabel `mail_settings` dan `mail_auto_clicked_links` |
+| `supabase/functions/inbound-mail-webhook/index.ts` | MODIFY | Tambah logic auto-click links |
+| `src/pages/Mail.tsx` | MODIFY | Tambah toggle button dan fetch/update setting |
 
 ---
 
 ## Hasil yang Diharapkan
 
-### 1. Public Link Manager (Admin)
-- Tombol ✏️ untuk edit access code menjadi custom
-- Tombol ⏱️ untuk tambah/kurangi durasi link
-- Dialog dengan preview hasil perubahan
-
-### 2. Ringkasan Pembayaran
-- Tombol berubah menjadi "Bayar Cash / Transfer"  
-- Saat diklik, muncul pilihan metode: Cash atau Transfer Manual
-- Pembayaran tercatat dengan metode yang dipilih di database
+1. Toggle button muncul di header Mail Inbox
+2. Saat toggle ON:
+   - Setiap email baru yang masuk akan dipindai untuk link
+   - Setiap link akan di-fetch/diklik secara otomatis di background
+   - Hasil klik disimpan ke database untuk tracking
+3. Saat toggle OFF:
+   - Email diproses seperti biasa tanpa auto-click
 
