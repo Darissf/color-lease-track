@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Inbox, Star, Trash2, Search, RefreshCw, Mail as MailIcon, Settings, Menu, ArrowLeft, PenSquare } from "lucide-react";
+import { Mail, Inbox, Star, Trash2, Search, RefreshCw, Mail as MailIcon, Settings, Menu, ArrowLeft, PenSquare, Link } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -55,6 +57,30 @@ export default function MailPage() {
   const [mailType, setMailType] = useState<"inbound" | "outbound">("inbound");
   const [composeOpen, setComposeOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<Email | null>(null);
+  const [autoClickEnabled, setAutoClickEnabled] = useState(false);
+  const [loadingAutoClick, setLoadingAutoClick] = useState(false);
+
+  // Fetch auto-click setting on mount
+  useEffect(() => {
+    const fetchAutoClickSetting = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("mail_settings")
+          .select("auto_click_links")
+          .single();
+        
+        if (data && !error) {
+          setAutoClickEnabled(data.auto_click_links);
+        }
+      } catch (error) {
+        console.error("Error fetching auto-click setting:", error);
+      }
+    };
+    
+    if (user && (isSuperAdmin || isAdmin)) {
+      fetchAutoClickSetting();
+    }
+  }, [user, isSuperAdmin, isAdmin]);
 
   useEffect(() => {
     if (user && (isSuperAdmin || isAdmin)) {
@@ -225,6 +251,39 @@ export default function MailPage() {
   const starredCount = emails.filter((e) => e.is_starred && !e.is_deleted).length;
   const trashCount = emails.filter((e) => e.is_deleted).length;
 
+  const handleToggleAutoClick = async (enabled: boolean) => {
+    setLoadingAutoClick(true);
+    try {
+      const { error } = await supabase
+        .from("mail_settings")
+        .upsert({ 
+          id: "default",
+          auto_click_links: enabled, 
+          updated_at: new Date().toISOString(),
+          updated_by: user?.id 
+        }, { onConflict: "id" });
+
+      if (error) throw error;
+      
+      setAutoClickEnabled(enabled);
+      toast({
+        title: enabled ? "Auto-Click Aktif" : "Auto-Click Nonaktif",
+        description: enabled 
+          ? "Link di email baru akan otomatis diklik" 
+          : "Link tidak akan diklik otomatis",
+      });
+    } catch (error) {
+      console.error("Error updating auto-click setting:", error);
+      toast({
+        title: "Error",
+        description: "Gagal mengubah pengaturan auto-click",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingAutoClick(false);
+    }
+  };
+
   if (!isSuperAdmin && !isAdmin) {
     return (
       <div className="h-[calc(100vh-104px)] flex items-center justify-center">
@@ -386,6 +445,28 @@ export default function MailPage() {
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""} ${!isMobile && "mr-2"}`} />
               <span className="hidden md:inline">Refresh</span>
             </Button>
+            
+            {/* Auto-Click Toggle */}
+            {isSuperAdmin && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 px-2 py-1 rounded-md border bg-card">
+                      <Link className="h-4 w-4 text-muted-foreground" />
+                      <Switch
+                        checked={autoClickEnabled}
+                        onCheckedChange={handleToggleAutoClick}
+                        disabled={loadingAutoClick}
+                        className="data-[state=checked]:bg-primary"
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{autoClickEnabled ? "Auto-Click ON: Link di email baru otomatis diklik" : "Auto-Click OFF: Link tidak diklik otomatis"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
 

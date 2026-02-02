@@ -3722,6 +3722,47 @@ export type Database = {
         }
         Relationships: []
       }
+      mail_auto_clicked_links: {
+        Row: {
+          clicked_at: string
+          created_at: string
+          error_message: string | null
+          id: string
+          mail_inbox_id: string | null
+          response_preview: string | null
+          status_code: number | null
+          url: string
+        }
+        Insert: {
+          clicked_at?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          mail_inbox_id?: string | null
+          response_preview?: string | null
+          status_code?: number | null
+          url: string
+        }
+        Update: {
+          clicked_at?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          mail_inbox_id?: string | null
+          response_preview?: string | null
+          status_code?: number | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_auto_clicked_links_mail_inbox_id_fkey"
+            columns: ["mail_inbox_id"]
+            isOneToOne: false
+            referencedRelation: "mail_inbox"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mail_inbox: {
         Row: {
           attachments: Json | null
@@ -3798,6 +3839,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mail_settings: {
+        Row: {
+          auto_click_links: boolean
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_click_links?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_click_links?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       manual_invoice_content: {
         Row: {
