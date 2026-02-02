@@ -5,6 +5,113 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Extract links from HTML
+function extractLinksFromHtml(html: string): string[] {
+  const linkRegex = /href=["'](https?:\/\/[^"']+)["']/gi;
+  const matches = [...html.matchAll(linkRegex)];
+  return [...new Set(matches.map(m => m[1]))];
+}
+
+// Extract links from plain text
+function extractLinksFromText(text: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s<>"']+)/gi;
+  const matches = text.match(urlRegex) || [];
+  return [...new Set(matches)];
+}
+
+// Auto-click links in background
+async function autoClickLinks(
+  supabase: any, 
+  mailInboxId: string, 
+  bodyHtml: string, 
+  bodyText: string
+) {
+  try {
+    // Check if auto-click is enabled
+    const { data: settings } = await supabase
+      .from('mail_settings')
+      .select('auto_click_links')
+      .single();
+
+    if (!settings?.auto_click_links) {
+      console.log('Auto-click is disabled');
+      return;
+    }
+
+    // Extract unique links
+    let links: string[] = [];
+    if (bodyHtml) {
+      links = extractLinksFromHtml(bodyHtml);
+    }
+    if (links.length === 0 && bodyText) {
+      links = extractLinksFromText(bodyText);
+    }
+
+    // Limit to max 10 links per email
+    links = links.slice(0, 10);
+
+    if (links.length === 0) {
+      console.log('No links found in email');
+      return;
+    }
+
+    console.log(`Found ${links.length} links to auto-click:`, links);
+
+    // Click each link with timeout
+    for (const url of links) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          },
+          redirect: 'follow',
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        let responsePreview = '';
+        try {
+          const text = await response.text();
+          responsePreview = text.substring(0, 500);
+        } catch {
+          responsePreview = '';
+        }
+
+        // Log successful click
+        await supabase.from('mail_auto_clicked_links').insert({
+          mail_inbox_id: mailInboxId,
+          url: url,
+          status_code: response.status,
+          response_preview: responsePreview,
+          clicked_at: new Date().toISOString(),
+        });
+
+        console.log(`Successfully clicked: ${url} (status: ${response.status})`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        // Log failed click
+        await supabase.from('mail_auto_clicked_links').insert({
+          mail_inbox_id: mailInboxId,
+          url: url,
+          error_message: errorMessage,
+          clicked_at: new Date().toISOString(),
+        });
+
+        console.error(`Failed to click: ${url}`, errorMessage);
+      }
+    }
+  } catch (error) {
+    console.error('Error in autoClickLinks:', error);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -121,7 +228,7 @@ Deno.serve(async (req) => {
       is_read: false,
       is_starred: false,
       received_at: emailData.created_at || new Date().toISOString(),
-    });
+    }).select('id').single();
 
     if (error) {
       console.error('Database error:', error);
@@ -129,6 +236,12 @@ Deno.serve(async (req) => {
     }
 
     console.log('Email saved successfully:', data);
+
+    // Auto-click links in background (fire and forget to avoid slowing down webhook response)
+    if (data?.id) {
+      autoClickLinks(supabase, data.id, bodyHtml, bodyText)
+        .catch(e => console.error('Background auto-click error:', e));
+    }
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email received and stored' }),
