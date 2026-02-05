@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CalendarIcon, AlertTriangle, Copy, Clock, Loader2 } from "lucide-react";
-import { format, addDays } from "date-fns";
+import { format, addDays, addYears } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,8 +52,8 @@ export function ExtendContractDialog({
   
   // Form states
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  const [isFlexibleDuration, setIsFlexibleDuration] = useState(false);
+  const [durationMode, setDurationMode] = useState<'flexible' | 'fixed'>('fixed');
+  const [durationDays, setDurationDays] = useState<number>(30);
   const [transferUnpaidBalance, setTransferUnpaidBalance] = useState(false);
   const [copyLineItems, setCopyLineItems] = useState(true);
   const [copyStockItems, setCopyStockItems] = useState(true);
@@ -72,8 +72,8 @@ export function ExtendContractDialog({
     if (open && contract) {
       const newStartDate = addDays(new Date(contract.end_date), 1);
       setStartDate(newStartDate);
-      setEndDate(addDays(newStartDate, 30)); // Default 30 days
-      setIsFlexibleDuration(false);
+      setDurationMode('fixed');
+      setDurationDays(30); // Default 30 days
       setTransferUnpaidBalance(false);
       setCopyLineItems(true);
       setCopyStockItems(true);
@@ -118,9 +118,23 @@ export function ExtendContractDialog({
   };
 
   const handleExtend = async () => {
-    if (!user || !startDate || !endDate) {
-      toast.error("Mohon lengkapi tanggal mulai dan selesai");
+    if (!user || !startDate) {
+      toast.error("Mohon pilih tanggal mulai");
       return;
+    }
+    
+    if (durationMode === 'fixed' && (!durationDays || durationDays < 1)) {
+      toast.error("Mohon masukkan durasi minimal 1 hari");
+      return;
+    }
+    
+    // Hitung end_date
+    let endDate: Date;
+    if (durationMode === 'flexible') {
+      // Placeholder: 1 tahun dari start
+      endDate = addYears(startDate, 1);
+    } else {
+      endDate = addDays(startDate, durationDays - 1);
     }
 
     setIsLoading(true);
@@ -140,7 +154,7 @@ export function ExtendContractDialog({
           invoice: invoiceNumber,
           parent_contract_id: contract.id,
           extension_number: (contract.extension_number ?? 0) + 1,
-          is_flexible_duration: isFlexibleDuration,
+          is_flexible_duration: durationMode === 'flexible',
           tagihan: transferUnpaidBalance ? contract.tagihan_belum_bayar : 0,
           tagihan_belum_bayar: transferUnpaidBalance ? contract.tagihan_belum_bayar : 0,
           keterangan: contract.keterangan,
@@ -341,7 +355,7 @@ export function ExtendContractDialog({
           <div className="space-y-3">
             <p className="text-sm font-medium">Periode Baru</p>
             
-            <div className="grid grid-cols-2 gap-3">
+              {/* Tanggal Mulai */}
               <div className="space-y-2">
                 <Label>Tanggal Mulai</Label>
                 <Popover>
@@ -355,62 +369,73 @@ export function ExtendContractDialog({
                     <Calendar
                       mode="single"
                       selected={startDate}
-                      onSelect={(date) => {
-                        setStartDate(date);
-                        if (date && endDate && date > endDate) {
-                          setEndDate(addDays(date, 30));
-                        }
-                      }}
+                      onSelect={setStartDate}
                       initialFocus
+                      className="pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
               </div>
-              
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">
-                  Tanggal Selesai
-                  {isFlexibleDuration && (
-                    <Badge variant="outline" className="ml-1 text-xs">Perkiraan</Badge>
-                  )}
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start", !endDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "dd/MM/yyyy") : "Pilih"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                      disabled={(date) => startDate ? date < startDate : false}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
 
-            {/* Flexible duration toggle */}
-            <div className="flex items-start gap-3 p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20">
-              <Switch
-                id="flexible-duration"
-                checked={isFlexibleDuration}
-                onCheckedChange={setIsFlexibleDuration}
-              />
-              <div className="space-y-1">
-                <Label htmlFor="flexible-duration" className="flex items-center gap-2 cursor-pointer">
-                  <Clock className="h-4 w-4 text-blue-600" />
-                  Durasi Fleksibel
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Client belum tahu akan perpanjang berapa lama, tagihan dihitung saat closing
-                </p>
+              {/* Mode Durasi */}
+              <div className="space-y-3">
+                <Label>Mode Durasi</Label>
+                <RadioGroup value={durationMode} onValueChange={(v) => setDurationMode(v as 'flexible' | 'fixed')}>
+                  <div className={cn(
+                    "flex items-start gap-3 p-3 rounded-lg border transition-colors",
+                    durationMode === 'flexible' ? "bg-blue-50/50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-700" : "bg-background"
+                  )}>
+                    <RadioGroupItem value="flexible" id="extend-flexible" className="mt-0.5" />
+                    <div className="flex-1">
+                      <Label htmlFor="extend-flexible" className="flex items-center gap-2 cursor-pointer">
+                        <Clock className="h-4 w-4 text-blue-600" />
+                        Fleksibel
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Client belum tahu akan perpanjang berapa lama, tagihan dihitung saat closing
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg border transition-colors",
+                    durationMode === 'fixed' ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700" : "bg-background"
+                  )}>
+                    <RadioGroupItem value="fixed" id="extend-fixed" />
+                    <Label htmlFor="extend-fixed" className="cursor-pointer">Durasi Tetap</Label>
+                  </div>
+                </RadioGroup>
               </div>
-            </div>
+
+              {/* Durasi & Preview Tanggal Selesai - hanya tampil jika mode fixed */}
+              {durationMode === 'fixed' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Durasi (hari) *</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={durationDays}
+                      onChange={(e) => setDurationDays(parseInt(e.target.value) || 0)}
+                      placeholder="Contoh: 30"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Tanggal Selesai</Label>
+                    <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                      {startDate && durationDays > 0 ? (
+                        <span className="font-medium text-sm">
+                          {format(addDays(startDate, durationDays - 1), "dd/MM/yyyy")}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
           </div>
 
           <Separator />
@@ -472,7 +497,7 @@ export function ExtendContractDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Batal
           </Button>
-          <Button onClick={handleExtend} disabled={isLoading || !startDate || !endDate}>
+          <Button onClick={handleExtend} disabled={isLoading || !startDate || (durationMode === 'fixed' && durationDays < 1)}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Buat Perpanjangan
           </Button>
