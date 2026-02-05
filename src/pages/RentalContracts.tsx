@@ -23,6 +23,7 @@ import BankLogo from "@/components/BankLogo";
 import { format, differenceInDays, differenceInHours, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, addYears } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/currency";
@@ -100,6 +101,7 @@ const RentalContracts = () => {
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
   const [invoiceSearch, setInvoiceSearch] = useState("");
+  const [hideClosedContracts, setHideClosedContracts] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   
   // Auto Invoice settings
@@ -532,6 +534,12 @@ const RentalContracts = () => {
     
     // First filter by status from URL parameter
     let filtered = rentalContracts.filter(contract => {
+      // Hide closed contracts if checkbox is checked
+      if (hideClosedContracts) {
+        const isClosed = contract.status === "selesai" && (contract.tagihan_belum_bayar ?? 0) <= 0;
+        if (isClosed) return false;
+      }
+      
       // Apply status filter from URL
       if (statusFilter && statusFilter !== "all") {
         const statusMap: Record<string, string> = {
@@ -629,7 +637,7 @@ const RentalContracts = () => {
     }
     
     return sorted;
-  }, [rentalContracts, sortBy, sortOrder, clientGroups, startDateFilter, endDateFilter, invoiceSearch, statusFilter]);
+  }, [rentalContracts, sortBy, sortOrder, clientGroups, startDateFilter, endDateFilter, invoiceSearch, statusFilter, hideClosedContracts]);
 
   const totalPages = Math.ceil(sortedContracts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -1126,7 +1134,7 @@ const RentalContracts = () => {
                   onChange={(e) => setInvoiceSearch(e.target.value)}
                   className="w-[200px]"
                 />
-                {invoiceSearch && (
+              {invoiceSearch && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1136,6 +1144,20 @@ const RentalContracts = () => {
                   </Button>
                 )}
               </div>
+              
+              {/* Hide Closed Checkbox - only show when filter status is "all" */}
+              {(!statusFilter || statusFilter === "all") && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="hide-closed"
+                    checked={hideClosedContracts}
+                    onCheckedChange={(checked) => setHideClosedContracts(checked === true)}
+                  />
+                  <Label htmlFor="hide-closed" className="cursor-pointer text-sm whitespace-nowrap">
+                    Hide Closed
+                  </Label>
+                </div>
+              )}
               
               {/* Date Range Filter */}
               <div className="flex items-center gap-2 flex-wrap">
