@@ -1369,10 +1369,13 @@ const RentalContracts = () => {
                         </div>
                       </TableCell>
                       <TableCell className={cn("text-sm whitespace-nowrap", isCompactMode && "py-1 px-2 text-xs")}>
-                        {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}{" "}
-                        <span className={cn("text-xs font-medium ml-1", remainingDays > 0 ? "text-green-600" : "text-red-600", isCompactMode && "text-[10px]")}>
-                          ({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
-                        </span>
+                        {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}
+                        {/* Sembunyikan info hari jika status Closed */}
+                        {!(contract.status === "selesai" && contract.tagihan_belum_bayar <= 0) && (
+                          <span className={cn("text-xs font-medium ml-1", remainingDays > 0 ? "text-green-600" : "text-red-600", isCompactMode && "text-[10px]")}>
+                            {" "}({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className={cn(isCompactMode && "py-1 px-2")}>
                         <div className="flex flex-wrap items-center gap-1">
