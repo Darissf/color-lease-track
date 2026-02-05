@@ -119,7 +119,8 @@ export function ContractStockItemsEditor({
         pcs_per_set: item.inventory_items?.pcs_per_set || 1,
       }));
       setStockItems(mapped);
-      setOriginalItems(mapped);
+      // Deep clone untuk originalItems agar tidak ter-mutasi saat edit stockItems
+      setOriginalItems(JSON.parse(JSON.stringify(mapped)));
     }
     
     setLoading(false);
