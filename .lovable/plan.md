@@ -1,92 +1,50 @@
 
 
-## Menambahkan Filter Preset Tanggal (Minggu Ini, Bulan Ini, Tahun Ini)
+## Fix Bug: Rincian Stok Barang Tidak Update Setelah Simpan
 
-### Kondisi Saat Ini
-Halaman List Kontrak Sewa sudah memiliki filter tanggal dengan date picker "Dari" dan "Sampai", tetapi user harus memilih tanggal secara manual setiap kali.
+### Masalah yang Ditemukan
+
+Saya menemukan **2 bug** di `ContractStockItemsEditor.tsx`:
+
+1. **Perubahan `unit_mode` tidak terdeteksi** - Jika user mengubah unit mode saja (misal dari pcs ke set), perubahan tidak masuk ke daftar `itemsToUpdate` karena kondisi filter hanya memeriksa `quantity` dan `inventory_item_id`
+
+2. **Perubahan `unit_mode` pada item existing juga tidak dicek** - Ini menyebabkan jika user edit item dan hanya mengubah unit mode, data tidak tersimpan
 
 ### Solusi
-Menambahkan dropdown/select dengan preset periode waktu yang populer untuk mempercepat filtering:
-- **Minggu Ini** - Dari hari Senin hingga Minggu minggu ini
-- **Bulan Ini** - Dari tanggal 1 hingga akhir bulan ini  
-- **Tahun Ini** - Dari 1 Januari hingga 31 Desember tahun ini
-- **Custom** - Menggunakan date picker manual yang sudah ada
 
-### Perubahan pada File
+**File yang perlu diubah:** `src/components/contracts/ContractStockItemsEditor.tsx`
 
-| File | Perubahan |
-|------|-----------|
-| `src/pages/RentalContracts.tsx` | Tambah state untuk preset dan Select dropdown |
+**Perubahan pada logika `itemsToUpdate`:**
 
-### Detail Teknis
+| Kondisi Lama | Kondisi Baru |
+|--------------|--------------|
+| `orig.quantity !== s.quantity \|\| orig.inventory_item_id !== s.inventory_item_id` | `orig.quantity !== s.quantity \|\| orig.inventory_item_id !== s.inventory_item_id \|\| orig.unit_mode !== s.unit_mode` |
 
-**1. State Baru**
+### Kode yang Akan Diubah
+
+**Sebelum (Line 251-255):**
 ```typescript
-const [datePreset, setDatePreset] = useState<string>("custom");
+const itemsToUpdate = stockItems.filter(s => {
+  if (!s.id) return false;
+  const orig = originalItems.find(o => o.id === s.id);
+  return orig && (orig.quantity !== s.quantity || orig.inventory_item_id !== s.inventory_item_id);
+});
 ```
 
-**2. Handler Preset**
+**Sesudah:**
 ```typescript
-const handleDatePresetChange = (preset: string) => {
-  setDatePreset(preset);
-  const now = getNowInJakarta();
-  
-  switch(preset) {
-    case "this-week":
-      // Senin minggu ini
-      const monday = startOfWeek(now, { weekStartsOn: 1 });
-      const sunday = endOfWeek(now, { weekStartsOn: 1 });
-      setStartDateFilter(monday);
-      setEndDateFilter(sunday);
-      break;
-    case "this-month":
-      setStartDateFilter(startOfMonth(now));
-      setEndDateFilter(endOfMonth(now));
-      break;
-    case "this-year":
-      setStartDateFilter(startOfYear(now));
-      setEndDateFilter(endOfYear(now));
-      break;
-    case "custom":
-      // Biarkan user pilih manual
-      break;
-    default:
-      setStartDateFilter(undefined);
-      setEndDateFilter(undefined);
-  }
-};
+const itemsToUpdate = stockItems.filter(s => {
+  if (!s.id) return false;
+  const orig = originalItems.find(o => o.id === s.id);
+  return orig && (
+    orig.quantity !== s.quantity || 
+    orig.inventory_item_id !== s.inventory_item_id ||
+    orig.unit_mode !== s.unit_mode
+  );
+});
 ```
 
-**3. UI - Dropdown Preset (sebelum date picker)**
-```jsx
-<Select value={datePreset} onValueChange={handleDatePresetChange}>
-  <SelectTrigger className="w-[140px]">
-    <SelectValue placeholder="Pilih periode" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">Semua</SelectItem>
-    <SelectItem value="this-week">Minggu Ini</SelectItem>
-    <SelectItem value="this-month">Bulan Ini</SelectItem>
-    <SelectItem value="this-year">Tahun Ini</SelectItem>
-    <SelectItem value="custom">Custom</SelectItem>
-  </SelectContent>
-</Select>
-```
-
-**4. Import Tambahan**
-```typescript
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
-```
-
-### Flow UI
-1. User melihat dropdown "Pilih periode" di sebelah label "Filter Tanggal"
-2. User memilih "Bulan Ini" 
-3. Otomatis date picker "Dari" terisi 1 Februari 2026 dan "Sampai" terisi 28 Februari 2026
-4. Jika user pilih "Custom", date picker tetap aktif untuk input manual
-5. Jika user pilih "Semua", kedua filter tanggal di-reset
-
-### Catatan
-- Menggunakan `weekStartsOn: 1` agar minggu dimulai dari Senin (standar Indonesia)
-- Tetap menggunakan timezone Jakarta yang sudah distandarisasi
-- Date picker manual tetap tersedia untuk fleksibilitas
+### Ringkasan
+- Menambahkan pengecekan `unit_mode` pada kondisi filter `itemsToUpdate`
+- Perubahan kecil tapi critical untuk memastikan semua perubahan tersimpan dengan benar
 
