@@ -1,85 +1,69 @@
 
 
-## Tambah Checkbox "Hide Closed" pada List Kontrak Sewa
+## Tampilkan "Belum diketahui" untuk Kontrak Durasi Fleksibel
 
 ### Perubahan yang Diminta
 
-Menambahkan checkbox dengan label "Hide Closed" di area filter. Ketika dicentang, semua kontrak dengan status **Closed** (status "selesai" DAN tagihan_belum_bayar <= 0) akan disembunyikan dari daftar.
+Pada kolom Periode, jika kontrak memiliki durasi fleksibel (`is_flexible_duration = true`), maka tanggal akhir akan ditampilkan sebagai "Belum diketahui" bukan tanggal sebenarnya.
 
 ### Ilustrasi
 
-**Area Filter (setelah perubahan):**
+**Sebelum:**
 ```
-Sort By: [Tidak Ada ▼] [↑]   Cari Invoice: [________]   Filter Tanggal: [Semua ▼]   ☑ Hide Closed
+Periode
+06 Feb 2026 - 08 Mar 2026 (30 hari)
+```
+
+**Sesudah (jika fleksibel):**
+```
+Periode
+06 Feb 2026 - Belum diketahui
 ```
 
 ### Perubahan Teknis
 
-**File:** `src/pages/RentalContracts.tsx`
+**File:** `src/pages/RentalContracts.tsx`  
+**Lokasi:** Baris ~1393-1400
 
-#### 1. Tambah State Baru (sekitar baris 102)
-
-```typescript
-const [hideClosedContracts, setHideClosedContracts] = useState(false);
-```
-
-#### 2. Update Filter Logic di `sortedContracts` useMemo (sekitar baris 534-581)
-
-Tambahkan filter untuk hide closed contracts:
-
-```typescript
-let filtered = rentalContracts.filter(contract => {
-  // NEW: Hide closed contracts if checkbox is checked
-  if (hideClosedContracts) {
-    const isClosed = contract.status === "selesai" && (contract.tagihan_belum_bayar ?? 0) <= 0;
-    if (isClosed) return false;
-  }
-  
-  // ...existing filters...
-});
-```
-
-Dan tambahkan ke dependency array:
-```typescript
-}, [rentalContracts, sortBy, sortOrder, clientGroups, startDateFilter, endDateFilter, invoiceSearch, statusFilter, hideClosedContracts]);
-```
-
-#### 3. Tambah UI Checkbox (sekitar baris 1138, setelah Invoice Search)
-
+**Kode sebelum:**
 ```tsx
-{/* Hide Closed Checkbox - hanya tampil jika filter status adalah "all" */}
-{(!statusFilter || statusFilter === "all") && (
-  <div className="flex items-center gap-2">
-    <Checkbox
-      id="hide-closed"
-      checked={hideClosedContracts}
-      onCheckedChange={(checked) => setHideClosedContracts(checked === true)}
-    />
-    <Label htmlFor="hide-closed" className="cursor-pointer text-sm">
-      Hide Closed
-    </Label>
-  </div>
-)}
+<TableCell className={cn("text-sm whitespace-nowrap", isCompactMode && "py-1 px-2 text-xs")}>
+  {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}
+  {/* Sembunyikan info hari jika status Closed */}
+  {!(contract.status === "selesai" && contract.tagihan_belum_bayar <= 0) && (
+    <span className={cn("text-xs font-medium ml-1", remainingDays > 0 ? "text-green-600" : "text-red-600", isCompactMode && "text-[10px]")}>
+      {" "}({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
+    </span>
+  )}
+</TableCell>
 ```
 
-#### 4. Import Checkbox Component
-
-```typescript
-import { Checkbox } from "@/components/ui/checkbox";
+**Kode sesudah:**
+```tsx
+<TableCell className={cn("text-sm whitespace-nowrap", isCompactMode && "py-1 px-2 text-xs")}>
+  {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - {(contract as any).is_flexible_duration 
+    ? <span className="text-muted-foreground italic">Belum diketahui</span>
+    : format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })
+  }
+  {/* Sembunyikan info hari jika status Closed atau durasi fleksibel */}
+  {!(contract.status === "selesai" && contract.tagihan_belum_bayar <= 0) && !(contract as any).is_flexible_duration && (
+    <span className={cn("text-xs font-medium ml-1", remainingDays > 0 ? "text-green-600" : "text-red-600", isCompactMode && "text-[10px]")}>
+      {" "}({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
+    </span>
+  )}
+</TableCell>
 ```
 
-### Catatan
+### Logika
 
-- Checkbox hanya ditampilkan saat filter status adalah "all" (halaman semua kontrak)
-- Jika user sudah di halaman filter khusus (misal: /closed atau /masa-sewa), checkbox tidak perlu muncul karena sudah difilter berdasarkan status
-- State `hideClosedContracts` default `false` (tidak dicentang)
+| Kondisi | Tampilan Periode |
+|---------|------------------|
+| `is_flexible_duration = true` | "06 Feb 2026 - Belum diketahui" (tanpa info hari) |
+| `is_flexible_duration = false` | "06 Feb 2026 - 08 Mar 2026 (30 hari)" |
+| Closed + tidak fleksibel | "06 Feb 2026 - 08 Mar 2026" (tanpa info hari) |
 
-### Ringkasan
+### Styling
 
-| Aspek | Detail |
-|-------|--------|
-| Lokasi UI | Setelah input "Cari Invoice" di baris filter pertama |
-| Kondisi tampil | Hanya saat `statusFilter === "all"` atau tidak ada filter status |
-| Logika filter | Hide jika `status === "selesai" && tagihan_belum_bayar <= 0` |
-| Default value | Tidak dicentang (false) |
+- Teks "Belum diketahui" menggunakan warna `text-muted-foreground` dan style `italic` agar terlihat berbeda
+- Info hari (X hari / Berakhir) disembunyikan untuk kontrak fleksibel karena tidak relevan
 
