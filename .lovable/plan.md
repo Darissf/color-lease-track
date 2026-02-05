@@ -1,57 +1,85 @@
 
 
-## Hapus Tulisan "Berakhir" untuk Status Closed
+## Tambah Checkbox "Hide Closed" pada List Kontrak Sewa
 
 ### Perubahan yang Diminta
 
-Pada kolom Periode, tulisan "(Berakhir)" akan disembunyikan jika kontrak berstatus **Closed** (yaitu status "selesai" DAN tagihan_belum_bayar <= 0).
+Menambahkan checkbox dengan label "Hide Closed" di area filter. Ketika dicentang, semua kontrak dengan status **Closed** (status "selesai" DAN tagihan_belum_bayar <= 0) akan disembunyikan dari daftar.
 
 ### Ilustrasi
 
-**Sebelum:**
+**Area Filter (setelah perubahan):**
 ```
-Periode                           Status
-25 Jan 2026 - 29 Jan 2026 (Berakhir)   [Closed]
-```
-
-**Sesudah:**
-```
-Periode                           Status
-25 Jan 2026 - 29 Jan 2026              [Closed]
+Sort By: [Tidak Ada ▼] [↑]   Cari Invoice: [________]   Filter Tanggal: [Semua ▼]   ☑ Hide Closed
 ```
 
 ### Perubahan Teknis
 
-**File:** `src/pages/RentalContracts.tsx`  
-**Lokasi:** Baris ~1371-1375
+**File:** `src/pages/RentalContracts.tsx`
 
-**Kode sebelum:**
-```tsx
-<TableCell className={cn("text-sm whitespace-nowrap", isCompactMode && "py-1 px-2 text-xs")}>
-  {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}{" "}
-  <span className={cn("text-xs font-medium ml-1", remainingDays > 0 ? "text-green-600" : "text-red-600", isCompactMode && "text-[10px]")}>
-    ({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
-  </span>
-</TableCell>
+#### 1. Tambah State Baru (sekitar baris 102)
+
+```typescript
+const [hideClosedContracts, setHideClosedContracts] = useState(false);
 ```
 
-**Kode sesudah:**
-```tsx
-<TableCell className={cn("text-sm whitespace-nowrap", isCompactMode && "py-1 px-2 text-xs")}>
-  {format(new Date(contract.start_date), "dd MMM yyyy", { locale: localeId })} - {format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })}
-  {/* Sembunyikan info hari jika status Closed */}
-  {!(contract.status === "selesai" && contract.tagihan_belum_bayar <= 0) && (
-    <span className={cn("text-xs font-medium ml-1", remainingDays > 0 ? "text-green-600" : "text-red-600", isCompactMode && "text-[10px]")}>
-      ({remainingDays > 0 ? `${remainingDays} hari` : "Berakhir"})
-    </span>
-  )}
-</TableCell>
+#### 2. Update Filter Logic di `sortedContracts` useMemo (sekitar baris 534-581)
+
+Tambahkan filter untuk hide closed contracts:
+
+```typescript
+let filtered = rentalContracts.filter(contract => {
+  // NEW: Hide closed contracts if checkbox is checked
+  if (hideClosedContracts) {
+    const isClosed = contract.status === "selesai" && (contract.tagihan_belum_bayar ?? 0) <= 0;
+    if (isClosed) return false;
+  }
+  
+  // ...existing filters...
+});
 ```
 
-### Logika
+Dan tambahkan ke dependency array:
+```typescript
+}, [rentalContracts, sortBy, sortOrder, clientGroups, startDateFilter, endDateFilter, invoiceSearch, statusFilter, hideClosedContracts]);
+```
 
-| Status | Kondisi | Tampilan |
-|--------|---------|----------|
-| Closed | status="selesai" && tagihan_belum_bayar <= 0 | Hanya tanggal, tanpa "(Berakhir)" |
-| Lainnya | Semua kondisi lain | Tampilkan "(X hari)" atau "(Berakhir)" |
+#### 3. Tambah UI Checkbox (sekitar baris 1138, setelah Invoice Search)
+
+```tsx
+{/* Hide Closed Checkbox - hanya tampil jika filter status adalah "all" */}
+{(!statusFilter || statusFilter === "all") && (
+  <div className="flex items-center gap-2">
+    <Checkbox
+      id="hide-closed"
+      checked={hideClosedContracts}
+      onCheckedChange={(checked) => setHideClosedContracts(checked === true)}
+    />
+    <Label htmlFor="hide-closed" className="cursor-pointer text-sm">
+      Hide Closed
+    </Label>
+  </div>
+)}
+```
+
+#### 4. Import Checkbox Component
+
+```typescript
+import { Checkbox } from "@/components/ui/checkbox";
+```
+
+### Catatan
+
+- Checkbox hanya ditampilkan saat filter status adalah "all" (halaman semua kontrak)
+- Jika user sudah di halaman filter khusus (misal: /closed atau /masa-sewa), checkbox tidak perlu muncul karena sudah difilter berdasarkan status
+- State `hideClosedContracts` default `false` (tidak dicentang)
+
+### Ringkasan
+
+| Aspek | Detail |
+|-------|--------|
+| Lokasi UI | Setelah input "Cari Invoice" di baris filter pertama |
+| Kondisi tampil | Hanya saat `statusFilter === "all"` atau tidak ada filter status |
+| Logika filter | Hide jika `status === "selesai" && tagihan_belum_bayar <= 0` |
+| Default value | Tidak dicentang (false) |
 
