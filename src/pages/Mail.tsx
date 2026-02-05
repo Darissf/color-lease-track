@@ -451,13 +451,14 @@ export default function MailPage() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2 px-2 py-1 rounded-md border bg-card">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-card shadow-sm">
                       <Link className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs font-medium hidden sm:inline">Auto-Click</span>
                       <Switch
                         checked={autoClickEnabled}
                         onCheckedChange={handleToggleAutoClick}
                         disabled={loadingAutoClick}
-                        className="data-[state=checked]:bg-primary"
+                        className="data-[state=checked]:bg-green-500"
                       />
                     </div>
                   </TooltipTrigger>
