@@ -211,6 +211,8 @@ export default function ContractDetail() {
   // Contract extension states
   const [isExtendDialogOpen, setIsExtendDialogOpen] = useState(false);
   const [isFlexibleClosingOpen, setIsFlexibleClosingOpen] = useState(false);
+  const [hasChildExtension, setHasChildExtension] = useState(false);
+  const [childContractInvoice, setChildContractInvoice] = useState<string | null>(null);
 
   const fetchPendingPaymentRequest = useCallback(async () => {
     if (!id) return;
@@ -227,16 +229,35 @@ export default function ContractDetail() {
     setPendingPaymentRequest(data);
   }, [id]);
 
+  const fetchChildExtension = useCallback(async () => {
+    if (!id) return;
+    
+    const { data } = await supabase
+      .from('rental_contracts')
+      .select('id, invoice')
+      .eq('parent_contract_id', id)
+      .maybeSingle();
+    
+    if (data) {
+      setHasChildExtension(true);
+      setChildContractInvoice(data.invoice);
+    } else {
+      setHasChildExtension(false);
+      setChildContractInvoice(null);
+    }
+  }, [id]);
+
   useEffect(() => {
     if (user && id) {
       fetchContractDetail();
       fetchPendingPaymentRequest();
       fetchStockItems();
+      fetchChildExtension();
       if (isSuperAdmin) {
         fetchEditRequests();
       }
     }
-  }, [user, id, isSuperAdmin, fetchPendingPaymentRequest]);
+  }, [user, id, isSuperAdmin, fetchPendingPaymentRequest, fetchChildExtension]);
 
   const fetchStockItems = async () => {
     if (!id) return;
@@ -1125,19 +1146,44 @@ export default function ContractDetail() {
           
           {/* Extend Contract Button */}
           {(isSuperAdmin || isAdmin) && (
-            <Button 
-              variant="outline"
-              onClick={() => setIsExtendDialogOpen(true)}
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Perpanjang
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="outline"
+                  onClick={hasChildExtension ? undefined : () => setIsExtendDialogOpen(true)}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Perpanjang
+                </Button>
+              </AlertDialogTrigger>
+              {hasChildExtension && (
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Kontrak Sudah Diperpanjang</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-2">
+                        <p>
+                          Kontrak ini sudah diperpanjang ke invoice <strong>{childContractInvoice}</strong>. 
+                          Setiap kontrak hanya bisa memiliki satu perpanjangan langsung.
+                        </p>
+                        <p>
+                          Jika ingin memperpanjang lagi, silakan perpanjang dari kontrak <strong>{childContractInvoice}</strong>.
+                        </p>
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogAction>Mengerti</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              )}
+            </AlertDialog>
           )}
         </div>
       </div>
 
-      {/* Contract Chain Visualization */}
-      {(contract.parent_contract_id || (contract.extension_number ?? 0) > 0) && (
+      {/* Contract Chain Visualization - tampilkan jika ada parent ATAU ada child */}
+      {(contract.parent_contract_id || (contract.extension_number ?? 0) > 0 || hasChildExtension) && (
         <ContractChainVisualization 
           contractId={contract.id} 
           currentContractId={contract.id} 
