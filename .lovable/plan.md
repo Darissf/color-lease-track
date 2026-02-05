@@ -1,121 +1,92 @@
 
 
-## Dashboard Kontrak Sewa dengan Navigasi Status
+## Menambahkan Filter Preset Tanggal (Minggu Ini, Bulan Ini, Tahun Ini)
 
-### Deskripsi
-Membuat halaman dashboard baru yang muncul ketika user mengklik "List Kontrak Sewa" di sidebar. Dashboard ini menampilkan statistik ringkasan kontrak dan opsi navigasi ke berbagai filter status.
+### Kondisi Saat Ini
+Halaman List Kontrak Sewa sudah memiliki filter tanggal dengan date picker "Dari" dan "Sampai", tetapi user harus memilih tanggal secara manual setiap kali.
 
-### Struktur Baru
+### Solusi
+Menambahkan dropdown/select dengan preset periode waktu yang populer untuk mempercepat filtering:
+- **Minggu Ini** - Dari hari Senin hingga Minggu minggu ini
+- **Bulan Ini** - Dari tanggal 1 hingga akhir bulan ini  
+- **Tahun Ini** - Dari 1 Januari hingga 31 Desember tahun ini
+- **Custom** - Menggunakan date picker manual yang sudah ada
 
-```
-/vip/rental-contracts → Dashboard Kontrak (Halaman Baru)
-  ├── Statistik Cards (atas)
-  │   ├── Total Invoice
-  │   ├── Masa Sewa (Aktif)
-  │   ├── Closed (Selesai & Lunas)
-  │   ├── Perpanjangan
-  │   ├── Pending
-  │   └── Selesai (Belum Lunas)
-  │
-  └── Pilihan Navigasi (bawah)
-      ├── Semua Kontrak → /vip/rental-contracts/all
-      ├── Masa Sewa → /vip/rental-contracts/masa-sewa
-      ├── Closed → /vip/rental-contracts/closed
-      ├── Perpanjangan → /vip/rental-contracts/perpanjangan
-      ├── Pending → /vip/rental-contracts/pending
-      └── Selesai → /vip/rental-contracts/selesai
-
-/vip/rental-contracts/all → Halaman list kontrak (yang sudah ada, tanpa filter)
-/vip/rental-contracts/:status → Halaman list kontrak dengan filter status
-```
-
-### File yang Akan Dibuat
-
-| File | Deskripsi |
-|------|-----------|
-| `src/pages/RentalContractsDashboard.tsx` | Dashboard baru dengan statistik dan navigasi status |
-
-### File yang Akan Diubah
+### Perubahan pada File
 
 | File | Perubahan |
 |------|-----------|
-| `src/App.tsx` | Tambah route baru untuk dashboard dan sub-routes dengan filter status |
-| `src/pages/RentalContracts.tsx` | Tambah dukungan untuk menerima parameter filter status dari URL |
-| `src/components/Layout.tsx` | Update link sidebar ke dashboard baru |
-
-### Detail UI Dashboard
-
-**Statistik Cards (Grid 2x3 atau 3x2):**
-1. **Total Invoice** - Jumlah semua kontrak
-2. **Masa Sewa** - Kontrak dengan status "masa sewa" (warna biru)
-3. **Closed** - Status "selesai" DAN tagihan_belum_bayar = 0 (warna merah)
-4. **Perpanjangan** - Status "perpanjangan" (warna ungu)
-5. **Pending** - Status "pending" (warna kuning)
-6. **Selesai** - Status "selesai" tapi masih ada sisa tagihan (warna hijau)
-
-**Pilihan Navigasi (Cards/Buttons di bawah):**
-- Grid cards dengan icon dan jumlah
-- Klik langsung menuju list dengan filter yang sudah diterapkan
-- Opsi "Semua" untuk melihat semua kontrak tanpa filter
+| `src/pages/RentalContracts.tsx` | Tambah state untuk preset dan Select dropdown |
 
 ### Detail Teknis
 
-**1. RentalContractsDashboard.tsx**
+**1. State Baru**
 ```typescript
-// Fetch count untuk setiap status
-const { data } = await supabase
-  .from("rental_contracts")
-  .select("status, tagihan_belum_bayar")
-  .eq("user_id", user?.id);
+const [datePreset, setDatePreset] = useState<string>("custom");
+```
 
-// Hitung statistik
-const stats = {
-  total: data.length,
-  masaSewa: data.filter(c => c.status === "masa sewa").length,
-  closed: data.filter(c => c.status === "selesai" && c.tagihan_belum_bayar <= 0).length,
-  perpanjangan: data.filter(c => c.status === "perpanjangan").length,
-  pending: data.filter(c => c.status === "pending").length,
-  selesai: data.filter(c => c.status === "selesai" && c.tagihan_belum_bayar > 0).length,
+**2. Handler Preset**
+```typescript
+const handleDatePresetChange = (preset: string) => {
+  setDatePreset(preset);
+  const now = getNowInJakarta();
+  
+  switch(preset) {
+    case "this-week":
+      // Senin minggu ini
+      const monday = startOfWeek(now, { weekStartsOn: 1 });
+      const sunday = endOfWeek(now, { weekStartsOn: 1 });
+      setStartDateFilter(monday);
+      setEndDateFilter(sunday);
+      break;
+    case "this-month":
+      setStartDateFilter(startOfMonth(now));
+      setEndDateFilter(endOfMonth(now));
+      break;
+    case "this-year":
+      setStartDateFilter(startOfYear(now));
+      setEndDateFilter(endOfYear(now));
+      break;
+    case "custom":
+      // Biarkan user pilih manual
+      break;
+    default:
+      setStartDateFilter(undefined);
+      setEndDateFilter(undefined);
+  }
 };
 ```
 
-**2. RentalContracts.tsx - Perubahan**
-```typescript
-// Terima parameter status dari URL
-const { status } = useParams<{ status?: string }>();
-
-// Filter berdasarkan status
-const filteredByStatus = useMemo(() => {
-  if (!status || status === "all") return rentalContracts;
-  
-  if (status === "closed") {
-    return rentalContracts.filter(c => 
-      c.status === "selesai" && c.tagihan_belum_bayar <= 0
-    );
-  }
-  
-  // Convert URL param ke status database
-  const statusMap = {
-    "masa-sewa": "masa sewa",
-    "perpanjangan": "perpanjangan",
-    "pending": "pending",
-    "selesai": "selesai"
-  };
-  
-  return rentalContracts.filter(c => c.status === statusMap[status]);
-}, [rentalContracts, status]);
+**3. UI - Dropdown Preset (sebelum date picker)**
+```jsx
+<Select value={datePreset} onValueChange={handleDatePresetChange}>
+  <SelectTrigger className="w-[140px]">
+    <SelectValue placeholder="Pilih periode" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="all">Semua</SelectItem>
+    <SelectItem value="this-week">Minggu Ini</SelectItem>
+    <SelectItem value="this-month">Bulan Ini</SelectItem>
+    <SelectItem value="this-year">Tahun Ini</SelectItem>
+    <SelectItem value="custom">Custom</SelectItem>
+  </SelectContent>
+</Select>
 ```
 
-**3. App.tsx - Routes Baru**
+**4. Import Tambahan**
 ```typescript
-<Route path="/rental-contracts" element={<RentalContractsDashboard />} />
-<Route path="/rental-contracts/:status" element={<RentalContracts />} />
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 ```
 
-### Flow Pengguna
-1. User klik "List Kontrak Sewa" di sidebar
-2. Muncul dashboard dengan statistik (jumlah per kategori)
-3. User memilih kategori yang diinginkan (misal "Masa Sewa")
-4. Langsung diarahkan ke list kontrak yang sudah terfilter
-5. Ada tombol "Kembali ke Dashboard" di halaman list
+### Flow UI
+1. User melihat dropdown "Pilih periode" di sebelah label "Filter Tanggal"
+2. User memilih "Bulan Ini" 
+3. Otomatis date picker "Dari" terisi 1 Februari 2026 dan "Sampai" terisi 28 Februari 2026
+4. Jika user pilih "Custom", date picker tetap aktif untuk input manual
+5. Jika user pilih "Semua", kedua filter tanggal di-reset
+
+### Catatan
+- Menggunakan `weekStartsOn: 1` agar minggu dimulai dari Senin (standar Indonesia)
+- Tetap menggunakan timezone Jakarta yang sudah distandarisasi
+- Date picker manual tetap tersedia untuk fleksibilitas
 
