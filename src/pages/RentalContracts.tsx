@@ -13,8 +13,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PaginationControls } from "@/components/shared/PaginationControls";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users, Package, HelpCircle, ChevronDown } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users, Package, HelpCircle, ChevronDown, ArrowLeft } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
@@ -73,6 +73,7 @@ const RentalContracts = () => {
   const { user, isSuperAdmin, isAdmin } = useAuth();
   const { activeTheme } = useAppTheme();
   const navigate = useNavigate();
+  const { status: statusFilter } = useParams<{ status?: string }>();
   const [clientGroups, setClientGroups] = useState<ClientGroup[]>([]);
   const [rentalContracts, setRentalContracts] = useState<RentalContract[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -479,8 +480,34 @@ const RentalContracts = () => {
   const sortedContracts = React.useMemo(() => {
     if (!rentalContracts) return [];
     
-    // Filter by date range and invoice search
+    // First filter by status from URL parameter
     let filtered = rentalContracts.filter(contract => {
+      // Apply status filter from URL
+      if (statusFilter && statusFilter !== "all") {
+        const statusMap: Record<string, string> = {
+          "masa-sewa": "masa sewa",
+          "perpanjangan": "perpanjangan",
+          "pending": "pending",
+          "selesai": "selesai",
+        };
+        
+        if (statusFilter === "closed") {
+          // Closed = selesai AND tagihan_belum_bayar <= 0
+          if (!(contract.status === "selesai" && (contract.tagihan_belum_bayar ?? 0) <= 0)) {
+            return false;
+          }
+        } else if (statusFilter === "selesai") {
+          // Selesai (belum lunas) = selesai AND tagihan_belum_bayar > 0
+          if (!(contract.status === "selesai" && (contract.tagihan_belum_bayar ?? 0) > 0)) {
+            return false;
+          }
+        } else if (statusMap[statusFilter]) {
+          if (contract.status !== statusMap[statusFilter]) {
+            return false;
+          }
+        }
+      }
+      
       // Filter by invoice search
       if (invoiceSearch && !contract.invoice?.toLowerCase().includes(invoiceSearch.toLowerCase())) {
         return false;
@@ -552,7 +579,7 @@ const RentalContracts = () => {
     }
     
     return sorted;
-  }, [rentalContracts, sortBy, sortOrder, clientGroups, startDateFilter, endDateFilter, invoiceSearch]);
+  }, [rentalContracts, sortBy, sortOrder, clientGroups, startDateFilter, endDateFilter, invoiceSearch, statusFilter]);
 
   const totalPages = Math.ceil(sortedContracts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -622,16 +649,33 @@ const RentalContracts = () => {
       {/* Header - shrink-0 */}
       <div className="shrink-0 px-2 py-2 md:px-8 md:py-4">
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-rose-500 to-orange-600 shadow-lg">
-                <FileText className="w-8 h-8 text-white" />
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate("/vip/rental-contracts")}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Dashboard
+            </Button>
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 rounded-xl bg-gradient-to-r from-rose-500 to-orange-600 shadow-lg">
+                  <FileText className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-4xl font-bold text-foreground">
+                    List Kontrak Sewa
+                  </h1>
+                  {statusFilter && statusFilter !== "all" && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Filter: <span className="font-medium capitalize">{statusFilter.replace("-", " ")}</span>
+                    </p>
+                  )}
+                </div>
               </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground">
-            List Kontrak Sewa
-          </h1>
             </div>
-            <p className="text-muted-foreground">Kelola semua kontrak sewa peralatan dengan mudah</p>
           </div>
           <Dialog open={isContractDialogOpen} onOpenChange={(open) => {
           setIsContractDialogOpen(open);
