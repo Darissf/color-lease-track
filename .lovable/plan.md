@@ -1,35 +1,62 @@
 
+## Fitur Mass Delete Inbox berdasarkan Sender
 
-## Perbaikan Toggle Auto-Click yang Tidak Terlihat
+### Deskripsi
+Menambahkan fitur untuk menghapus semua email sekaligus berdasarkan alamat pengirim (from_address). User cukup memasukkan email seperti `noreply@lovable.dev` dan semua email dari pengirim tersebut akan dihapus.
 
-### Diagnosis
-Toggle Auto-Click seharusnya ada di sebelah kanan tombol Refresh. Kode sudah benar di baris 449-469, tetapi perlu memastikan perubahan ter-deploy.
+### Cara Kerja
+1. Tombol "Mass Delete" di header (hanya untuk Super Admin)
+2. Klik tombol membuka dialog dengan input field untuk alamat email pengirim
+3. Preview jumlah email yang akan dihapus sebelum konfirmasi
+4. Konfirmasi dan hapus semua email yang cocok
 
-### Solusi yang Akan Dilakukan
+### Komponen yang Akan Dibuat
 
-1. **Verifikasi kode terkini sudah benar** (sudah dicek - OK)
-2. **Pastikan tidak ada kondisi !isMobile yang menyembunyikan toggle**
+| File | Deskripsi |
+|------|-----------|
+| `src/components/mail/MassDeleteDialog.tsx` | Dialog baru dengan input email dan konfirmasi |
 
-Dari kode saat ini:
-```typescript
-{isSuperAdmin && (
-  <TooltipProvider>
-    ...
-    <Switch ... />
-  </TooltipProvider>
-)}
-```
+### Perubahan pada File yang Ada
 
-Toggle seharusnya terlihat untuk Super Admin di desktop dan mobile.
-
-### Tindakan
-Jika toggle masih tidak terlihat setelah refresh, saya akan:
-1. Menghapus kondisi `isSuperAdmin` untuk testing
-2. Menambahkan label teks "Auto-Click" agar lebih terlihat
-3. Memindahkan posisi toggle agar lebih menonjol
-
-### File yang Akan Diubah
 | File | Perubahan |
 |------|-----------|
-| `src/pages/Mail.tsx` | Tambah label "Auto-Click" dan pastikan visible |
+| `src/pages/Mail.tsx` | Tambah state, handler, dan tombol Mass Delete di header |
 
+### Detail Teknis
+
+**1. MassDeleteDialog.tsx**
+- Input field untuk memasukkan alamat email pengirim
+- Tombol "Check" untuk preview jumlah email yang akan dihapus
+- Menampilkan jumlah email yang ditemukan
+- Tombol konfirmasi dengan warna merah (destructive)
+- Loading state saat proses penghapusan
+
+**2. Mail.tsx - State Baru**
+```typescript
+const [massDeleteOpen, setMassDeleteOpen] = useState(false);
+```
+
+**3. Mail.tsx - Handler Mass Delete**
+```typescript
+const handleMassDelete = async (fromAddress: string) => {
+  // Query: count emails from sender
+  // Update: set is_deleted = true untuk semua email dari sender
+  // Refresh email list
+};
+```
+
+**4. UI - Tombol Mass Delete**
+- Posisi: Di header, sebelum tombol Compose
+- Icon: Trash2 dengan teks "Mass Delete"
+- Warna: Destructive (merah)
+- Hanya terlihat untuk Super Admin
+
+### Flow UI
+1. Super Admin klik tombol "Mass Delete"
+2. Dialog muncul dengan input email
+3. User ketik alamat email pengirim (contoh: `noreply@lovable.dev`)
+4. Klik "Check" untuk melihat jumlah email
+5. Tampil: "Ditemukan 15 email dari noreply@lovable.dev"
+6. Klik "Hapus Semua" untuk konfirmasi
+7. Semua email dari pengirim tersebut di-soft delete (is_deleted = true)
+8. Dialog tertutup, list email di-refresh
