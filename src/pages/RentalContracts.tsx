@@ -20,7 +20,7 @@ import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
-import { format, differenceInDays, differenceInHours } from "date-fns";
+import { format, differenceInDays, differenceInHours, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -92,6 +92,7 @@ const RentalContracts = () => {
   });
   const [isCompactMode, setIsCompactMode] = useState(false);
   const [isProcessingRecurring, setIsProcessingRecurring] = useState(false);
+  const [datePreset, setDatePreset] = useState<string>("all");
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
   const [invoiceSearch, setInvoiceSearch] = useState("");
@@ -1056,51 +1057,96 @@ const RentalContracts = () => {
               </div>
               
               {/* Date Range Filter */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Label>Filter Tanggal:</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !startDateFilter && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDateFilter ? format(startDateFilter, "dd/MM/yyyy") : "Dari"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDateFilter}
-                      onSelect={setStartDateFilter}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Select 
+                  value={datePreset} 
+                  onValueChange={(value) => {
+                    setDatePreset(value);
+                    const now = getNowInJakarta();
+                    
+                    switch(value) {
+                      case "this-week":
+                        setStartDateFilter(startOfWeek(now, { weekStartsOn: 1 }));
+                        setEndDateFilter(endOfWeek(now, { weekStartsOn: 1 }));
+                        break;
+                      case "this-month":
+                        setStartDateFilter(startOfMonth(now));
+                        setEndDateFilter(endOfMonth(now));
+                        break;
+                      case "this-year":
+                        setStartDateFilter(startOfYear(now));
+                        setEndDateFilter(endOfYear(now));
+                        break;
+                      case "custom":
+                        // Keep current dates, let user choose manually
+                        break;
+                      default: // "all"
+                        setStartDateFilter(undefined);
+                        setEndDateFilter(undefined);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue placeholder="Pilih periode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua</SelectItem>
+                    <SelectItem value="this-week">Minggu Ini</SelectItem>
+                    <SelectItem value="this-month">Bulan Ini</SelectItem>
+                    <SelectItem value="this-year">Tahun Ini</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
                 
-                <span>-</span>
+                {datePreset === "custom" && (
+                  <>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !startDateFilter && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDateFilter ? format(startDateFilter, "dd/MM/yyyy") : "Dari"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={startDateFilter}
+                          onSelect={setStartDateFilter}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    
+                    <span>-</span>
+                    
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !endDateFilter && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {endDateFilter ? format(endDateFilter, "dd/MM/yyyy") : "Sampai"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={endDateFilter}
+                          onSelect={setEndDateFilter}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </>
+                )}
                 
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !endDateFilter && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDateFilter ? format(endDateFilter, "dd/MM/yyyy") : "Sampai"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDateFilter}
-                      onSelect={setEndDateFilter}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-                
-                {(startDateFilter || endDateFilter) && (
+                {(startDateFilter || endDateFilter) && datePreset !== "all" && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
+                      setDatePreset("all");
                       setStartDateFilter(undefined);
                       setEndDateFilter(undefined);
                     }}
