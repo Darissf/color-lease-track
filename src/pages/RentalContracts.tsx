@@ -20,7 +20,7 @@ import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
-import { format, differenceInDays, differenceInHours, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { format, differenceInDays, differenceInHours, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, addYears } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -121,6 +121,10 @@ const RentalContracts = () => {
   const [statusChangeContract, setStatusChangeContract] = useState<{id: string, invoice: string | null} | null>(null);
   const [tanggalAmbilDate, setTanggalAmbilDate] = useState<Date | undefined>(undefined);
 
+  // Duration mode states
+  const [durationMode, setDurationMode] = useState<'flexible' | 'fixed'>('fixed');
+  const [durationDays, setDurationDays] = useState<number>(30);
+
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
     start_date: undefined as Date | undefined,
@@ -133,6 +137,15 @@ const RentalContracts = () => {
     notes: "",
     tanggal_ambil: undefined as Date | undefined,
   });
+
+  // Auto-calculate end_date when start_date or durationDays changes (for fixed mode)
+  useEffect(() => {
+    if (durationMode === 'fixed' && contractForm.start_date && durationDays > 0) {
+      // endDate = startDate + (durasi - 1) karena hari pertama sudah dihitung
+      const calculatedEndDate = addDays(contractForm.start_date, durationDays - 1);
+      setContractForm(prev => ({ ...prev, end_date: calculatedEndDate }));
+    }
+  }, [contractForm.start_date, durationDays, durationMode]);
 
   // Auto-select bank account if only one exists
   useEffect(() => {
@@ -251,9 +264,23 @@ const RentalContracts = () => {
 
   const handleSaveContract = async () => {
     try {
-      if (!contractForm.client_group_id || !contractForm.start_date || !contractForm.end_date) {
+      if (!contractForm.client_group_id || !contractForm.start_date) {
         toast.error("Mohon lengkapi field wajib");
         return;
+      }
+      
+      if (durationMode === 'fixed' && (!durationDays || durationDays < 1)) {
+        toast.error("Mohon masukkan durasi minimal 1 hari");
+        return;
+      }
+      
+      // Hitung end_date
+      let endDate: Date;
+      if (durationMode === 'flexible') {
+        // Placeholder: 1 tahun dari start
+        endDate = addYears(contractForm.start_date, 1);
+      } else {
+        endDate = addDays(contractForm.start_date, durationDays - 1);
       }
 
       // Determine invoice number
@@ -272,7 +299,7 @@ const RentalContracts = () => {
         user_id: user?.id as string,
         client_group_id: contractForm.client_group_id,
         start_date: format(contractForm.start_date, "yyyy-MM-dd"),
-        end_date: format(contractForm.end_date, "yyyy-MM-dd"),
+        end_date: format(endDate, "yyyy-MM-dd"),
         status: contractForm.status,
         invoice: invoiceNumber,
         keterangan: contractForm.keterangan || null,
@@ -281,6 +308,7 @@ const RentalContracts = () => {
         notes: contractForm.notes || null,
         tanggal_ambil: contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "yyyy-MM-dd") : null,
         tanggal_kirim: format(contractForm.start_date, "yyyy-MM-dd"),
+        is_flexible_duration: durationMode === 'flexible',
       };
 
       if (editingContractId) {
@@ -345,6 +373,10 @@ const RentalContracts = () => {
 
   const handleEditContract = (contract: RentalContract) => {
     setEditingContractId(contract.id);
+    // Hitung durasi dari start_date dan end_date
+    const calculatedDuration = differenceInDays(new Date(contract.end_date), new Date(contract.start_date)) + 1;
+    setDurationDays(calculatedDuration);
+    setDurationMode(contract.is_flexible_duration ? 'flexible' : 'fixed');
     setContractForm({
       client_group_id: contract.client_group_id,
       start_date: new Date(contract.start_date),
@@ -384,6 +416,8 @@ const RentalContracts = () => {
 
   const resetContractForm = () => {
     setEditingContractId(null);
+    setDurationMode('fixed');
+    setDurationDays(30);
     setContractForm({
       client_group_id: "",
       start_date: undefined,
@@ -808,61 +842,93 @@ const RentalContracts = () => {
               </div>
 
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Tanggal Mulai *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !contractForm.start_date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {contractForm.start_date ? format(contractForm.start_date, "PPP", { locale: localeId }) : "Pilih tanggal"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={contractForm.start_date}
-                        onSelect={(date) => setContractForm({ ...contractForm, start_date: date })}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div>
-                  <Label>Tanggal Berakhir *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !contractForm.end_date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {contractForm.end_date ? format(contractForm.end_date, "PPP", { locale: localeId }) : "Pilih tanggal"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={contractForm.end_date}
-                        onSelect={(date) => setContractForm({ ...contractForm, end_date: date })}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+              {/* Tanggal Mulai */}
+              <div>
+                <Label>Tanggal Mulai *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !contractForm.start_date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {contractForm.start_date ? format(contractForm.start_date, "PPP", { locale: localeId }) : "Pilih tanggal"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={contractForm.start_date}
+                      onSelect={(date) => setContractForm({ ...contractForm, start_date: date })}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
+
+              {/* Mode Durasi */}
+              <div className="space-y-3">
+                <Label>Mode Durasi</Label>
+                <RadioGroup value={durationMode} onValueChange={(v) => setDurationMode(v as 'flexible' | 'fixed')}>
+                  <div className={cn(
+                    "flex items-start gap-3 p-3 rounded-lg border transition-colors",
+                    durationMode === 'flexible' ? "bg-blue-50/50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-700" : "bg-background"
+                  )}>
+                    <RadioGroupItem value="flexible" id="flexible" className="mt-0.5" />
+                    <div className="flex-1">
+                      <Label htmlFor="flexible" className="flex items-center gap-2 cursor-pointer">
+                        <Clock className="h-4 w-4 text-blue-600" />
+                        Fleksibel
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Client belum tahu kapan selesai, tagihan dihitung saat closing
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg border transition-colors",
+                    durationMode === 'fixed' ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-700" : "bg-background"
+                  )}>
+                    <RadioGroupItem value="fixed" id="fixed" />
+                    <Label htmlFor="fixed" className="cursor-pointer">Durasi Tetap</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Durasi & Preview Tanggal Selesai - hanya tampil jika mode fixed */}
+              {durationMode === 'fixed' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Durasi (hari) *</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={durationDays}
+                      onChange={(e) => setDurationDays(parseInt(e.target.value) || 0)}
+                      placeholder="Contoh: 30"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Tanggal Selesai</Label>
+                    <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                      {contractForm.start_date && durationDays > 0 ? (
+                        <span className="font-medium">
+                          {format(addDays(contractForm.start_date, durationDays - 1), "PPP", { locale: localeId })}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Status - hanya tampil saat TAMBAH kontrak baru, tidak untuk EDIT */}
               {!editingContractId && (
