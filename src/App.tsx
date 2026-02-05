@@ -49,6 +49,7 @@ const BlogPostEditor = lazy(() => import("./pages/admin/BlogPostEditor"));
 const BlogCategories = lazy(() => import("./pages/admin/BlogCategories"));
 const ClientGroups = lazy(() => import("./pages/ClientGroups"));
 const RentalContracts = lazy(() => import("./pages/RentalContracts"));
+const RentalContractsDashboard = lazy(() => import("./pages/RentalContractsDashboard"));
 const AISettings = lazy(() => import("./pages/AISettings"));
 const DatabaseBackup = lazy(() => import("./pages/DatabaseBackup"));
 const BackupRestore = lazy(() => import("./pages/BackupRestore"));
@@ -198,7 +199,8 @@ const App = () => (
                                   <Route path="/blog-posts/:id/edit" element={<BlogPostEditor />} />
                                   <Route path="/blog-categories" element={<BlogCategories />} />
                                   <Route path="/client-groups" element={<ClientGroups />} />
-                                  <Route path="/rental-contracts" element={<RentalContracts />} />
+                                  <Route path="/rental-contracts" element={<RentalContractsDashboard />} />
+                                  <Route path="/rental-contracts/:status" element={<RentalContracts />} />
                                   <Route path="/contracts/:id" element={<ContractDetail />} />
                                   <Route path="/contracts/:id/scaffolding" element={<ContractScaffoldingInput />} />
                                   <Route path="/recurring-income/:id" element={<RecurringIncomeDetail />} />
