@@ -19,6 +19,7 @@ import MailList from "@/components/mail/MailList";
 import MailReader from "@/components/mail/MailReader";
 import EmailAddressFilter from "@/components/mail/EmailAddressFilter";
 import { ComposeEmailDialog } from "@/components/mail/ComposeEmailDialog";
+import { MassDeleteDialog } from "@/components/mail/MassDeleteDialog";
 
 interface Email {
   id: string;
@@ -59,6 +60,7 @@ export default function MailPage() {
   const [replyTo, setReplyTo] = useState<Email | null>(null);
   const [autoClickEnabled, setAutoClickEnabled] = useState(false);
   const [loadingAutoClick, setLoadingAutoClick] = useState(false);
+  const [massDeleteOpen, setMassDeleteOpen] = useState(false);
 
   // Fetch auto-click setting on mount
   useEffect(() => {
@@ -420,6 +422,17 @@ export default function MailPage() {
             </div>
           </div>
           <div className="flex gap-1 md:gap-2">
+            {isSuperAdmin && (
+              <Button
+                variant="destructive"
+                onClick={() => setMassDeleteOpen(true)}
+                size="sm"
+                className="h-8 md:h-9"
+              >
+                <Trash2 className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Mass Delete</span>
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setReplyTo(null);
@@ -526,6 +539,17 @@ export default function MailPage() {
         onOpenChange={setComposeOpen}
         replyTo={replyTo || undefined}
         onEmailSent={() => {
+          fetchEmails();
+          setSelectedEmail(null);
+        }}
+      />
+
+      {/* Mass Delete Dialog */}
+      <MassDeleteDialog
+        open={massDeleteOpen}
+        onOpenChange={setMassDeleteOpen}
+        userId={user?.id || ""}
+        onDeleted={() => {
           fetchEmails();
           setSelectedEmail(null);
         }}
