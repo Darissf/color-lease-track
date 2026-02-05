@@ -5212,17 +5212,20 @@ export type Database = {
           default_price_per_day: number | null
           discount: number | null
           end_date: string
+          extension_number: number | null
           google_maps_link: string | null
           id: string
           inventory_item_id: string | null
           invoice: string | null
           invoice_full_rincian: boolean | null
+          is_flexible_duration: boolean | null
           jenis_scaffolding: string | null
           jumlah_lunas: number | null
           jumlah_unit: number | null
           keterangan: string | null
           lokasi_detail: string | null
           notes: string | null
+          parent_contract_id: string | null
           penanggung_jawab: string | null
           rincian_template: string | null
           start_date: string
@@ -5257,17 +5260,20 @@ export type Database = {
           default_price_per_day?: number | null
           discount?: number | null
           end_date: string
+          extension_number?: number | null
           google_maps_link?: string | null
           id?: string
           inventory_item_id?: string | null
           invoice?: string | null
           invoice_full_rincian?: boolean | null
+          is_flexible_duration?: boolean | null
           jenis_scaffolding?: string | null
           jumlah_lunas?: number | null
           jumlah_unit?: number | null
           keterangan?: string | null
           lokasi_detail?: string | null
           notes?: string | null
+          parent_contract_id?: string | null
           penanggung_jawab?: string | null
           rincian_template?: string | null
           start_date: string
@@ -5302,17 +5308,20 @@ export type Database = {
           default_price_per_day?: number | null
           discount?: number | null
           end_date?: string
+          extension_number?: number | null
           google_maps_link?: string | null
           id?: string
           inventory_item_id?: string | null
           invoice?: string | null
           invoice_full_rincian?: boolean | null
+          is_flexible_duration?: boolean | null
           jenis_scaffolding?: string | null
           jumlah_lunas?: number | null
           jumlah_unit?: number | null
           keterangan?: string | null
           lokasi_detail?: string | null
           notes?: string | null
+          parent_contract_id?: string | null
           penanggung_jawab?: string | null
           rincian_template?: string | null
           start_date?: string
@@ -5359,6 +5368,13 @@ export type Database = {
             columns: ["inventory_item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_parent_contract_id_fkey"
+            columns: ["parent_contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
             referencedColumns: ["id"]
           },
         ]

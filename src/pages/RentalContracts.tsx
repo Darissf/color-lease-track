@@ -13,7 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PaginationControls } from "@/components/shared/PaginationControls";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users, Package, HelpCircle, ChevronDown, ArrowLeft } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Trash2, Edit, ExternalLink, Lock, Unlock, Check, ChevronsUpDown, FileText, Wallet, CheckCircle, Loader2, RefreshCw, Users, Package, HelpCircle, ChevronDown, ArrowLeft, Clock, Link2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
@@ -61,6 +61,10 @@ interface RentalContract {
   tanggal_ambil: string | null;
   status_pengiriman: string | null;
   status_pengambilan: string | null;
+  // Extension fields
+  parent_contract_id?: string | null;
+  extension_number?: number;
+  is_flexible_duration?: boolean;
 }
 
 interface BankAccount {
@@ -1294,34 +1298,50 @@ const RentalContracts = () => {
                         </span>
                       </TableCell>
                       <TableCell className={cn(isCompactMode && "py-1 px-2")}>
-                        {isTableLocked ? (
-                          <Badge className={cn(getStatusBadge(contract.status, contract.tagihan_belum_bayar), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
-                            {getStatusLabel(contract.status, contract.tagihan_belum_bayar)}
-                          </Badge>
-                        ) : (
-                          <Select
-                            value={contract.status}
-                            onValueChange={(newStatus) => {
-                              if (newStatus === 'selesai') {
-                                setStatusChangeContract({ id: contract.id, invoice: contract.invoice });
-                                setTanggalAmbilDate(undefined);
-                                setStatusChangeDialogOpen(true);
-                              } else {
-                                updateContractStatus(contract.id, newStatus, null);
-                              }
-                            }}
-                          >
-                            <SelectTrigger className={cn("w-[130px]", isCompactMode ? "h-7 text-xs" : "h-9")}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="masa sewa">Masa Sewa</SelectItem>
-                              <SelectItem value="selesai">Selesai</SelectItem>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="perpanjangan">Perpanjangan</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1">
+                          {isTableLocked ? (
+                            <Badge className={cn(getStatusBadge(contract.status, contract.tagihan_belum_bayar), "border whitespace-nowrap", isCompactMode && "text-[10px] px-1.5 py-0")}>
+                              {getStatusLabel(contract.status, contract.tagihan_belum_bayar)}
+                            </Badge>
+                          ) : (
+                            <Select
+                              value={contract.status}
+                              onValueChange={(newStatus) => {
+                                if (newStatus === 'selesai') {
+                                  setStatusChangeContract({ id: contract.id, invoice: contract.invoice });
+                                  setTanggalAmbilDate(undefined);
+                                  setStatusChangeDialogOpen(true);
+                                } else {
+                                  updateContractStatus(contract.id, newStatus, null);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className={cn("w-[130px]", isCompactMode ? "h-7 text-xs" : "h-9")}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="masa sewa">Masa Sewa</SelectItem>
+                                <SelectItem value="selesai">Selesai</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="perpanjangan">Perpanjangan</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                          {/* Flexible Duration Badge */}
+                          {(contract as any).is_flexible_duration && contract.status === 'masa sewa' && (
+                            <Badge variant="outline" className={cn("text-blue-600 border-blue-300 whitespace-nowrap", isCompactMode && "text-[10px] px-1 py-0")}>
+                              <Clock className={cn("mr-1", isCompactMode ? "h-2 w-2" : "h-3 w-3")} />
+                              Fleksibel
+                            </Badge>
+                          )}
+                          {/* Extension Badge */}
+                          {((contract as any).extension_number ?? 0) > 0 && (
+                            <Badge variant="outline" className={cn("text-purple-600 border-purple-300 whitespace-nowrap", isCompactMode && "text-[10px] px-1 py-0")}>
+                              <Link2 className={cn("mr-1", isCompactMode ? "h-2 w-2" : "h-3 w-3")} />
+                              P{(contract as any).extension_number}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className={cn("text-right", isCompactMode && "py-1 px-2 text-xs")}>
                         <span className="text-blue-600 font-bold bg-blue-500/10 px-2 py-1 rounded-md">

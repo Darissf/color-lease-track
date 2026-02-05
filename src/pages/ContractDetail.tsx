@@ -44,7 +44,9 @@ import {
   Plus,
   FileCheck,
   FileOutput,
-  Banknote
+  Banknote,
+  Copy,
+  Calculator
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,6 +69,9 @@ import {
   type TemplateData 
 } from "@/lib/contractTemplateGenerator";
 import { WhatsAppMessageGenerator } from "@/components/contracts/WhatsAppMessageGenerator";
+import { ExtendContractDialog } from "@/components/contracts/ExtendContractDialog";
+import { ContractChainVisualization } from "@/components/contracts/ContractChainVisualization";
+import { FlexibleDurationClosingDialog } from "@/components/contracts/FlexibleDurationClosingDialog";
 
 interface Contract {
   id: string;
@@ -98,7 +103,11 @@ interface Contract {
   transport_cost_delivery?: number | null;
   transport_cost_pickup?: number | null;
   whatsapp_template_mode?: boolean | null;
-  invoice_full_rincian?: boolean | null; // Toggle for full/simple invoice page 2
+  invoice_full_rincian?: boolean | null;
+  // New fields for contract extension
+  parent_contract_id?: string | null;
+  extension_number?: number;
+  is_flexible_duration?: boolean;
   client_groups?: {
     nama: string;
     nomor_telepon: string;
@@ -198,6 +207,10 @@ export default function ContractDetail() {
   const [cashPaymentAmount, setCashPaymentAmount] = useState("");
   const [isProcessingCashPayment, setIsProcessingCashPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash');
+  
+  // Contract extension states
+  const [isExtendDialogOpen, setIsExtendDialogOpen] = useState(false);
+  const [isFlexibleClosingOpen, setIsFlexibleClosingOpen] = useState(false);
 
   const fetchPendingPaymentRequest = useCallback(async () => {
     if (!id) return;
@@ -1071,20 +1084,65 @@ export default function ContractDetail() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Detail Kontrak</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold text-foreground">Detail Kontrak</h1>
+              {contract.is_flexible_duration && contract.status === 'masa sewa' && (
+                <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Durasi Fleksibel
+                </Badge>
+              )}
+              {(contract.extension_number ?? 0) > 0 && (
+                <Badge variant="outline" className="text-purple-600 border-purple-300">
+                  Perpanjangan #{contract.extension_number}
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground mt-1">
               {contract.invoice || "No Invoice"}
             </p>
           </div>
         </div>
-        {getStatusBadge(contract.status, contract.tagihan_belum_bayar)}
+        <div className="flex items-center gap-2">
+          {getStatusBadge(contract.status, contract.tagihan_belum_bayar)}
+          
+          {/* Flexible Duration Closing Button */}
+          {contract.is_flexible_duration && contract.status === 'masa sewa' && (isSuperAdmin || isAdmin) && (
+            <Button 
+              onClick={() => setIsFlexibleClosingOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Calculator className="h-4 w-4 mr-2" />
+              Selesaikan & Hitung
+            </Button>
+          )}
+          
+          {/* Extend Contract Button */}
+          {(isSuperAdmin || isAdmin) && (
+            <Button 
+              variant="outline"
+              onClick={() => setIsExtendDialogOpen(true)}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Perpanjang
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Contract Chain Visualization */}
+      {(contract.parent_contract_id || (contract.extension_number ?? 0) > 0) && (
+        <ContractChainVisualization 
+          contractId={contract.id} 
+          currentContractId={contract.id} 
+        />
+      )}
 
       {/* Summary Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2082,6 +2140,49 @@ export default function ContractDetail() {
         onOpenChange={setDocumentPreviewOpen}
         documentData={documentData}
       />
+
+      {/* Extend Contract Dialog */}
+      {contract && (
+        <ExtendContractDialog
+          open={isExtendDialogOpen}
+          onOpenChange={setIsExtendDialogOpen}
+          contract={{
+            id: contract.id,
+            invoice: contract.invoice,
+            client_group_id: contract.client_group_id,
+            start_date: contract.start_date,
+            end_date: contract.end_date,
+            tagihan_belum_bayar: contract.tagihan_belum_bayar,
+            keterangan: contract.keterangan,
+            bank_account_id: contract.bank_account_id,
+            google_maps_link: contract.google_maps_link,
+            notes: contract.notes,
+            extension_number: contract.extension_number,
+            client_groups: contract.client_groups,
+          }}
+          onSuccess={(newContractId) => {
+            navigate(`/vip/contracts/${newContractId}`);
+          }}
+        />
+      )}
+
+      {/* Flexible Duration Closing Dialog */}
+      {contract && contract.is_flexible_duration && (
+        <FlexibleDurationClosingDialog
+          open={isFlexibleClosingOpen}
+          onOpenChange={setIsFlexibleClosingOpen}
+          contract={{
+            id: contract.id,
+            invoice: contract.invoice,
+            start_date: contract.start_date,
+            end_date: contract.end_date,
+            keterangan: contract.keterangan,
+          }}
+          onSuccess={() => {
+            fetchContractDetail();
+          }}
+        />
+      )}
     </div>
   );
 }
