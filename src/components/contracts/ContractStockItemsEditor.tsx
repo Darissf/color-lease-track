@@ -251,7 +251,11 @@ export function ContractStockItemsEditor({
       const itemsToUpdate = stockItems.filter(s => {
         if (!s.id) return false;
         const orig = originalItems.find(o => o.id === s.id);
-        return orig && (orig.quantity !== s.quantity || orig.inventory_item_id !== s.inventory_item_id);
+        return orig && (
+          orig.quantity !== s.quantity || 
+          orig.inventory_item_id !== s.inventory_item_id ||
+          orig.unit_mode !== s.unit_mode
+        );
       });
 
       // Delete removed items - return stock
