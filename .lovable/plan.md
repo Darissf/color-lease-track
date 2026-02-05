@@ -1,50 +1,91 @@
 
-
-## Fix Bug: Rincian Stok Barang Tidak Update Setelah Simpan
+## Fix Bug: Rincian Stok Barang Tidak Tersimpan
 
 ### Masalah yang Ditemukan
 
-Saya menemukan **2 bug** di `ContractStockItemsEditor.tsx`:
+**Root Cause:** Bug **referensi objek yang sama** antara `stockItems` dan `originalItems`.
 
-1. **Perubahan `unit_mode` tidak terdeteksi** - Jika user mengubah unit mode saja (misal dari pcs ke set), perubahan tidak masuk ke daftar `itemsToUpdate` karena kondisi filter hanya memeriksa `quantity` dan `inventory_item_id`
+Saat data di-fetch di `fetchData()`:
+```typescript
+const mapped = existingItems.map(...);
+setStockItems(mapped);      // State 1: menggunakan 'mapped'
+setOriginalItems(mapped);   // State 2: juga menggunakan 'mapped' (SAMA!)
+```
 
-2. **Perubahan `unit_mode` pada item existing juga tidak dicek** - Ini menyebabkan jika user edit item dan hanya mengubah unit mode, data tidak tersimpan
+Kedua state menyimpan referensi ke **array dan objek yang sama**. Ketika user mengubah quantity:
+```typescript
+const updated = [...stockItems];     // Shallow copy array
+updated[index].quantity = newValue;  // Mutasi objek di dalam array
+setStockItems(updated);
+```
+
+Karena objek di dalam array adalah referensi yang sama, perubahan di `stockItems[i].quantity` juga mengubah `originalItems[i].quantity`!
+
+**Akibatnya:**
+- `orig.quantity` selalu = `s.quantity` 
+- `itemsToUpdate` selalu kosong
+- Tidak ada yang di-update ke database
 
 ### Solusi
 
-**File yang perlu diubah:** `src/components/contracts/ContractStockItemsEditor.tsx`
+**Deep clone `originalItems`** saat fetch agar terpisah sepenuhnya dari `stockItems`:
 
-**Perubahan pada logika `itemsToUpdate`:**
+**File yang diubah:** `src/components/contracts/ContractStockItemsEditor.tsx`
 
-| Kondisi Lama | Kondisi Baru |
-|--------------|--------------|
-| `orig.quantity !== s.quantity \|\| orig.inventory_item_id !== s.inventory_item_id` | `orig.quantity !== s.quantity \|\| orig.inventory_item_id !== s.inventory_item_id \|\| orig.unit_mode !== s.unit_mode` |
+| Lokasi | Perubahan |
+|--------|-----------|
+| Line 121-122 | Deep clone untuk `originalItems` menggunakan `JSON.parse(JSON.stringify(...))` atau spread nested |
 
 ### Kode yang Akan Diubah
 
-**Sebelum (Line 251-255):**
+**Sebelum (Line 120-122):**
 ```typescript
-const itemsToUpdate = stockItems.filter(s => {
-  if (!s.id) return false;
-  const orig = originalItems.find(o => o.id === s.id);
-  return orig && (orig.quantity !== s.quantity || orig.inventory_item_id !== s.inventory_item_id);
-});
+setStockItems(mapped);
+setOriginalItems(mapped);
 ```
 
 **Sesudah:**
 ```typescript
-const itemsToUpdate = stockItems.filter(s => {
-  if (!s.id) return false;
-  const orig = originalItems.find(o => o.id === s.id);
-  return orig && (
-    orig.quantity !== s.quantity || 
-    orig.inventory_item_id !== s.inventory_item_id ||
-    orig.unit_mode !== s.unit_mode
-  );
-});
+setStockItems(mapped);
+// Deep clone untuk originalItems agar tidak ter-mutasi saat edit stockItems
+setOriginalItems(JSON.parse(JSON.stringify(mapped)));
+```
+
+### Alternatif Solusi (Lebih Baik)
+
+Bisa juga dengan membuat deep clone saat mapping:
+
+```typescript
+if (existingItems) {
+  const mapped = existingItems.map((item: any) => ({
+    id: item.id,
+    inventory_item_id: item.inventory_item_id,
+    quantity: item.quantity,
+    unit_mode: (item.unit_mode || 'pcs') as 'pcs' | 'set',
+    item_name: item.inventory_items?.item_name,
+    item_code: item.inventory_items?.item_code,
+    unit_type: item.inventory_items?.unit_type,
+    pcs_per_set: item.inventory_items?.pcs_per_set || 1,
+  }));
+  
+  // Clone untuk originalItems
+  const original = existingItems.map((item: any) => ({
+    id: item.id,
+    inventory_item_id: item.inventory_item_id,
+    quantity: item.quantity,
+    unit_mode: (item.unit_mode || 'pcs') as 'pcs' | 'set',
+    item_name: item.inventory_items?.item_name,
+    item_code: item.inventory_items?.item_code,
+    unit_type: item.inventory_items?.unit_type,
+    pcs_per_set: item.inventory_items?.pcs_per_set || 1,
+  }));
+  
+  setStockItems(mapped);
+  setOriginalItems(original);
+}
 ```
 
 ### Ringkasan
-- Menambahkan pengecekan `unit_mode` pada kondisi filter `itemsToUpdate`
-- Perubahan kecil tapi critical untuk memastikan semua perubahan tersimpan dengan benar
-
+- **Masalah:** `stockItems` dan `originalItems` menggunakan referensi objek yang sama
+- **Dampak:** Perubahan di stockItems juga mengubah originalItems, sehingga perbandingan selalu false
+- **Solusi:** Deep clone originalItems saat fetch data
