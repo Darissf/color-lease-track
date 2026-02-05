@@ -163,6 +163,17 @@ const RentalContracts = () => {
     }
   }, [user]);
 
+  // Set berisi ID kontrak yang memiliki perpanjangan (child)
+  const contractsWithExtensions = useMemo(() => {
+    const parentIds = new Set<string>();
+    rentalContracts.forEach(contract => {
+      if (contract.parent_contract_id) {
+        parentIds.add(contract.parent_contract_id);
+      }
+    });
+    return parentIds;
+  }, [rentalContracts]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -1400,7 +1411,14 @@ const RentalContracts = () => {
                               Fleksibel
                             </Badge>
                           )}
-                          {/* Extension Badge */}
+                          {/* Badge untuk kontrak yang sudah diperpanjang (punya child) */}
+                          {contractsWithExtensions.has(contract.id) && (
+                            <Badge variant="outline" className={cn("text-orange-600 border-orange-300 whitespace-nowrap", isCompactMode && "text-[10px] px-1 py-0")}>
+                              <Link2 className={cn("mr-1", isCompactMode ? "h-2 w-2" : "h-3 w-3")} />
+                              Perpanjangan
+                            </Badge>
+                          )}
+                          {/* Extension Badge (P1, P2, dll) */}
                           {((contract as any).extension_number ?? 0) > 0 && (
                             <Badge variant="outline" className={cn("text-purple-600 border-purple-300 whitespace-nowrap", isCompactMode && "text-[10px] px-1 py-0")}>
                               <Link2 className={cn("mr-1", isCompactMode ? "h-2 w-2" : "h-3 w-3")} />
