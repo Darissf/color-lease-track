@@ -923,7 +923,7 @@ export default function ContractDetail() {
     // Fetch line items for Page 2 (Rincian Tagihan)
     const { data: lineItemsData } = await supabase
       .from('contract_line_items')
-      .select('item_name, quantity, unit_price_per_day, duration_days, subtotal')
+      .select('item_name, quantity, unit_price_per_day, duration_days, subtotal, unit_mode')
       .eq('contract_id', contract.id)
       .order('sort_order', { ascending: true });
     
@@ -1013,6 +1013,7 @@ export default function ContractDetail() {
       unit_price_per_day: item.unit_price_per_day,
       duration_days: item.duration_days,
       subtotal: item.subtotal,
+      unit_mode: item.unit_mode,
     }));
     
     setDocumentData({

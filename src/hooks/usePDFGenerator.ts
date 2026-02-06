@@ -13,6 +13,7 @@ interface LineItem {
   unit_price_per_day: number;
   duration_days: number;
   subtotal?: number;
+  unit_mode?: string | null;
 }
 
 interface InvoicePDFData {
