@@ -229,22 +229,32 @@ export function ContractChainVisualization({
 
         {!isExpanded && (
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            {chain.map((contract, index) => (
-              <span key={contract.id} className="flex items-center gap-1">
-                <span className={cn(
-                  "font-mono",
-                  contract.id === currentContractId && "text-primary font-medium"
-                )}>
-                  {contract.invoice || `#${index + 1}`}
+            {chain.map((contract, index) => {
+              const isCurrent = contract.id === currentContractId;
+              
+              return (
+                <span key={contract.id} className="flex items-center gap-1">
+                  {isCurrent ? (
+                    <span className="font-mono text-primary font-medium">
+                      {contract.invoice || `#${index + 1}`}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => navigate(`/vip/contracts/${contract.id}`)}
+                      className="font-mono text-blue-600 underline hover:text-blue-800 cursor-pointer"
+                    >
+                      {contract.invoice || `#${index + 1}`}
+                    </button>
+                  )}
+                  {isCurrent && (
+                    <Badge variant="outline" className="text-[10px] h-4">Ini</Badge>
+                  )}
+                  {index < chain.length - 1 && (
+                    <ArrowRight className="h-3 w-3 mx-1" />
+                  )}
                 </span>
-                {contract.id === currentContractId && (
-                  <Badge variant="outline" className="text-[10px] h-4">Ini</Badge>
-                )}
-                {index < chain.length - 1 && (
-                  <ArrowRight className="h-3 w-3 mx-1" />
-                )}
-              </span>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
