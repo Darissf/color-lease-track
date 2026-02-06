@@ -1024,7 +1024,7 @@ export const InvoicePDFTemplate = ({
                   <View key={index} style={styles.rincianTableRow}>
                     <Text style={[styles.rincianTableCell, { width: 25, textAlign: "center", borderColor: settings.border_color }]}>{index + 1}</Text>
                     <Text style={[styles.rincianTableCell, { flex: 1, borderColor: settings.border_color }]}>{item.item_name}</Text>
-                    <Text style={[styles.rincianTableCell, { width: 40, textAlign: "center", borderColor: settings.border_color }]}>{item.quantity} {item.unit_mode || 'pcs'}</Text>
+                    <Text style={[styles.rincianTableCell, { width: 40, textAlign: "center", borderColor: settings.border_color }]}>{item.quantity} {(item.unit_mode || 'pcs').charAt(0).toUpperCase() + (item.unit_mode || 'pcs').slice(1)}</Text>
                     <Text style={[styles.rincianTableCell, { width: 75, textAlign: "right", borderColor: settings.border_color }]}>{formatRupiah(item.unit_price_per_day)}</Text>
                     <Text style={[styles.rincianTableCell, { width: 50, textAlign: "center", borderColor: settings.border_color }]}>{item.duration_days} hari</Text>
                     <Text style={[styles.rincianTableCell, { width: 90, textAlign: "right", fontFamily: "Helvetica", fontWeight: 700, borderColor: settings.border_color }]}>{formatRupiah(itemSubtotal)}</Text>

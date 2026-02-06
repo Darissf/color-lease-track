@@ -388,7 +388,7 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
                     className="p-2 text-center text-sm"
                     style={{ border: `1px solid ${settings.border_color}` }}
                   >
-                    {item.quantity} {item.unit_mode || 'pcs'}
+                    {item.quantity} {(item.unit_mode || 'pcs').charAt(0).toUpperCase() + (item.unit_mode || 'pcs').slice(1)}
                   </td>
                   {fullRincian && (
                     <>
