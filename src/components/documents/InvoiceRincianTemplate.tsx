@@ -12,6 +12,7 @@ interface LineItem {
   unit_price_per_day: number;
   duration_days: number;
   subtotal?: number;
+  unit_mode?: string | null;
 }
 
 interface InvoiceRincianTemplateProps {
@@ -387,7 +388,7 @@ export const InvoiceRincianTemplate = forwardRef<HTMLDivElement, InvoiceRincianT
                     className="p-2 text-center text-sm"
                     style={{ border: `1px solid ${settings.border_color}` }}
                   >
-                    {item.quantity}
+                    {item.quantity} {item.unit_mode || 'pcs'}
                   </td>
                   {fullRincian && (
                     <>
