@@ -1,49 +1,89 @@
 
 
-## Kapitalisasi Satuan pada Kolom Qty (Pcs/Set)
+## Perbaikan Hyperlink pada Tampilan Collapsed Chain
 
-### Perubahan yang Diminta
+### Masalah
 
-Mengubah tampilan satuan dari huruf kecil menjadi huruf kapital di awal:
-- "8 pcs" → "8 Pcs"
-- "2 set" → "2 Set"
+Di tampilan collapsed (tidak di-expand), invoice number "0000000" ditampilkan sebagai teks biasa tanpa hyperlink, sementara yang diharapkan adalah semua invoice (kecuali yang sedang dilihat) bisa diklik untuk navigasi.
 
-### File yang Perlu Diubah
+### Solusi
 
-| File | Lokasi | Perubahan |
-|------|--------|-----------|
-| `src/components/documents/InvoiceRincianTemplate.tsx` | Baris ~304 | Kapitalisasi unit_mode |
-| `src/components/documents/ReceiptRincianTemplate.tsx` | Baris ~304 | Kapitalisasi unit_mode |
-| `src/components/documents/pdf/InvoicePDFTemplate.tsx` | Baris ~1026 | Kapitalisasi unit_mode |
-| `src/components/documents/pdf/ReceiptPDFTemplate.tsx` | Baris ~964 | Kapitalisasi unit_mode |
+Ubah elemen `<span>` yang menampilkan invoice number menjadi elemen yang bisa diklik (button/link) dengan styling hyperlink biru + underline.
 
 ### Perubahan Kode
 
+**File:** `src/components/contracts/ContractChainVisualization.tsx`
+
+**Lokasi:** Baris 230-248 (tampilan collapsed)
+
 **Sebelum:**
 ```tsx
-{item.quantity} {item.unit_mode || 'pcs'}
+{!isExpanded && (
+  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+    {chain.map((contract, index) => (
+      <span key={contract.id} className="flex items-center gap-1">
+        <span className={cn(
+          "font-mono",
+          contract.id === currentContractId && "text-primary font-medium"
+        )}>
+          {contract.invoice || `#${index + 1}`}
+        </span>
+        {contract.id === currentContractId && (
+          <Badge variant="outline" className="text-[10px] h-4">Ini</Badge>
+        )}
+        {index < chain.length - 1 && (
+          <ArrowRight className="h-3 w-3 mx-1" />
+        )}
+      </span>
+    ))}
+  </div>
+)}
 ```
 
 **Sesudah:**
 ```tsx
-{item.quantity} {(item.unit_mode || 'pcs').charAt(0).toUpperCase() + (item.unit_mode || 'pcs').slice(1)}
-```
-
-Atau lebih ringkas dengan helper function:
-```tsx
-// Helper untuk kapitalisasi
-const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
-
-// Penggunaan
-{item.quantity} {capitalize(item.unit_mode || 'pcs')}
+{!isExpanded && (
+  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+    {chain.map((contract, index) => {
+      const isCurrent = contract.id === currentContractId;
+      
+      return (
+        <span key={contract.id} className="flex items-center gap-1">
+          {isCurrent ? (
+            <span className="font-mono text-primary font-medium">
+              {contract.invoice || `#${index + 1}`}
+            </span>
+          ) : (
+            <button
+              onClick={() => navigate(`/vip/contracts/${contract.id}`)}
+              className="font-mono text-blue-600 underline hover:text-blue-800 cursor-pointer"
+            >
+              {contract.invoice || `#${index + 1}`}
+            </button>
+          )}
+          {isCurrent && (
+            <Badge variant="outline" className="text-[10px] h-4">Ini</Badge>
+          )}
+          {index < chain.length - 1 && (
+            <ArrowRight className="h-3 w-3 mx-1" />
+          )}
+        </span>
+      );
+    })}
+  </div>
+)}
 ```
 
 ### Hasil
 
-| Sebelum | Sesudah |
-|---------|---------|
-| 2 pcs | 2 Pcs |
-| 8 pcs | 8 Pcs |
-| 2 set | 2 Set |
-| 4 set | 4 Set |
+| Invoice | Tampilan |
+|---------|----------|
+| 0000000 | Teks biru + underline, bisa diklik → navigasi ke detail |
+| 000299 (sedang dilihat) | Teks hijau (primary), tidak bisa diklik + badge "Ini" |
+
+### Ilustrasi
+
+**Sebelum:** `0000000 → 000299 [Ini]` (semua teks biasa)
+
+**Sesudah:** `0000000 → 000299 [Ini]` (0000000 = hyperlink biru + underline)
 
