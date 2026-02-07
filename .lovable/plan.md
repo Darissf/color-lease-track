@@ -1,104 +1,82 @@
 
 
-## Auto-Click Link dengan Delay 10 Detik untuk Email Unread
+## Menandai Email sebagai Read Setelah Auto-Click Selesai
 
-### Pemahaman
+### Masalah Saat Ini
 
-Saat ini fitur auto-click sudah berjalan di webhook saat email masuk. Email yang masuk memang selalu dalam status unread (is_read = false), jadi auto-click sudah berjalan untuk email unread.
+Setelah proses auto-click selesai (semua link diklik + delay 10 detik), email tetap dalam status `is_read = false`. Ini bisa membingungkan karena:
+- User mungkin berpikir email belum diproses
+- Jika ada proses auto-click ulang di masa depan, email yang sama bisa diproses lagi
 
-Yang perlu ditambahkan:
-1. **Delay 10 detik** setelah mengklik setiap link sebelum melanjutkan ke link berikutnya
-2. Memastikan auto-click hanya memproses email yang masih unread
+### Solusi
 
-### Perubahan yang Akan Dilakukan
+Tambahkan update `is_read = true` setelah semua link selesai diklik di fungsi `autoClickLinks`.
 
-#### File: `supabase/functions/inbound-mail-webhook/index.ts`
+### Perubahan Kode
 
-**Lokasi:** Baris 60-109 (fungsi autoClickLinks - loop untuk klik link)
+**File:** `supabase/functions/inbound-mail-webhook/index.ts`
+
+**Lokasi:** Setelah loop selesai (baris 117, sebelum catch terakhir)
 
 **Perubahan:**
 
-1. Tambahkan delay 10 detik setelah setiap link diklik (simulasi "menunggu sebelum close browser")
-2. Log informasi delay untuk tracking
-
-**Sebelum:**
 ```typescript
-for (const url of links) {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+// Di akhir fungsi autoClickLinks, setelah loop for selesai:
 
-    const response = await fetch(url, { ... });
-    clearTimeout(timeoutId);
+    // ... existing loop code ...
+    }
+
+    // ⭐ BARU: Tandai email sebagai sudah dibaca setelah semua link diklik
+    console.log(`All links clicked for inbox ${mailInboxId}. Marking as read...`);
+    const { error: updateError } = await supabase
+      .from('mail_inbox')
+      .update({ is_read: true })
+      .eq('id', mailInboxId);
     
-    // ... process response ...
-    
-    console.log(`Successfully clicked: ${url} (status: ${response.status})`);
+    if (updateError) {
+      console.error(`Failed to mark email as read:`, updateError);
+    } else {
+      console.log(`Email ${mailInboxId} marked as read after auto-click`);
+    }
+
   } catch (error) {
-    // ... handle error ...
+    console.error('Error in autoClickLinks:', error);
   }
 }
 ```
 
-**Sesudah:**
-```typescript
-for (const url of links) {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(url, { ... });
-    clearTimeout(timeoutId);
-    
-    // ... process response ...
-    
-    console.log(`Successfully clicked: ${url} (status: ${response.status})`);
-    
-    // Tunggu 10 detik sebelum menutup "session" dan lanjut ke link berikutnya
-    console.log(`Waiting 10 seconds before closing link: ${url}`);
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    console.log(`Closed link: ${url}`);
-    
-  } catch (error) {
-    // ... handle error ...
-    
-    // Tetap tunggu 10 detik meskipun error
-    await new Promise(resolve => setTimeout(resolve, 10000));
-  }
-}
-```
-
-### Catatan Penting
-
-| Aspek | Penjelasan |
-|-------|------------|
-| Email Unread | Email baru dari webhook selalu unread (is_read = false), jadi sudah otomatis memproses email unread |
-| Delay 10 Detik | Ditambahkan setelah setiap link diklik untuk simulasi "keep page open" |
-| Max Links | Tetap dibatasi 10 link per email |
-| Timeout Request | 10 detik untuk request + 10 detik delay = ~20 detik per link |
-| Background Process | Webhook tidak menunggu proses selesai (fire and forget) |
-
-### Flow Baru
+### Flow Lengkap (Updated)
 
 ```text
 Email masuk (webhook)
     ↓
+Simpan ke database (is_read = false)
+    ↓
 Cek auto_click_links = true?
     ↓ Ya
-Extract links dari email
+Extract links dari email (max 10)
     ↓
 Untuk setiap link:
-    1. Klik link (HTTP GET)
-    2. Tunggu response (max 10 detik)
-    3. Simpan hasil ke mail_auto_clicked_links
-    4. ⭐ BARU: Tunggu 10 detik (delay)
-    5. Log "Closed link"
-    6. Lanjut ke link berikutnya
+    1. Klik link (HTTP GET, timeout 10 detik)
+    2. Simpan hasil ke mail_auto_clicked_links
+    3. Tunggu 10 detik (delay)
+    4. Lanjut ke link berikutnya
+    ↓
+⭐ BARU: Update is_read = true
+    ↓
+Selesai
 ```
 
 ### Ringkasan
 
-| File | Perubahan |
-|------|-----------|
-| `supabase/functions/inbound-mail-webhook/index.ts` | Tambah delay 10 detik setelah setiap link diklik |
+| Aspek | Sebelum | Sesudah |
+|-------|---------|---------|
+| Status email setelah auto-click | `is_read = false` | `is_read = true` |
+| Kapan di-mark read | Tidak pernah (oleh auto-click) | Setelah semua link diklik + delay |
+
+### Catatan
+
+- Jika auto-click disabled atau tidak ada link, email tetap unread (sesuai behavior normal)
+- Jika ada error di tengah proses, email mungkin tidak di-mark read (safety measure)
+- User masih bisa membaca email secara manual kapan saja
 
