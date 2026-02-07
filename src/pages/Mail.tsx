@@ -20,6 +20,7 @@ import MailReader from "@/components/mail/MailReader";
 import EmailAddressFilter from "@/components/mail/EmailAddressFilter";
 import { ComposeEmailDialog } from "@/components/mail/ComposeEmailDialog";
 import { MassDeleteDialog } from "@/components/mail/MassDeleteDialog";
+import { AutoClickSettingsDialog } from "@/components/mail/AutoClickSettingsDialog";
 
 interface Email {
   id: string;
@@ -61,6 +62,9 @@ export default function MailPage() {
   const [autoClickEnabled, setAutoClickEnabled] = useState(false);
   const [loadingAutoClick, setLoadingAutoClick] = useState(false);
   const [massDeleteOpen, setMassDeleteOpen] = useState(false);
+  const [autoClickDialogOpen, setAutoClickDialogOpen] = useState(false);
+  const [autoClickKeywords, setAutoClickKeywords] = useState<string[]>([]);
+  const [settingsId, setSettingsId] = useState<string | null>(null);
 
   // Fetch auto-click setting on mount
   useEffect(() => {
@@ -68,11 +72,14 @@ export default function MailPage() {
       try {
         const { data, error } = await supabase
           .from("mail_settings")
-          .select("auto_click_links")
-          .single();
+          .select("id, auto_click_links, auto_click_keywords")
+          .limit(1)
+          .maybeSingle();
         
         if (data && !error) {
           setAutoClickEnabled(data.auto_click_links);
+          setSettingsId(data.id);
+          setAutoClickKeywords(data.auto_click_keywords || ['Follow this link to verify your email address.']);
         }
       } catch (error) {
         console.error("Error fetching auto-click setting:", error);
@@ -254,6 +261,16 @@ export default function MailPage() {
   const trashCount = emails.filter((e) => e.is_deleted).length;
 
   const handleToggleAutoClick = async (enabled: boolean) => {
+    if (enabled) {
+      // Open dialog first, don't activate yet
+      setAutoClickDialogOpen(true);
+    } else {
+      // Directly disable
+      await updateAutoClickSetting(false);
+    }
+  };
+
+  const updateAutoClickSetting = async (enabled: boolean, keywords?: string[]) => {
     setLoadingAutoClick(true);
     try {
       // Check if settings already exist
@@ -264,37 +281,46 @@ export default function MailPage() {
         .maybeSingle();
 
       let error;
+      const updateData: Record<string, unknown> = { 
+        auto_click_links: enabled, 
+        updated_at: new Date().toISOString(),
+        updated_by: user?.id
+      };
+      
+      if (keywords !== undefined) {
+        updateData.auto_click_keywords = keywords;
+      }
       
       if (existing?.id) {
         // Update existing row using actual UUID
         const result = await supabase
           .from("mail_settings")
-          .update({ 
-            auto_click_links: enabled, 
-            updated_at: new Date().toISOString(),
-            updated_by: user?.id 
-          })
+          .update(updateData)
           .eq("id", existing.id);
         error = result.error;
+        if (!error) setSettingsId(existing.id);
       } else {
         // Insert new row (let database generate UUID)
         const result = await supabase
           .from("mail_settings")
-          .insert({ 
-            auto_click_links: enabled, 
-            updated_at: new Date().toISOString(),
-            updated_by: user?.id 
-          });
+          .insert(updateData)
+          .select("id")
+          .single();
         error = result.error;
+        if (!error && result.data) setSettingsId(result.data.id);
       }
 
       if (error) throw error;
       
       setAutoClickEnabled(enabled);
+      if (keywords !== undefined) {
+        setAutoClickKeywords(keywords);
+      }
+      
       toast({
         title: enabled ? "Auto-Click Aktif" : "Auto-Click Nonaktif",
         description: enabled 
-          ? "Link di email baru akan otomatis diklik" 
+          ? "Link di email baru akan otomatis diklik berdasarkan keyword" 
           : "Link tidak akan diklik otomatis",
       });
     } catch (error) {
@@ -307,6 +333,16 @@ export default function MailPage() {
     } finally {
       setLoadingAutoClick(false);
     }
+  };
+
+  const handleSaveAutoClickSettings = async (keywords: string[]) => {
+    await updateAutoClickSetting(true, keywords);
+    setAutoClickDialogOpen(false);
+  };
+
+  const handleCancelAutoClickSettings = () => {
+    // Don't change anything, just close dialog
+    setAutoClickDialogOpen(false);
   };
 
   if (!isSuperAdmin && !isAdmin) {
@@ -576,6 +612,15 @@ export default function MailPage() {
           fetchEmails();
           setSelectedEmail(null);
         }}
+      />
+
+      {/* Auto-Click Settings Dialog */}
+      <AutoClickSettingsDialog
+        open={autoClickDialogOpen}
+        onOpenChange={setAutoClickDialogOpen}
+        keywords={autoClickKeywords}
+        onSave={handleSaveAutoClickSettings}
+        onCancel={handleCancelAutoClickSettings}
       />
     </div>
   );
