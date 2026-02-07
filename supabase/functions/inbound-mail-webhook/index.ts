@@ -19,6 +19,40 @@ function extractLinksFromText(text: string): string[] {
   return [...new Set(matches)];
 }
 
+// Find links near keywords (exact match within 200 char radius)
+function findLinksNearKeywords(html: string, text: string, keywords: string[]): string[] {
+  const matchedLinks: string[] = [];
+  const content = html || text;
+  
+  for (const keyword of keywords) {
+    // Find all occurrences of keyword (exact match, case-sensitive)
+    let searchIndex = 0;
+    while (searchIndex < content.length) {
+      const keywordIndex = content.indexOf(keyword, searchIndex);
+      if (keywordIndex === -1) break;
+      
+      // Search within 200 characters before and after keyword
+      const searchStart = Math.max(0, keywordIndex - 200);
+      const searchEnd = Math.min(content.length, keywordIndex + keyword.length + 200);
+      const nearbyContent = content.substring(searchStart, searchEnd);
+      
+      // Extract links from nearby area
+      const linkRegex = /href=["'](https?:\/\/[^"']+)["']/gi;
+      const matches = [...nearbyContent.matchAll(linkRegex)];
+      matchedLinks.push(...matches.map(m => m[1]));
+      
+      // Also try plain text URL extraction for text content
+      const urlRegex = /(https?:\/\/[^\s<>"']+)/gi;
+      const textMatches = nearbyContent.match(urlRegex) || [];
+      matchedLinks.push(...textMatches);
+      
+      searchIndex = keywordIndex + keyword.length;
+    }
+  }
+  
+  return [...new Set(matchedLinks)];
+}
+
 // Auto-click links in background
 async function autoClickLinks(
   supabase: any, 
@@ -27,38 +61,36 @@ async function autoClickLinks(
   bodyText: string
 ) {
   try {
-    // Check if auto-click is enabled
+    // Check if auto-click is enabled and get keywords
     const { data: settings } = await supabase
       .from('mail_settings')
-      .select('auto_click_links')
-      .single();
+      .select('auto_click_links, auto_click_keywords')
+      .limit(1)
+      .maybeSingle();
 
     if (!settings?.auto_click_links) {
       console.log('Auto-click is disabled');
       return;
     }
 
-    // Extract unique links
-    let links: string[] = [];
-    if (bodyHtml) {
-      links = extractLinksFromHtml(bodyHtml);
-    }
-    if (links.length === 0 && bodyText) {
-      links = extractLinksFromText(bodyText);
-    }
+    const keywords = settings.auto_click_keywords || ['Follow this link to verify your email address.'];
+    console.log('Keywords for filtering:', keywords);
+
+    // Find links near keywords
+    const links = findLinksNearKeywords(bodyHtml, bodyText, keywords);
 
     // Limit to max 10 links per email
-    links = links.slice(0, 10);
+    const linksToClick = links.slice(0, 10);
 
-    if (links.length === 0) {
-      console.log('No links found in email');
+    if (linksToClick.length === 0) {
+      console.log('No links found near keywords in email');
       return;
     }
 
-    console.log(`Found ${links.length} links to auto-click:`, links);
+    console.log(`Found ${linksToClick.length} links to auto-click (near keywords):`, linksToClick);
 
     // Click each link with timeout
-    for (const url of links) {
+    for (const url of linksToClick) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout

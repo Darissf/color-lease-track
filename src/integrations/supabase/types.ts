@@ -3842,18 +3842,21 @@ export type Database = {
       }
       mail_settings: {
         Row: {
+          auto_click_keywords: string[] | null
           auto_click_links: boolean
           id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          auto_click_keywords?: string[] | null
           auto_click_links?: boolean
           id?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          auto_click_keywords?: string[] | null
           auto_click_links?: boolean
           id?: string
           updated_at?: string
