@@ -97,6 +97,65 @@ export default function MailPage() {
     }
   }, [user, isSuperAdmin, isAdmin, filter, selectedAddress, mailType]);
 
+  // Realtime subscription untuk auto-refresh
+  useEffect(() => {
+    if (!user || (!isSuperAdmin && !isAdmin)) return;
+
+    const channel = supabase
+      .channel('mail_inbox_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'mail_inbox',
+        },
+        (payload) => {
+          console.log('Realtime email update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newEmail = payload.new as Email & { mail_type?: string };
+            // Cek apakah sesuai dengan filter saat ini
+            if (newEmail.mail_type === mailType) {
+              // Tambahkan ke awal list jika bukan di trash dan filter bukan trash
+              if (!newEmail.is_deleted && filter !== 'trash') {
+                setEmails((prev) => [newEmail as Email, ...prev]);
+                
+                // Tampilkan notifikasi
+                toast({
+                  title: "📬 Email Baru",
+                  description: `Dari: ${newEmail.from_name || newEmail.from_address}`,
+                });
+              }
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedEmail = payload.new as Email;
+            setEmails((prev) =>
+              prev.map((email) =>
+                email.id === updatedEmail.id ? updatedEmail : email
+              )
+            );
+            // Update selectedEmail jika sedang dibuka
+            if (selectedEmail?.id === updatedEmail.id) {
+              setSelectedEmail(updatedEmail);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            setEmails((prev) => prev.filter((email) => email.id !== deletedId));
+            if (selectedEmail?.id === deletedId) {
+              setSelectedEmail(null);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup saat unmount atau dependencies berubah
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isSuperAdmin, isAdmin, mailType, filter, selectedEmail?.id, toast]);
+
   const fetchEmails = async () => {
     setLoading(true);
     try {
