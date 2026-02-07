@@ -1,89 +1,104 @@
 
 
-## Perbaikan Hyperlink pada Tampilan Collapsed Chain
+## Auto-Click Link dengan Delay 10 Detik untuk Email Unread
 
-### Masalah
+### Pemahaman
 
-Di tampilan collapsed (tidak di-expand), invoice number "0000000" ditampilkan sebagai teks biasa tanpa hyperlink, sementara yang diharapkan adalah semua invoice (kecuali yang sedang dilihat) bisa diklik untuk navigasi.
+Saat ini fitur auto-click sudah berjalan di webhook saat email masuk. Email yang masuk memang selalu dalam status unread (is_read = false), jadi auto-click sudah berjalan untuk email unread.
 
-### Solusi
+Yang perlu ditambahkan:
+1. **Delay 10 detik** setelah mengklik setiap link sebelum melanjutkan ke link berikutnya
+2. Memastikan auto-click hanya memproses email yang masih unread
 
-Ubah elemen `<span>` yang menampilkan invoice number menjadi elemen yang bisa diklik (button/link) dengan styling hyperlink biru + underline.
+### Perubahan yang Akan Dilakukan
 
-### Perubahan Kode
+#### File: `supabase/functions/inbound-mail-webhook/index.ts`
 
-**File:** `src/components/contracts/ContractChainVisualization.tsx`
+**Lokasi:** Baris 60-109 (fungsi autoClickLinks - loop untuk klik link)
 
-**Lokasi:** Baris 230-248 (tampilan collapsed)
+**Perubahan:**
+
+1. Tambahkan delay 10 detik setelah setiap link diklik (simulasi "menunggu sebelum close browser")
+2. Log informasi delay untuk tracking
 
 **Sebelum:**
-```tsx
-{!isExpanded && (
-  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-    {chain.map((contract, index) => (
-      <span key={contract.id} className="flex items-center gap-1">
-        <span className={cn(
-          "font-mono",
-          contract.id === currentContractId && "text-primary font-medium"
-        )}>
-          {contract.invoice || `#${index + 1}`}
-        </span>
-        {contract.id === currentContractId && (
-          <Badge variant="outline" className="text-[10px] h-4">Ini</Badge>
-        )}
-        {index < chain.length - 1 && (
-          <ArrowRight className="h-3 w-3 mx-1" />
-        )}
-      </span>
-    ))}
-  </div>
-)}
+```typescript
+for (const url of links) {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(url, { ... });
+    clearTimeout(timeoutId);
+    
+    // ... process response ...
+    
+    console.log(`Successfully clicked: ${url} (status: ${response.status})`);
+  } catch (error) {
+    // ... handle error ...
+  }
+}
 ```
 
 **Sesudah:**
-```tsx
-{!isExpanded && (
-  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-    {chain.map((contract, index) => {
-      const isCurrent = contract.id === currentContractId;
-      
-      return (
-        <span key={contract.id} className="flex items-center gap-1">
-          {isCurrent ? (
-            <span className="font-mono text-primary font-medium">
-              {contract.invoice || `#${index + 1}`}
-            </span>
-          ) : (
-            <button
-              onClick={() => navigate(`/vip/contracts/${contract.id}`)}
-              className="font-mono text-blue-600 underline hover:text-blue-800 cursor-pointer"
-            >
-              {contract.invoice || `#${index + 1}`}
-            </button>
-          )}
-          {isCurrent && (
-            <Badge variant="outline" className="text-[10px] h-4">Ini</Badge>
-          )}
-          {index < chain.length - 1 && (
-            <ArrowRight className="h-3 w-3 mx-1" />
-          )}
-        </span>
-      );
-    })}
-  </div>
-)}
+```typescript
+for (const url of links) {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(url, { ... });
+    clearTimeout(timeoutId);
+    
+    // ... process response ...
+    
+    console.log(`Successfully clicked: ${url} (status: ${response.status})`);
+    
+    // Tunggu 10 detik sebelum menutup "session" dan lanjut ke link berikutnya
+    console.log(`Waiting 10 seconds before closing link: ${url}`);
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    console.log(`Closed link: ${url}`);
+    
+  } catch (error) {
+    // ... handle error ...
+    
+    // Tetap tunggu 10 detik meskipun error
+    await new Promise(resolve => setTimeout(resolve, 10000));
+  }
+}
 ```
 
-### Hasil
+### Catatan Penting
 
-| Invoice | Tampilan |
-|---------|----------|
-| 0000000 | Teks biru + underline, bisa diklik → navigasi ke detail |
-| 000299 (sedang dilihat) | Teks hijau (primary), tidak bisa diklik + badge "Ini" |
+| Aspek | Penjelasan |
+|-------|------------|
+| Email Unread | Email baru dari webhook selalu unread (is_read = false), jadi sudah otomatis memproses email unread |
+| Delay 10 Detik | Ditambahkan setelah setiap link diklik untuk simulasi "keep page open" |
+| Max Links | Tetap dibatasi 10 link per email |
+| Timeout Request | 10 detik untuk request + 10 detik delay = ~20 detik per link |
+| Background Process | Webhook tidak menunggu proses selesai (fire and forget) |
 
-### Ilustrasi
+### Flow Baru
 
-**Sebelum:** `0000000 → 000299 [Ini]` (semua teks biasa)
+```text
+Email masuk (webhook)
+    ↓
+Cek auto_click_links = true?
+    ↓ Ya
+Extract links dari email
+    ↓
+Untuk setiap link:
+    1. Klik link (HTTP GET)
+    2. Tunggu response (max 10 detik)
+    3. Simpan hasil ke mail_auto_clicked_links
+    4. ⭐ BARU: Tunggu 10 detik (delay)
+    5. Log "Closed link"
+    6. Lanjut ke link berikutnya
+```
 
-**Sesudah:** `0000000 → 000299 [Ini]` (0000000 = hyperlink biru + underline)
+### Ringkasan
+
+| File | Perubahan |
+|------|-----------|
+| `supabase/functions/inbound-mail-webhook/index.ts` | Tambah delay 10 detik setelah setiap link diklik |
 
