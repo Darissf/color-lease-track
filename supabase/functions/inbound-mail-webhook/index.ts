@@ -115,6 +115,19 @@ async function autoClickLinks(
         await new Promise(resolve => setTimeout(resolve, 10000));
       }
     }
+
+    // Mark email as read after all links have been clicked
+    console.log(`All links clicked for inbox ${mailInboxId}. Marking as read...`);
+    const { error: updateError } = await supabase
+      .from('mail_inbox')
+      .update({ is_read: true })
+      .eq('id', mailInboxId);
+    
+    if (updateError) {
+      console.error(`Failed to mark email as read:`, updateError);
+    } else {
+      console.log(`Email ${mailInboxId} marked as read after auto-click`);
+    }
   } catch (error) {
     console.error('Error in autoClickLinks:', error);
   }
