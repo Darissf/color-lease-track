@@ -93,7 +93,7 @@ async function autoClickLinks(
     for (const url of linksToClick) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for slow links
 
         const response = await fetch(url, {
           method: 'GET',
@@ -125,11 +125,7 @@ async function autoClickLinks(
         });
 
         console.log(`Successfully clicked: ${url} (status: ${response.status})`);
-        
-        // Tunggu 10 detik sebelum menutup "session" dan lanjut ke link berikutnya
-        console.log(`Waiting 10 seconds before closing link: ${url}`);
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        console.log(`Closed link: ${url}`);
+        // No additional delay needed - response.text() already waits for full content download
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         
@@ -142,9 +138,6 @@ async function autoClickLinks(
         });
 
         console.error(`Failed to click: ${url}`, errorMessage);
-        
-        // Tetap tunggu 10 detik meskipun error sebelum lanjut ke link berikutnya
-        await new Promise(resolve => setTimeout(resolve, 10000));
       }
     }
 
