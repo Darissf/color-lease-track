@@ -93,6 +93,11 @@ async function autoClickLinks(
         });
 
         console.log(`Successfully clicked: ${url} (status: ${response.status})`);
+        
+        // Tunggu 10 detik sebelum menutup "session" dan lanjut ke link berikutnya
+        console.log(`Waiting 10 seconds before closing link: ${url}`);
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        console.log(`Closed link: ${url}`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         
@@ -105,6 +110,9 @@ async function autoClickLinks(
         });
 
         console.error(`Failed to click: ${url}`, errorMessage);
+        
+        // Tetap tunggu 10 detik meskipun error sebelum lanjut ke link berikutnya
+        await new Promise(resolve => setTimeout(resolve, 10000));
       }
     }
   } catch (error) {
