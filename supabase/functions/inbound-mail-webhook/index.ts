@@ -53,6 +53,62 @@ function findLinksNearKeywords(html: string, text: string, keywords: string[]): 
   return [...new Set(matchedLinks)];
 }
 
+// Click link using Browserless.io (executes JavaScript like a real browser)
+async function clickLinkWithBrowser(url: string): Promise<{status: number, content: string, method: string}> {
+  const browserlessKey = Deno.env.get('BROWSERLESS_API_KEY');
+  
+  if (!browserlessKey) {
+    console.log('No BROWSERLESS_API_KEY, falling back to simple fetch');
+    // Fallback to simple fetch if no key
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    return { status: response.status, content: await response.text(), method: 'fetch' };
+  }
+
+  console.log(`Using Browserless.io to click: ${url}`);
+  
+  // Use Browserless /content API to load page and execute JavaScript
+  const response = await fetch(
+    `https://chrome.browserless.io/content?token=${browserlessKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: url,
+        waitFor: 8000, // Wait 8 seconds for JS to execute
+        gotoOptions: { 
+          waitUntil: 'networkidle2', // Wait until network is idle
+          timeout: 30000 
+        }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Browserless API error:', response.status, errorText);
+    throw new Error(`Browserless API error: ${response.status} - ${errorText}`);
+  }
+
+  return { 
+    status: response.status, 
+    content: await response.text(),
+    method: 'browserless'
+  };
+}
+
 // Auto-click links in background
 async function autoClickLinks(
   supabase: any, 
@@ -89,43 +145,22 @@ async function autoClickLinks(
 
     console.log(`Found ${linksToClick.length} links to auto-click (near keywords):`, linksToClick);
 
-    // Click each link with timeout
+    // Click each link using Browserless (with JS execution)
     for (const url of linksToClick) {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for slow links
-
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          },
-          redirect: 'follow',
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        let responsePreview = '';
-        try {
-          const text = await response.text();
-          responsePreview = text.substring(0, 500);
-        } catch {
-          responsePreview = '';
-        }
+        const result = await clickLinkWithBrowser(url);
+        const responsePreview = result.content.substring(0, 500);
 
         // Log successful click
         await supabase.from('mail_auto_clicked_links').insert({
           mail_inbox_id: mailInboxId,
           url: url,
-          status_code: response.status,
-          response_preview: responsePreview,
+          status_code: result.status,
+          response_preview: `[${result.method}] ${responsePreview}`,
           clicked_at: new Date().toISOString(),
         });
 
-        console.log(`Successfully clicked: ${url} (status: ${response.status})`);
-        // No additional delay needed - response.text() already waits for full content download
+        console.log(`Successfully clicked via ${result.method}: ${url} (status: ${result.status})`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         
