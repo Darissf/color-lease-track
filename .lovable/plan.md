@@ -1,82 +1,102 @@
 
 
-## Menandai Email sebagai Read Setelah Auto-Click Selesai
+## Perbaikan Error Auto-Click Toggle
 
-### Masalah Saat Ini
+### Masalah
 
-Setelah proses auto-click selesai (semua link diklik + delay 10 detik), email tetap dalam status `is_read = false`. Ini bisa membingungkan karena:
-- User mungkin berpikir email belum diproses
-- Jika ada proses auto-click ulang di masa depan, email yang sama bisa diproses lagi
+Error `invalid input syntax for type uuid: "default"` terjadi karena:
+- Kolom `id` di tabel `mail_settings` bertipe **UUID**
+- Kode menggunakan `id: "default"` (string biasa) saat upsert
+- Supabase menolak karena "default" bukan format UUID yang valid
+
+### Data Saat Ini
+
+Tabel `mail_settings` sudah memiliki 1 row:
+| id | auto_click_links | updated_at | updated_by |
+|----|------------------|------------|------------|
+| 916f854b-9f2b-4db4-9912-5b663b0a6b70 | false | 2026-02-01 | null |
 
 ### Solusi
 
-Tambahkan update `is_read = true` setelah semua link selesai diklik di fungsi `autoClickLinks`.
+Ubah logika di `Mail.tsx` untuk menggunakan **UUID yang sudah ada** atau membuat UUID baru jika belum ada data, bukan menggunakan string "default".
 
 ### Perubahan Kode
 
-**File:** `supabase/functions/inbound-mail-webhook/index.ts`
+**File:** `src/pages/Mail.tsx`
 
-**Lokasi:** Setelah loop selesai (baris 117, sebelum catch terakhir)
+**Lokasi:** Baris 256-287 (fungsi `handleToggleAutoClick`)
 
-**Perubahan:**
+**Strategi:**
+1. Cek apakah sudah ada row di `mail_settings`
+2. Jika ada, gunakan `update` dengan ID yang sudah ada
+3. Jika belum ada, gunakan `insert` tanpa specify ID (biarkan database generate UUID)
 
+**Sebelum:**
 ```typescript
-// Di akhir fungsi autoClickLinks, setelah loop for selesai:
-
-    // ... existing loop code ...
-    }
-
-    // ⭐ BARU: Tandai email sebagai sudah dibaca setelah semua link diklik
-    console.log(`All links clicked for inbox ${mailInboxId}. Marking as read...`);
-    const { error: updateError } = await supabase
-      .from('mail_inbox')
-      .update({ is_read: true })
-      .eq('id', mailInboxId);
-    
-    if (updateError) {
-      console.error(`Failed to mark email as read:`, updateError);
-    } else {
-      console.log(`Email ${mailInboxId} marked as read after auto-click`);
-    }
-
-  } catch (error) {
-    console.error('Error in autoClickLinks:', error);
+const handleToggleAutoClick = async (enabled: boolean) => {
+  setLoadingAutoClick(true);
+  try {
+    const { error } = await supabase
+      .from("mail_settings")
+      .upsert({ 
+        id: "default",  // ❌ String biasa, bukan UUID
+        auto_click_links: enabled, 
+        updated_at: new Date().toISOString(),
+        updated_by: user?.id 
+      }, { onConflict: "id" });
+    // ...
   }
 }
 ```
 
-### Flow Lengkap (Updated)
+**Sesudah:**
+```typescript
+const handleToggleAutoClick = async (enabled: boolean) => {
+  setLoadingAutoClick(true);
+  try {
+    // Cek apakah sudah ada settings
+    const { data: existing } = await supabase
+      .from("mail_settings")
+      .select("id")
+      .limit(1)
+      .single();
 
-```text
-Email masuk (webhook)
-    ↓
-Simpan ke database (is_read = false)
-    ↓
-Cek auto_click_links = true?
-    ↓ Ya
-Extract links dari email (max 10)
-    ↓
-Untuk setiap link:
-    1. Klik link (HTTP GET, timeout 10 detik)
-    2. Simpan hasil ke mail_auto_clicked_links
-    3. Tunggu 10 detik (delay)
-    4. Lanjut ke link berikutnya
-    ↓
-⭐ BARU: Update is_read = true
-    ↓
-Selesai
+    let error;
+    
+    if (existing?.id) {
+      // Update existing row
+      const result = await supabase
+        .from("mail_settings")
+        .update({ 
+          auto_click_links: enabled, 
+          updated_at: new Date().toISOString(),
+          updated_by: user?.id 
+        })
+        .eq("id", existing.id);
+      error = result.error;
+    } else {
+      // Insert new row (database akan generate UUID)
+      const result = await supabase
+        .from("mail_settings")
+        .insert({ 
+          auto_click_links: enabled, 
+          updated_at: new Date().toISOString(),
+          updated_by: user?.id 
+        });
+      error = result.error;
+    }
+
+    if (error) throw error;
+    // ... rest of code
+  }
+}
 ```
 
 ### Ringkasan
 
 | Aspek | Sebelum | Sesudah |
 |-------|---------|---------|
-| Status email setelah auto-click | `is_read = false` | `is_read = true` |
-| Kapan di-mark read | Tidak pernah (oleh auto-click) | Setelah semua link diklik + delay |
-
-### Catatan
-
-- Jika auto-click disabled atau tidak ada link, email tetap unread (sesuai behavior normal)
-- Jika ada error di tengah proses, email mungkin tidak di-mark read (safety measure)
-- User masih bisa membaca email secara manual kapan saja
+| ID yang digunakan | `"default"` (string) | UUID dari database |
+| Metode | Upsert dengan ID statis | Select → Update/Insert |
+| Error handling | Gagal karena tipe tidak cocok | Berhasil dengan UUID valid |
 
