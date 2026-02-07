@@ -1,102 +1,181 @@
 
 
-## Perbaikan Error Auto-Click Toggle
+## Auto-Click dengan Filter Keyword
 
-### Masalah
+### Pemahaman Kebutuhan
 
-Error `invalid input syntax for type uuid: "default"` terjadi karena:
-- Kolom `id` di tabel `mail_settings` bertipe **UUID**
-- Kode menggunakan `id: "default"` (string biasa) saat upsert
-- Supabase menolak karena "default" bukan format UUID yang valid
+Anda ingin auto-click hanya mengklik link yang **terkait dengan teks tertentu** di email:
+- Contoh: Hanya klik link yang ada di dekat teks "Follow this link to verify your email address."
+- Keyword harus **exact match** (sama persis)
+- Saat toggle ON, muncul **popup konfigurasi** untuk mengatur keyword/phrase
 
-### Data Saat Ini
+### Perubahan yang Diperlukan
 
-Tabel `mail_settings` sudah memiliki 1 row:
-| id | auto_click_links | updated_at | updated_by |
-|----|------------------|------------|------------|
-| 916f854b-9f2b-4db4-9912-5b663b0a6b70 | false | 2026-02-01 | null |
+#### 1. Database: Tambah Kolom di `mail_settings`
 
-### Solusi
+Tambahkan kolom baru untuk menyimpan daftar keyword:
 
-Ubah logika di `Mail.tsx` untuk menggunakan **UUID yang sudah ada** atau membuat UUID baru jika belum ada data, bukan menggunakan string "default".
-
-### Perubahan Kode
-
-**File:** `src/pages/Mail.tsx`
-
-**Lokasi:** Baris 256-287 (fungsi `handleToggleAutoClick`)
-
-**Strategi:**
-1. Cek apakah sudah ada row di `mail_settings`
-2. Jika ada, gunakan `update` dengan ID yang sudah ada
-3. Jika belum ada, gunakan `insert` tanpa specify ID (biarkan database generate UUID)
-
-**Sebelum:**
-```typescript
-const handleToggleAutoClick = async (enabled: boolean) => {
-  setLoadingAutoClick(true);
-  try {
-    const { error } = await supabase
-      .from("mail_settings")
-      .upsert({ 
-        id: "default",  // ❌ String biasa, bukan UUID
-        auto_click_links: enabled, 
-        updated_at: new Date().toISOString(),
-        updated_by: user?.id 
-      }, { onConflict: "id" });
-    // ...
-  }
-}
+```sql
+ALTER TABLE mail_settings
+ADD COLUMN auto_click_keywords TEXT[] DEFAULT ARRAY['Follow this link to verify your email address.'];
 ```
 
-**Sesudah:**
+#### 2. Komponen Baru: `AutoClickSettingsDialog.tsx`
+
+Buat dialog popup untuk mengatur keyword:
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| Input keyword baru | Text field untuk menambah phrase baru |
+| Daftar keyword | Menampilkan semua keyword yang aktif |
+| Hapus keyword | Tombol untuk menghapus keyword tertentu |
+| Simpan | Menyimpan perubahan ke database |
+
+**Preview UI:**
+```text
+┌─────────────────────────────────────────────────┐
+│  ⚙️ Pengaturan Auto-Click                       │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  Hanya klik link yang terkait dengan teks:     │
+│                                                 │
+│  ┌────────────────────────────────┬──────────┐ │
+│  │ Masukkan keyword/phrase...     │ + Tambah │ │
+│  └────────────────────────────────┴──────────┘ │
+│                                                 │
+│  Keywords aktif:                               │
+│  ┌─────────────────────────────────────────┐   │
+│  │ Follow this link to verify your email   [×]│ │
+│  │ Click here to confirm                   [×]│ │
+│  │ Verify your account                     [×]│ │
+│  └─────────────────────────────────────────┘   │
+│                                                 │
+│                            [Batal] [Simpan]    │
+└─────────────────────────────────────────────────┘
+```
+
+#### 3. Modifikasi `Mail.tsx`
+
+**Perubahan flow toggle:**
+
+| Langkah | Aksi |
+|---------|------|
+| 1 | User klik toggle Auto-Click ON |
+| 2 | Buka dialog `AutoClickSettingsDialog` |
+| 3 | User mengatur keyword |
+| 4 | Klik Simpan → Aktifkan auto-click + simpan keyword |
+| 5 | Jika Batal → Toggle kembali ke OFF |
+
+**State baru:**
+```typescript
+const [autoClickDialogOpen, setAutoClickDialogOpen] = useState(false);
+const [autoClickKeywords, setAutoClickKeywords] = useState<string[]>([]);
+```
+
+**Handler baru:**
 ```typescript
 const handleToggleAutoClick = async (enabled: boolean) => {
-  setLoadingAutoClick(true);
-  try {
-    // Cek apakah sudah ada settings
-    const { data: existing } = await supabase
-      .from("mail_settings")
-      .select("id")
-      .limit(1)
-      .single();
+  if (enabled) {
+    // Buka dialog dulu, jangan langsung aktifkan
+    setAutoClickDialogOpen(true);
+  } else {
+    // Langsung nonaktifkan
+    await updateAutoClickSetting(false);
+  }
+};
 
-    let error;
-    
-    if (existing?.id) {
-      // Update existing row
-      const result = await supabase
-        .from("mail_settings")
-        .update({ 
-          auto_click_links: enabled, 
-          updated_at: new Date().toISOString(),
-          updated_by: user?.id 
-        })
-        .eq("id", existing.id);
-      error = result.error;
-    } else {
-      // Insert new row (database akan generate UUID)
-      const result = await supabase
-        .from("mail_settings")
-        .insert({ 
-          auto_click_links: enabled, 
-          updated_at: new Date().toISOString(),
-          updated_by: user?.id 
-        });
-      error = result.error;
+const handleSaveAutoClickSettings = async (keywords: string[]) => {
+  // Simpan keywords dan aktifkan auto-click
+  await supabase.from("mail_settings").update({
+    auto_click_links: true,
+    auto_click_keywords: keywords,
+    updated_at: new Date().toISOString(),
+    updated_by: user?.id
+  }).eq("id", settingsId);
+  
+  setAutoClickEnabled(true);
+  setAutoClickKeywords(keywords);
+  setAutoClickDialogOpen(false);
+};
+```
+
+#### 4. Modifikasi Edge Function `inbound-mail-webhook`
+
+**Logika filter baru:**
+
+```typescript
+// Fetch settings dengan keywords
+const { data: settings } = await supabase
+  .from('mail_settings')
+  .select('auto_click_links, auto_click_keywords')
+  .single();
+
+if (!settings?.auto_click_links) return;
+
+const keywords = settings.auto_click_keywords || [];
+
+// Fungsi untuk menemukan link yang terkait dengan keyword
+function findLinksNearKeywords(html: string, keywords: string[]): string[] {
+  const matchedLinks: string[] = [];
+  
+  for (const keyword of keywords) {
+    // Cari keyword dalam HTML (exact match)
+    if (html.includes(keyword)) {
+      // Cari link terdekat (dalam radius ~200 karakter)
+      const keywordIndex = html.indexOf(keyword);
+      const searchStart = Math.max(0, keywordIndex - 200);
+      const searchEnd = Math.min(html.length, keywordIndex + keyword.length + 200);
+      const nearbyHtml = html.substring(searchStart, searchEnd);
+      
+      // Extract links dari area sekitar keyword
+      const linkRegex = /href=["'](https?:\/\/[^"']+)["']/gi;
+      const matches = [...nearbyHtml.matchAll(linkRegex)];
+      matchedLinks.push(...matches.map(m => m[1]));
     }
-
-    if (error) throw error;
-    // ... rest of code
   }
+  
+  return [...new Set(matchedLinks)];
 }
+
+// Gunakan filter baru
+const linksToClick = findLinksNearKeywords(bodyHtml, keywords);
 ```
 
-### Ringkasan
+### Flow Lengkap
 
-| Aspek | Sebelum | Sesudah |
-|-------|---------|---------|
-| ID yang digunakan | `"default"` (string) | UUID dari database |
-| Metode | Upsert dengan ID statis | Select → Update/Insert |
-| Error handling | Gagal karena tipe tidak cocok | Berhasil dengan UUID valid |
+```text
+Email masuk (webhook)
+    ↓
+Cek auto_click_links = true?
+    ↓ Ya
+Ambil auto_click_keywords dari settings
+    ↓
+Cari keyword di body email
+    ↓ Ditemukan
+Cari link terdekat dari keyword
+    ↓
+Klik hanya link yang dekat keyword
+    ↓
+Delay 10 detik per link
+    ↓
+Mark email as read
+```
+
+### File yang Akan Diubah
+
+| File | Perubahan |
+|------|-----------|
+| Database | Tambah kolom `auto_click_keywords` di `mail_settings` |
+| `src/components/mail/AutoClickSettingsDialog.tsx` | Komponen baru untuk popup settings |
+| `src/pages/Mail.tsx` | Integrasi dialog + state management |
+| `supabase/functions/inbound-mail-webhook/index.ts` | Filter link berdasarkan keyword |
+
+### Catatan Teknis
+
+| Aspek | Detail |
+|-------|--------|
+| Exact match | Keyword harus sama persis (case-sensitive) |
+| Radius pencarian | 200 karakter sebelum/sesudah keyword |
+| Default keyword | "Follow this link to verify your email address." |
+| Multiple keywords | Bisa menambah banyak keyword |
 
