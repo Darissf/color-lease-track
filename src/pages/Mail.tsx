@@ -256,14 +256,37 @@ export default function MailPage() {
   const handleToggleAutoClick = async (enabled: boolean) => {
     setLoadingAutoClick(true);
     try {
-      const { error } = await supabase
+      // Check if settings already exist
+      const { data: existing } = await supabase
         .from("mail_settings")
-        .upsert({ 
-          id: "default",
-          auto_click_links: enabled, 
-          updated_at: new Date().toISOString(),
-          updated_by: user?.id 
-        }, { onConflict: "id" });
+        .select("id")
+        .limit(1)
+        .maybeSingle();
+
+      let error;
+      
+      if (existing?.id) {
+        // Update existing row using actual UUID
+        const result = await supabase
+          .from("mail_settings")
+          .update({ 
+            auto_click_links: enabled, 
+            updated_at: new Date().toISOString(),
+            updated_by: user?.id 
+          })
+          .eq("id", existing.id);
+        error = result.error;
+      } else {
+        // Insert new row (let database generate UUID)
+        const result = await supabase
+          .from("mail_settings")
+          .insert({ 
+            auto_click_links: enabled, 
+            updated_at: new Date().toISOString(),
+            updated_by: user?.id 
+          });
+        error = result.error;
+      }
 
       if (error) throw error;
       
