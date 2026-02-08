@@ -935,16 +935,43 @@ const RentalContracts = () => {
                   
                   <div>
                     <Label>Tanggal Selesai</Label>
-                    <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                      {contractForm.start_date && durationDays > 0 ? (
-                        <span className="font-medium">
-                          {format(addDays(contractForm.start_date, durationDays - 1), "PPP", { locale: localeId })}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !contractForm.end_date && "text-muted-foreground"
+                          )}
+                          disabled={!contractForm.start_date}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {contractForm.end_date ? (
+                            format(contractForm.end_date, "PPP", { locale: localeId })
+                          ) : (
+                            <span>Pilih tanggal</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={contractForm.end_date}
+                          onSelect={(newEndDate) => {
+                            if (!newEndDate || !contractForm.start_date) return;
+                            // Hitung durasi baru = (endDate - startDate) + 1
+                            const newDuration = differenceInDays(newEndDate, contractForm.start_date) + 1;
+                            if (newDuration > 0) {
+                              setDurationDays(newDuration);
+                              setContractForm(prev => ({ ...prev, end_date: newEndDate }));
+                            }
+                          }}
+                          disabled={(date) => contractForm.start_date ? date < contractForm.start_date : false}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               )}
