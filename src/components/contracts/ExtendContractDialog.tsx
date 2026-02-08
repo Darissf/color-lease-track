@@ -100,11 +100,24 @@ export function ExtendContractDialog({
         padding: docSettings.auto_invoice_padding ?? 6,
       });
       
-      // Calculate next invoice number
+      // Calculate next invoice number - check reusable pool first
       if (docSettings.auto_invoice_enabled) {
-        const nextNumber = (docSettings.auto_invoice_current ?? 0) + 1;
-        const paddedNumber = String(nextNumber).padStart(docSettings.auto_invoice_padding ?? 6, '0');
-        setNextInvoiceNumber(`${docSettings.auto_invoice_prefix ?? ''}${paddedNumber}`);
+        // Check if there's a reusable invoice number from deleted contracts
+        const { data: reusableNumber } = await supabase
+          .from("deleted_invoice_numbers")
+          .select("invoice_number")
+          .eq("user_id", user.id)
+          .order("invoice_sequence", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (reusableNumber) {
+          setNextInvoiceNumber(reusableNumber.invoice_number);
+        } else {
+          const nextNumber = (docSettings.auto_invoice_current ?? 0) + 1;
+          const paddedNumber = String(nextNumber).padStart(docSettings.auto_invoice_padding ?? 6, '0');
+          setNextInvoiceNumber(`${docSettings.auto_invoice_prefix ?? ''}${paddedNumber}`);
+        }
       } else {
         // Fallback format
         const extensionNumber = (contract.extension_number ?? 0) + 1;
@@ -139,8 +152,32 @@ export function ExtendContractDialog({
 
     setIsLoading(true);
     try {
-      // 1. Generate invoice number
+      // 1. Generate invoice number - check reusable pool first
       let invoiceNumber = nextInvoiceNumber;
+      let usedReusableInvoice = false;
+
+      if (autoInvoiceSettings?.enabled) {
+        // Check if there's a reusable invoice number from deleted contracts
+        const { data: reusableNumber } = await supabase
+          .from("deleted_invoice_numbers")
+          .select("id, invoice_number, invoice_sequence")
+          .eq("user_id", user.id)
+          .order("invoice_sequence", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (reusableNumber) {
+          // Use number from pool
+          invoiceNumber = reusableNumber.invoice_number;
+          usedReusableInvoice = true;
+          
+          // Remove from pool after using
+          await supabase
+            .from("deleted_invoice_numbers")
+            .delete()
+            .eq("id", reusableNumber.id);
+        }
+      }
 
       // 2. Insert new contract
       const { data: newContract, error: insertError } = await supabase
@@ -168,8 +205,8 @@ export function ExtendContractDialog({
 
       if (insertError) throw insertError;
 
-      // 3. Update Auto Invoice counter if enabled
-      if (autoInvoiceSettings?.enabled) {
+      // 3. Update Auto Invoice counter only if we didn't use a reusable number
+      if (autoInvoiceSettings?.enabled && !usedReusableInvoice) {
         await supabase
           .from("document_settings")
           .update({

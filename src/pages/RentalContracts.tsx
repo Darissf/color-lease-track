@@ -299,12 +299,35 @@ const RentalContracts = () => {
 
       // Determine invoice number
       let invoiceNumber = contractForm.invoice || null;
+      let usedReusableInvoice = false;
       
       // Auto-generate invoice for new contracts if auto invoice is enabled
       if (!editingContractId && autoInvoiceSettings?.enabled) {
-        const nextNumber = autoInvoiceSettings.current + 1;
-        const paddedNumber = String(nextNumber).padStart(autoInvoiceSettings.padding, '0');
-        invoiceNumber = `${autoInvoiceSettings.prefix}${paddedNumber}`;
+        // Check if there's a reusable invoice number from deleted contracts
+        const { data: reusableNumber } = await supabase
+          .from("deleted_invoice_numbers")
+          .select("id, invoice_number, invoice_sequence")
+          .eq("user_id", user?.id)
+          .order("invoice_sequence", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (reusableNumber) {
+          // Use number from pool
+          invoiceNumber = reusableNumber.invoice_number;
+          usedReusableInvoice = true;
+          
+          // Remove from pool after using
+          await supabase
+            .from("deleted_invoice_numbers")
+            .delete()
+            .eq("id", reusableNumber.id);
+        } else {
+          // Generate new number as usual
+          const nextNumber = autoInvoiceSettings.current + 1;
+          const paddedNumber = String(nextNumber).padStart(autoInvoiceSettings.padding, '0');
+          invoiceNumber = `${autoInvoiceSettings.prefix}${paddedNumber}`;
+        }
       }
 
       // Untuk kontrak baru, tagihan = 0 (akan diisi dari rincian tagihan)
@@ -348,8 +371,8 @@ const RentalContracts = () => {
 
         if (contractError) throw contractError;
 
-        // Update auto invoice counter if used
-        if (autoInvoiceSettings?.enabled) {
+        // Update auto invoice counter only if we didn't use a reusable number
+        if (autoInvoiceSettings?.enabled && !usedReusableInvoice) {
           const newCounter = autoInvoiceSettings.current + 1;
           await supabase
             .from("document_settings")
@@ -410,17 +433,45 @@ const RentalContracts = () => {
     if (!confirm("Yakin ingin menghapus kontrak ini?")) return;
 
     try {
+      // Get contract data first to save invoice number
+      const { data: contract } = await supabase
+        .from("rental_contracts")
+        .select("invoice")
+        .eq("id", id)
+        .single();
+
+      // Delete income sources
       await supabase
         .from("income_sources")
         .delete()
         .eq("contract_id", id);
 
+      // Delete contract
       const { error } = await supabase
         .from("rental_contracts")
         .delete()
         .eq("id", id);
 
       if (error) throw error;
+
+      // Save invoice number to reuse pool if auto-invoice is enabled
+      if (contract?.invoice && autoInvoiceSettings?.enabled) {
+        const prefix = autoInvoiceSettings.prefix;
+        if (contract.invoice.startsWith(prefix)) {
+          const numberPart = contract.invoice.substring(prefix.length);
+          const sequence = parseInt(numberPart, 10);
+          if (!isNaN(sequence)) {
+            await supabase
+              .from("deleted_invoice_numbers")
+              .insert({
+                user_id: user?.id,
+                invoice_number: contract.invoice,
+                invoice_sequence: sequence,
+              });
+          }
+        }
+      }
+
       toast.success("Kontrak berhasil dihapus");
       fetchData();
     } catch (error: any) {
