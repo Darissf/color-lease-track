@@ -1,106 +1,164 @@
 
 
-## Perbaikan: Perhitungan Sisa Hari dan Teks Status
+## Fitur: Reuse Nomor Invoice yang Dihapus
 
-### Masalah 1: Perhitungan Inklusif
+### Konsep
 
-**Sekarang (salah):**
-```
-Hari ini: 8 Feb
-Berakhir: 10 Feb
-differenceInDays(10 Feb, 8 Feb) = 2 hari ❌
-```
+Saat kontrak dengan auto-invoice dihapus, nomor invoice tersebut akan disimpan ke "pool" untuk digunakan kembali pada kontrak baru berikutnya.
 
-**Seharusnya (inklusif - termasuk hari ini):**
-```
-Hari ini: 8 Feb
-Berakhir: 10 Feb
-Sisa = 8, 9, 10 = 3 hari lagi ✓
-```
-
-**Rumus baru:**
-```typescript
-remainingDays = differenceInDays(endDate, today) + 1
+```text
+Flow Baru:
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. Buat Kontrak Baru                                            │
+│    ├─ Cek: Ada nomor di pool deleted_invoice_numbers?           │
+│    │   ├─ YA  → Ambil nomor terkecil dari pool (000301)         │
+│    │   │        Hapus dari pool, gunakan untuk kontrak baru     │
+│    │   └─ TIDAK → Generate nomor baru (current + 1)             │
+├─────────────────────────────────────────────────────────────────┤
+│ 2. Hapus Kontrak                                                │
+│    └─ Simpan nomor invoice ke pool deleted_invoice_numbers      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Masalah 2: Teks Status
+### Contoh Skenario
 
-| Kondisi | Sekarang | Harus Jadi |
-|---------|----------|------------|
-| Masih aktif | "3 hari" | "3 Hari Lagi" |
-| Hari terakhir | - | "Berakhir Hari Ini" |
-| Sudah lewat | "Berakhir" | "Berakhir" (merah kedip) |
+| Aksi | Pool | Counter | Hasil |
+|------|------|---------|-------|
+| Buat kontrak → 000301 | [] | 301 | - |
+| Hapus kontrak 000301 | [301] | 301 | - |
+| Buat kontrak baru | [] | 301 | Dapat 000301 (dari pool) |
+| Buat kontrak baru | [] | 302 | Dapat 000302 (counter naik) |
+
+### Perubahan Database
+
+Buat tabel baru untuk menyimpan nomor invoice yang dihapus:
+
+```sql
+CREATE TABLE deleted_invoice_numbers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  invoice_number TEXT NOT NULL,
+  invoice_sequence INTEGER NOT NULL,
+  deleted_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, invoice_sequence)
+);
+
+-- RLS Policy
+ALTER TABLE deleted_invoice_numbers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own deleted invoice numbers"
+  ON deleted_invoice_numbers
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
 
 ### Perubahan Kode
 
-#### File: `src/pages/RentalContracts.tsx`
-
-**1. Update fungsi `getRemainingDays` (baris 449-451):**
+#### 1. Saat Hapus Kontrak (`handleDeleteContract`)
 
 ```typescript
-// SEBELUM
-const getRemainingDays = (endDate: string) => {
-  return differenceInDays(new Date(endDate), new Date());
-};
+const handleDeleteContract = async (id: string) => {
+  if (!confirm("Yakin ingin menghapus kontrak ini?")) return;
 
-// SESUDAH - Inklusif (termasuk hari ini)
-const getRemainingDays = (endDate: string) => {
-  const now = getNowInJakarta();
-  const end = new Date(endDate);
-  // +1 karena hari ini juga dihitung
-  return differenceInDays(end, now) + 1;
+  try {
+    // Ambil data kontrak dulu untuk dapat nomor invoice
+    const { data: contract } = await supabase
+      .from("rental_contracts")
+      .select("invoice")
+      .eq("id", id)
+      .single();
+
+    // Hapus income sources
+    await supabase
+      .from("income_sources")
+      .delete()
+      .eq("contract_id", id);
+
+    // Hapus kontrak
+    const { error } = await supabase
+      .from("rental_contracts")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
+    // Simpan nomor invoice ke pool jika ada dan sesuai format auto-invoice
+    if (contract?.invoice && autoInvoiceSettings?.enabled) {
+      const prefix = autoInvoiceSettings.prefix;
+      if (contract.invoice.startsWith(prefix)) {
+        const numberPart = contract.invoice.substring(prefix.length);
+        const sequence = parseInt(numberPart, 10);
+        if (!isNaN(sequence)) {
+          await supabase
+            .from("deleted_invoice_numbers")
+            .insert({
+              user_id: user?.id,
+              invoice_number: contract.invoice,
+              invoice_sequence: sequence,
+            });
+        }
+      }
+    }
+
+    toast.success("Kontrak berhasil dihapus");
+    fetchData();
+  } catch (error: any) {
+    toast.error("Gagal menghapus: " + error.message);
+  }
 };
 ```
 
-**Contoh perhitungan baru:**
-| Hari Ini | Berakhir | Rumus | Hasil |
-|----------|----------|-------|-------|
-| 8 Feb | 10 Feb | (10-8) + 1 | 3 Hari Lagi |
-| 8 Feb | 8 Feb | (8-8) + 1 | 1 (Berakhir Hari Ini) |
-| 9 Feb | 8 Feb | (8-9) + 1 | 0 (Berakhir) |
+#### 2. Saat Buat Kontrak Baru (`handleSaveContract`)
 
-**Catatan:** Dengan rumus baru:
-- `remainingDays >= 2` → "X Hari Lagi" (hijau)
-- `remainingDays === 1` → "Berakhir Hari Ini" (orange)
-- `remainingDays <= 0` → "Berakhir" (merah kedip)
+```typescript
+// Sebelum generate nomor invoice baru, cek pool dulu
+if (!editingContractId && autoInvoiceSettings?.enabled) {
+  // Cek apakah ada nomor yang bisa di-reuse
+  const { data: reusableNumber } = await supabase
+    .from("deleted_invoice_numbers")
+    .select("id, invoice_number, invoice_sequence")
+    .eq("user_id", user?.id)
+    .order("invoice_sequence", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
-**2. Update tampilan status (baris ~1427-1431):**
-
-```tsx
-// SESUDAH
-{!(contract.status === "selesai" && contract.tagihan_belum_bayar <= 0) && 
- !(contract as any).is_flexible_duration && (
-  <span className={cn(
-    "text-xs font-medium ml-1",
-    remainingDays >= 2 ? "text-green-600" : 
-    remainingDays === 1 ? "text-orange-500" :
-    "text-red-600 animate-pulse",
-    isCompactMode && "text-[10px]"
-  )}>
-    {" "}({remainingDays >= 2 
-      ? `${remainingDays} Hari Lagi` 
-      : remainingDays === 1 
-        ? "Berakhir Hari Ini" 
-        : "Berakhir"})
-  </span>
-)}
-```
-
-### Visualisasi Hasil
-
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│ Periode                                                            │
-├────────────────────────────────────────────────────────────────────┤
-│ 28 Jan 2026 - 10 Feb 2026 (3 Hari Lagi)    ← Hijau, masih aktif    │
-│ 26 Jan 2026 - 08 Feb 2026 (Berakhir Hari Ini) ← Orange, hari ini   │
-│ 26 Jan 2026 - 07 Feb 2026 (Berakhir)       ← Merah kedip, urgent   │
-└────────────────────────────────────────────────────────────────────┘
+  if (reusableNumber) {
+    // Gunakan nomor dari pool
+    invoiceNumber = reusableNumber.invoice_number;
+    
+    // Hapus dari pool setelah digunakan
+    await supabase
+      .from("deleted_invoice_numbers")
+      .delete()
+      .eq("id", reusableNumber.id);
+  } else {
+    // Generate nomor baru seperti biasa
+    const nextNumber = autoInvoiceSettings.current + 1;
+    const paddedNumber = String(nextNumber).padStart(autoInvoiceSettings.padding, '0');
+    invoiceNumber = `${autoInvoiceSettings.prefix}${paddedNumber}`;
+  }
+}
 ```
 
 ### File yang Diubah
 
 | File | Perubahan |
 |------|-----------|
-| `src/pages/RentalContracts.tsx` | Update `getRemainingDays` untuk perhitungan inklusif + update teks menjadi "X Hari Lagi" |
+| **Database Migration** | Buat tabel `deleted_invoice_numbers` dengan RLS |
+| `src/pages/RentalContracts.tsx` | Update `handleDeleteContract` untuk simpan nomor ke pool |
+| `src/pages/RentalContracts.tsx` | Update `handleSaveContract` untuk cek pool sebelum generate nomor baru |
+| `src/components/contracts/ExtendContractDialog.tsx` | Update logika auto-invoice untuk cek pool juga |
+
+### Bagian Teknis
+
+**Tabel baru:** `deleted_invoice_numbers`
+- `invoice_number`: Nomor lengkap (contoh: "000301")
+- `invoice_sequence`: Angka saja untuk sorting (contoh: 301)
+- Unique constraint pada `(user_id, invoice_sequence)` mencegah duplikasi
+
+**Logika prioritas:**
+1. Selalu ambil nomor terkecil dari pool terlebih dahulu
+2. Jika pool kosong, baru increment counter
+3. Counter tidak perlu di-rollback saat hapus kontrak
 
