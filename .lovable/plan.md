@@ -1,81 +1,106 @@
 
 
-## Bug: Tanggal Selesai Selalu Mundur 1 Hari
+## Perbaikan: Perhitungan Sisa Hari dan Teks Status
 
-### Analisis Root Cause
+### Masalah 1: Perhitungan Inklusif
 
-**Masalahnya ada di baris 296 pada `handleSaveContract`:**
+**Sekarang (salah):**
+```
+Hari ini: 8 Feb
+Berakhir: 10 Feb
+differenceInDays(10 Feb, 8 Feb) = 2 hari ❌
+```
 
+**Seharusnya (inklusif - termasuk hari ini):**
+```
+Hari ini: 8 Feb
+Berakhir: 10 Feb
+Sisa = 8, 9, 10 = 3 hari lagi ✓
+```
+
+**Rumus baru:**
 ```typescript
-// Baris 296 - MASALAH: Selalu menghitung ulang dari durationDays
-endDate = addDays(contractForm.start_date, durationDays - 1);
+remainingDays = differenceInDays(endDate, today) + 1
 ```
 
-**Flow masalah:**
+### Masalah 2: Teks Status
 
-```text
-1. User pilih end_date = 8 Februari
-2. onSelect di Calendar menghitung: durationDays = differenceInDays(8 Feb, 26 Jan) + 1 = 14 hari
-3. Tapi SEBELUM save selesai, useEffect (baris 144-150) BERJALAN:
-   - calculatedEndDate = addDays(26 Jan, 14 - 1) = addDays(26 Jan, 13) = 8 Februari ✓
-   
-4. User klik "Update Kontrak"
-5. handleSaveContract TIDAK menggunakan contractForm.end_date yang sudah di-set
-6. handleSaveContract MENGHITUNG ULANG: endDate = addDays(26 Jan, durationDays - 1)
-   - Jika ada race condition atau durationDays belum terupdate dengan benar = 13
-   - endDate = addDays(26 Jan, 13 - 1) = addDays(26 Jan, 12) = 7 Februari ✗
-```
-
-**Masalah sebenarnya:**
-- `handleSaveContract` mengabaikan `contractForm.end_date` yang sudah di-set user
-- Selalu menghitung ulang dari `durationDays`
-- Jika ada timing issue dengan state update, tanggal akan salah
-
-### Solusi
-
-Ubah logika di `handleSaveContract` untuk **menggunakan `contractForm.end_date`** yang sudah di-set, bukan menghitung ulang.
+| Kondisi | Sekarang | Harus Jadi |
+|---------|----------|------------|
+| Masih aktif | "3 hari" | "3 Hari Lagi" |
+| Hari terakhir | - | "Berakhir Hari Ini" |
+| Sudah lewat | "Berakhir" | "Berakhir" (merah kedip) |
 
 ### Perubahan Kode
 
 #### File: `src/pages/RentalContracts.tsx`
 
-**Sebelum (baris 290-297):**
+**1. Update fungsi `getRemainingDays` (baris 449-451):**
+
 ```typescript
-// Hitung end_date
-let endDate: Date;
-if (durationMode === 'flexible') {
-  // Placeholder: 1 tahun dari start
-  endDate = addYears(contractForm.start_date, 1);
-} else {
-  endDate = addDays(contractForm.start_date, durationDays - 1);
-}
+// SEBELUM
+const getRemainingDays = (endDate: string) => {
+  return differenceInDays(new Date(endDate), new Date());
+};
+
+// SESUDAH - Inklusif (termasuk hari ini)
+const getRemainingDays = (endDate: string) => {
+  const now = getNowInJakarta();
+  const end = new Date(endDate);
+  // +1 karena hari ini juga dihitung
+  return differenceInDays(end, now) + 1;
+};
 ```
 
-**Sesudah:**
-```typescript
-// Tentukan end_date
-let endDate: Date;
-if (durationMode === 'flexible') {
-  // Placeholder: 1 tahun dari start
-  endDate = addYears(contractForm.start_date, 1);
-} else {
-  // Gunakan contractForm.end_date jika sudah di-set, 
-  // jika belum baru hitung dari durasi
-  endDate = contractForm.end_date || addDays(contractForm.start_date, durationDays - 1);
-}
+**Contoh perhitungan baru:**
+| Hari Ini | Berakhir | Rumus | Hasil |
+|----------|----------|-------|-------|
+| 8 Feb | 10 Feb | (10-8) + 1 | 3 Hari Lagi |
+| 8 Feb | 8 Feb | (8-8) + 1 | 1 (Berakhir Hari Ini) |
+| 9 Feb | 8 Feb | (8-9) + 1 | 0 (Berakhir) |
+
+**Catatan:** Dengan rumus baru:
+- `remainingDays >= 2` → "X Hari Lagi" (hijau)
+- `remainingDays === 1` → "Berakhir Hari Ini" (orange)
+- `remainingDays <= 0` → "Berakhir" (merah kedip)
+
+**2. Update tampilan status (baris ~1427-1431):**
+
+```tsx
+// SESUDAH
+{!(contract.status === "selesai" && contract.tagihan_belum_bayar <= 0) && 
+ !(contract as any).is_flexible_duration && (
+  <span className={cn(
+    "text-xs font-medium ml-1",
+    remainingDays >= 2 ? "text-green-600" : 
+    remainingDays === 1 ? "text-orange-500" :
+    "text-red-600 animate-pulse",
+    isCompactMode && "text-[10px]"
+  )}>
+    {" "}({remainingDays >= 2 
+      ? `${remainingDays} Hari Lagi` 
+      : remainingDays === 1 
+        ? "Berakhir Hari Ini" 
+        : "Berakhir"})
+  </span>
+)}
 ```
 
-### Penjelasan Perubahan
+### Visualisasi Hasil
 
-| Aspek | Sebelum | Sesudah |
-|-------|---------|---------|
-| Sumber end_date | Selalu dihitung dari `durationDays` | Prioritaskan `contractForm.end_date` yang sudah di-set user |
-| Fallback | Tidak ada | Jika `end_date` belum di-set, baru hitung dari durasi |
-| Race condition | Bisa terjadi jika state belum terupdate | Aman karena langsung mengambil nilai yang user pilih |
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│ Periode                                                            │
+├────────────────────────────────────────────────────────────────────┤
+│ 28 Jan 2026 - 10 Feb 2026 (3 Hari Lagi)    ← Hijau, masih aktif    │
+│ 26 Jan 2026 - 08 Feb 2026 (Berakhir Hari Ini) ← Orange, hari ini   │
+│ 26 Jan 2026 - 07 Feb 2026 (Berakhir)       ← Merah kedip, urgent   │
+└────────────────────────────────────────────────────────────────────┘
+```
 
 ### File yang Diubah
 
 | File | Perubahan |
 |------|-----------|
-| `src/pages/RentalContracts.tsx` | Ubah logika penentuan `endDate` untuk prioritaskan `contractForm.end_date` |
+| `src/pages/RentalContracts.tsx` | Update `getRemainingDays` untuk perhitungan inklusif + update teks menjadi "X Hari Lagi" |
 
