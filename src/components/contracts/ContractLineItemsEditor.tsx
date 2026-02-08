@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatRupiah } from '@/lib/currency';
+import { differenceInDays, parseISO } from 'date-fns';
 import { 
   generateRincianTemplate, 
   calculateLineItemSubtotal, 
@@ -246,6 +247,42 @@ export function ContractLineItemsEditor({
     }));
     setLineItems(updated);
     toast.success(`Berhasil diterapkan ke ${lineItems.length} item`);
+  };
+
+  // Calculate contract period duration (Day 1 Inclusive)
+  const calculatePeriodDuration = (): number => {
+    if (!startDate || !endDate) return 0;
+    const start = typeof startDate === 'string' ? parseISO(startDate) : startDate;
+    const end = typeof endDate === 'string' ? parseISO(endDate) : endDate;
+    return differenceInDays(end, start) + 1; // +1 for Day 1 Inclusive
+  };
+
+  // Set all items and groups duration to match contract period
+  const setDurationFromPeriod = () => {
+    const periodDuration = calculatePeriodDuration();
+    if (periodDuration <= 0) {
+      toast.error('Periode kontrak tidak valid');
+      return;
+    }
+
+    // Update all line items
+    const updatedItems = lineItems.map(item => ({
+      ...item,
+      duration_days: periodDuration,
+    }));
+    setLineItems(updatedItems);
+
+    // Update all groups
+    const updatedGroups = groups.map(group => ({
+      ...group,
+      billing_duration_days: periodDuration,
+    }));
+    setGroups(updatedGroups);
+
+    // Also update the Pengaturan Cepat duration input
+    setDefaultDurationDays(periodDuration);
+
+    toast.success(`Durasi semua item diset ke ${periodDuration} hari (sesuai periode)`);
   };
 
   const updateLineItem = (index: number, field: keyof LineItem, value: string | number) => {
@@ -867,12 +904,23 @@ export function ContractLineItemsEditor({
                 min={1}
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={setDurationFromPeriod}
+                disabled={!startDate || !endDate || lineItems.length === 0}
+                className="flex-1 border-amber-400 text-amber-700 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-950"
+              >
+                📅 Set Sesuai Periode
+                {startDate && endDate && (
+                  <span className="ml-1 text-xs">({calculatePeriodDuration()} hari)</span>
+                )}
+              </Button>
               <Button 
                 variant="secondary" 
                 onClick={applyDefaultsToAll}
                 disabled={lineItems.length === 0 || (defaultPricePerDay === '' && defaultDurationDays === '')}
-                className="w-full"
+                className="flex-1"
               >
                 🔄 Terapkan ({lineItems.length})
               </Button>
