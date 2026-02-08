@@ -1,121 +1,131 @@
 
 
-## Masalah: Link Verifikasi Tidak Berfungsi
+## Fitur: Bi-Directional Sync Durasi & Tanggal Selesai
 
-### Analisis Root Cause
+### Konsep
 
-Sistem auto-click saat ini menggunakan `fetch()` yang hanya melakukan HTTP request sederhana. Ini **TIDAK** menjalankan JavaScript di halaman target.
+Saat ini:
+- **Durasi (hari)** → dapat diedit → otomatis mengubah Tanggal Selesai
+- **Tanggal Selesai** → hanya tampilan statis (tidak bisa diedit)
 
-**Bukti dari data:**
-- Link diklik ✅ (Status 200)
-- Response yang didapat: HTML statis saja
-- JavaScript di halaman Lovable.dev **TIDAK dieksekusi**
-- Verifikasi email membutuhkan JavaScript untuk memanggil Firebase Auth API
+Yang diminta:
+- **Durasi (hari)** → dapat diedit → otomatis mengubah Tanggal Selesai ✅
+- **Tanggal Selesai** → dapat diedit → otomatis mengubah Durasi ✅
 
-### Mengapa Ini Terjadi?
+### Perubahan yang Akan Dilakukan
+
+#### File: `src/pages/RentalContracts.tsx`
+
+| Bagian | Sebelum | Sesudah |
+|--------|---------|---------|
+| UI "Tanggal Selesai" | Teks statis dalam `<div>` dengan background `bg-muted` | DatePicker dengan Popover + Calendar yang interaktif |
+| Handler end_date | Tidak ada | Tambahkan fungsi untuk menghitung ulang durasi saat tanggal selesai diubah |
+
+#### Logika Bi-Directional
 
 ```text
-Cara kerja fetch():
-fetch(url) → Server mengirim HTML → Selesai (JS tidak jalan)
+SKENARIO 1: User ubah durasi
+─────────────────────────────
+Durasi: 7 → 11 hari
+Tanggal Mulai: 26 Januari 2026
+↓
+Tanggal Selesai = 26 Jan + (11 - 1) = 5 Februari 2026
 
-Cara kerja browser sungguhan:
-Browser → Server mengirim HTML → Browser parse HTML → 
-Load JS → Execute JS → JS calls verify API → Email verified ✅
+SKENARIO 2: User ubah tanggal selesai  
+────────────────────────────────────
+Tanggal Selesai: 1 Feb → 5 Feb
+Tanggal Mulai: 26 Januari 2026
+↓
+Durasi = (5 Feb - 26 Jan) + 1 = 11 hari
 ```
 
-### Solusi yang Tersedia
+#### Implementasi UI
 
-#### Opsi 1: Gunakan Browserless.io (Recommended)
+Ubah bagian "Tanggal Selesai" (baris ~936-948) dari tampilan statis:
 
-Browserless.io adalah layanan headless browser cloud yang bisa diintegrasikan dengan Edge Functions.
+```tsx
+// SEBELUM - Teks statis
+<div>
+  <Label>Tanggal Selesai</Label>
+  <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center gap-2">
+    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+    <span className="font-medium">
+      {format(addDays(contractForm.start_date, durationDays - 1), "PPP")}
+    </span>
+  </div>
+</div>
+```
 
-**Keuntungan:**
-- JavaScript dieksekusi seperti browser sungguhan
-- Tidak perlu install Chrome/Puppeteer
-- Pay-per-use, ada free tier
+Menjadi DatePicker interaktif:
 
-**Perubahan:**
+```tsx
+// SESUDAH - DatePicker interaktif
+<div>
+  <Label>Tanggal Selesai</Label>
+  <Popover>
+    <PopoverTrigger asChild>
+      <Button
+        variant="outline"
+        className={cn(
+          "w-full justify-start text-left font-normal",
+          !contractForm.end_date && "text-muted-foreground"
+        )}
+      >
+        <CalendarIcon className="mr-2 h-4 w-4" />
+        {contractForm.end_date ? format(contractForm.end_date, "PPP", { locale: localeId }) : "Pilih tanggal"}
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-auto p-0">
+      <Calendar
+        mode="single"
+        selected={contractForm.end_date}
+        onSelect={handleEndDateChange}
+        disabled={(date) => contractForm.start_date ? date < contractForm.start_date : false}
+        initialFocus
+        className="pointer-events-auto"
+      />
+    </PopoverContent>
+  </Popover>
+</div>
+```
 
-| File | Perubahan |
-|------|-----------|
-| `inbound-mail-webhook/index.ts` | Gunakan Browserless API untuk klik link |
-| Secrets | Tambahkan `BROWSERLESS_API_KEY` |
+#### Handler untuk End Date
 
-**Kode implementasi:**
-
-```typescript
-async function clickLinkWithBrowser(url: string): Promise<{status: number, content: string}> {
-  const browserlessKey = Deno.env.get('BROWSERLESS_API_KEY');
+```tsx
+const handleEndDateChange = (newEndDate: Date | undefined) => {
+  if (!newEndDate || !contractForm.start_date) return;
   
-  if (!browserlessKey) {
-    // Fallback ke fetch biasa jika tidak ada key
-    const response = await fetch(url);
-    return { status: response.status, content: await response.text() };
+  // Hitung durasi baru = (endDate - startDate) + 1
+  const newDuration = differenceInDays(newEndDate, contractForm.start_date) + 1;
+  
+  if (newDuration > 0) {
+    setDurationDays(newDuration);
+    setContractForm(prev => ({ ...prev, end_date: newEndDate }));
   }
-
-  // Gunakan Browserless untuk execute JS
-  const response = await fetch(
-    `https://chrome.browserless.io/content?token=${browserlessKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: url,
-        waitFor: 5000, // Tunggu 5 detik untuk JS selesai
-        gotoOptions: { waitUntil: 'networkidle2' }
-      })
-    }
-  );
-
-  return { 
-    status: response.status, 
-    content: await response.text() 
-  };
-}
+};
 ```
 
-#### Opsi 2: Langsung Panggil Firebase Auth API (Alternative)
+#### Modifikasi useEffect yang Sudah Ada
 
-Jika target hanya email Lovable.dev, kita bisa langsung memanggil Firebase Auth verify API tanpa browser.
+Tambahkan flag untuk mencegah infinite loop saat update bi-directional:
 
-**Limitasi:** Hanya bekerja untuk Firebase-based verification
-
-**Kode:**
-
-```typescript
-// Extract oobCode dari URL
-const oobCodeMatch = url.match(/oobCode=([^&]+)/);
-if (oobCodeMatch) {
-  const oobCode = oobCodeMatch[1];
-  const apiKey = 'AIzaSyBQNjlw9Vp4tP4VVeANzyPJnqbG2wLbYPw';
-  
-  // Langsung panggil Firebase Auth REST API
-  const verifyResponse = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ oobCode })
-    }
-  );
-}
+```tsx
+// useEffect yang sudah ada (baris 143-150) tetap sama
+// Karena handleEndDateChange langsung set durationDays,
+// tidak perlu modifikasi useEffect
 ```
 
-### Rekomendasi
+### Validasi
 
-**Opsi 1 (Browserless.io)** lebih universal dan akan bekerja untuk semua jenis link verifikasi, bukan hanya Firebase.
+| Validasi | Implementasi |
+|----------|--------------|
+| Tanggal selesai harus >= tanggal mulai | DatePicker Calendar dengan prop `disabled` |
+| Durasi harus > 0 | Cek dalam handler sebelum update |
+| Sinkronisasi 2 arah | Handler update keduanya secara atomik |
 
-### Langkah Implementasi
-
-1. **Daftar di browserless.io** dan dapatkan API key (ada free tier 1000 requests/bulan)
-2. **Tambahkan secret** `BROWSERLESS_API_KEY` ke project
-3. **Update edge function** untuk menggunakan Browserless API
-4. **Testing** dengan email verifikasi baru
-
-### File yang Akan Diubah
+### File yang Diubah
 
 | File | Perubahan |
 |------|-----------|
-| `supabase/functions/inbound-mail-webhook/index.ts` | Tambahkan fungsi `clickLinkWithBrowser()` menggunakan Browserless API |
-| Secrets | Tambahkan `BROWSERLESS_API_KEY` |
+| `src/pages/RentalContracts.tsx` | Ubah UI "Tanggal Selesai" dari statis ke DatePicker interaktif + handler bi-directional |
 
