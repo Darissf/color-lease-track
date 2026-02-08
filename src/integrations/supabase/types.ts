@@ -1935,6 +1935,30 @@ export type Database = {
         }
         Relationships: []
       }
+      deleted_invoice_numbers: {
+        Row: {
+          deleted_at: string | null
+          id: string
+          invoice_number: string
+          invoice_sequence: number
+          user_id: string
+        }
+        Insert: {
+          deleted_at?: string | null
+          id?: string
+          invoice_number: string
+          invoice_sequence: number
+          user_id: string
+        }
+        Update: {
+          deleted_at?: string | null
+          id?: string
+          invoice_number?: string
+          invoice_sequence?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       delivery_location_history: {
         Row: {
           accuracy: number | null
