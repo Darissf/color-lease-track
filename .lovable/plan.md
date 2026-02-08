@@ -1,164 +1,92 @@
 
 
-## Fitur: Reuse Nomor Invoice yang Dihapus
+## Perbaikan: 2 Masalah yang Ditemukan
 
-### Konsep
+### Masalah 1: Invoice 000301 Tidak Dipakai Ulang
 
-Saat kontrak dengan auto-invoice dihapus, nomor invoice tersebut akan disimpan ke "pool" untuk digunakan kembali pada kontrak baru berikutnya.
+**Penyebab:**
+Kontrak dengan invoice 000301 dihapus **SEBELUM** fitur reuse invoice diimplementasikan hari ini. Karena fitur baru saja ditambahkan, nomor 000301 tidak masuk ke pool `deleted_invoice_numbers`.
 
-```text
-Flow Baru:
-┌─────────────────────────────────────────────────────────────────┐
-│ 1. Buat Kontrak Baru                                            │
-│    ├─ Cek: Ada nomor di pool deleted_invoice_numbers?           │
-│    │   ├─ YA  → Ambil nomor terkecil dari pool (000301)         │
-│    │   │        Hapus dari pool, gunakan untuk kontrak baru     │
-│    │   └─ TIDAK → Generate nomor baru (current + 1)             │
-├─────────────────────────────────────────────────────────────────┤
-│ 2. Hapus Kontrak                                                │
-│    └─ Simpan nomor invoice ke pool deleted_invoice_numbers      │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Contoh Skenario
-
-| Aksi | Pool | Counter | Hasil |
-|------|------|---------|-------|
-| Buat kontrak → 000301 | [] | 301 | - |
-| Hapus kontrak 000301 | [301] | 301 | - |
-| Buat kontrak baru | [] | 301 | Dapat 000301 (dari pool) |
-| Buat kontrak baru | [] | 302 | Dapat 000302 (counter naik) |
-
-### Perubahan Database
-
-Buat tabel baru untuk menyimpan nomor invoice yang dihapus:
+**Solusi:**
+Masukkan nomor 000301 secara manual ke pool agar bisa digunakan kontrak berikutnya.
 
 ```sql
-CREATE TABLE deleted_invoice_numbers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  invoice_number TEXT NOT NULL,
-  invoice_sequence INTEGER NOT NULL,
-  deleted_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, invoice_sequence)
+-- Masukkan 000301 ke pool reuse
+INSERT INTO deleted_invoice_numbers (user_id, invoice_number, invoice_sequence)
+VALUES (
+  (SELECT id FROM auth.users WHERE id = 'USER_ID_ANDA'), 
+  '000301', 
+  301
 );
+```
 
--- RLS Policy
-ALTER TABLE deleted_invoice_numbers ENABLE ROW LEVEL SECURITY;
+Atau saya bisa melakukan migrasi otomatis yang mendeteksi "gap" di invoice sequence dan memasukkannya ke pool.
 
-CREATE POLICY "Users can manage their own deleted invoice numbers"
-  ON deleted_invoice_numbers
-  FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+### Masalah 2: Pencarian Client Tidak Berfungsi dengan Partial Match
+
+**Penyebab:**
+Di baris 846, `CommandItem` menggunakan `value={group.id}` (UUID) untuk filtering:
+
+```tsx
+<CommandItem
+  key={group.id}
+  value={group.id}  // ❌ Menggunakan UUID, bukan nama
+  onSelect={() => {...}}
+>
+```
+
+Library `cmdk` mencari berdasarkan `value`. Jadi ketika Anda mengetik "fia", dia mencari di UUID seperti `a1b2c3d4-...`, bukan di "Nabila Arifiana".
+
+**Solusi:**
+Ubah `value` menjadi nama + nomor telepon agar pencarian partial berfungsi:
+
+```tsx
+<CommandItem
+  key={group.id}
+  value={`${group.nama} ${group.nomor_telepon}`}  // ✅ Sekarang "fia" akan match
+  onSelect={() => {...}}
+>
 ```
 
 ### Perubahan Kode
 
-#### 1. Saat Hapus Kontrak (`handleDeleteContract`)
+#### File: `src/pages/RentalContracts.tsx`
 
-```typescript
-const handleDeleteContract = async (id: string) => {
-  if (!confirm("Yakin ingin menghapus kontrak ini?")) return;
+```tsx
+// SEBELUM (baris 844-846)
+<CommandItem
+  key={group.id}
+  value={group.id}
 
-  try {
-    // Ambil data kontrak dulu untuk dapat nomor invoice
-    const { data: contract } = await supabase
-      .from("rental_contracts")
-      .select("invoice")
-      .eq("id", id)
-      .single();
-
-    // Hapus income sources
-    await supabase
-      .from("income_sources")
-      .delete()
-      .eq("contract_id", id);
-
-    // Hapus kontrak
-    const { error } = await supabase
-      .from("rental_contracts")
-      .delete()
-      .eq("id", id);
-
-    if (error) throw error;
-
-    // Simpan nomor invoice ke pool jika ada dan sesuai format auto-invoice
-    if (contract?.invoice && autoInvoiceSettings?.enabled) {
-      const prefix = autoInvoiceSettings.prefix;
-      if (contract.invoice.startsWith(prefix)) {
-        const numberPart = contract.invoice.substring(prefix.length);
-        const sequence = parseInt(numberPart, 10);
-        if (!isNaN(sequence)) {
-          await supabase
-            .from("deleted_invoice_numbers")
-            .insert({
-              user_id: user?.id,
-              invoice_number: contract.invoice,
-              invoice_sequence: sequence,
-            });
-        }
-      }
-    }
-
-    toast.success("Kontrak berhasil dihapus");
-    fetchData();
-  } catch (error: any) {
-    toast.error("Gagal menghapus: " + error.message);
-  }
-};
+// SESUDAH
+<CommandItem
+  key={group.id}
+  value={`${group.nama} ${group.nomor_telepon}`}
 ```
 
-#### 2. Saat Buat Kontrak Baru (`handleSaveContract`)
+### Opsi untuk Invoice Gap
 
-```typescript
-// Sebelum generate nomor invoice baru, cek pool dulu
-if (!editingContractId && autoInvoiceSettings?.enabled) {
-  // Cek apakah ada nomor yang bisa di-reuse
-  const { data: reusableNumber } = await supabase
-    .from("deleted_invoice_numbers")
-    .select("id, invoice_number, invoice_sequence")
-    .eq("user_id", user?.id)
-    .order("invoice_sequence", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+| Opsi | Deskripsi |
+|------|-----------|
+| **A. Manual** | Insert 000301 ke pool melalui SQL query |
+| **B. Auto-detect gaps** | Buat script yang mendeteksi gap (000301 tidak ada) dan otomatis masukkan ke pool |
 
-  if (reusableNumber) {
-    // Gunakan nomor dari pool
-    invoiceNumber = reusableNumber.invoice_number;
-    
-    // Hapus dari pool setelah digunakan
-    await supabase
-      .from("deleted_invoice_numbers")
-      .delete()
-      .eq("id", reusableNumber.id);
-  } else {
-    // Generate nomor baru seperti biasa
-    const nextNumber = autoInvoiceSettings.current + 1;
-    const paddedNumber = String(nextNumber).padStart(autoInvoiceSettings.padding, '0');
-    invoiceNumber = `${autoInvoiceSettings.prefix}${paddedNumber}`;
-  }
-}
-```
+Untuk opsi B, logikanya:
+1. Ambil semua invoice yang ada (000300, 000302, ...)
+2. Cari gap (000301 tidak ada)
+3. Masukkan gap ke pool `deleted_invoice_numbers`
 
 ### File yang Diubah
 
 | File | Perubahan |
 |------|-----------|
-| **Database Migration** | Buat tabel `deleted_invoice_numbers` dengan RLS |
-| `src/pages/RentalContracts.tsx` | Update `handleDeleteContract` untuk simpan nomor ke pool |
-| `src/pages/RentalContracts.tsx` | Update `handleSaveContract` untuk cek pool sebelum generate nomor baru |
-| `src/components/contracts/ExtendContractDialog.tsx` | Update logika auto-invoice untuk cek pool juga |
+| `src/pages/RentalContracts.tsx` | Ubah `value` CommandItem dari `group.id` ke `group.nama + group.nomor_telepon` |
+| **Database** | Insert 000301 ke pool (manual atau auto-detect) |
 
 ### Bagian Teknis
 
-**Tabel baru:** `deleted_invoice_numbers`
-- `invoice_number`: Nomor lengkap (contoh: "000301")
-- `invoice_sequence`: Angka saja untuk sorting (contoh: 301)
-- Unique constraint pada `(user_id, invoice_sequence)` mencegah duplikasi
-
-**Logika prioritas:**
-1. Selalu ambil nomor terkecil dari pool terlebih dahulu
-2. Jika pool kosong, baru increment counter
-3. Counter tidak perlu di-rollback saat hapus kontrak
+**Library cmdk:**
+- `CommandItem` prop `value` digunakan untuk filtering internal
+- Pencarian case-insensitive dan partial match bawaan dari cmdk
+- Dengan `value={group.nama}`, pencarian "fia" akan otomatis match "Nabila Ari**fia**na"
 
