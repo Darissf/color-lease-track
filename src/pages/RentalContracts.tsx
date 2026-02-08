@@ -287,13 +287,14 @@ const RentalContracts = () => {
         return;
       }
       
-      // Hitung end_date
+      // Tentukan end_date - prioritaskan nilai yang sudah di-set user
       let endDate: Date;
       if (durationMode === 'flexible') {
         // Placeholder: 1 tahun dari start
         endDate = addYears(contractForm.start_date, 1);
       } else {
-        endDate = addDays(contractForm.start_date, durationDays - 1);
+        // Gunakan contractForm.end_date jika sudah di-set, jika belum baru hitung dari durasi
+        endDate = contractForm.end_date || addDays(contractForm.start_date, durationDays - 1);
       }
 
       // Determine invoice number
