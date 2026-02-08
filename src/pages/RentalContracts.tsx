@@ -843,7 +843,7 @@ const RentalContracts = () => {
                             return (
                               <CommandItem
                                 key={group.id}
-                                value={group.id}
+                                value={`${group.nama} ${group.nomor_telepon}`}
                                 onSelect={() => {
                                   setContractForm({ ...contractForm, client_group_id: group.id });
                                   setClientSearchOpen(false);
