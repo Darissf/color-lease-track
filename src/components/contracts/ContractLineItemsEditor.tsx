@@ -862,7 +862,8 @@ export function ContractLineItemsEditor({
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Row 1: Input fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm flex items-center gap-1">
                 💰 Harga per Hari (Rp)
@@ -904,27 +905,29 @@ export function ContractLineItemsEditor({
                 min={1}
               />
             </div>
-            <div className="flex items-end gap-2">
-              <Button 
-                variant="outline" 
-                onClick={setDurationFromPeriod}
-                disabled={!startDate || !endDate || lineItems.length === 0}
-                className="flex-1 border-amber-400 text-amber-700 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-950"
-              >
-                📅 Set Sesuai Periode
-                {startDate && endDate && (
-                  <span className="ml-1 text-xs">({calculatePeriodDuration()} hari)</span>
-                )}
-              </Button>
-              <Button 
-                variant="secondary" 
-                onClick={applyDefaultsToAll}
-                disabled={lineItems.length === 0 || (defaultPricePerDay === '' && defaultDurationDays === '')}
-                className="flex-1"
-              >
-                🔄 Terapkan ({lineItems.length})
-              </Button>
-            </div>
+          </div>
+          
+          {/* Row 2: Action buttons */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={setDurationFromPeriod}
+              disabled={!startDate || !endDate || lineItems.length === 0}
+              className="flex-1 border-amber-400 text-amber-700 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-950"
+            >
+              📅 Set Sesuai Periode
+              {startDate && endDate && (
+                <span className="ml-1 text-xs">({calculatePeriodDuration()} hari)</span>
+              )}
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={applyDefaultsToAll}
+              disabled={lineItems.length === 0 || (defaultPricePerDay === '' && defaultDurationDays === '')}
+              className="flex-1"
+            >
+              🔄 Terapkan ({lineItems.length})
+            </Button>
           </div>
         </CardContent>
       </Card>
