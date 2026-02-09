@@ -1,198 +1,214 @@
 
-## Perbaikan Copy Rincian Tagihan pada Perpanjangan Kontrak
 
-### Masalah
-Saat perpanjangan kontrak dari 000284 ke 000301, beberapa data penting **tidak ikut tercopy**:
-- `rincian_template` (Rincian Tagihan)
-- `discount`
-- `transport_cost_delivery`
-- `transport_cost_pickup`
+## Plan: Stock Transfer pada Perpanjangan + Log Lengkap Lifecycle Barang
 
-Padahal line items, groups, dan stock items sudah berhasil tercopy.
+### Pemahaman Kebutuhan
 
-### Solusi: Re-generate Template + Copy Fields Terkait
+Anda menginginkan sistem di mana:
 
-Karena template berisi tanggal yang berubah (periode sewa baru), **TIDAK** bisa copy template langsung. Yang benar adalah:
-1. Copy fields finansial (`discount`, `transport_cost_delivery`, `transport_cost_pickup`)
-2. Re-generate `rincian_template` dari data yang sudah tercopy
+1. **Stok Aktif Selalu di Invoice Terakhir**
+   - Saat perpanjangan dari 000284 → 000301, stok barang **berpindah** ke 000301
+   - Invoice 000284 menjadi **read-only** dengan status "Diperpanjang ke 000301"
+   - Edit stok hanya bisa dilakukan di invoice 000301 (yang aktif)
 
-### Perubahan Kode
+2. **Log Lifecycle Barang Lengkap**
+   - Setiap barang harus punya riwayat lengkap: kapan mulai, di invoice mana, sampai kapan
+   - Contoh format:
+     ```
+     📦 Scaffolding 1.7M Galvanis (2 pcs)
+     
+     ├─ 26 Jan 2026 - 01 Feb 2026
+     │  Invoice: 000284 (7 hari)
+     │  
+     ├─ 02 Feb 2026 - 08 Feb 2026  
+     │  Invoice: 000301 (7 hari) ← PERPANJANGAN
+     │  
+     └─ 09 Feb 2026
+        Dikembalikan ke gudang
+     ```
 
-#### File: `src/components/contracts/ExtendContractDialog.tsx`
+---
 
-**1. Tambah fetch data finansial dari parent contract saat insert**
+### Perubahan yang Akan Dilakukan
 
-Di bagian insert kontrak baru (baris 208-229), tambahkan fields yang hilang:
+#### 1. Skema Database: Tambah Kolom untuk Stock Transfer
 
-```typescript
-// 2. Insert new contract - with financial fields from parent
-const { data: parentContract } = await supabase
-  .from('rental_contracts')
-  .select('discount, transport_cost_delivery, transport_cost_pickup, whatsapp_template_mode')
-  .eq('id', contract.id)
-  .single();
+**Tabel: `contract_stock_items`**
 
-const { data: newContract, error: insertError } = await supabase
-  .from('rental_contracts')
-  .insert({
-    user_id: user.id,
-    client_group_id: contract.client_group_id,
-    start_date: format(startDate, "yyyy-MM-dd"),
-    end_date: format(endDate, "yyyy-MM-dd"),
-    status: 'masa sewa',
-    invoice: invoiceNumber,
-    parent_contract_id: contract.id,
-    extension_number: (contract.extension_number ?? 0) + 1,
-    is_flexible_duration: durationMode === 'flexible',
-    tagihan: transferUnpaidBalance ? contract.tagihan_belum_bayar : 0,
-    tagihan_belum_bayar: transferUnpaidBalance ? contract.tagihan_belum_bayar : 0,
-    keterangan: contract.keterangan,
-    bank_account_id: contract.bank_account_id,
-    google_maps_link: contract.google_maps_link,
-    notes: `Perpanjangan dari ${contract.invoice}`,
-    tanggal_kirim: format(startDate, "yyyy-MM-dd"),
-    // === COPY FINANCIAL FIELDS ===
-    discount: parentContract?.discount || 0,
-    transport_cost_delivery: parentContract?.transport_cost_delivery || 0,
-    transport_cost_pickup: parentContract?.transport_cost_pickup || 0,
-    whatsapp_template_mode: parentContract?.whatsapp_template_mode || false,
-  } as any)
-  .select('id')
-  .single();
+| Kolom Baru | Tipe | Keterangan |
+|------------|------|------------|
+| `extended_to_contract_id` | UUID | Referensi ke kontrak perpanjangan (jika ada) |
+| `source_stock_item_id` | UUID | Referensi ke stock item di kontrak sebelumnya |
+
+Ini memungkinkan tracking chain stok: mana yang parent, mana yang perpanjangan.
+
+#### 2. Skema Database: Tambah Kolom untuk Period Tracking di Movements
+
+**Tabel: `inventory_movements`**
+
+| Kolom Baru | Tipe | Keterangan |
+|------------|------|------------|
+| `period_start` | DATE | Tanggal mulai periode (untuk tracking) |
+| `period_end` | DATE | Tanggal akhir periode (untuk tracking) |
+
+#### 3. Update Proses Perpanjangan (`ExtendContractDialog.tsx`)
+
+**Langkah Saat Perpanjangan:**
+
+```text
+SEBELUM:
+┌─────────────────────────────────────────────┐
+│ Invoice 000284                              │
+│ Stok: 7 items (aktif, bisa diedit)          │
+│ Status: masa sewa                           │
+└─────────────────────────────────────────────┘
+
+SETELAH PERPANJANGAN:
+┌─────────────────────────────────────────────┐
+│ Invoice 000284                              │
+│ Stok: 7 items (READONLY)                    │
+│ Status: selesai                             │
+│ Label: "📦 Diperpanjang ke 000301"          │
+└─────────────────────────────────────────────┘
+            │
+            ▼ (Transfer)
+┌─────────────────────────────────────────────┐
+│ Invoice 000301                              │
+│ Stok: 7 items (AKTIF, bisa diedit)          │
+│ Status: masa sewa                           │
+│ Label: "Lanjutan dari 000284"               │
+└─────────────────────────────────────────────┘
 ```
 
-**2. Tambah regenerasi template setelah semua data tercopy**
+**Perubahan Kode:**
+1. Update `extended_to_contract_id` di parent stock items → pointing ke new contract
+2. Insert stock items baru di extension dengan `source_stock_item_id` → pointing ke parent stock
+3. Insert `inventory_movement` dengan type `extension` untuk tracking periode
 
-Setelah copy line items dan groups berhasil (sekitar baris 420), generate ulang template:
+#### 4. Update UI Kontrak (`ContractDetail.tsx`)
 
-```typescript
-// 7. Generate rincian_template dari data yang tercopy
-if (newContract && copiedLineItemsCount > 0) {
-  console.log(`[Extension v2.2] Generating rincian_template...`);
-  
-  // Fetch copied data
-  const { data: copiedLineItems } = await supabase
-    .from('contract_line_items')
-    .select('*')
-    .eq('contract_id', newContract.id)
-    .order('sort_order');
-  
-  const { data: copiedGroups } = await supabase
-    .from('contract_line_item_groups')
-    .select('*')
-    .eq('contract_id', newContract.id)
-    .order('sort_order');
+**Invoice Lama (000284) - Setelah Diperpanjang:**
 
-  if (copiedLineItems && copiedLineItems.length > 0) {
-    // Import template generator
-    const { generateRincianTemplate } = await import('@/lib/contractTemplateGenerator');
-    
-    // Build group data for template
-    const templateGroups = (copiedGroups || []).map(group => {
-      const itemIndices = copiedLineItems
-        .map((item, idx) => item.group_id === group.id ? idx : -1)
-        .filter(idx => idx >= 0);
-      
-      return {
-        billing_quantity: group.billing_quantity,
-        billing_unit_price_per_day: Number(group.billing_unit_price_per_day),
-        billing_duration_days: group.billing_duration_days,
-        billing_unit_mode: group.billing_unit_mode as 'pcs' | 'set',
-        item_indices: itemIndices,
-      };
-    });
-
-    // Prepare template data
-    const templateData = {
-      lineItems: copiedLineItems.map(item => ({
-        item_name: item.item_name,
-        quantity: item.quantity,
-        unit_price_per_day: Number(item.unit_price_per_day),
-        duration_days: item.duration_days,
-        unit_mode: item.unit_mode as 'pcs' | 'set',
-        pcs_per_set: item.pcs_per_set || 1,
-      })),
-      groups: templateGroups,
-      transportDelivery: parentContract?.transport_cost_delivery || 0,
-      transportPickup: parentContract?.transport_cost_pickup || 0,
-      contractTitle: contract.keterangan || '',
-      discount: parentContract?.discount || 0,
-      startDate: format(startDate, "yyyy-MM-dd"),
-      endDate: format(endDate, "yyyy-MM-dd"),
-      priceMode: 'set' as const,
-    };
-
-    // Generate template
-    const whatsappMode = parentContract?.whatsapp_template_mode || false;
-    const generatedTemplate = generateRincianTemplate(templateData, whatsappMode);
-    
-    // Calculate tagihan from template
-    const { calculateGrandTotal } = await import('@/lib/contractTemplateGenerator');
-    const grandTotal = calculateGrandTotal(templateData);
-
-    // Update contract with template and tagihan
-    const { error: updateTemplateError } = await supabase
-      .from('rental_contracts')
-      .update({
-        rincian_template: generatedTemplate,
-        tagihan: grandTotal,
-        tagihan_belum_bayar: transferUnpaidBalance 
-          ? (contract.tagihan_belum_bayar + grandTotal - (parentContract?.discount || 0))
-          : grandTotal,
-      })
-      .eq('id', newContract.id);
-
-    if (updateTemplateError) {
-      console.error('[Extension v2.2] Error updating template:', updateTemplateError);
-    } else {
-      console.log(`[Extension v2.2] ✅ Template generated, tagihan: ${grandTotal}`);
-    }
-  }
-}
+```
+┌─────────────────────────────────────────────┐
+│ 📦 Rincian Stok Barang                      │
+│ ─────────────────────────────────────────── │
+│ ⚠️ Stok telah dipindahkan ke Invoice 000301 │
+│ [Lihat di Invoice Terbaru]                  │
+│ ─────────────────────────────────────────── │
+│ • Scaffolding 1.7M (2 pcs)   → 000301       │
+│ • Cross Brace 1.7m (4 pcs)   → 000301       │
+│ • ... (readonly, no edit button)            │
+└─────────────────────────────────────────────┘
 ```
 
-### Ringkasan Perubahan
+**Invoice Baru (000301) - Yang Aktif:**
 
-| Item | Aksi |
-|------|------|
-| `discount` | Copy dari parent |
-| `transport_cost_delivery` | Copy dari parent |
-| `transport_cost_pickup` | Copy dari parent |
-| `whatsapp_template_mode` | Copy dari parent |
-| `rincian_template` | Re-generate setelah data tercopy |
-| `tagihan` | Recalculate dari template |
+```
+┌─────────────────────────────────────────────┐
+│ 📦 Rincian Stok Barang          [Edit]      │
+│ ─────────────────────────────────────────── │
+│ • Scaffolding 1.7M (2 pcs)                  │
+│   └─ Lanjutan dari 000284                   │
+│ • Cross Brace 1.7m (4 pcs)                  │
+│   └─ Lanjutan dari 000284                   │
+└─────────────────────────────────────────────┘
+```
+
+#### 5. Update Timeline Barang di Inventory (`ItemMovementTimeline.tsx`)
+
+**Tampilan Baru dengan Period Tracking:**
+
+```
+┌─────────────────────────────────────────────┐
+│ 🟠 Disewa                    -2 pcs         │
+│ Senin, 26 Januari 2026                      │
+│ 📋 Invoice: 000284                          │
+│ 📅 Periode: 26 Jan - 01 Feb (7 hari)        │
+└─────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────┐
+│ 🔄 Diperpanjang              (transfer)     │
+│ Minggu, 02 Februari 2026                    │
+│ 📋 000284 → 000301                          │
+│ 📅 Periode baru: 02 Feb - 08 Feb (7 hari)   │
+└─────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────┐
+│ 🟢 Dikembalikan              +2 pcs         │
+│ Senin, 09 Februari 2026                     │
+│ 📋 Invoice: 000301                          │
+│ Total disewa: 14 hari                       │
+└─────────────────────────────────────────────┘
+```
+
+#### 6. Tipe Movement Baru
+
+| Type | Label | Icon | Color | Keterangan |
+|------|-------|------|-------|------------|
+| `rental` | Disewa | ↑ | Amber | Barang keluar dari gudang |
+| `return` | Dikembalikan | ↓ | Green | Barang kembali ke gudang |
+| `extension` | Diperpanjang | 🔄 | Purple | Transfer antar invoice |
+| `adjustment` | Penyesuaian | ⚙️ | Blue | Perubahan qty |
+
+---
+
+### File yang Akan Diubah
+
+| File | Perubahan |
+|------|-----------|
+| **Database Migration** | Tambah kolom `extended_to_contract_id`, `source_stock_item_id` di `contract_stock_items`. Tambah `period_start`, `period_end` di `inventory_movements` |
+| `ExtendContractDialog.tsx` | Update logic untuk transfer stok, create extension movement |
+| `ContractDetail.tsx` | Cek apakah stok sudah ditransfer, tampilkan read-only view |
+| `ContractStockItemsEditor.tsx` | Disable editing jika kontrak sudah diperpanjang |
+| `ItemMovementTimeline.tsx` | Tambah support untuk movement type `extension` dengan period display |
+| `InventoryItemHistory.tsx` | Update query untuk include period tracking |
+
+---
+
+### Flow Lengkap Setelah Implementasi
+
+```text
+PERPANJANGAN KONTRAK:
+
+1. User klik "Perpanjang" di Invoice 000284
+   
+2. Dialog muncul, user pilih tanggal baru
+   
+3. Saat submit:
+   a. Create kontrak baru 000301
+   b. Copy line items + groups
+   c. Copy financial fields + generate template
+   d. TRANSFER STOK:
+      - Update 000284 stock items → set extended_to_contract_id = 000301
+      - Insert 000301 stock items → set source_stock_item_id = 000284 items
+      - Insert inventory_movement type='extension' untuk setiap item
+        dengan notes: "Diperpanjang: 000284 (26 Jan-01 Feb) → 000301 (02 Feb-08 Feb)"
+   e. Close kontrak 000284 → status = selesai
+
+4. Hasil:
+   - 000284: Stok read-only, label "Diperpanjang ke 000301"
+   - 000301: Stok aktif, bisa diedit
+   - Log gudang: Lengkap dengan periode setiap invoice
+```
+
+---
 
 ### Expected Result
 
-Setelah perpanjangan:
+**Di Invoice 000284 (Parent):**
+- Section "Rincian Stok Barang" menampilkan notice bahwa stok sudah dipindahkan
+- Tombol "Edit" tidak muncul
+- Ada link ke invoice terbaru (000301)
 
-```
-Kontrak 000284 (Parent):
-- 7 line items, 1 group
-- Discount: Rp 7.000
-- Transport: Rp 225.000 + Rp 225.000
-- Template: ✅ Lengkap
-- Total Tagihan: Rp 800.000
+**Di Invoice 000301 (Extension):**
+- Section "Rincian Stok Barang" normal, bisa diedit
+- Setiap item menampilkan label "Lanjutan dari 000284"
 
-         ↓ PERPANJANGAN
+**Di Log Gudang (Inventory History):**
+- Tampilan timeline lengkap dengan periode per invoice
+- Entry "Diperpanjang" menunjukkan transfer dari invoice A ke B
+- Total durasi sewa bisa dihitung dari chain
 
-Kontrak 000302 (Extension):
-- 7 line items ✅ (tercopy)
-- 1 group ✅ (tercopy)
-- Discount: Rp 7.000 ✅ (tercopy)
-- Transport: Rp 225.000 + Rp 225.000 ✅ (tercopy)
-- Template: ✅ (di-generate ulang dengan tanggal baru)
-- Total Tagihan: ✅ (dihitung ulang)
-```
-
-### Technical Notes
-
-**Mengapa regenerate template, bukan copy langsung?**
-
-Template berisi:
-- Periode Sewa: `Mulai: 26 Jan 2026 - Selesai: 01 Feb 2026`
-
-Jika dicopy langsung, tanggalnya salah untuk kontrak perpanjangan. Jadi harus di-generate ulang dengan tanggal baru.
-
-**File yang diubah:**
-- `src/components/contracts/ExtendContractDialog.tsx`
