@@ -1,95 +1,198 @@
 
+## Perbaikan Copy Rincian Tagihan pada Perpanjangan Kontrak
 
-## Perbaikan Fitur Perpanjangan - Copy Data Gagal
+### Masalah
+Saat perpanjangan kontrak dari 000284 ke 000301, beberapa data penting **tidak ikut tercopy**:
+- `rincian_template` (Rincian Tagihan)
+- `discount`
+- `transport_cost_delivery`
+- `transport_cost_pickup`
 
-### Hasil Investigasi
+Padahal line items, groups, dan stock items sudah berhasil tercopy.
 
-**Database Evidence:**
-| Kontrak | Line Items | Stock Items | Groups |
-|---------|------------|-------------|--------|
-| 000284 (Parent) | 7 ✅ | 7 ✅ | 1 ✅ |
-| 000301 (Extension) | 0 ❌ | 0 ❌ | 1 ✅ |
+### Solusi: Re-generate Template + Copy Fields Terkait
 
-**Database Error Log:**
-```
-Timestamp: 2026-02-09 01:15:42.584 UTC (saat perpanjangan dibuat)
-Error: cannot insert a non-DEFAULT value into column "subtotal"
-```
+Karena template berisi tanggal yang berubah (periode sewa baru), **TIDAK** bisa copy template langsung. Yang benar adalah:
+1. Copy fields finansial (`discount`, `transport_cost_delivery`, `transport_cost_pickup`)
+2. Re-generate `rincian_template` dari data yang sudah tercopy
 
-**Root Cause:**
-Error terjadi karena kode mencoba insert nilai ke kolom `subtotal` yang merupakan **generated column**. Groups berhasil tercopy (tidak ada kolom generated), tapi line items gagal karena error subtotal.
+### Perubahan Kode
 
-### Masalah Teridentifikasi
+#### File: `src/components/contracts/ExtendContractDialog.tsx`
 
-Setelah memeriksa kode terbaru di `ExtendContractDialog.tsx`, ternyata **kode sudah benar** - `subtotal` sudah tidak ada dalam mapping. Namun error terjadi pada 01:15:42 UTC, yang berarti:
+**1. Tambah fetch data finansial dari parent contract saat insert**
 
-- **Browser user menggunakan versi JavaScript yang ter-cache (lama)** saat membuat perpanjangan
-- Versi lama masih mengirimkan `subtotal` ke database
+Di bagian insert kontrak baru (baris 208-229), tambahkan fields yang hilang:
 
-### Solusi
-
-**Langkah 1: Verifikasi Kode (Sudah Benar)**
-
-Kode saat ini (baris 327-344) sudah benar:
 ```typescript
-const newLineItems = lineItems.map(item => ({
-  user_id: user.id,
-  contract_id: newContract.id,
-  item_name: item.item_name,
-  quantity: item.quantity,
-  unit_price_per_day: item.unit_price_per_day,
-  duration_days: item.duration_days,
-  // subtotal TIDAK disertakan
-  unit_mode: item.unit_mode || 'pcs',
-  pcs_per_set: item.pcs_per_set || 1,
-  inventory_item_id: item.inventory_item_id || null,
-  group_id: item.group_id ? groupIdMap[item.group_id] : null,
-  sort_order: item.sort_order || 0,
-}));
+// 2. Insert new contract - with financial fields from parent
+const { data: parentContract } = await supabase
+  .from('rental_contracts')
+  .select('discount, transport_cost_delivery, transport_cost_pickup, whatsapp_template_mode')
+  .eq('id', contract.id)
+  .single();
+
+const { data: newContract, error: insertError } = await supabase
+  .from('rental_contracts')
+  .insert({
+    user_id: user.id,
+    client_group_id: contract.client_group_id,
+    start_date: format(startDate, "yyyy-MM-dd"),
+    end_date: format(endDate, "yyyy-MM-dd"),
+    status: 'masa sewa',
+    invoice: invoiceNumber,
+    parent_contract_id: contract.id,
+    extension_number: (contract.extension_number ?? 0) + 1,
+    is_flexible_duration: durationMode === 'flexible',
+    tagihan: transferUnpaidBalance ? contract.tagihan_belum_bayar : 0,
+    tagihan_belum_bayar: transferUnpaidBalance ? contract.tagihan_belum_bayar : 0,
+    keterangan: contract.keterangan,
+    bank_account_id: contract.bank_account_id,
+    google_maps_link: contract.google_maps_link,
+    notes: `Perpanjangan dari ${contract.invoice}`,
+    tanggal_kirim: format(startDate, "yyyy-MM-dd"),
+    // === COPY FINANCIAL FIELDS ===
+    discount: parentContract?.discount || 0,
+    transport_cost_delivery: parentContract?.transport_cost_delivery || 0,
+    transport_cost_pickup: parentContract?.transport_cost_pickup || 0,
+    whatsapp_template_mode: parentContract?.whatsapp_template_mode || false,
+  } as any)
+  .select('id')
+  .single();
 ```
 
-**Langkah 2: Hard Refresh Browser**
+**2. Tambah regenerasi template setelah semua data tercopy**
 
-User perlu melakukan hard refresh untuk mendapatkan kode terbaru:
-- **Windows/Linux**: Ctrl + Shift + R
-- **Mac**: Cmd + Shift + R
-- Atau klik kanan pada tombol Refresh → "Hard Reload"
+Setelah copy line items dan groups berhasil (sekitar baris 420), generate ulang template:
 
-**Langkah 3: Hapus Perpanjangan Lama & Buat Ulang**
+```typescript
+// 7. Generate rincian_template dari data yang tercopy
+if (newContract && copiedLineItemsCount > 0) {
+  console.log(`[Extension v2.2] Generating rincian_template...`);
+  
+  // Fetch copied data
+  const { data: copiedLineItems } = await supabase
+    .from('contract_line_items')
+    .select('*')
+    .eq('contract_id', newContract.id)
+    .order('sort_order');
+  
+  const { data: copiedGroups } = await supabase
+    .from('contract_line_item_groups')
+    .select('*')
+    .eq('contract_id', newContract.id)
+    .order('sort_order');
 
-1. Hapus kontrak 000301 yang gagal
-2. Buat perpanjangan baru dari 000284
-3. Verifikasi bahwa line items dan stock items tercopy
+  if (copiedLineItems && copiedLineItems.length > 0) {
+    // Import template generator
+    const { generateRincianTemplate } = await import('@/lib/contractTemplateGenerator');
+    
+    // Build group data for template
+    const templateGroups = (copiedGroups || []).map(group => {
+      const itemIndices = copiedLineItems
+        .map((item, idx) => item.group_id === group.id ? idx : -1)
+        .filter(idx => idx >= 0);
+      
+      return {
+        billing_quantity: group.billing_quantity,
+        billing_unit_price_per_day: Number(group.billing_unit_price_per_day),
+        billing_duration_days: group.billing_duration_days,
+        billing_unit_mode: group.billing_unit_mode as 'pcs' | 'set',
+        item_indices: itemIndices,
+      };
+    });
 
-### Peningkatan Tambahan (Opsional)
+    // Prepare template data
+    const templateData = {
+      lineItems: copiedLineItems.map(item => ({
+        item_name: item.item_name,
+        quantity: item.quantity,
+        unit_price_per_day: Number(item.unit_price_per_day),
+        duration_days: item.duration_days,
+        unit_mode: item.unit_mode as 'pcs' | 'set',
+        pcs_per_set: item.pcs_per_set || 1,
+      })),
+      groups: templateGroups,
+      transportDelivery: parentContract?.transport_cost_delivery || 0,
+      transportPickup: parentContract?.transport_cost_pickup || 0,
+      contractTitle: contract.keterangan || '',
+      discount: parentContract?.discount || 0,
+      startDate: format(startDate, "yyyy-MM-dd"),
+      endDate: format(endDate, "yyyy-MM-dd"),
+      priceMode: 'set' as const,
+    };
 
-Untuk mencegah masalah serupa di masa depan, saya rekomendasikan:
+    // Generate template
+    const whatsappMode = parentContract?.whatsapp_template_mode || false;
+    const generatedTemplate = generateRincianTemplate(templateData, whatsappMode);
+    
+    // Calculate tagihan from template
+    const { calculateGrandTotal } = await import('@/lib/contractTemplateGenerator');
+    const grandTotal = calculateGrandTotal(templateData);
 
-**1. Tambahkan Error Toast yang Lebih Jelas**
+    // Update contract with template and tagihan
+    const { error: updateTemplateError } = await supabase
+      .from('rental_contracts')
+      .update({
+        rincian_template: generatedTemplate,
+        tagihan: grandTotal,
+        tagihan_belum_bayar: transferUnpaidBalance 
+          ? (contract.tagihan_belum_bayar + grandTotal - (parentContract?.discount || 0))
+          : grandTotal,
+      })
+      .eq('id', newContract.id);
 
-Saat ini jika error terjadi, pesan generik ditampilkan. Bisa diperbaiki untuk menunjukkan apa yang gagal.
+    if (updateTemplateError) {
+      console.error('[Extension v2.2] Error updating template:', updateTemplateError);
+    } else {
+      console.log(`[Extension v2.2] ✅ Template generated, tagihan: ${grandTotal}`);
+    }
+  }
+}
+```
 
-**2. Cleanup Orphan Groups**
+### Ringkasan Perubahan
 
-Jika line items gagal tercopy tapi groups berhasil, bersihkan groups yang orphan.
+| Item | Aksi |
+|------|------|
+| `discount` | Copy dari parent |
+| `transport_cost_delivery` | Copy dari parent |
+| `transport_cost_pickup` | Copy dari parent |
+| `whatsapp_template_mode` | Copy dari parent |
+| `rincian_template` | Re-generate setelah data tercopy |
+| `tagihan` | Recalculate dari template |
 
-### File yang Sudah Diperbaiki
+### Expected Result
 
-| File | Status |
-|------|--------|
-| `ExtendContractDialog.tsx` | ✅ Sudah benar - `subtotal` tidak ada dalam insert mapping |
+Setelah perpanjangan:
 
-### Yang Perlu User Lakukan
+```
+Kontrak 000284 (Parent):
+- 7 line items, 1 group
+- Discount: Rp 7.000
+- Transport: Rp 225.000 + Rp 225.000
+- Template: ✅ Lengkap
+- Total Tagihan: Rp 800.000
 
-1. **Hard refresh browser** (Ctrl+Shift+R / Cmd+Shift+R)
-2. **Hapus kontrak 000301** dari database atau UI
-3. **Buat ulang perpanjangan** dari kontrak 000284
-4. **Verifikasi** bahwa toast menampilkan jumlah item tercopy (misal: "7 rincian item dan 7 stok tercopy")
+         ↓ PERPANJANGAN
 
-### Catatan Teknis
+Kontrak 000302 (Extension):
+- 7 line items ✅ (tercopy)
+- 1 group ✅ (tercopy)
+- Discount: Rp 7.000 ✅ (tercopy)
+- Transport: Rp 225.000 + Rp 225.000 ✅ (tercopy)
+- Template: ✅ (di-generate ulang dengan tanggal baru)
+- Total Tagihan: ✅ (dihitung ulang)
+```
 
-Kode terbaru yang sudah di-deploy akan:
-- Menampilkan log console `[Extension] Successfully copied X line items`
-- Menampilkan toast dengan jumlah item yang berhasil tercopy
-- Throw error dengan pesan jelas jika insert gagal
+### Technical Notes
 
+**Mengapa regenerate template, bukan copy langsung?**
+
+Template berisi:
+- Periode Sewa: `Mulai: 26 Jan 2026 - Selesai: 01 Feb 2026`
+
+Jika dicopy langsung, tanggalnya salah untuk kontrak perpanjangan. Jadi harus di-generate ulang dengan tanggal baru.
+
+**File yang diubah:**
+- `src/components/contracts/ExtendContractDialog.tsx`
