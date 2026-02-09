@@ -269,6 +269,9 @@ export default function ContractDetail() {
         quantity,
         unit_mode,
         returned_at,
+        extended_to_contract_id,
+        source_stock_item_id,
+        notes,
         inventory_items (
           item_name,
           item_code,
@@ -1750,43 +1753,105 @@ export default function ContractDetail() {
                     <Package className="h-5 w-5" />
                     Rincian Stok Barang
                   </CardTitle>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowStockEditor(true)}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
+                  {/* Only show edit button if contract has no child extension */}
+                  {!hasChildExtension && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowStockEditor(true)}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Item yang ditambahkan otomatis mengurangi stok gudang
+                  {hasChildExtension 
+                    ? "Stok telah dipindahkan ke invoice perpanjangan"
+                    : "Item yang ditambahkan otomatis mengurangi stok gudang"
+                  }
                 </p>
               </CardHeader>
               <CardContent>
+                {/* Show notice if stock has been transferred to extension */}
+                {hasChildExtension && childContractInvoice && (
+                  <div className="mb-4 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
+                    <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                      <Package className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        📦 Stok telah dipindahkan ke Invoice {childContractInvoice}
+                      </span>
+                    </div>
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      Untuk mengedit stok, silakan buka invoice perpanjangan terbaru.
+                    </p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="text-purple-600 dark:text-purple-400 p-0 h-auto mt-2"
+                      onClick={() => {
+                        // Find the child contract ID and navigate
+                        supabase
+                          .from('rental_contracts')
+                          .select('id')
+                          .eq('parent_contract_id', id)
+                          .single()
+                          .then(({ data }) => {
+                            if (data?.id) {
+                              navigate(`/rental-contracts/${data.id}`);
+                            }
+                          });
+                      }}
+                    >
+                      Lihat di Invoice Terbaru →
+                    </Button>
+                  </div>
+                )}
+
                 {stockItems.length > 0 ? (
                   <div className="space-y-3">
-                    {stockItems.map((item: any) => (
-                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg ${item.returned_at ? 'bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800' : 'bg-muted/30'}`}>
-                        <div className="space-y-1">
-                          <p className={`font-medium ${item.returned_at ? 'text-muted-foreground' : ''}`}>
-                            {item.inventory_items?.item_name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{item.inventory_items?.item_code}</p>
-                          {item.returned_at && (
-                            <Badge variant="outline" className="text-orange-600 border-orange-300 dark:text-orange-400 dark:border-orange-600 text-xs">
-                              Dikembalikan: {format(new Date(item.returned_at), 'dd MMM yyyy HH:mm', { locale: localeId })}
-                            </Badge>
-                          )}
+                    {stockItems.map((item: any) => {
+                      const isTransferred = !!item.extended_to_contract_id;
+                      const isFromExtension = !!item.source_stock_item_id;
+                      
+                      return (
+                        <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg ${
+                          item.returned_at 
+                            ? 'bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800' 
+                            : isTransferred
+                              ? 'bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800'
+                              : 'bg-muted/30'
+                        }`}>
+                          <div className="space-y-1">
+                            <p className={`font-medium ${item.returned_at || isTransferred ? 'text-muted-foreground' : ''}`}>
+                              {item.inventory_items?.item_name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">{item.inventory_items?.item_code}</p>
+                            {item.returned_at && (
+                              <Badge variant="outline" className="text-orange-600 border-orange-300 dark:text-orange-400 dark:border-orange-600 text-xs">
+                                Dikembalikan: {format(new Date(item.returned_at), 'dd MMM yyyy HH:mm', { locale: localeId })}
+                              </Badge>
+                            )}
+                            {isTransferred && childContractInvoice && (
+                              <Badge variant="outline" className="text-purple-600 border-purple-300 dark:text-purple-400 dark:border-purple-600 text-xs">
+                                → Diperpanjang ke {childContractInvoice}
+                              </Badge>
+                            )}
+                            {isFromExtension && item.notes && (
+                              <Badge variant="outline" className="text-blue-600 border-blue-300 dark:text-blue-400 dark:border-blue-600 text-xs">
+                                {item.notes}
+                              </Badge>
+                            )}
+                          </div>
+                          <Badge variant={item.returned_at || isTransferred ? "outline" : "secondary"} className={`text-base ${item.returned_at || isTransferred ? 'text-muted-foreground' : ''}`}>
+                            {item.unit_mode === 'set'
+                              ? `${Math.floor(item.quantity / (item.inventory_items?.pcs_per_set || 1))} set`
+                              : `${item.quantity} pcs`
+                            }
+                          </Badge>
                         </div>
-                        <Badge variant={item.returned_at ? "outline" : "secondary"} className={`text-base ${item.returned_at ? 'text-muted-foreground' : ''}`}>
-                          {item.unit_mode === 'set'
-                            ? `${Math.floor(item.quantity / (item.inventory_items?.pcs_per_set || 1))} set`
-                            : `${item.quantity} pcs`
-                          }
-                        </Badge>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <Separator />
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Total Unit</span>
@@ -1801,10 +1866,12 @@ export default function ContractDetail() {
                     <p className="text-muted-foreground mb-4">
                       Belum ada item stok barang
                     </p>
-                    <Button onClick={() => setShowStockEditor(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah Item Stok
-                    </Button>
+                    {!hasChildExtension && (
+                      <Button onClick={() => setShowStockEditor(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Tambah Item Stok
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>
