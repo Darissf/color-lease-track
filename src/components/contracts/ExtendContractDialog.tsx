@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatRupiah } from "@/lib/currency";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { generateRincianTemplate, calculateGrandTotal, type LineItem, type LineItemGroup } from "@/lib/contractTemplateGenerator";
 
 interface ExtendContractDialogProps {
   open: boolean;
@@ -204,7 +205,15 @@ export function ExtendContractDialog({
         }
       }
 
-      // 2. Insert new contract
+      // 2. Fetch parent contract financial data
+      console.log(`[Extension v2.2] Fetching parent contract financial fields...`);
+      const { data: parentContract } = await supabase
+        .from('rental_contracts')
+        .select('discount, transport_cost_delivery, transport_cost_pickup, whatsapp_template_mode')
+        .eq('id', contract.id)
+        .single();
+
+      // 3. Insert new contract with financial fields from parent
       const { data: newContract, error: insertError } = await supabase
         .from('rental_contracts')
         .insert({
@@ -224,11 +233,17 @@ export function ExtendContractDialog({
           google_maps_link: contract.google_maps_link,
           notes: `Perpanjangan dari ${contract.invoice}`,
           tanggal_kirim: format(startDate, "yyyy-MM-dd"),
+          // === COPY FINANCIAL FIELDS FROM PARENT ===
+          discount: parentContract?.discount || 0,
+          transport_cost_delivery: parentContract?.transport_cost_delivery || 0,
+          transport_cost_pickup: parentContract?.transport_cost_pickup || 0,
+          whatsapp_template_mode: parentContract?.whatsapp_template_mode || false,
         } as any)
         .select('id')
         .single();
 
       if (insertError) throw insertError;
+      console.log(`[Extension v2.2] Created new contract ${newContract?.id} with financial fields copied`);
 
       // 3. Update Auto Invoice counter only if we didn't use a reusable number
       if (autoInvoiceSettings?.enabled && !usedReusableInvoice) {
@@ -411,6 +426,93 @@ export function ExtendContractDialog({
         }
       }
 
+      // 7. Generate rincian_template dari data yang tercopy
+      if (newContract && copiedLineItemsCount > 0) {
+        console.log(`[Extension v2.2] Generating rincian_template...`);
+        
+        // Fetch copied data
+        const { data: copiedLineItems } = await supabase
+          .from('contract_line_items')
+          .select('*')
+          .eq('contract_id', newContract.id)
+          .order('sort_order');
+        
+        const { data: copiedGroups } = await supabase
+          .from('contract_line_item_groups')
+          .select('*')
+          .eq('contract_id', newContract.id)
+          .order('sort_order');
+
+        if (copiedLineItems && copiedLineItems.length > 0) {
+          // Build group data for template
+          const templateGroups: LineItemGroup[] = (copiedGroups || []).map(group => {
+            const itemIndices = copiedLineItems
+              .map((item, idx) => item.group_id === group.id ? idx : -1)
+              .filter(idx => idx >= 0);
+            
+            return {
+              billing_quantity: group.billing_quantity,
+              billing_unit_price_per_day: Number(group.billing_unit_price_per_day),
+              billing_duration_days: group.billing_duration_days,
+              billing_unit_mode: (group.billing_unit_mode || 'set') as 'pcs' | 'set',
+              item_indices: itemIndices,
+            };
+          });
+
+          // Prepare template data
+          const templateLineItems: LineItem[] = copiedLineItems.map(item => ({
+            item_name: item.item_name,
+            quantity: item.quantity,
+            unit_price_per_day: Number(item.unit_price_per_day),
+            duration_days: item.duration_days,
+            unit_mode: (item.unit_mode || 'pcs') as 'pcs' | 'set',
+            pcs_per_set: item.pcs_per_set || 1,
+          }));
+
+          const templateData = {
+            lineItems: templateLineItems,
+            groups: templateGroups,
+            transportDelivery: parentContract?.transport_cost_delivery || 0,
+            transportPickup: parentContract?.transport_cost_pickup || 0,
+            contractTitle: contract.keterangan || '',
+            discount: parentContract?.discount || 0,
+            startDate: format(startDate, "yyyy-MM-dd"),
+            endDate: format(endDate, "yyyy-MM-dd"),
+            priceMode: 'set' as const,
+          };
+
+          // Generate template
+          const whatsappMode = parentContract?.whatsapp_template_mode || false;
+          const generatedTemplate = generateRincianTemplate(templateData, whatsappMode);
+          
+          // Calculate tagihan from template
+          const grandTotal = calculateGrandTotal(templateData);
+
+          // Determine tagihan_belum_bayar
+          let newTagihanBelumBayar = grandTotal;
+          if (transferUnpaidBalance) {
+            // Tambah sisa tagihan dari kontrak lama
+            newTagihanBelumBayar = grandTotal + (contract.tagihan_belum_bayar || 0);
+          }
+
+          // Update contract with template and tagihan
+          const { error: updateTemplateError } = await supabase
+            .from('rental_contracts')
+            .update({
+              rincian_template: generatedTemplate,
+              tagihan: grandTotal,
+              tagihan_belum_bayar: newTagihanBelumBayar,
+            })
+            .eq('id', newContract.id);
+
+          if (updateTemplateError) {
+            console.error('[Extension v2.2] Error updating template:', updateTemplateError);
+          } else {
+            console.log(`[Extension v2.2] ✅ Template generated, tagihan: ${grandTotal}, tagihan_belum_bayar: ${newTagihanBelumBayar}`);
+          }
+        }
+      }
+
       // Success toast with copy counts
       const copyInfo = [];
       if (copiedLineItemsCount > 0) copyInfo.push(`${copiedLineItemsCount} rincian item`);
@@ -419,7 +521,7 @@ export function ExtendContractDialog({
       const copyMessage = copyInfo.length > 0 ? `. ${copyInfo.join(' dan ')} tercopy.` : '';
       toast.success(`Kontrak berhasil diperpanjang dengan invoice ${invoiceNumber}${copyMessage}`);
       
-      console.log(`[Extension v2.1] ✅ Extension complete! Invoice: ${invoiceNumber}, Line Items: ${copiedLineItemsCount}, Stock Items: ${copiedStockItemsCount}`);
+      console.log(`[Extension v2.2] ✅ Extension complete! Invoice: ${invoiceNumber}, Line Items: ${copiedLineItemsCount}, Stock Items: ${copiedStockItemsCount}`);
       
       onOpenChange(false);
       onSuccess(newContract.id);
