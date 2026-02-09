@@ -66,6 +66,15 @@ function calculateDurationDays(startDate: string, endDate: string): number {
   }
 }
 
+// Calculate effective price per unit from line items (auto-calculate when not set)
+function calculateEffectivePricePerUnit(lineItems: LineItem[]): number {
+  const totalQuantity = lineItems.reduce((sum, item) => sum + item.quantity, 0);
+  if (totalQuantity === 0) return 0;
+  const totalDailyValue = lineItems.reduce((sum, item) => 
+    sum + (item.quantity * item.unit_price_per_day), 0);
+  return totalDailyValue / totalQuantity;
+}
+
 // Calculate total sets for all items (converting pcs to sets if needed)
 function calculateTotalSets(lineItems: LineItem[], priceMode: 'pcs' | 'set'): number {
   return lineItems.reduce((sum, item) => {
@@ -268,14 +277,17 @@ export function generateRincianTemplateNormal(data: TemplateData): string {
   const groups = data.groups || [];
   const hasGroups = groups.length > 0;
   
-  if (hasGroups || (pricePerUnit && pricePerUnit > 0)) {
+  // Auto-calculate price per unit if not provided
+  const effectivePricePerUnit = pricePerUnit || calculateEffectivePricePerUnit(lineItems);
+  
+  if (hasGroups || effectivePricePerUnit > 0) {
     const calc = calculateUnifiedTotal(data);
     const unitLabel = priceMode === 'set' ? 'set' : 'pcs';
     
-    // Use group's price if available, otherwise use pricePerUnit
+    // Use group's price if available, otherwise use effectivePricePerUnit
     const displayPricePerDay = hasGroups && groups[0] 
       ? groups[0].billing_unit_price_per_day 
-      : calc.pricePerDay;
+      : effectivePricePerUnit;
     
     lines.push(`Per ${unitLabel} per hari = ${formatRupiah(displayPricePerDay)}`);
     
@@ -386,14 +398,17 @@ export function generateRincianTemplateWhatsApp(data: TemplateData): string {
   const groups = data.groups || [];
   const hasGroups = groups.length > 0;
   
-  if (hasGroups || (pricePerUnit && pricePerUnit > 0)) {
+  // Auto-calculate price per unit if not provided
+  const effectivePricePerUnit = pricePerUnit || calculateEffectivePricePerUnit(lineItems);
+  
+  if (hasGroups || effectivePricePerUnit > 0) {
     const calc = calculateUnifiedTotal(data);
     const unitLabel = priceMode === 'set' ? 'set' : 'pcs';
     
-    // Use group's price if available, otherwise use pricePerUnit
+    // Use group's price if available, otherwise use effectivePricePerUnit
     const displayPricePerDay = hasGroups && groups[0] 
       ? groups[0].billing_unit_price_per_day 
-      : calc.pricePerDay;
+      : effectivePricePerUnit;
     
     lines.push(`Per ${unitLabel} per hari = ${formatRupiah(displayPricePerDay)}`);
     
