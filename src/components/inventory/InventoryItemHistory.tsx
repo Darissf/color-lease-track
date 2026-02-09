@@ -50,6 +50,8 @@ interface MovementRecord {
   quantity: number;
   contract_invoice: string | null;
   notes: string | null;
+  period_start: string | null;
+  period_end: string | null;
 }
 
 export function InventoryItemHistory({
@@ -115,7 +117,7 @@ export function InventoryItemHistory({
 
       setContracts(contractRecords);
 
-      // Fetch movements
+      // Fetch movements with period data
       const { data: movementData, error: movementError } = await supabase
         .from("inventory_movements")
         .select(`
@@ -124,6 +126,8 @@ export function InventoryItemHistory({
           movement_type,
           quantity,
           notes,
+          period_start,
+          period_end,
           contract_id,
           rental_contracts (
             invoice
@@ -142,6 +146,8 @@ export function InventoryItemHistory({
         quantity: m.quantity,
         contract_invoice: m.rental_contracts?.invoice || null,
         notes: m.notes,
+        period_start: m.period_start || null,
+        period_end: m.period_end || null,
       }));
 
       setMovements(movementRecords);

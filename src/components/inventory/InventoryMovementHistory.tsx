@@ -86,6 +86,8 @@ export function InventoryMovementHistory({ itemId }: InventoryMovementHistoryPro
         return <Truck className="h-4 w-4 text-blue-500" />;
       case "return":
         return <PackageCheck className="h-4 w-4 text-green-500" />;
+      case "extension":
+        return <RefreshCw className="h-4 w-4 text-purple-500" />;
       case "adjustment":
         return <RefreshCw className="h-4 w-4 text-orange-500" />;
       default:
@@ -99,6 +101,7 @@ export function InventoryMovementHistory({ itemId }: InventoryMovementHistoryPro
       out: "Keluar",
       rental: "Sewa",
       return: "Kembali",
+      extension: "Perpanjangan",
       adjustment: "Penyesuaian",
     };
     return labels[type] || type;
@@ -110,6 +113,7 @@ export function InventoryMovementHistory({ itemId }: InventoryMovementHistoryPro
       out: "destructive",
       rental: "secondary",
       return: "default",
+      extension: "secondary",
       adjustment: "outline",
     };
     return variants[type] || "outline";

@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,8 @@ import {
   ArrowUpCircle, 
   RefreshCw, 
   Settings, 
-  Package 
+  Package,
+  Repeat 
 } from "lucide-react";
 
 interface MovementRecord {
@@ -17,6 +18,8 @@ interface MovementRecord {
   quantity: number;
   contract_invoice: string | null;
   notes: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
 }
 
 interface ItemMovementTimelineProps {
@@ -70,6 +73,14 @@ export function ItemMovementTimeline({ movements, loading }: ItemMovementTimelin
           bg: "bg-emerald-500/10",
           sign: "+",
         };
+      case "extension":
+        return {
+          icon: Repeat,
+          label: "Diperpanjang",
+          color: "text-purple-500",
+          bg: "bg-purple-500/10",
+          sign: "→",
+        };
       case "adjustment":
         return {
           icon: Settings,
@@ -97,6 +108,19 @@ export function ItemMovementTimeline({ movements, loading }: ItemMovementTimelin
     }
   };
 
+  const getPeriodDisplay = (movement: MovementRecord) => {
+    if (!movement.period_start || !movement.period_end) return null;
+    
+    const start = new Date(movement.period_start);
+    const end = new Date(movement.period_end);
+    const days = differenceInDays(end, start) + 1;
+    
+    return {
+      text: `${format(start, 'd MMM', { locale: localeId })} - ${format(end, 'd MMM yyyy', { locale: localeId })}`,
+      days,
+    };
+  };
+
   return (
     <div className="relative">
       {/* Timeline line */}
@@ -106,6 +130,7 @@ export function ItemMovementTimeline({ movements, loading }: ItemMovementTimelin
         {movements.map((movement, index) => {
           const config = getMovementConfig(movement.movement_type);
           const Icon = config.icon;
+          const period = getPeriodDisplay(movement);
 
           return (
             <div key={movement.id} className="relative flex gap-4">
@@ -120,9 +145,11 @@ export function ItemMovementTimeline({ movements, loading }: ItemMovementTimelin
                   <Badge variant="outline" className={config.color}>
                     {config.label}
                   </Badge>
-                  <span className="text-sm font-bold">
-                    {config.sign}{movement.quantity} unit
-                  </span>
+                  {movement.movement_type !== 'extension' && (
+                    <span className="text-sm font-bold">
+                      {config.sign}{movement.quantity} unit
+                    </span>
+                  )}
                   {movement.contract_invoice && (
                     <Badge variant="secondary" className="font-mono text-xs">
                       {movement.contract_invoice}
@@ -135,6 +162,15 @@ export function ItemMovementTimeline({ movements, loading }: ItemMovementTimelin
                     locale: localeId,
                   })}
                 </p>
+
+                {/* Period display for extension movements */}
+                {period && (
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <Badge variant="outline" className="text-xs bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
+                      📅 {period.text} ({period.days} hari)
+                    </Badge>
+                  </div>
+                )}
 
                 {movement.notes && (
                   <p className="text-sm text-muted-foreground mt-1 bg-muted/50 px-2 py-1 rounded">

@@ -1755,11 +1755,13 @@ export type Database = {
           added_at: string | null
           contract_id: string
           created_at: string | null
+          extended_to_contract_id: string | null
           id: string
           inventory_item_id: string
           notes: string | null
           quantity: number
           returned_at: string | null
+          source_stock_item_id: string | null
           unit_mode: string | null
           user_id: string
         }
@@ -1767,11 +1769,13 @@ export type Database = {
           added_at?: string | null
           contract_id: string
           created_at?: string | null
+          extended_to_contract_id?: string | null
           id?: string
           inventory_item_id: string
           notes?: string | null
           quantity?: number
           returned_at?: string | null
+          source_stock_item_id?: string | null
           unit_mode?: string | null
           user_id: string
         }
@@ -1779,11 +1783,13 @@ export type Database = {
           added_at?: string | null
           contract_id?: string
           created_at?: string | null
+          extended_to_contract_id?: string | null
           id?: string
           inventory_item_id?: string
           notes?: string | null
           quantity?: number
           returned_at?: string | null
+          source_stock_item_id?: string | null
           unit_mode?: string | null
           user_id?: string
         }
@@ -1796,10 +1802,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contract_stock_items_extended_to_contract_id_fkey"
+            columns: ["extended_to_contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contract_stock_items_inventory_item_id_fkey"
             columns: ["inventory_item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_stock_items_source_stock_item_id_fkey"
+            columns: ["source_stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "contract_stock_items"
             referencedColumns: ["id"]
           },
         ]
@@ -3596,6 +3616,8 @@ export type Database = {
           movement_date: string
           movement_type: string
           notes: string | null
+          period_end: string | null
+          period_start: string | null
           quantity: number
           user_id: string
         }
@@ -3607,6 +3629,8 @@ export type Database = {
           movement_date?: string
           movement_type: string
           notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
           quantity: number
           user_id: string
         }
@@ -3618,6 +3642,8 @@ export type Database = {
           movement_date?: string
           movement_type?: string
           notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
           quantity?: number
           user_id?: string
         }

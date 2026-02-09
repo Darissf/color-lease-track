@@ -375,54 +375,82 @@ export function ExtendContractDialog({
         }
       }
 
-      // 6. Copy stock items if selected - TANPA filter returned_at
-      // Karena perpanjangan = barang masih di lokasi client
+      // 6. Copy stock items if selected - WITH STOCK TRANSFER LOGIC
+      // Transfer stok ke invoice baru dan buat extension movement untuk tracking
       if (copyStockItems && newContract) {
-        console.log(`[Extension v2.1] Starting to copy stock items from contract ${contract.id}...`);
+        console.log(`[Extension v3.0] Starting stock transfer from contract ${contract.id} to ${newContract.id}...`);
         
         const { data: stockItems, error: stockFetchError } = await supabase
           .from('contract_stock_items')
-          .select('*')
+          .select(`
+            *,
+            inventory_items (
+              item_name,
+              item_code
+            )
+          `)
           .eq('contract_id', contract.id);
-          // Tidak filter returned_at - copy semua items untuk perpanjangan
 
         if (stockFetchError) {
-          console.error('[Extension v2.1] Error fetching stock items:', stockFetchError);
+          console.error('[Extension v3.0] Error fetching stock items:', stockFetchError);
           throw new Error(`Gagal mengambil data stok: ${stockFetchError.message}`);
         }
 
-        console.log(`[Extension v2.1] Found ${stockItems?.length || 0} stock items to copy`);
+        console.log(`[Extension v3.0] Found ${stockItems?.length || 0} stock items to transfer`);
 
         if (stockItems && stockItems.length > 0) {
-          const newStockItems = stockItems.map(item => {
-            const mappedItem = {
-              user_id: user.id,
-              contract_id: newContract.id,
-              inventory_item_id: item.inventory_item_id,
-              quantity: item.quantity,
-              unit_mode: item.unit_mode || 'pcs',
-              // Marker khusus: barang ini dari perpanjangan, tidak mengurangi gudang
-              notes: `Lanjutan dari ${contract.invoice}`,
-              added_at: format(startDate, "yyyy-MM-dd"),
-            };
-            console.log(`[Extension v2.1] Mapping stock item: inventory_id=${item.inventory_item_id}, qty=${item.quantity}`);
-            return mappedItem;
-          });
+          // Insert new stock items with source reference
+          for (const item of stockItems) {
+            const { data: insertedItem, error: insertError } = await supabase
+              .from('contract_stock_items')
+              .insert({
+                user_id: user.id,
+                contract_id: newContract.id,
+                inventory_item_id: item.inventory_item_id,
+                quantity: item.quantity,
+                unit_mode: item.unit_mode || 'pcs',
+                notes: `Lanjutan dari ${contract.invoice}`,
+                added_at: format(startDate, "yyyy-MM-dd"),
+                source_stock_item_id: item.id,  // Reference to parent stock
+              })
+              .select('id')
+              .single();
 
-          console.log(`[Extension v2.1] Inserting ${newStockItems.length} stock items...`);
-          // Insert tanpa membuat inventory_movement karena barang sudah di lokasi client
-          const { data: insertedStockItems, error: stockError } = await supabase
-            .from('contract_stock_items')
-            .insert(newStockItems)
-            .select();
-            
-          if (stockError) {
-            console.error('[Extension v2.1] Error copying stock items:', stockError);
-            throw new Error(`Gagal copy rincian stok barang: ${stockError.message}`);
+            if (insertError) {
+              console.error('[Extension v3.0] Error inserting stock item:', insertError);
+              throw new Error(`Gagal transfer stok: ${insertError.message}`);
+            }
+
+            // Update parent stock item with reference to new contract
+            await supabase
+              .from('contract_stock_items')
+              .update({
+                extended_to_contract_id: newContract.id,
+              })
+              .eq('id', item.id);
+
+            // Create extension movement for period tracking
+            const itemName = (item as any).inventory_items?.item_name || 'Unknown';
+            const periodNotes = `Diperpanjang: ${contract.invoice} (${format(new Date(contract.start_date), 'dd MMM', { locale: localeId })}-${format(new Date(contract.end_date), 'dd MMM', { locale: localeId })}) → ${invoiceNumber} (${format(startDate, 'dd MMM', { locale: localeId })}-${format(endDate, 'dd MMM', { locale: localeId })})`;
+
+            await supabase
+              .from('inventory_movements')
+              .insert({
+                user_id: user.id,
+                inventory_item_id: item.inventory_item_id,
+                contract_id: newContract.id,
+                movement_type: 'extension',
+                quantity: item.quantity,
+                notes: periodNotes,
+                period_start: format(startDate, "yyyy-MM-dd"),
+                period_end: format(endDate, "yyyy-MM-dd"),
+              });
+
+            copiedStockItemsCount++;
+            console.log(`[Extension v3.0] ✅ Transferred: ${itemName} (${item.quantity} pcs)`);
           }
 
-          copiedStockItemsCount = insertedStockItems?.length || 0;
-          console.log(`[Extension v2.1] ✅ Successfully copied ${copiedStockItemsCount} stock items`);
+          console.log(`[Extension v3.0] ✅ Successfully transferred ${copiedStockItemsCount} stock items with extension movements`);
         }
       }
 
