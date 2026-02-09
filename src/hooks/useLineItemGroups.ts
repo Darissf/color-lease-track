@@ -162,6 +162,9 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
       const updated = [...prev];
       if (field === 'billing_unit_mode') {
         updated[groupIndex] = { ...updated[groupIndex], [field]: value as 'pcs' | 'set' };
+      } else if (field === 'billing_quantity' || field === 'billing_duration_days') {
+        // Integer fields - round to prevent database errors
+        updated[groupIndex] = { ...updated[groupIndex], [field]: Math.round(Number(value)) };
       } else {
         updated[groupIndex] = { ...updated[groupIndex], [field]: Number(value) };
       }
@@ -211,9 +214,9 @@ export function useLineItemGroups(contractId: string, userId: string | undefined
             user_id: userId,
             contract_id: contractId,
             group_name: group.group_name,
-            billing_quantity: group.billing_quantity,
+            billing_quantity: Math.round(group.billing_quantity),
             billing_unit_price_per_day: group.billing_unit_price_per_day,
-            billing_duration_days: group.billing_duration_days,
+            billing_duration_days: Math.round(group.billing_duration_days),
             billing_unit_mode: group.billing_unit_mode,
             sort_order: insertedGroupIndex,
           })
