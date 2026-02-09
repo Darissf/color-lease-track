@@ -256,19 +256,33 @@ export function ExtendContractDialog({
         .update(updateData)
         .eq('id', contract.id);
 
+      // Track what was copied for toast message
+      let copiedLineItemsCount = 0;
+      let copiedStockItemsCount = 0;
+
       // 5. Copy line items if selected
       if (copyLineItems && newContract) {
+        console.log(`[Extension] Starting to copy line items from contract ${contract.id}...`);
+        
         // Copy line item groups first
-        const { data: groups } = await supabase
+        console.log(`[Extension] Fetching line item groups...`);
+        const { data: groups, error: groupsFetchError } = await supabase
           .from('contract_line_item_groups')
           .select('*')
           .eq('contract_id', contract.id);
+
+        if (groupsFetchError) {
+          console.error('[Extension] Error fetching groups:', groupsFetchError);
+          throw new Error(`Gagal mengambil data groups: ${groupsFetchError.message}`);
+        }
+
+        console.log(`[Extension] Found ${groups?.length || 0} groups to copy`);
 
         const groupIdMap: Record<string, string> = {};
 
         if (groups && groups.length > 0) {
           for (const group of groups) {
-            const { data: newGroup } = await supabase
+            const { data: newGroup, error: groupInsertError } = await supabase
               .from('contract_line_item_groups')
               .insert({
                 user_id: user.id,
@@ -283,83 +297,133 @@ export function ExtendContractDialog({
               .select('id')
               .single();
 
+            if (groupInsertError) {
+              console.error('[Extension] Error inserting group:', groupInsertError);
+              throw new Error(`Gagal copy group: ${groupInsertError.message}`);
+            }
+
             if (newGroup) {
               groupIdMap[group.id] = newGroup.id;
+              console.log(`[Extension] Copied group ${group.group_name || group.id} -> ${newGroup.id}`);
             }
           }
         }
 
         // Copy line items
-        const { data: lineItems } = await supabase
+        console.log(`[Extension] Fetching line items...`);
+        const { data: lineItems, error: lineItemsFetchError } = await supabase
           .from('contract_line_items')
           .select('*')
           .eq('contract_id', contract.id);
 
-        if (lineItems && lineItems.length > 0) {
-          const newLineItems = lineItems.map(item => ({
-            user_id: user.id,
-            contract_id: newContract.id,
-            item_name: item.item_name,
-            quantity: item.quantity,
-            unit_price_per_day: item.unit_price_per_day,
-            duration_days: item.duration_days,
-            // subtotal is a generated column - do not include
-            unit_mode: item.unit_mode,
-            pcs_per_set: item.pcs_per_set,
-            inventory_item_id: item.inventory_item_id,
-            group_id: item.group_id ? groupIdMap[item.group_id] : null,
-            sort_order: item.sort_order,
-          }));
+        if (lineItemsFetchError) {
+          console.error('[Extension] Error fetching line items:', lineItemsFetchError);
+          throw new Error(`Gagal mengambil data line items: ${lineItemsFetchError.message}`);
+        }
 
-          const { error: lineItemsError } = await supabase
+        console.log(`[Extension] Found ${lineItems?.length || 0} line items to copy`);
+
+        if (lineItems && lineItems.length > 0) {
+          const newLineItems = lineItems.map(item => {
+            const mappedItem = {
+              user_id: user.id,
+              contract_id: newContract.id,
+              item_name: item.item_name,
+              quantity: item.quantity,
+              unit_price_per_day: item.unit_price_per_day,
+              duration_days: item.duration_days,
+              // subtotal is a generated column - do not include
+              unit_mode: item.unit_mode || 'pcs',
+              pcs_per_set: item.pcs_per_set || 1,
+              inventory_item_id: item.inventory_item_id || null,
+              group_id: item.group_id ? groupIdMap[item.group_id] : null,
+              sort_order: item.sort_order || 0,
+            };
+            console.log(`[Extension] Mapping line item: ${item.item_name}`);
+            return mappedItem;
+          });
+
+          console.log(`[Extension] Inserting ${newLineItems.length} line items...`);
+          const { data: insertedLineItems, error: lineItemsError } = await supabase
             .from('contract_line_items')
-            .insert(newLineItems);
+            .insert(newLineItems)
+            .select();
             
           if (lineItemsError) {
-            console.error('Error copying line items:', lineItemsError);
+            console.error('[Extension] Error copying line items:', lineItemsError);
             throw new Error(`Gagal copy rincian item sewa: ${lineItemsError.message}`);
           }
+
+          copiedLineItemsCount = insertedLineItems?.length || 0;
+          console.log(`[Extension] ✅ Successfully copied ${copiedLineItemsCount} line items`);
         }
       }
 
       // 6. Copy stock items if selected - TANPA filter returned_at
       // Karena perpanjangan = barang masih di lokasi client
       if (copyStockItems && newContract) {
-        const { data: stockItems } = await supabase
+        console.log(`[Extension] Starting to copy stock items from contract ${contract.id}...`);
+        
+        const { data: stockItems, error: stockFetchError } = await supabase
           .from('contract_stock_items')
           .select('*')
           .eq('contract_id', contract.id);
           // Tidak filter returned_at - copy semua items untuk perpanjangan
 
-        if (stockItems && stockItems.length > 0) {
-          const newStockItems = stockItems.map(item => ({
-            user_id: user.id,
-            contract_id: newContract.id,
-            inventory_item_id: item.inventory_item_id,
-            quantity: item.quantity,
-            unit_mode: item.unit_mode,
-            // Marker khusus: barang ini dari perpanjangan, tidak mengurangi gudang
-            notes: `Lanjutan dari ${contract.invoice}`,
-            added_at: format(startDate, "yyyy-MM-dd"),
-          }));
+        if (stockFetchError) {
+          console.error('[Extension] Error fetching stock items:', stockFetchError);
+          throw new Error(`Gagal mengambil data stok: ${stockFetchError.message}`);
+        }
 
+        console.log(`[Extension] Found ${stockItems?.length || 0} stock items to copy`);
+
+        if (stockItems && stockItems.length > 0) {
+          const newStockItems = stockItems.map(item => {
+            const mappedItem = {
+              user_id: user.id,
+              contract_id: newContract.id,
+              inventory_item_id: item.inventory_item_id,
+              quantity: item.quantity,
+              unit_mode: item.unit_mode || 'pcs',
+              // Marker khusus: barang ini dari perpanjangan, tidak mengurangi gudang
+              notes: `Lanjutan dari ${contract.invoice}`,
+              added_at: format(startDate, "yyyy-MM-dd"),
+            };
+            console.log(`[Extension] Mapping stock item: inventory_id=${item.inventory_item_id}, qty=${item.quantity}`);
+            return mappedItem;
+          });
+
+          console.log(`[Extension] Inserting ${newStockItems.length} stock items...`);
           // Insert tanpa membuat inventory_movement karena barang sudah di lokasi client
-          const { error: stockError } = await supabase
+          const { data: insertedStockItems, error: stockError } = await supabase
             .from('contract_stock_items')
-            .insert(newStockItems);
+            .insert(newStockItems)
+            .select();
             
           if (stockError) {
-            console.error('Error copying stock items:', stockError);
+            console.error('[Extension] Error copying stock items:', stockError);
             throw new Error(`Gagal copy rincian stok barang: ${stockError.message}`);
           }
+
+          copiedStockItemsCount = insertedStockItems?.length || 0;
+          console.log(`[Extension] ✅ Successfully copied ${copiedStockItemsCount} stock items`);
         }
       }
 
-      toast.success(`Kontrak berhasil diperpanjang dengan invoice ${invoiceNumber}`);
+      // Success toast with copy counts
+      const copyInfo = [];
+      if (copiedLineItemsCount > 0) copyInfo.push(`${copiedLineItemsCount} rincian item`);
+      if (copiedStockItemsCount > 0) copyInfo.push(`${copiedStockItemsCount} stok`);
+      
+      const copyMessage = copyInfo.length > 0 ? `. ${copyInfo.join(' dan ')} tercopy.` : '';
+      toast.success(`Kontrak berhasil diperpanjang dengan invoice ${invoiceNumber}${copyMessage}`);
+      
+      console.log(`[Extension] ✅ Extension complete! Invoice: ${invoiceNumber}, Line Items: ${copiedLineItemsCount}, Stock Items: ${copiedStockItemsCount}`);
+      
       onOpenChange(false);
       onSuccess(newContract.id);
     } catch (error: any) {
-      console.error("Error extending contract:", error);
+      console.error("[Extension] ❌ Error extending contract:", error);
       toast.error("Gagal memperpanjang kontrak: " + error.message);
     } finally {
       setIsLoading(false);
