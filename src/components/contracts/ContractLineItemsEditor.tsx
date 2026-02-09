@@ -683,7 +683,7 @@ export function ContractLineItemsEditor({
                       <Label className="text-xs">Jumlah</Label>
                       <Input
                         type="number"
-                        step="1"
+                        step="0.5"
                         value={group.billing_quantity}
                         onChange={(e) => updateGroupBilling(groupIndex, 'billing_quantity', e.target.value)}
                         min={1}
