@@ -99,14 +99,12 @@ export function FlexibleDurationClosingDialog({
     setIsLoading(true);
     try {
       // 1. Update line items with actual duration
+      // Note: subtotal is a generated column, no need to update it manually
       for (const item of lineItems) {
-        const newSubtotal = item.quantity * Number(item.unit_price_per_day) * actualDays;
-        
         await supabase
           .from('contract_line_items')
           .update({
             duration_days: actualDays,
-            subtotal: newSubtotal,
             updated_at: new Date().toISOString(),
           })
           .eq('id', item.id);
