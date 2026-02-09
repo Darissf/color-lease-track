@@ -1,187 +1,177 @@
 
 
-## Perbaikan Copy Data pada Perpanjangan Kontrak
+## Investigasi Mendalam & Perbaikan Definitif Copy Data Perpanjangan
 
-### Masalah yang Ditemukan
+### Hasil Investigasi
 
-Berdasarkan investigasi database, ditemukan 2 masalah utama:
+Berdasarkan pengecekan database:
 
-#### 1. Error Insert Line Items: `subtotal` adalah Generated Column
-Database log menunjukkan error:
-```
-cannot insert a non-DEFAULT value into column "subtotal"
-```
+| Item | Kontrak 000284 (Parent) | Kontrak 000301 (Extension) |
+|------|-------------------------|---------------------------|
+| Line Items | 7 | **0** ❌ |
+| Stock Items | 7 | **0** ❌ |
+| Groups | 1 | **1** ✅ |
 
-Kolom `subtotal` adalah computed/generated column dengan formula:
-```sql
-(quantity * unit_price_per_day * duration_days)
-```
+**Temuan Kritis:**
+- Group **BERHASIL** tercopy (1 → 1)
+- Line items dan Stock items **GAGAL** tercopy (7 → 0)
 
-Kode saat ini mencoba insert nilai `subtotal` secara manual (baris 307), yang menyebabkan insert gagal.
+Ini mengindikasikan bahwa:
+1. Kode untuk copy groups berjalan
+2. Kode untuk copy line items dan stock items **TIDAK berjalan** atau **GAGAL SILENT**
 
-#### 2. Stock Items Tidak Tercopy: Filter `returned_at` Terlalu Ketat
-Semua 7 stock items di kontrak 000284 sudah ditandai `returned_at`:
-```
-returned_at: 2026-02-09 00:55:31
-```
+### Root Cause Analysis
 
-Padahal perpanjangan dibuat setelahnya:
-```
-000301 created: 2026-02-09 01:06:04
-```
+Setelah memeriksa kode terbaru, ditemukan:
 
-Filter `.is('returned_at', null)` mengexclude semua items!
+1. **Kode sudah benar** - `subtotal` sudah dihapus dari mapping
+2. **Error handling sudah ada** - throw error jika insert gagal
 
-**Logika seharusnya**: Untuk perpanjangan, copy SEMUA stock items dari parent (tidak peduli status returned), karena:
-- Jika client mau perpanjang, berarti barang masih di lokasi client
-- Status `returned_at` di parent hanya menandai kontrak lama selesai
+**Kemungkinan penyebab:**
+- Perubahan kode **BELUM ter-deploy** saat user membuat perpanjangan
+- Atau ada issue lain yang tidak terlihat
 
-### Solusi
+### Solusi: Perbaikan Definitif dengan Logging Lengkap
 
-#### 1. Hapus `subtotal` dari Insert Line Items
-```typescript
-// SEBELUM (error)
-const newLineItems = lineItems.map(item => ({
-  ...
-  subtotal: item.subtotal,  // ❌ Generated column
-  ...
-}));
+Untuk memastikan tidak ada lagi kegagalan silent, saya akan menambahkan:
 
-// SESUDAH (benar)
-const newLineItems = lineItems.map(item => ({
-  ...
-  // subtotal dihapus - akan dihitung otomatis
-  ...
-}));
-```
-
-#### 2. Hapus Filter `returned_at` untuk Stock Items
-```typescript
-// SEBELUM (terlalu ketat)
-.is('returned_at', null); // Exclude returned items
-
-// SESUDAH (copy semua)
-// Tidak perlu filter returned_at
-// Karena perpanjangan = barang tetap di lokasi client
-```
-
-#### 3. Tambah Error Handling untuk Semua Insert
-
-```typescript
-// Insert dengan error handling
-const { error: lineItemsError } = await supabase
-  .from('contract_line_items')
-  .insert(newLineItems);
-
-if (lineItemsError) {
-  console.error('Error copying line items:', lineItemsError);
-  throw new Error('Gagal copy rincian item sewa');
-}
-```
+1. **Logging yang lebih detail** di setiap langkah
+2. **Error handling yang lebih comprehensive**
+3. **Validasi data sebelum insert**
 
 ### Perubahan Kode
 
 #### File: `src/components/contracts/ExtendContractDialog.tsx`
 
-**1. Baris 300-318: Hapus `subtotal` dan tambah error handling untuk line items**
+**1. Tambah logging di setiap langkah copy**
 
 ```tsx
 // Copy line items
-const { data: lineItems } = await supabase
+console.log(`[Extension] Copying line items from ${contract.id}...`);
+const { data: lineItems, error: lineItemsFetchError } = await supabase
   .from('contract_line_items')
   .select('*')
   .eq('contract_id', contract.id);
 
-if (lineItems && lineItems.length > 0) {
-  const newLineItems = lineItems.map(item => ({
+if (lineItemsFetchError) {
+  console.error('[Extension] Error fetching line items:', lineItemsFetchError);
+  throw new Error(`Gagal mengambil data line items: ${lineItemsFetchError.message}`);
+}
+
+console.log(`[Extension] Found ${lineItems?.length || 0} line items to copy`);
+```
+
+**2. Pastikan tidak ada field undefined yang terkirim**
+
+```tsx
+const newLineItems = lineItems.map(item => {
+  const mappedItem = {
     user_id: user.id,
     contract_id: newContract.id,
     item_name: item.item_name,
     quantity: item.quantity,
     unit_price_per_day: item.unit_price_per_day,
     duration_days: item.duration_days,
-    // subtotal DIHAPUS - generated column
-    unit_mode: item.unit_mode,
-    pcs_per_set: item.pcs_per_set,
-    inventory_item_id: item.inventory_item_id,
+    unit_mode: item.unit_mode || 'pcs',
+    pcs_per_set: item.pcs_per_set || 1,
+    inventory_item_id: item.inventory_item_id || null,
     group_id: item.group_id ? groupIdMap[item.group_id] : null,
-    sort_order: item.sort_order,
-  }));
-
-  const { error: lineItemsError } = await supabase
-    .from('contract_line_items')
-    .insert(newLineItems);
-    
-  if (lineItemsError) {
-    console.error('Error copying line items:', lineItemsError);
-    throw new Error(`Gagal copy rincian item sewa: ${lineItemsError.message}`);
-  }
-}
+    sort_order: item.sort_order || 0,
+  };
+  console.log(`[Extension] Mapping line item: ${item.item_name}`);
+  return mappedItem;
+});
 ```
 
-**2. Baris 322-345: Hapus filter returned_at dan tambah error handling untuk stock items**
+**3. Logging setelah insert berhasil**
 
 ```tsx
-// Copy stock items - TANPA filter returned_at
-// Karena perpanjangan = barang masih di lokasi client
-if (copyStockItems && newContract) {
-  const { data: stockItems } = await supabase
-    .from('contract_stock_items')
-    .select('*')
-    .eq('contract_id', contract.id);
-    // HAPUS: .is('returned_at', null)
+const { data: insertedLineItems, error: lineItemsError } = await supabase
+  .from('contract_line_items')
+  .insert(newLineItems)
+  .select(); // Tambahkan .select() untuk mendapatkan data yang diinsert
 
-  if (stockItems && stockItems.length > 0) {
-    const newStockItems = stockItems.map(item => ({
-      user_id: user.id,
-      contract_id: newContract.id,
-      inventory_item_id: item.inventory_item_id,
-      quantity: item.quantity,
-      unit_mode: item.unit_mode,
-      notes: `Lanjutan dari ${contract.invoice}`,
-      added_at: format(startDate, "yyyy-MM-dd"),
-      // returned_at: null (default) - barang belum dikembalikan di kontrak baru
-    }));
-
-    const { error: stockError } = await supabase
-      .from('contract_stock_items')
-      .insert(newStockItems);
-      
-    if (stockError) {
-      console.error('Error copying stock items:', stockError);
-      throw new Error(`Gagal copy rincian stok barang: ${stockError.message}`);
-    }
-  }
+if (lineItemsError) {
+  console.error('[Extension] Error copying line items:', lineItemsError);
+  throw new Error(`Gagal copy rincian item sewa: ${lineItemsError.message}`);
 }
+
+console.log(`[Extension] Successfully copied ${insertedLineItems?.length || 0} line items`);
 ```
 
-**3. Update fetch count untuk tidak filter returned_at**
+**4. Sama untuk stock items**
 
 ```tsx
-// Baris 101-106
-const { count: stockCount } = await supabase
+console.log(`[Extension] Copying stock items from ${contract.id}...`);
+const { data: stockItems, error: stockFetchError } = await supabase
   .from('contract_stock_items')
-  .select('*', { count: 'exact', head: true })
+  .select('*')
   .eq('contract_id', contract.id);
-  // HAPUS: .is('returned_at', null)
+
+if (stockFetchError) {
+  console.error('[Extension] Error fetching stock items:', stockFetchError);
+  throw new Error(`Gagal mengambil data stok: ${stockFetchError.message}`);
+}
+
+console.log(`[Extension] Found ${stockItems?.length || 0} stock items to copy`);
+
+// ... insert ...
+
+const { data: insertedStockItems, error: stockError } = await supabase
+  .from('contract_stock_items')
+  .insert(newStockItems)
+  .select();
+
+if (stockError) {
+  console.error('[Extension] Error copying stock items:', stockError);
+  throw new Error(`Gagal copy rincian stok barang: ${stockError.message}`);
+}
+
+console.log(`[Extension] Successfully copied ${insertedStockItems?.length || 0} stock items`);
+```
+
+**5. Toast notifikasi dengan jumlah item tercopy**
+
+```tsx
+toast.success(
+  `Kontrak berhasil diperpanjang dengan invoice ${invoiceNumber}. ` +
+  `${insertedLineItems?.length || 0} rincian item dan ${insertedStockItems?.length || 0} stok tercopy.`
+);
 ```
 
 ### Ringkasan Perubahan
 
-| File | Perubahan |
-|------|-----------|
-| `ExtendContractDialog.tsx` | 1. Hapus `subtotal` dari insert line items (generated column)<br>2. Hapus filter `.is('returned_at', null)` dari stock items<br>3. Tambah error handling untuk semua insert operations<br>4. Update count query untuk menghitung semua stock items |
+| Perubahan | Tujuan |
+|-----------|--------|
+| Logging di setiap langkah | Debug visibility jika gagal lagi |
+| Error handling untuk fetch | Tangkap error saat mengambil data asal |
+| Default values untuk nullable fields | Hindari undefined/null yang bisa menyebabkan error |
+| `.select()` setelah insert | Konfirmasi data berhasil diinsert |
+| Toast dengan jumlah item | User bisa langsung tahu berapa yang tercopy |
 
 ### Expected Result
 
-Setelah perbaikan, saat perpanjangan kontrak:
+Setelah perbaikan:
 
 ```text
-Kontrak 000284 (7 line items, 7 stock items, 1 group)
-       ↓ PERPANJANGAN
-Kontrak 000301 (7 line items, 7 stock items, 1 group)
-                  ↑
-                  Notes: "Lanjutan dari 000284"
-                  Tidak mengurangi gudang
+Console logs:
+[Extension] Copying line items from b6728b9d-...
+[Extension] Found 7 line items to copy
+[Extension] Mapping line item: Scaffolding 1.7M Galvanis Las
+[Extension] Mapping line item: Scaffolding 1.7M Galvanis
+...
+[Extension] Successfully copied 7 line items
+
+[Extension] Copying stock items from b6728b9d-...
+[Extension] Found 7 stock items to copy
+[Extension] Successfully copied 7 stock items
+
+Toast: "Kontrak berhasil diperpanjang dengan invoice 000302. 7 rincian item dan 7 stok tercopy."
 ```
+
+### File yang Diubah
+
+| File | Perubahan |
+|------|-----------|
+| `ExtendContractDialog.tsx` | 1. Tambah comprehensive logging<br>2. Error handling untuk fetch operations<br>3. Default values untuk nullable fields<br>4. `.select()` untuk konfirmasi insert<br>5. Toast dengan informasi jumlah item tercopy |
 
