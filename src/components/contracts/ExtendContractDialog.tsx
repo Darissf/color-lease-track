@@ -66,6 +66,10 @@ export function ExtendContractDialog({
     padding: number;
   } | null>(null);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("");
+  
+  // Preview counts for UI
+  const [lineItemCount, setLineItemCount] = useState<number>(0);
+  const [stockItemCount, setStockItemCount] = useState<number>(0);
 
   // Initialize dates when dialog opens
   useEffect(() => {
@@ -80,8 +84,30 @@ export function ExtendContractDialog({
       
       // Fetch auto invoice settings
       fetchAutoInvoiceSettings();
+      // Fetch item counts for preview
+      fetchItemCounts();
     }
   }, [open, contract]);
+
+  const fetchItemCounts = async () => {
+    if (!contract) return;
+    
+    // Count line items
+    const { count: lineCount } = await supabase
+      .from('contract_line_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('contract_id', contract.id);
+    
+    // Count stock items (only not returned)
+    const { count: stockCount } = await supabase
+      .from('contract_stock_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('contract_id', contract.id)
+      .is('returned_at', null);
+    
+    setLineItemCount(lineCount || 0);
+    setStockItemCount(stockCount || 0);
+  };
 
   const fetchAutoInvoiceSettings = async () => {
     if (!user) return;
@@ -292,7 +318,7 @@ export function ExtendContractDialog({
         }
       }
 
-      // 6. Copy stock items if selected
+      // 6. Copy stock items if selected - DENGAN marker khusus untuk perpanjangan
       if (copyStockItems && newContract) {
         const { data: stockItems } = await supabase
           .from('contract_stock_items')
@@ -307,10 +333,12 @@ export function ExtendContractDialog({
             inventory_item_id: item.inventory_item_id,
             quantity: item.quantity,
             unit_mode: item.unit_mode,
-            notes: item.notes,
+            // Marker khusus: barang ini dari perpanjangan, tidak mengurangi gudang
+            notes: `Lanjutan dari ${contract.invoice}`,
             added_at: format(startDate, "yyyy-MM-dd"),
           }));
 
+          // Insert tanpa membuat inventory_movement karena barang sudah di lokasi client
           await supabase
             .from('contract_stock_items')
             .insert(newStockItems);
@@ -502,9 +530,31 @@ export function ExtendContractDialog({
 
           <Separator />
 
-          {/* Copy options */}
+          {/* Copy options with preview counts */}
           <div className="space-y-3">
-            <p className="text-sm font-medium">Opsi Copy Data</p>
+            <p className="text-sm font-medium">Copy Data ke Kontrak Baru</p>
+            
+            {/* Preview info */}
+            {(lineItemCount > 0 || stockItemCount > 0) && (
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm">
+                <p className="font-medium text-blue-800 dark:text-blue-200 mb-2">Data yang tersedia untuk dicopy:</p>
+                <ul className="space-y-1 text-blue-700 dark:text-blue-300">
+                  {lineItemCount > 0 && (
+                    <li className="flex items-center gap-2">
+                      <span>📋 Rincian Item Sewa:</span>
+                      <Badge variant="secondary">{lineItemCount} item</Badge>
+                    </li>
+                  )}
+                  {stockItemCount > 0 && (
+                    <li className="flex items-center gap-2">
+                      <span>📦 Rincian Stok Barang:</span>
+                      <Badge variant="secondary">{stockItemCount} item</Badge>
+                      <span className="text-xs text-blue-600 dark:text-blue-400">(tidak mengurangi gudang)</span>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
             
             <div className="flex items-center gap-2">
               <Checkbox
@@ -512,8 +562,9 @@ export function ExtendContractDialog({
                 checked={copyLineItems}
                 onCheckedChange={(checked) => setCopyLineItems(checked === true)}
               />
-              <Label htmlFor="copy-line-items" className="cursor-pointer">
+              <Label htmlFor="copy-line-items" className="cursor-pointer flex items-center gap-2">
                 Copy Rincian Item Sewa (Line Items)
+                {lineItemCount > 0 && <Badge variant="outline" className="text-xs">{lineItemCount}</Badge>}
               </Label>
             </div>
             
@@ -523,10 +574,17 @@ export function ExtendContractDialog({
                 checked={copyStockItems}
                 onCheckedChange={(checked) => setCopyStockItems(checked === true)}
               />
-              <Label htmlFor="copy-stock-items" className="cursor-pointer">
+              <Label htmlFor="copy-stock-items" className="cursor-pointer flex items-center gap-2">
                 Copy Rincian Stok Barang
+                {stockItemCount > 0 && <Badge variant="outline" className="text-xs">{stockItemCount}</Badge>}
               </Label>
             </div>
+            
+            {stockItemCount > 0 && copyStockItems && (
+              <p className="text-xs text-muted-foreground pl-6">
+                ℹ️ Stok barang akan dicopy tanpa mengurangi gudang karena barang sudah di lokasi client
+              </p>
+            )}
           </div>
         </div>
 
