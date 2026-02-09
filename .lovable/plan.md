@@ -1,78 +1,135 @@
 
 
-## Perbaikan Fitur Perpanjangan Kontrak: Copy Data & Skip Gudang
+## Perbaikan Copy Data pada Perpanjangan Kontrak
 
 ### Masalah yang Ditemukan
 
-#### 1. Line Items & Stock Items Tidak Tercopy
-Berdasarkan data database:
-- **INV-000284** (kontrak asal): 7 line items + 1 group, 0 stock items
-- **INV-000301** (perpanjangan): 0 line items, 0 stock items
+Berdasarkan investigasi database, ditemukan 2 masalah utama:
 
-Meskipun checkbox default-nya ON (`copyLineItems: true` dan `copyStockItems: true`), data tidak tercopy. Kemungkinan checkbox tidak dicentang saat user membuat perpanjangan.
-
-#### 2. Stock Items Perpanjangan Tidak Boleh Kurangi Gudang
-Logika saat ini:
-```text
-Kontrak Asal (000284) → Barang diambil dari gudang → Movement: rental -10 pcs
-                         ↓
-Perpanjangan (000301) → Copy stock items → TIDAK boleh kurangi gudang lagi
-                         (barang masih di lokasi client)
+#### 1. Error Insert Line Items: `subtotal` adalah Generated Column
+Database log menunjukkan error:
+```
+cannot insert a non-DEFAULT value into column "subtotal"
 ```
 
-Masalah: Editor stok saat ini akan membuat movement baru saat user save, karena sistem melihat items sebagai "baru" (tidak ada movement history).
+Kolom `subtotal` adalah computed/generated column dengan formula:
+```sql
+(quantity * unit_price_per_day * duration_days)
+```
+
+Kode saat ini mencoba insert nilai `subtotal` secara manual (baris 307), yang menyebabkan insert gagal.
+
+#### 2. Stock Items Tidak Tercopy: Filter `returned_at` Terlalu Ketat
+Semua 7 stock items di kontrak 000284 sudah ditandai `returned_at`:
+```
+returned_at: 2026-02-09 00:55:31
+```
+
+Padahal perpanjangan dibuat setelahnya:
+```
+000301 created: 2026-02-09 01:06:04
+```
+
+Filter `.is('returned_at', null)` mengexclude semua items!
+
+**Logika seharusnya**: Untuk perpanjangan, copy SEMUA stock items dari parent (tidak peduli status returned), karena:
+- Jika client mau perpanjang, berarti barang masih di lokasi client
+- Status `returned_at` di parent hanya menandai kontrak lama selesai
 
 ### Solusi
 
-#### 1. Force Copy Data saat Perpanjangan
-Ubah default menjadi **checked dan tidak bisa diubah** untuk memastikan data selalu tercopy:
+#### 1. Hapus `subtotal` dari Insert Line Items
+```typescript
+// SEBELUM (error)
+const newLineItems = lineItems.map(item => ({
+  ...
+  subtotal: item.subtotal,  // ❌ Generated column
+  ...
+}));
 
-```tsx
-// Di ExtendContractDialog.tsx
-const [copyLineItems, setCopyLineItems] = useState(true); // sudah default true
-const [copyStockItems, setCopyStockItems] = useState(true); // sudah default true
-
-// Opsi: Sembunyikan checkbox dan jadikan otomatis
+// SESUDAH (benar)
+const newLineItems = lineItems.map(item => ({
+  ...
+  // subtotal dihapus - akan dihitung otomatis
+  ...
+}));
 ```
 
-Atau tampilkan sebagai informasi saja, bukan sebagai pilihan.
+#### 2. Hapus Filter `returned_at` untuk Stock Items
+```typescript
+// SEBELUM (terlalu ketat)
+.is('returned_at', null); // Exclude returned items
 
-#### 2. Tandai Stock Items dari Perpanjangan
-Tambahkan kolom `is_from_extension` atau manfaatkan field yang ada untuk menandai bahwa stock item ini berasal dari kontrak sebelumnya sehingga tidak perlu mengurangi gudang.
-
-**Pendekatan yang direkomendasikan**: Gunakan kolom `notes` untuk menandai bahwa item ini dari perpanjangan:
-
-```sql
--- Saat copy stock items ke perpanjangan
-INSERT INTO contract_stock_items (
-  ..., 
-  notes: 'Lanjutan dari [INVOICE_ASAL] - tidak mengurangi gudang'
-)
+// SESUDAH (copy semua)
+// Tidak perlu filter returned_at
+// Karena perpanjangan = barang tetap di lokasi client
 ```
 
-#### 3. Skip Movement untuk Items dari Perpanjangan
-Di `ContractStockItemsEditor`, saat save, jangan buat movement jika item sudah ada di database (bukan item baru):
+#### 3. Tambah Error Handling untuk Semua Insert
 
-```tsx
-// Di handleSave()
-// Saat ini: membuat movement untuk SEMUA item baru
-// Perbaikan: hanya buat movement jika item BENAR-BENAR baru 
-//            (bukan dari copy perpanjangan)
+```typescript
+// Insert dengan error handling
+const { error: lineItemsError } = await supabase
+  .from('contract_line_items')
+  .insert(newLineItems);
+
+if (lineItemsError) {
+  console.error('Error copying line items:', lineItemsError);
+  throw new Error('Gagal copy rincian item sewa');
+}
 ```
 
 ### Perubahan Kode
 
-#### File 1: `src/components/contracts/ExtendContractDialog.tsx`
+#### File: `src/components/contracts/ExtendContractDialog.tsx`
 
-**A. Copy stock items DENGAN marker khusus:**
+**1. Baris 300-318: Hapus `subtotal` dan tambah error handling untuk line items**
+
 ```tsx
-// Baris ~295-317: Copy stock items
+// Copy line items
+const { data: lineItems } = await supabase
+  .from('contract_line_items')
+  .select('*')
+  .eq('contract_id', contract.id);
+
+if (lineItems && lineItems.length > 0) {
+  const newLineItems = lineItems.map(item => ({
+    user_id: user.id,
+    contract_id: newContract.id,
+    item_name: item.item_name,
+    quantity: item.quantity,
+    unit_price_per_day: item.unit_price_per_day,
+    duration_days: item.duration_days,
+    // subtotal DIHAPUS - generated column
+    unit_mode: item.unit_mode,
+    pcs_per_set: item.pcs_per_set,
+    inventory_item_id: item.inventory_item_id,
+    group_id: item.group_id ? groupIdMap[item.group_id] : null,
+    sort_order: item.sort_order,
+  }));
+
+  const { error: lineItemsError } = await supabase
+    .from('contract_line_items')
+    .insert(newLineItems);
+    
+  if (lineItemsError) {
+    console.error('Error copying line items:', lineItemsError);
+    throw new Error(`Gagal copy rincian item sewa: ${lineItemsError.message}`);
+  }
+}
+```
+
+**2. Baris 322-345: Hapus filter returned_at dan tambah error handling untuk stock items**
+
+```tsx
+// Copy stock items - TANPA filter returned_at
+// Karena perpanjangan = barang masih di lokasi client
 if (copyStockItems && newContract) {
   const { data: stockItems } = await supabase
     .from('contract_stock_items')
     .select('*')
-    .eq('contract_id', contract.id)
-    .is('returned_at', null);
+    .eq('contract_id', contract.id);
+    // HAPUS: .is('returned_at', null)
 
   if (stockItems && stockItems.length > 0) {
     const newStockItems = stockItems.map(item => ({
@@ -81,114 +138,50 @@ if (copyStockItems && newContract) {
       inventory_item_id: item.inventory_item_id,
       quantity: item.quantity,
       unit_mode: item.unit_mode,
-      notes: `Lanjutan dari ${contract.invoice}`, // ← MARKER
+      notes: `Lanjutan dari ${contract.invoice}`,
       added_at: format(startDate, "yyyy-MM-dd"),
-      // TIDAK membuat inventory_movement di sini
-      // karena barang sudah keluar dari gudang di kontrak asal
+      // returned_at: null (default) - barang belum dikembalikan di kontrak baru
     }));
 
-    await supabase
+    const { error: stockError } = await supabase
       .from('contract_stock_items')
       .insert(newStockItems);
+      
+    if (stockError) {
+      console.error('Error copying stock items:', stockError);
+      throw new Error(`Gagal copy rincian stok barang: ${stockError.message}`);
+    }
   }
 }
 ```
 
-**B. Jadikan opsi copy sebagai default tanpa opsi uncheck:**
-
-Alternatif: Tampilkan sebagai info saja bukan checkbox:
-```tsx
-<div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
-  <p className="font-medium">Data yang akan dicopy:</p>
-  <ul className="mt-1 list-disc list-inside">
-    <li>Rincian Item Sewa (Line Items) - {lineItemCount} item</li>
-    <li>Rincian Stok Barang - {stockItemCount} item (tidak mengurangi gudang)</li>
-  </ul>
-</div>
-```
-
-#### File 2: `src/components/contracts/ContractStockItemsEditor.tsx`
-
-**Modifikasi handleSave untuk tidak membuat movement pada items yang sudah ada dari awal (sudah punya ID):**
+**3. Update fetch count untuk tidak filter returned_at**
 
 ```tsx
-// Di handleSave(), baris ~281-306
-// itemsToAdd hanya untuk items yang BENAR-BENAR baru ditambahkan oleh user
-// bukan items yang sudah ada dari database (hasil copy perpanjangan)
-
-for (const item of itemsToAdd) {
-  // Cek apakah item ini dari perpanjangan (ada notes yang mengindikasikan)
-  const isFromExtension = item.notes?.includes('Lanjutan dari');
-  
-  const { data: inserted } = await supabase
-    .from('contract_stock_items')
-    .insert({
-      user_id: user.id,
-      contract_id: contractId,
-      inventory_item_id: item.inventory_item_id,
-      quantity: item.quantity,
-      unit_mode: item.unit_mode,
-      notes: item.notes,
-    })
-    .select()
-    .single();
-  
-  // HANYA buat movement jika BUKAN dari perpanjangan
-  if (inserted && !isFromExtension) {
-    await supabase.from('inventory_movements').insert({
-      user_id: user.id,
-      inventory_item_id: item.inventory_item_id,
-      contract_id: contractId,
-      movement_type: 'rental',
-      quantity: item.quantity,
-      notes: 'Stok disewa - ditambahkan ke kontrak'
-    });
-  }
-}
-```
-
-Tapi masalah: items yang di-copy sudah masuk database dengan ID, jadi tidak masuk `itemsToAdd`. 
-
-**Solusi lebih baik**: Saat copy di perpanjangan, langsung handle dengan benar (tidak buat movement sama sekali karena barang sudah keluar). Editor tidak perlu diubah.
-
-### Pendekatan Final
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ PERPANJANGAN KONTRAK                                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ Copy Stock Items:                                               │
-│ ✓ Salin data dari contract_stock_items asal                     │
-│ ✓ Tambahkan notes "Lanjutan dari [INVOICE]"                     │
-│ ✓ JANGAN buat inventory_movement (barang sudah di lokasi)       │
-│                                                                 │
-│ Copy Line Items:                                                │
-│ ✓ Salin data dari contract_line_items asal                      │
-│ ✓ Salin data dari contract_line_item_groups asal                │
-│ ✓ Mapping group_id ke group baru                                │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│ UI:                                                             │
-│ - Tampilkan info "Data akan dicopy otomatis"                    │
-│ - Tambahkan counter berapa item yang akan dicopy                │
-│ - Tetap berikan opsi toggle jika user tidak mau copy            │
-└─────────────────────────────────────────────────────────────────┘
+// Baris 101-106
+const { count: stockCount } = await supabase
+  .from('contract_stock_items')
+  .select('*', { count: 'exact', head: true })
+  .eq('contract_id', contract.id);
+  // HAPUS: .is('returned_at', null)
 ```
 
 ### Ringkasan Perubahan
 
 | File | Perubahan |
 |------|-----------|
-| `ExtendContractDialog.tsx` | 1. Tambah marker notes pada stock items yang dicopy<br>2. Fetch count item sebelum copy untuk ditampilkan di UI<br>3. Tidak membuat inventory_movement saat copy |
-| `ContractStockItemsEditor.tsx` | Tidak perlu diubah - items yang sudah ada di database (dari copy) tidak akan dianggap "baru" |
+| `ExtendContractDialog.tsx` | 1. Hapus `subtotal` dari insert line items (generated column)<br>2. Hapus filter `.is('returned_at', null)` dari stock items<br>3. Tambah error handling untuk semua insert operations<br>4. Update count query untuk menghitung semua stock items |
 
-### Catatan Penting
+### Expected Result
 
-Kode saat ini sebenarnya sudah **tidak membuat movement** saat copy perpanjangan - hanya insert ke `contract_stock_items`. Masalahnya mungkin di saat perpanjangan dibuat, user tidak mencentang opsi copy.
+Setelah perbaikan, saat perpanjangan kontrak:
 
-Perbaikan utama:
-1. **Default checkbox tetap ON** dan beri penjelasan yang jelas
-2. **Tampilkan preview** berapa item yang akan dicopy
-3. **Tambahkan notes** pada stock items bahwa ini lanjutan dari kontrak sebelumnya
+```text
+Kontrak 000284 (7 line items, 7 stock items, 1 group)
+       ↓ PERPANJANGAN
+Kontrak 000301 (7 line items, 7 stock items, 1 group)
+                  ↑
+                  Notes: "Lanjutan dari 000284"
+                  Tidak mengurangi gudang
+```
 
