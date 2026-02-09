@@ -98,12 +98,11 @@ export function ExtendContractDialog({
       .select('*', { count: 'exact', head: true })
       .eq('contract_id', contract.id);
     
-    // Count stock items (only not returned)
+    // Count stock items (all items, including returned - for extension)
     const { count: stockCount } = await supabase
       .from('contract_stock_items')
       .select('*', { count: 'exact', head: true })
-      .eq('contract_id', contract.id)
-      .is('returned_at', null);
+      .eq('contract_id', contract.id);
     
     setLineItemCount(lineCount || 0);
     setStockItemCount(stockCount || 0);
@@ -304,7 +303,7 @@ export function ExtendContractDialog({
             quantity: item.quantity,
             unit_price_per_day: item.unit_price_per_day,
             duration_days: item.duration_days,
-            subtotal: item.subtotal,
+            // subtotal is a generated column - do not include
             unit_mode: item.unit_mode,
             pcs_per_set: item.pcs_per_set,
             inventory_item_id: item.inventory_item_id,
@@ -312,19 +311,25 @@ export function ExtendContractDialog({
             sort_order: item.sort_order,
           }));
 
-          await supabase
+          const { error: lineItemsError } = await supabase
             .from('contract_line_items')
             .insert(newLineItems);
+            
+          if (lineItemsError) {
+            console.error('Error copying line items:', lineItemsError);
+            throw new Error(`Gagal copy rincian item sewa: ${lineItemsError.message}`);
+          }
         }
       }
 
-      // 6. Copy stock items if selected - DENGAN marker khusus untuk perpanjangan
+      // 6. Copy stock items if selected - TANPA filter returned_at
+      // Karena perpanjangan = barang masih di lokasi client
       if (copyStockItems && newContract) {
         const { data: stockItems } = await supabase
           .from('contract_stock_items')
           .select('*')
-          .eq('contract_id', contract.id)
-          .is('returned_at', null); // Only copy items that haven't been returned
+          .eq('contract_id', contract.id);
+          // Tidak filter returned_at - copy semua items untuk perpanjangan
 
         if (stockItems && stockItems.length > 0) {
           const newStockItems = stockItems.map(item => ({
@@ -339,9 +344,14 @@ export function ExtendContractDialog({
           }));
 
           // Insert tanpa membuat inventory_movement karena barang sudah di lokasi client
-          await supabase
+          const { error: stockError } = await supabase
             .from('contract_stock_items')
             .insert(newStockItems);
+            
+          if (stockError) {
+            console.error('Error copying stock items:', stockError);
+            throw new Error(`Gagal copy rincian stok barang: ${stockError.message}`);
+          }
         }
       }
 
