@@ -262,21 +262,22 @@ export function ExtendContractDialog({
 
       // 5. Copy line items if selected
       if (copyLineItems && newContract) {
-        console.log(`[Extension] Starting to copy line items from contract ${contract.id}...`);
+        console.log(`[Extension v2.1] Starting to copy line items from contract ${contract.id}...`);
+        console.log(`[Extension v2.1] BUILD: 2026-02-09T02:20:00Z - subtotal excluded`);
         
         // Copy line item groups first
-        console.log(`[Extension] Fetching line item groups...`);
+        console.log(`[Extension v2.1] Fetching line item groups...`);
         const { data: groups, error: groupsFetchError } = await supabase
           .from('contract_line_item_groups')
           .select('*')
           .eq('contract_id', contract.id);
 
         if (groupsFetchError) {
-          console.error('[Extension] Error fetching groups:', groupsFetchError);
+          console.error('[Extension v2.1] Error fetching groups:', groupsFetchError);
           throw new Error(`Gagal mengambil data groups: ${groupsFetchError.message}`);
         }
 
-        console.log(`[Extension] Found ${groups?.length || 0} groups to copy`);
+        console.log(`[Extension v2.1] Found ${groups?.length || 0} groups to copy`);
 
         const groupIdMap: Record<string, string> = {};
 
@@ -298,30 +299,30 @@ export function ExtendContractDialog({
               .single();
 
             if (groupInsertError) {
-              console.error('[Extension] Error inserting group:', groupInsertError);
+              console.error('[Extension v2.1] Error inserting group:', groupInsertError);
               throw new Error(`Gagal copy group: ${groupInsertError.message}`);
             }
 
             if (newGroup) {
               groupIdMap[group.id] = newGroup.id;
-              console.log(`[Extension] Copied group ${group.group_name || group.id} -> ${newGroup.id}`);
+              console.log(`[Extension v2.1] Copied group ${group.group_name || group.id} -> ${newGroup.id}`);
             }
           }
         }
 
         // Copy line items
-        console.log(`[Extension] Fetching line items...`);
+        console.log(`[Extension v2.1] Fetching line items...`);
         const { data: lineItems, error: lineItemsFetchError } = await supabase
           .from('contract_line_items')
           .select('*')
           .eq('contract_id', contract.id);
 
         if (lineItemsFetchError) {
-          console.error('[Extension] Error fetching line items:', lineItemsFetchError);
+          console.error('[Extension v2.1] Error fetching line items:', lineItemsFetchError);
           throw new Error(`Gagal mengambil data line items: ${lineItemsFetchError.message}`);
         }
 
-        console.log(`[Extension] Found ${lineItems?.length || 0} line items to copy`);
+        console.log(`[Extension v2.1] Found ${lineItems?.length || 0} line items to copy`);
 
         if (lineItems && lineItems.length > 0) {
           const newLineItems = lineItems.map(item => {
@@ -339,30 +340,30 @@ export function ExtendContractDialog({
               group_id: item.group_id ? groupIdMap[item.group_id] : null,
               sort_order: item.sort_order || 0,
             };
-            console.log(`[Extension] Mapping line item: ${item.item_name}`);
+            console.log(`[Extension v2.1] Mapping line item: ${item.item_name}`);
             return mappedItem;
           });
 
-          console.log(`[Extension] Inserting ${newLineItems.length} line items...`);
+          console.log(`[Extension v2.1] Inserting ${newLineItems.length} line items...`);
           const { data: insertedLineItems, error: lineItemsError } = await supabase
             .from('contract_line_items')
             .insert(newLineItems)
             .select();
             
           if (lineItemsError) {
-            console.error('[Extension] Error copying line items:', lineItemsError);
+            console.error('[Extension v2.1] Error copying line items:', lineItemsError);
             throw new Error(`Gagal copy rincian item sewa: ${lineItemsError.message}`);
           }
 
           copiedLineItemsCount = insertedLineItems?.length || 0;
-          console.log(`[Extension] ✅ Successfully copied ${copiedLineItemsCount} line items`);
+          console.log(`[Extension v2.1] ✅ Successfully copied ${copiedLineItemsCount} line items`);
         }
       }
 
       // 6. Copy stock items if selected - TANPA filter returned_at
       // Karena perpanjangan = barang masih di lokasi client
       if (copyStockItems && newContract) {
-        console.log(`[Extension] Starting to copy stock items from contract ${contract.id}...`);
+        console.log(`[Extension v2.1] Starting to copy stock items from contract ${contract.id}...`);
         
         const { data: stockItems, error: stockFetchError } = await supabase
           .from('contract_stock_items')
@@ -371,11 +372,11 @@ export function ExtendContractDialog({
           // Tidak filter returned_at - copy semua items untuk perpanjangan
 
         if (stockFetchError) {
-          console.error('[Extension] Error fetching stock items:', stockFetchError);
+          console.error('[Extension v2.1] Error fetching stock items:', stockFetchError);
           throw new Error(`Gagal mengambil data stok: ${stockFetchError.message}`);
         }
 
-        console.log(`[Extension] Found ${stockItems?.length || 0} stock items to copy`);
+        console.log(`[Extension v2.1] Found ${stockItems?.length || 0} stock items to copy`);
 
         if (stockItems && stockItems.length > 0) {
           const newStockItems = stockItems.map(item => {
@@ -389,11 +390,11 @@ export function ExtendContractDialog({
               notes: `Lanjutan dari ${contract.invoice}`,
               added_at: format(startDate, "yyyy-MM-dd"),
             };
-            console.log(`[Extension] Mapping stock item: inventory_id=${item.inventory_item_id}, qty=${item.quantity}`);
+            console.log(`[Extension v2.1] Mapping stock item: inventory_id=${item.inventory_item_id}, qty=${item.quantity}`);
             return mappedItem;
           });
 
-          console.log(`[Extension] Inserting ${newStockItems.length} stock items...`);
+          console.log(`[Extension v2.1] Inserting ${newStockItems.length} stock items...`);
           // Insert tanpa membuat inventory_movement karena barang sudah di lokasi client
           const { data: insertedStockItems, error: stockError } = await supabase
             .from('contract_stock_items')
@@ -401,12 +402,12 @@ export function ExtendContractDialog({
             .select();
             
           if (stockError) {
-            console.error('[Extension] Error copying stock items:', stockError);
+            console.error('[Extension v2.1] Error copying stock items:', stockError);
             throw new Error(`Gagal copy rincian stok barang: ${stockError.message}`);
           }
 
           copiedStockItemsCount = insertedStockItems?.length || 0;
-          console.log(`[Extension] ✅ Successfully copied ${copiedStockItemsCount} stock items`);
+          console.log(`[Extension v2.1] ✅ Successfully copied ${copiedStockItemsCount} stock items`);
         }
       }
 
@@ -418,12 +419,12 @@ export function ExtendContractDialog({
       const copyMessage = copyInfo.length > 0 ? `. ${copyInfo.join(' dan ')} tercopy.` : '';
       toast.success(`Kontrak berhasil diperpanjang dengan invoice ${invoiceNumber}${copyMessage}`);
       
-      console.log(`[Extension] ✅ Extension complete! Invoice: ${invoiceNumber}, Line Items: ${copiedLineItemsCount}, Stock Items: ${copiedStockItemsCount}`);
+      console.log(`[Extension v2.1] ✅ Extension complete! Invoice: ${invoiceNumber}, Line Items: ${copiedLineItemsCount}, Stock Items: ${copiedStockItemsCount}`);
       
       onOpenChange(false);
       onSuccess(newContract.id);
     } catch (error: any) {
-      console.error("[Extension] ❌ Error extending contract:", error);
+      console.error("[Extension v2.1] ❌ Error extending contract:", error);
       toast.error("Gagal memperpanjang kontrak: " + error.message);
     } finally {
       setIsLoading(false);
