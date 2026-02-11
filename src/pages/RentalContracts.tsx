@@ -111,6 +111,7 @@ const RentalContracts = () => {
     current: number;
     padding: number;
   } | null>(null);
+  const [reusableInvoiceNumber, setReusableInvoiceNumber] = useState<string | null>(null);
   
   // Payment popover states
   const [paymentContractId, setPaymentContractId] = useState<string | null>(null);
@@ -230,8 +231,23 @@ const RentalContracts = () => {
           current: docSettings.auto_invoice_current ?? 0,
           padding: docSettings.auto_invoice_padding ?? 6,
         });
+
+        // Fetch reusable invoice number from deleted pool
+        if (docSettings.auto_invoice_enabled) {
+          const { data: reusable } = await supabase
+            .from("deleted_invoice_numbers")
+            .select("invoice_number")
+            .eq("user_id", user?.id)
+            .order("invoice_sequence", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          setReusableInvoiceNumber(reusable?.invoice_number || null);
+        } else {
+          setReusableInvoiceNumber(null);
+        }
       } else {
         setAutoInvoiceSettings(null);
+        setReusableInvoiceNumber(null);
       }
     } catch (error: any) {
       toast.error("Gagal memuat data: " + error.message);
@@ -390,6 +406,8 @@ const RentalContracts = () => {
           // Update local state
           setAutoInvoiceSettings(prev => prev ? { ...prev, current: newCounter } : null);
         }
+        // Reset reusable number and re-fetch
+        setReusableInvoiceNumber(null);
 
         const { data: newContract } = await supabase
           .from("rental_contracts")
@@ -902,7 +920,7 @@ const RentalContracts = () => {
                   <div className="flex items-center gap-2">
                     <Input
                       type="text"
-                      value={`${autoInvoiceSettings.prefix}${String(autoInvoiceSettings.current + 1).padStart(autoInvoiceSettings.padding, '0')}`}
+                      value={reusableInvoiceNumber || `${autoInvoiceSettings.prefix}${String(autoInvoiceSettings.current + 1).padStart(autoInvoiceSettings.padding, '0')}`}
                       disabled
                       className="bg-muted font-mono"
                     />
