@@ -49,6 +49,7 @@ export function ContractStockItemsEditor({
   const [originalItems, setOriginalItems] = useState<StockItem[]>([]);
   const [contractStatus, setContractStatus] = useState<string | null>(null);
   const [contractReturnDate, setContractReturnDate] = useState<string | null>(null);
+  const [contractStartDate, setContractStartDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -62,13 +63,14 @@ export function ContractStockItemsEditor({
     // Fetch contract status and return date
     const { data: contractData } = await supabase
       .from('rental_contracts')
-      .select('status, tanggal_ambil')
+      .select('status, tanggal_ambil, start_date')
       .eq('id', contractId)
       .single();
 
     if (contractData) {
       setContractStatus(contractData.status);
       setContractReturnDate(contractData.tanggal_ambil);
+      setContractStartDate(contractData.start_date);
     }
 
     // Fetch inventory items with calculated available stock
@@ -282,6 +284,7 @@ export function ContractStockItemsEditor({
           contract_id: contractId,
           movement_type: 'return',
           quantity: item.quantity,
+          movement_date: contractReturnDate || new Date().toISOString(),
           notes: 'Stok dikembalikan - item dihapus dari kontrak'
         });
         
@@ -321,6 +324,7 @@ export function ContractStockItemsEditor({
             contract_id: contractId,
             movement_type: 'rental',
             quantity: item.quantity,
+            movement_date: contractStartDate || new Date().toISOString(),
             notes: 'Stok disewa - ditambahkan ke kontrak'
           });
 
@@ -332,6 +336,7 @@ export function ContractStockItemsEditor({
               contract_id: contractId,
               movement_type: 'return',
               quantity: item.quantity,
+              movement_date: contractReturnDate || new Date().toISOString(),
               notes: 'Stok dikembalikan - kontrak sudah selesai'
             });
           }
@@ -363,6 +368,9 @@ export function ContractStockItemsEditor({
             contract_id: contractId,
             movement_type: qtyDiff > 0 ? 'rental' : 'return',
             quantity: Math.abs(qtyDiff),
+            movement_date: qtyDiff > 0 
+              ? (contractStartDate || new Date().toISOString()) 
+              : (contractReturnDate || new Date().toISOString()),
             notes: qtyDiff > 0 ? 'Penambahan qty sewa' : 'Pengurangan qty sewa'
           });
         }
