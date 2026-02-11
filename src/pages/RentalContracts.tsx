@@ -367,6 +367,7 @@ const RentalContracts = () => {
         tanggal_ambil: contractForm.tanggal_ambil ? format(contractForm.tanggal_ambil, "yyyy-MM-dd") : null,
         tanggal_kirim: format(contractForm.start_date, "yyyy-MM-dd"),
         is_flexible_duration: durationMode === 'flexible',
+        tanggal: format(getNowInJakarta(), "yyyy-MM-dd"),
       };
 
       if (editingContractId) {
