@@ -1,46 +1,48 @@
 
-## Fix: Riwayat Kontrak Kosong di Sidebar Stok Barang
+
+## Fix: Tanggal Movement Harus Sesuai Tanggal Kontrak
 
 ### Masalah
 
-Saat membuka riwayat barang (misalnya Catwalk) di sidebar stok, tab "Riwayat Kontrak" dan "Timeline" selalu kosong padahal data ada di database.
-
-### Penyebab
-
-Tabel `contract_stock_items` memiliki **2 foreign key** ke `rental_contracts`:
-- `contract_id` (FK utama)
-- `extended_to_contract_id` (FK untuk perpanjangan)
-
-Akibatnya, query Supabase `.select('..., rental_contracts(...)')` gagal karena PostgREST tidak bisa menentukan FK mana yang dimaksud (ambiguity error). Query gagal, error ditangkap oleh catch block, dan data tetap kosong.
+Saat stok barang ditambahkan ke kontrak yang sudah "selesai", semua movement (rental & return) menggunakan timestamp saat ini (`now()`) sebagai `movement_date`. Akibatnya:
+- "Stok disewa" tercatat 12 Feb 2026 (padahal harusnya sesuai `start_date` kontrak)
+- "Stok dikembalikan" juga tercatat 12 Feb 2026 (padahal harusnya sesuai `tanggal_ambil`)
 
 ### Solusi
 
-Tambahkan hint FK eksplisit pada query di `InventoryItemHistory.tsx` agar PostgREST tahu FK mana yang digunakan.
+**File: `src/components/contracts/ContractStockItemsEditor.tsx`**
 
-### Detail Teknis
+1. **Fetch juga `start_date` kontrak** - ubah query dari `'status, tanggal_ambil'` menjadi `'status, tanggal_ambil, start_date'` dan simpan di state baru `contractStartDate`.
 
-**File: `src/components/inventory/InventoryItemHistory.tsx`**
-
-Ubah embedded select dari:
-```
-rental_contracts (
-  id, invoice, start_date, end_date, status, lokasi_detail,
-  client_groups ( nama )
-)
-```
-
-Menjadi:
-```
-rental_contracts!contract_stock_items_contract_id_fkey (
-  id, invoice, start_date, end_date, status, lokasi_detail,
-  client_groups ( nama )
-)
+2. **Set `movement_date` pada movement rental** menggunakan `start_date` kontrak (jika tersedia):
+```tsx
+await supabase.from('inventory_movements').insert({
+  ...
+  movement_type: 'rental',
+  movement_date: contractStartDate || new Date().toISOString(),
+  ...
+});
 ```
 
-Ini memberitahu PostgREST untuk menggunakan FK `contract_id` (bukan `extended_to_contract_id`) saat melakukan join.
+3. **Set `movement_date` pada movement return** menggunakan `tanggal_ambil` kontrak:
+```tsx
+await supabase.from('inventory_movements').insert({
+  ...
+  movement_type: 'return',
+  movement_date: contractReturnDate || new Date().toISOString(),
+  ...
+});
+```
+
+### Detail Perubahan
+
+- Tambah state: `contractStartDate`
+- Ubah fetch query: tambah `start_date`
+- Movement "rental": gunakan `contractStartDate` sebagai `movement_date`
+- Movement "return": gunakan `contractReturnDate` sebagai `movement_date`
 
 ### Hasil
 
-- Tab "Riwayat Kontrak" akan menampilkan semua kontrak yang menggunakan barang tersebut
-- Tab "Timeline" akan menampilkan semua pergerakan barang
-- Tidak ada perubahan di bagian lain aplikasi
+- Timeline akan menampilkan tanggal sewa sesuai tanggal mulai kontrak
+- Tanggal pengembalian sesuai tanggal pengambilan yang di-set user
+- Urutan timeline menjadi logis (sewa dulu, baru dikembalikan)
