@@ -47,6 +47,8 @@ export function ContractStockItemsEditor({
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [originalItems, setOriginalItems] = useState<StockItem[]>([]);
+  const [contractStatus, setContractStatus] = useState<string | null>(null);
+  const [contractReturnDate, setContractReturnDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -56,7 +58,19 @@ export function ContractStockItemsEditor({
 
   const fetchData = async () => {
     setLoading(true);
-    
+
+    // Fetch contract status and return date
+    const { data: contractData } = await supabase
+      .from('rental_contracts')
+      .select('status, tanggal_ambil')
+      .eq('id', contractId)
+      .single();
+
+    if (contractData) {
+      setContractStatus(contractData.status);
+      setContractReturnDate(contractData.tanggal_ambil);
+    }
+
     // Fetch inventory items with calculated available stock
     const { data: invData } = await supabase
       .from('inventory_items')
@@ -280,16 +294,22 @@ export function ContractStockItemsEditor({
 
       // Add new items - reduce stock
       for (const item of itemsToAdd) {
-        // Insert the stock item
+        const insertData: any = {
+          user_id: user.id,
+          contract_id: contractId,
+          inventory_item_id: item.inventory_item_id,
+          quantity: item.quantity,
+          unit_mode: item.unit_mode,
+        };
+
+        // If contract is finished, auto-set returned_at
+        if (contractStatus === 'selesai' && contractReturnDate) {
+          insertData.returned_at = contractReturnDate;
+        }
+
         const { data: inserted } = await supabase
           .from('contract_stock_items')
-          .insert({
-            user_id: user.id,
-            contract_id: contractId,
-            inventory_item_id: item.inventory_item_id,
-            quantity: item.quantity, // Always in pcs
-            unit_mode: item.unit_mode,
-          })
+          .insert(insertData)
           .select()
           .single();
         
@@ -303,6 +323,18 @@ export function ContractStockItemsEditor({
             quantity: item.quantity,
             notes: 'Stok disewa - ditambahkan ke kontrak'
           });
+
+          // If contract is finished, also create return movement so stock is restored
+          if (contractStatus === 'selesai' && contractReturnDate) {
+            await supabase.from('inventory_movements').insert({
+              user_id: user.id,
+              inventory_item_id: item.inventory_item_id,
+              contract_id: contractId,
+              movement_type: 'return',
+              quantity: item.quantity,
+              notes: 'Stok dikembalikan - kontrak sudah selesai'
+            });
+          }
         }
       }
 
