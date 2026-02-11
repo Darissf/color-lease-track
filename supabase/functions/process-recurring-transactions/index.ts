@@ -18,15 +18,15 @@ interface RecurringTransaction {
   notes: string | null;
 }
 
-// Jakarta Timezone Helper Functions
-const JAKARTA_OFFSET_HOURS = 7; // UTC+7
+// WITA Timezone Helper Functions (Denpasar/Bali, UTC+8)
+const WITA_OFFSET_HOURS = 8; // UTC+8
 
-const getNowInJakarta = (): Date => {
+const getNowInWITA = (): Date => {
   const now = new Date();
-  return new Date(now.getTime() + (JAKARTA_OFFSET_HOURS * 60 * 60 * 1000));
+  return new Date(now.getTime() + (WITA_OFFSET_HOURS * 60 * 60 * 1000));
 };
 
-const formatJakartaDate = (date: Date): string => {
+const formatWITADate = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
 
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     console.log('Starting recurring transactions processing...');
 
-    const today = formatJakartaDate(getNowInJakarta());
+    const today = formatWITADate(getNowInWITA());
 
     // Fetch all active recurring transactions that are due today
     const { data: recurringTransactions, error: fetchError } = await supabase
@@ -147,23 +147,23 @@ Deno.serve(async (req) => {
 
 function calculateNextExecutionDate(currentDate: string, frequency: string): string {
   const date = new Date(currentDate + 'T00:00:00Z'); // Parse as UTC
-  const JAKARTA_OFFSET_MS = 7 * 60 * 60 * 1000;
-  const jakartaDate = new Date(date.getTime() + JAKARTA_OFFSET_MS);
+  const WITA_OFFSET_MS = 8 * 60 * 60 * 1000;
+  const witaDate = new Date(date.getTime() + WITA_OFFSET_MS);
   
   switch (frequency) {
     case 'daily':
-      jakartaDate.setDate(jakartaDate.getDate() + 1);
+      witaDate.setDate(witaDate.getDate() + 1);
       break;
     case 'weekly':
-      jakartaDate.setDate(jakartaDate.getDate() + 7);
+      witaDate.setDate(witaDate.getDate() + 7);
       break;
     case 'monthly':
-      jakartaDate.setMonth(jakartaDate.getMonth() + 1);
+      witaDate.setMonth(witaDate.getMonth() + 1);
       break;
     case 'yearly':
-      jakartaDate.setFullYear(jakartaDate.getFullYear() + 1);
+      witaDate.setFullYear(witaDate.getFullYear() + 1);
       break;
   }
   
-  return jakartaDate.toISOString().split('T')[0];
+  return witaDate.toISOString().split('T')[0];
 }

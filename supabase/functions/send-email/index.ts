@@ -286,15 +286,15 @@ serve(async (req) => {
       finalHtml = html + signature.signature_html;
     }
 
-    // Jakarta timezone helper
-    const JAKARTA_OFFSET_HOURS = 7;
-    const getNowInJakarta = () => {
+    // WITA timezone helper (Denpasar/Bali, UTC+8)
+    const WITA_OFFSET_HOURS = 8;
+    const getNowInWITA = () => {
       const now = new Date();
-      return new Date(now.getTime() + (JAKARTA_OFFSET_HOURS * 60 * 60 * 1000));
+      return new Date(now.getTime() + (WITA_OFFSET_HOURS * 60 * 60 * 1000));
     };
 
     // Check smart scheduling preferences
-    const now = getNowInJakarta();
+    const now = getNowInWITA();
     const currentHour = now.getHours();
     let scheduledFor = now.toISOString();
 
