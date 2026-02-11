@@ -20,7 +20,7 @@ import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { ColoredStatCard } from "@/components/ColoredStatCard";
 import { GradientButton } from "@/components/GradientButton";
 import BankLogo from "@/components/BankLogo";
-import { format, differenceInDays, differenceInHours, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, addYears } from "date-fns";
+import { format, differenceInDays, differenceInCalendarDays, differenceInHours, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, addYears } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -416,7 +416,7 @@ const RentalContracts = () => {
   const handleEditContract = (contract: RentalContract) => {
     setEditingContractId(contract.id);
     // Hitung durasi dari start_date dan end_date
-    const calculatedDuration = differenceInDays(new Date(contract.end_date), new Date(contract.start_date)) + 1;
+    const calculatedDuration = differenceInCalendarDays(new Date(contract.end_date), new Date(contract.start_date)) + 1;
     setDurationDays(calculatedDuration);
     setDurationMode(contract.is_flexible_duration ? 'flexible' : 'fixed');
     setContractForm({
@@ -506,7 +506,7 @@ const RentalContracts = () => {
     const now = getNowInJakarta();
     const end = new Date(endDate);
     // +1 karena hari ini juga dihitung (inklusif)
-    return differenceInDays(end, now) + 1;
+    return differenceInCalendarDays(end, now) + 1;
   };
 
   // Function to update contract status with optional tanggal_ambil
@@ -1020,7 +1020,7 @@ const RentalContracts = () => {
                           onSelect={(newEndDate) => {
                             if (!newEndDate || !contractForm.start_date) return;
                             // Hitung durasi baru = (endDate - startDate) + 1
-                            const newDuration = differenceInDays(newEndDate, contractForm.start_date) + 1;
+                            const newDuration = differenceInCalendarDays(newEndDate, contractForm.start_date) + 1;
                             if (newDuration > 0) {
                               setEndDateManuallySet(true); // Cegah useEffect menimpa
                               setDurationDays(newDuration);
