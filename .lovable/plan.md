@@ -1,131 +1,93 @@
 
 
-## Rencana: Support Decimal untuk Billing Quantity
+## Rencana: Fix Error Tanggal Selesai pada Durasi Tetap
 
-### Masalah
+### Masalah yang Ditemukan
 
-1. **Kolom `billing_quantity` bertipe INTEGER** - tidak bisa menyimpan nilai desimal (3.5, 14.5)
-2. **Fix sebelumnya (Math.round)** - membulatkan 3.5 menjadi 4, yang bukan yang Anda inginkan
-3. **Template tidak menampilkan format breakdown** - karena `pricePerUnit = 0` dan tidak ada groups yang berhasil disimpan
+Setelah menganalisis kode di `src/pages/RentalContracts.tsx`, ditemukan **race condition** antara Calendar onSelect dan useEffect:
 
-### Perubahan yang Akan Dilakukan
+```
+1. User pilih tanggal selesai di Calendar
+   → onSelect: setDurationDays(newDuration) + setContractForm(end_date: newEndDate)
 
-#### 1. Database Migration - Ubah Tipe Kolom
-
-Mengubah `billing_quantity` dari INTEGER ke NUMERIC untuk mendukung desimal:
-
-```sql
-ALTER TABLE contract_line_item_groups 
-ALTER COLUMN billing_quantity TYPE NUMERIC(10,2);
+2. useEffect LANGSUNG TERPICU karena durationDays berubah
+   → Recalculate: end_date = addDays(start_date, durationDays - 1)
+   → MENIMPA end_date yang baru saja di-set user
 ```
 
-**Catatan**: `billing_duration_days` tetap INTEGER karena durasi hari biasanya bilangan bulat (14 hari, 7 hari). Jika Anda juga butuh desimal untuk durasi, beri tahu saya.
+Ini menyebabkan tanggal selesai "berkedip" atau menampilkan error karena state berubah dua kali secara cepat.
 
-#### 2. Rollback Math.round() di useLineItemGroups.ts
+### Solusi
 
-Menghapus pembulatan yang salah untuk `billing_quantity`:
+Tambahkan flag untuk mencegah useEffect menimpa end_date yang dipilih manual via Calendar.
+
+### Perubahan di `src/pages/RentalContracts.tsx`
+
+#### 1. Tambah ref untuk tracking sumber perubahan
 
 ```tsx
-// SEBELUM (salah):
-if (field === 'billing_quantity' || field === 'billing_duration_days') {
-  updated[groupIndex] = { ...updated[groupIndex], [field]: Math.round(Number(value)) };
-}
-
-// SESUDAH (benar):
-if (field === 'billing_duration_days') {
-  // Hanya durasi yang perlu integer
-  updated[groupIndex] = { ...updated[groupIndex], [field]: Math.round(Number(value)) };
-} else if (field === 'billing_unit_mode') {
-  updated[groupIndex] = { ...updated[groupIndex], [field]: value as 'pcs' | 'set' };
-} else {
-  // billing_quantity dan billing_unit_price_per_day bisa desimal
-  updated[groupIndex] = { ...updated[groupIndex], [field]: Number(value) };
-}
+// Tambah state/ref baru
+const [endDateManuallySet, setEndDateManuallySet] = useState(false);
 ```
 
-Dan di `saveGroups`:
-
-```tsx
-// SEBELUM (salah):
-billing_quantity: Math.round(group.billing_quantity),
-
-// SESUDAH (benar):
-billing_quantity: group.billing_quantity, // Biarkan desimal
-```
-
-#### 3. Update Input Field di ContractLineItemsEditor.tsx
-
-Menghapus `step="1"` dari input quantity agar bisa menerima desimal:
+#### 2. Update useEffect agar skip jika end_date baru saja di-set manual
 
 ```tsx
 // SEBELUM:
-<Input type="number" step="1" value={group.billing_quantity} ... />
+useEffect(() => {
+  if (durationMode === 'fixed' && contractForm.start_date && durationDays > 0) {
+    const calculatedEndDate = addDays(contractForm.start_date, durationDays - 1);
+    setContractForm(prev => ({ ...prev, end_date: calculatedEndDate }));
+  }
+}, [contractForm.start_date, durationDays, durationMode]);
 
 // SESUDAH:
-<Input type="number" step="0.5" value={group.billing_quantity} ... />
+useEffect(() => {
+  if (endDateManuallySet) {
+    setEndDateManuallySet(false);
+    return; // Skip - end_date sudah di-set oleh Calendar onSelect
+  }
+  if (durationMode === 'fixed' && contractForm.start_date && durationDays > 0) {
+    const calculatedEndDate = addDays(contractForm.start_date, durationDays - 1);
+    setContractForm(prev => ({ ...prev, end_date: calculatedEndDate }));
+  }
+}, [contractForm.start_date, durationDays, durationMode]);
 ```
 
-**Catatan**: `step="0.5"` memungkinkan increment 0.5 (3.0, 3.5, 4.0, dst.)
-
-#### 4. Fix Template Generator - Auto-Calculate Price Per Unit
-
-Jika tidak ada groups dan `pricePerUnit` tidak di-set, hitung otomatis dari line items:
+#### 3. Update Calendar onSelect agar set flag
 
 ```tsx
-// Di generateRincianTemplateNormal dan generateRincianTemplateWhatsApp
-// Tambahkan auto-calculate jika tidak ada pricePerUnit
+// SEBELUM:
+onSelect={(newEndDate) => {
+  if (!newEndDate || !contractForm.start_date) return;
+  const newDuration = differenceInDays(newEndDate, contractForm.start_date) + 1;
+  if (newDuration > 0) {
+    setDurationDays(newDuration);
+    setContractForm(prev => ({ ...prev, end_date: newEndDate }));
+  }
+}}
 
-// Hitung rata-rata harga dari line items
-function calculateEffectivePricePerUnit(lineItems: LineItem[]): number {
-  const totalQuantity = lineItems.reduce((sum, item) => sum + item.quantity, 0);
-  if (totalQuantity === 0) return 0;
-  const totalDailyValue = lineItems.reduce((sum, item) => 
-    sum + (item.quantity * item.unit_price_per_day), 0);
-  return totalDailyValue / totalQuantity;
-}
-
-// Update kondisi
-const effectivePricePerUnit = pricePerUnit || calculateEffectivePricePerUnit(lineItems);
-if (hasGroups || effectivePricePerUnit > 0) {
-  // Tampilkan format "Per set per hari = ..."
-}
+// SESUDAH:
+onSelect={(newEndDate) => {
+  if (!newEndDate || !contractForm.start_date) return;
+  const newDuration = differenceInDays(newEndDate, contractForm.start_date) + 1;
+  if (newDuration > 0) {
+    setEndDateManuallySet(true); // Cegah useEffect menimpa
+    setDurationDays(newDuration);
+    setContractForm(prev => ({ ...prev, end_date: newEndDate }));
+  }
+}}
 ```
 
-### File yang Akan Diubah
+### File yang Diubah
 
 | File | Perubahan |
 |------|-----------|
-| **Database Migration** | Ubah `billing_quantity` dari INTEGER ke NUMERIC(10,2) |
-| `src/hooks/useLineItemGroups.ts` | Hapus Math.round() untuk billing_quantity |
-| `src/components/contracts/ContractLineItemsEditor.tsx` | Ubah `step="1"` menjadi `step="0.5"` untuk input quantity |
-| `src/lib/contractTemplateGenerator.ts` | Tambah auto-calculate pricePerUnit dari line items |
+| `src/pages/RentalContracts.tsx` | Tambah flag `endDateManuallySet`, update useEffect dan Calendar onSelect |
 
 ### Hasil Setelah Fix
 
-1. **Input 3.5 set** → Tersimpan dengan benar ke database
-2. **Input 3,5 (koma)** → Browser auto-convert ke 3.5 (titik) untuk tipe number
-3. **Template** → Menampilkan format breakdown "Per set per hari = Rp X.XXX" dengan nilai 3.5 set
-4. **Tidak ada lagi error** "invalid input syntax for type integer"
-
-### Contoh Output Template Setelah Fix
-
-```
-📦 Rincian Sewa Proyek ABC
-----------
-Item Sewa:
-    - 2 Set Scaffolding 1.7M Galvanis
-    - 1 Set Scaffolding 0.9M
-    - 10 Pcs Cross Brace 1.7m
-----------
-Per set per hari = Rp 4.500
-Total : 3.5 set x Rp 4.500 = Rp 15.750
-
-📅 Periode Sewa:
-    Mulai   : 07 Feb 2026
-    Selesai : 20 Feb 2026
-    Durasi  : 14 Hari
-
-Total : Rp 15.750 x 14 hari = Rp 220.500
-----------
-```
+1. Mengubah durasi (hari) → Tanggal selesai otomatis dihitung (seperti biasa)
+2. Memilih tanggal di Calendar → Durasi otomatis dihitung, tanggal TIDAK ditimpa oleh useEffect
+3. Tidak ada lagi error atau "kedip" pada tanggal selesai
 
