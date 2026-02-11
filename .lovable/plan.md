@@ -1,66 +1,115 @@
 
 
-## Fix: Perhitungan Durasi Salah saat Pilih Tanggal Selesai
+## Laporan & Rencana: Migrasi Zona Waktu ke Denpasar/Bali (WITA, UTC+8)
 
-### Penyebab
+### Ringkasan Temuan
 
-Bug timezone pada `differenceInDays`:
-- `start_date` dari database: `new Date("2026-02-11")` = **11 Feb 00:00 UTC** = 11 Feb 07:00 WIB
-- `end_date` dari Calendar: **17 Feb 00:00 WIB** = 16 Feb 17:00 UTC
+Ditemukan **19 file** yang menggunakan zona waktu Jakarta (WIB, UTC+7) dan perlu diubah ke Denpasar/Bali (WITA, UTC+8, `Asia/Makassar`).
 
-`differenceInDays` menghitung selisih timestamp, bukan selisih hari kalender. Hasilnya: `(16 Feb 17:00 - 11 Feb 00:00) / 86400` = 5.7 hari, dibulatkan ke bawah = **5**, lalu +1 = **6** (seharusnya 7).
+---
 
-### Solusi
+### A. File Inti Timezone (1 file)
 
-Ganti `differenceInDays` dengan `differenceInCalendarDays` dari date-fns. Fungsi ini menghitung selisih **hari kalender** tanpa terpengaruh timezone.
+| # | File | Fungsi yang Perlu Diubah |
+|---|------|--------------------------|
+| 1 | `src/lib/timezone.ts` | Ganti `JAKARTA_TIMEZONE = 'Asia/Jakarta'` menjadi `'Asia/Makassar'`. Rename semua fungsi (`getNowInJakarta` -> `getNowInWITA`, dst). Export alias lama agar backward-compatible. |
 
-### Perubahan di `src/pages/RentalContracts.tsx`
+---
 
-#### 1. Update import
+### B. Frontend - Halaman (10 file)
 
-```tsx
-// SEBELUM:
-import { format, differenceInDays, ... } from "date-fns";
+| # | File | Fungsi yang Dipakai |
+|---|------|---------------------|
+| 2 | `src/pages/Dashboard.tsx` | `getNowInJakarta`, `getJakartaYear`, `getJakartaMonth`, `getJakartaDay`, `formatInJakarta` |
+| 3 | `src/pages/RentalContracts.tsx` | `getNowInJakarta` |
+| 4 | `src/pages/TransactionHistory.tsx` | `getNowInJakarta`, `formatInJakarta` |
+| 5 | `src/pages/ExpenseTracker.tsx` | `getNowInJakarta`, `formatInJakarta`, `getJakartaDateString` |
+| 6 | `src/pages/IncomeManagement.tsx` | `getNowInJakarta`, `getJakartaDateString` |
+| 7 | `src/pages/FixedExpenses.tsx` | `getNowInJakarta`, `getJakartaDateString`, `getJakartaMonth`, `getJakartaYear` |
+| 8 | `src/pages/RecurringIncome.tsx` | `getNowInJakarta` |
+| 9 | `src/pages/ContractScaffoldingInput.tsx` | `getNowInJakarta` |
+| 10 | `src/pages/RecurringIncomeScaffoldingInput.tsx` | `getNowInJakarta` |
 
-// SESUDAH:
-import { format, differenceInDays, differenceInCalendarDays, ... } from "date-fns";
+---
+
+### C. Frontend - Komponen (4 file)
+
+| # | File | Fungsi yang Dipakai |
+|---|------|---------------------|
+| 11 | `src/components/fixed-expenses/FixedExpenseCalendar.tsx` | `getNowInJakarta`, `getJakartaDay`, `getJakartaMonth`, `getJakartaYear`, `toJakartaTime` |
+| 12 | `src/components/BankBalanceHistory.tsx` | `formatInJakarta` |
+| 13 | `src/components/SessionManagement.tsx` | `formatInJakarta` |
+| 14 | `src/components/budget/charts/BudgetForecastChart.tsx` | `getJakartaDay`, `toJakartaTime` |
+| 15 | `src/components/budget/charts/DailyTrendChart.tsx` | `toJakartaTime` |
+
+---
+
+### D. Frontend - Utility (1 file)
+
+| # | File | Fungsi yang Dipakai |
+|---|------|---------------------|
+| 16 | `src/utils/budgetCalculations.ts` | `getNowInJakarta`, `getJakartaDay`, `getJakartaMonth`, `getJakartaYear` |
+
+---
+
+### E. Backend - Edge Functions (3 file) - Hardcoded UTC+7
+
+| # | File | Yang Perlu Diubah |
+|---|------|-------------------|
+| 17 | `supabase/functions/process-recurring-rentals/index.ts` | `JAKARTA_OFFSET_HOURS = 7` -> `8`, rename variabel |
+| 18 | `supabase/functions/process-recurring-transactions/index.ts` | `JAKARTA_OFFSET_HOURS = 7` -> `8`, `JAKARTA_OFFSET_MS` -> `8 * 60 * 60 * 1000`, rename variabel |
+| 19 | `supabase/functions/send-email/index.ts` | `JAKARTA_OFFSET_HOURS = 7` -> `8`, rename variabel |
+
+---
+
+### Rencana Perubahan
+
+#### 1. `src/lib/timezone.ts` - Update Inti
+
+```
+SEBELUM: export const JAKARTA_TIMEZONE = 'Asia/Jakarta';
+SESUDAH: export const WITA_TIMEZONE = 'Asia/Makassar';
 ```
 
-#### 2. Fix Calendar onSelect (line 1023)
+Buat fungsi baru dengan nama WITA, lalu export alias nama lama agar semua 15 file frontend tetap berfungsi tanpa error:
 
 ```tsx
-// SEBELUM:
-const newDuration = differenceInDays(newEndDate, contractForm.start_date) + 1;
+// Fungsi utama baru
+export const getNowInWITA = () => toZonedTime(new Date(), WITA_TIMEZONE);
+export const formatInWITA = (date, fmt) => formatInTimeZone(date, WITA_TIMEZONE, fmt, { locale: id });
+// ... dst
 
-// SESUDAH:
-const newDuration = differenceInCalendarDays(newEndDate, contractForm.start_date) + 1;
+// Alias backward-compatible (agar tidak perlu ubah 15 file sekaligus)
+export const getNowInJakarta = getNowInWITA;
+export const formatInJakarta = formatInWITA;
+export const toJakartaTime = toWITATime;
+export const fromJakartaToUTC = fromWITAToUTC;
+export const getJakartaDateString = getWITADateString;
+export const getJakartaDay = getWITADay;
+export const getJakartaMonth = getWITAMonth;
+export const getJakartaYear = getWITAYear;
+export const JAKARTA_TIMEZONE = WITA_TIMEZONE;
 ```
 
-#### 3. Fix handleEditContract (line 419)
+Dengan pendekatan alias ini, **cukup ubah 1 file** (`timezone.ts`) untuk seluruh frontend. Semua 15 file lainnya otomatis menggunakan zona waktu baru tanpa perlu diedit.
 
-```tsx
-// SEBELUM:
-const calculatedDuration = differenceInDays(new Date(contract.end_date), new Date(contract.start_date)) + 1;
+#### 2. Edge Functions (3 file) - Ubah Offset dari 7 ke 8
 
-// SESUDAH:
-const calculatedDuration = differenceInCalendarDays(new Date(contract.end_date), new Date(contract.start_date)) + 1;
+Karena edge functions memiliki helper timezone sendiri (hardcoded), ketiga file ini harus diubah manual:
+
+```
+SEBELUM: const JAKARTA_OFFSET_HOURS = 7; // UTC+7
+SESUDAH: const WITA_OFFSET_HOURS = 8; // UTC+8 (Denpasar/Bali)
 ```
 
-#### 4. Juga fix fungsi getRemainingDays jika ada (line 509)
+Dan rename semua variabel/fungsi terkait di dalamnya.
 
-Ini untuk display "X Hari Lagi" yang juga bisa terpengaruh timezone.
+### Total Perubahan
 
-### Contoh Hasil
-
-| Start Date | End Date | Sebelum (salah) | Sesudah (benar) |
-|-----------|----------|-----------------|-----------------|
-| 11 Feb | 17 Feb | 6 hari | 7 hari |
-| 11 Feb | 11 Feb | 0 atau 1 hari | 1 hari |
-| 1 Feb | 28 Feb | 27 hari | 28 hari |
-
-### File yang Diubah
-
-| File | Perubahan |
-|------|-----------|
-| `src/pages/RentalContracts.tsx` | Ganti `differenceInDays` dengan `differenceInCalendarDays` di 3 tempat |
+| Kategori | Jumlah File | Aksi |
+|----------|-------------|------|
+| File inti timezone | 1 | Edit timezone + tambah alias |
+| Frontend (halaman, komponen, utility) | 15 | Tidak perlu diubah (pakai alias) |
+| Edge Functions | 3 | Edit offset 7 -> 8, rename variabel |
+| **Total** | **19** | **4 file yang perlu diedit** |
 
