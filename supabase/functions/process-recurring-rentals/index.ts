@@ -5,20 +5,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Jakarta Timezone Helper Functions
-const JAKARTA_OFFSET_HOURS = 7; // UTC+7
+// WITA Timezone Helper Functions (Denpasar/Bali, UTC+8)
+const WITA_OFFSET_HOURS = 8; // UTC+8
 
-const getNowInJakarta = (): Date => {
+const getNowInWITA = (): Date => {
   const now = new Date();
-  return new Date(now.getTime() + (JAKARTA_OFFSET_HOURS * 60 * 60 * 1000));
+  return new Date(now.getTime() + (WITA_OFFSET_HOURS * 60 * 60 * 1000));
 };
 
-const toJakartaTime = (dateStr: string): Date => {
+const toWITATime = (dateStr: string): Date => {
   const date = new Date(dateStr);
-  return new Date(date.getTime() + (JAKARTA_OFFSET_HOURS * 60 * 60 * 1000));
+  return new Date(date.getTime() + (WITA_OFFSET_HOURS * 60 * 60 * 1000));
 };
 
-const formatJakartaDate = (date: Date): string => {
+const formatWITADate = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
 
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const today = getNowInJakarta();
+    const today = getNowInWITA();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     const processedIds = [];
 
     for (const contract of unpaidContracts || []) {
-      const contractDate = toJakartaTime(contract.tanggal);
+      const contractDate = toWITATime(contract.tanggal);
       const contractMonth = contractDate.getMonth();
       const contractYear = contractDate.getFullYear();
 
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
           .select('id')
           .eq('user_id', contract.user_id)
           .eq('client_group_id', contract.client_group_id)
-          .eq('tanggal', formatJakartaDate(nextMonthDate))
+          .eq('tanggal', formatWITADate(nextMonthDate))
           .single();
 
         if (!existingContract) {
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
             client_group_id: contract.client_group_id,
             start_date: contract.start_date,
             end_date: contract.end_date,
-            tanggal: formatJakartaDate(nextMonthDate),
+            tanggal: formatWITADate(nextMonthDate),
             tagihan_belum_bayar: contract.tagihan_belum_bayar,
             jumlah_lunas: 0,
             status: 'masa sewa',
