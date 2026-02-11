@@ -126,6 +126,7 @@ const RentalContracts = () => {
   // Duration mode states
   const [durationMode, setDurationMode] = useState<'flexible' | 'fixed'>('fixed');
   const [durationDays, setDurationDays] = useState<number>(30);
+  const [endDateManuallySet, setEndDateManuallySet] = useState(false);
 
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
@@ -142,6 +143,10 @@ const RentalContracts = () => {
 
   // Auto-calculate end_date when start_date or durationDays changes (for fixed mode)
   useEffect(() => {
+    if (endDateManuallySet) {
+      setEndDateManuallySet(false);
+      return; // Skip - end_date sudah di-set oleh Calendar onSelect
+    }
     if (durationMode === 'fixed' && contractForm.start_date && durationDays > 0) {
       // endDate = startDate + (durasi - 1) karena hari pertama sudah dihitung
       const calculatedEndDate = addDays(contractForm.start_date, durationDays - 1);
@@ -1017,6 +1022,7 @@ const RentalContracts = () => {
                             // Hitung durasi baru = (endDate - startDate) + 1
                             const newDuration = differenceInDays(newEndDate, contractForm.start_date) + 1;
                             if (newDuration > 0) {
+                              setEndDateManuallySet(true); // Cegah useEffect menimpa
                               setDurationDays(newDuration);
                               setContractForm(prev => ({ ...prev, end_date: newEndDate }));
                             }
