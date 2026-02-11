@@ -52,10 +52,10 @@ export function ItemContractHistory({ contracts, loading }: ItemContractHistoryP
     );
   }
 
-  const getStatusBadge = (status: string, returnedAt: string | null) => {
+  const getStatusBadge = (status: string, returnedAt: string | null, extendedToInvoice: string | null) => {
     const lowerStatus = status.toLowerCase();
     
-    if (lowerStatus === "perpanjangan") {
+    if (lowerStatus === "perpanjangan" || extendedToInvoice) {
       return <Badge variant="secondary" className="bg-purple-500/10 text-purple-600">Diperpanjang</Badge>;
     }
     if (lowerStatus === "selesai" || returnedAt) {
@@ -85,7 +85,7 @@ export function ItemContractHistory({ contracts, loading }: ItemContractHistoryP
                     <span className="font-mono font-bold text-primary text-sm">
                       {contract.invoice}
                     </span>
-                    {getStatusBadge(contract.status, contract.returned_at)}
+                    {getStatusBadge(contract.status, contract.returned_at, contract.extended_to_invoice)}
                   </div>
 
                   {/* Client */}
