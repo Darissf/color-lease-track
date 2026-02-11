@@ -130,7 +130,7 @@ const RentalContracts = () => {
 
   const [contractForm, setContractForm] = useState({
     client_group_id: "",
-    start_date: undefined as Date | undefined,
+    start_date: getNowInJakarta() as Date | undefined,
     end_date: undefined as Date | undefined,
     status: "masa sewa",
     invoice: "",
@@ -490,7 +490,7 @@ const RentalContracts = () => {
     setDurationDays(30);
     setContractForm({
       client_group_id: "",
-      start_date: undefined,
+      start_date: getNowInJakarta(),
       end_date: undefined,
       status: "masa sewa",
       invoice: "",
