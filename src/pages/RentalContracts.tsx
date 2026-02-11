@@ -1080,7 +1080,40 @@ const RentalContracts = () => {
                       <SelectItem value="berulang">Berulang</SelectItem>
                       <SelectItem value="selesai">Selesai</SelectItem>
                     </SelectContent>
-                  </Select>
+                </Select>
+                </div>
+              )}
+
+              {contractForm.status === "selesai" && (
+                <div className="space-y-2">
+                  <Label>Tanggal Pengambilan</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !contractForm.tanggal_ambil && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {contractForm.tanggal_ambil
+                          ? format(contractForm.tanggal_ambil, "PPP", { locale: localeId })
+                          : "Pilih tanggal pengambilan"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={contractForm.tanggal_ambil}
+                        onSelect={(date) =>
+                          setContractForm({ ...contractForm, tanggal_ambil: date || undefined })
+                        }
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
 
