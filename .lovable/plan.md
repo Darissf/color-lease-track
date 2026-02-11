@@ -1,47 +1,61 @@
 
 
-## Fix: Kolom "Tanggal" di List Kontrak Otomatis Terisi Saat Tambah Kontrak
+## Tampilkan Kalender Tanggal Pengambilan Saat Status "Selesai" Dipilih di Form Tambah Kontrak
 
 ### Masalah
 
-Saat kontrak baru dibuat, kolom **"Tanggal"** di tabel list kontrak selalu kosong (menampilkan "Pilih"). Ini karena field `tanggal` tidak dimasukkan ke data yang disimpan ke database.
-
-Field `tanggal` adalah kolom terpisah dari `start_date` — ini adalah kolom yang tampil di tabel list kontrak.
+Di form tambah/edit kontrak, saat status dipilih "Selesai", field `tanggal_ambil` otomatis diisi `new Date()` tapi **tidak ada kalender** yang muncul untuk memilih tanggal pengambilan. Padahal di fitur unlock table (list kontrak), saat status diubah ke "Selesai" langsung muncul dialog kalender.
 
 ### Solusi
 
-Tambahkan field `tanggal` ke data kontrak saat menyimpan, diisi otomatis dengan tanggal hari ini berdasarkan zona waktu Denpasar/Bali (WITA).
+Tambahkan kalender tanggal pengambilan yang muncul **tepat di bawah dropdown status** ketika status = "selesai" dipilih di form tambah/edit kontrak.
 
 ### Detail Teknis
 
 **File: `src/pages/RentalContracts.tsx`**
 
-Pada objek `baseContractData` (sekitar line 356-370), tambahkan field `tanggal`:
+Setelah penutup `</Select>` dan `</div>` dari field Status (sekitar line 1083-1084), tambahkan blok kondisional:
 
+```tsx
+{contractForm.status === "selesai" && (
+  <div className="space-y-2">
+    <Label>Tanggal Pengambilan</Label>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left font-normal",
+            !contractForm.tanggal_ambil && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {contractForm.tanggal_ambil
+            ? format(contractForm.tanggal_ambil, "PPP", { locale: localeId })
+            : "Pilih tanggal pengambilan"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0">
+        <Calendar
+          mode="single"
+          selected={contractForm.tanggal_ambil}
+          onSelect={(date) =>
+            setContractForm({ ...contractForm, tanggal_ambil: date || undefined })
+          }
+          initialFocus
+          className="pointer-events-auto"
+        />
+      </PopoverContent>
+    </Popover>
+  </div>
+)}
 ```
-SEBELUM:
-const baseContractData = {
-  user_id: user?.id as string,
-  client_group_id: contractForm.client_group_id,
-  start_date: format(contractForm.start_date, "yyyy-MM-dd"),
-  ...
-  is_flexible_duration: durationMode === 'flexible',
-};
 
-SESUDAH:
-const baseContractData = {
-  user_id: user?.id as string,
-  client_group_id: contractForm.client_group_id,
-  start_date: format(contractForm.start_date, "yyyy-MM-dd"),
-  ...
-  is_flexible_duration: durationMode === 'flexible',
-  tanggal: format(getNowInJakarta(), "yyyy-MM-dd"),  // Auto-fill tanggal input (WITA)
-};
-```
-
-Ini akan mengisi kolom "Tanggal" dengan tanggal saat kontrak dibuat, menggunakan zona waktu WITA. Untuk kontrak yang diedit, tanggal juga akan diperbarui (jika diinginkan, bisa dibatasi hanya untuk kontrak baru).
+Semua komponen yang dibutuhkan (Popover, Calendar, CalendarIcon, cn, format, localeId) sudah di-import di file ini. Tidak perlu import tambahan.
 
 ### Hasil
 
-- Tambah kontrak baru: kolom "Tanggal" langsung terisi tanggal hari ini (WITA)
-- Tidak perlu lagi klik manual untuk mengisi tanggal di tabel list
+- Pilih status "Selesai" di form: langsung muncul date picker tanggal pengambilan
+- Tanggal pengambilan default sudah terisi hari ini (dari logika existing di line 1067-1068)
+- User bisa klik untuk ubah tanggal via kalender
+- Pilih status lain: date picker otomatis hilang
