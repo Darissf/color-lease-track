@@ -41,6 +41,7 @@ interface ContractRecord {
   status: string;
   location: string | null;
   returned_at: string | null;
+  extended_to_invoice: string | null;
 }
 
 interface MovementRecord {
@@ -83,6 +84,7 @@ export function InventoryItemHistory({
           added_at,
           returned_at,
           contract_id,
+          extended_to_contract_id,
           rental_contracts!contract_stock_items_contract_id_fkey (
             id,
             invoice,
@@ -100,6 +102,23 @@ export function InventoryItemHistory({
 
       if (stockError) throw stockError;
 
+      // Collect extended_to_contract_ids for batch fetching invoice numbers
+      const extendedIds = (stockItems || [])
+        .filter((si: any) => si.extended_to_contract_id)
+        .map((si: any) => si.extended_to_contract_id);
+
+      let extendedInvoiceMap: Record<string, string> = {};
+      if (extendedIds.length > 0) {
+        const { data: extContracts } = await supabase
+          .from("rental_contracts")
+          .select("id, invoice")
+          .in("id", extendedIds);
+        extendedInvoiceMap = (extContracts || []).reduce((acc: Record<string, string>, c: any) => {
+          acc[c.id] = c.invoice;
+          return acc;
+        }, {});
+      }
+
       // Transform contract data
       const contractRecords: ContractRecord[] = (stockItems || [])
         .filter((si: any) => si.rental_contracts)
@@ -113,6 +132,9 @@ export function InventoryItemHistory({
           status: si.rental_contracts.status,
           location: si.rental_contracts.lokasi_detail,
           returned_at: si.returned_at,
+          extended_to_invoice: si.extended_to_contract_id
+            ? extendedInvoiceMap[si.extended_to_contract_id] || null
+            : null,
         }));
 
       setContracts(contractRecords);

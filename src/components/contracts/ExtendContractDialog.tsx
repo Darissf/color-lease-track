@@ -256,9 +256,14 @@ export function ExtendContractDialog({
           .eq("user_id", user.id);
       }
 
-      // 4. Update old contract to selesai
+      // 4. Update old contract status based on debt
+      // If no debt remaining (balance=0 or transferred) -> 'perpanjangan'
+      // If debt remains and not transferred -> 'selesai'
+      const hasRemainingDebt = (contract as any).tagihan_belum_bayar > 0;
+      const oldContractStatus = (!hasRemainingDebt || transferUnpaidBalance) ? 'perpanjangan' : 'selesai';
+      
       const updateData: Record<string, any> = {
-        status: 'selesai',
+        status: oldContractStatus,
         updated_at: new Date().toISOString(),
       };
       

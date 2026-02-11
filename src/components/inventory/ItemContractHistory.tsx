@@ -16,6 +16,7 @@ interface ContractRecord {
   status: string;
   location: string | null;
   returned_at: string | null;
+  extended_to_invoice: string | null;
 }
 
 interface ItemContractHistoryProps {
@@ -54,6 +55,9 @@ export function ItemContractHistory({ contracts, loading }: ItemContractHistoryP
   const getStatusBadge = (status: string, returnedAt: string | null) => {
     const lowerStatus = status.toLowerCase();
     
+    if (lowerStatus === "perpanjangan") {
+      return <Badge variant="secondary" className="bg-purple-500/10 text-purple-600">Diperpanjang</Badge>;
+    }
     if (lowerStatus === "selesai" || returnedAt) {
       return <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600">Selesai</Badge>;
     }
@@ -115,8 +119,15 @@ export function ItemContractHistory({ contracts, loading }: ItemContractHistoryP
                     </div>
                   )}
 
+                  {/* Extension transfer info */}
+                  {contract.extended_to_invoice && (
+                    <p className="text-[10px] text-purple-600 font-medium">
+                      ↗ Dipindahkan ke invoice {contract.extended_to_invoice}
+                    </p>
+                  )}
+
                   {/* Return date */}
-                  {contract.returned_at && (
+                  {contract.returned_at && !contract.extended_to_invoice && (
                     <p className="text-[10px] text-muted-foreground">
                       Kembali: {format(new Date(contract.returned_at), "d MMM yy", { locale: localeId })}
                     </p>
