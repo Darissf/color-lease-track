@@ -1,96 +1,46 @@
 
-## Fix: Stok Barang yang Ditambahkan ke Kontrak "Selesai" Harus Otomatis Terisi `returned_at`
+## Fix: Riwayat Kontrak Kosong di Sidebar Stok Barang
 
 ### Masalah
 
-Saat kontrak sudah berstatus "selesai" dengan tanggal pengambilan (misalnya 11 Februari 2026), lalu user menambahkan rincian stok barang dan klik simpan, item stok yang baru disimpan **tidak memiliki `returned_at`**. Akibatnya, item tersebut masih terlihat sebagai "sedang disewa" padahal kontrak sudah selesai.
+Saat membuka riwayat barang (misalnya Catwalk) di sidebar stok, tab "Riwayat Kontrak" dan "Timeline" selalu kosong padahal data ada di database.
 
 ### Penyebab
 
-Di file `ContractStockItemsEditor.tsx`, saat menyimpan item stok baru (line 284-294), data yang di-insert tidak menyertakan field `returned_at`:
+Tabel `contract_stock_items` memiliki **2 foreign key** ke `rental_contracts`:
+- `contract_id` (FK utama)
+- `extended_to_contract_id` (FK untuk perpanjangan)
 
-```tsx
-.insert({
-  user_id: user.id,
-  contract_id: contractId,
-  inventory_item_id: item.inventory_item_id,
-  quantity: item.quantity,
-  unit_mode: item.unit_mode,
-  // returned_at TIDAK DISERTAKAN
-})
-```
-
-Komponen ini juga tidak mengetahui status kontrak atau tanggal pengambilan (`tanggal_ambil`) karena props yang diterima hanya `contractId`, `onSave`, dan `onCancel`.
+Akibatnya, query Supabase `.select('..., rental_contracts(...)')` gagal karena PostgREST tidak bisa menentukan FK mana yang dimaksud (ambiguity error). Query gagal, error ditangkap oleh catch block, dan data tetap kosong.
 
 ### Solusi
 
-1. **Fetch status dan tanggal_ambil kontrak** di dalam `ContractStockItemsEditor` saat data dimuat
-2. **Jika kontrak berstatus "selesai"**, otomatis set `returned_at` pada setiap item stok baru yang disimpan menggunakan nilai `tanggal_ambil` dari kontrak
-3. **Tambahkan juga inventory movement bertipe "return"** untuk item tersebut, agar stok gudang kembali bertambah
+Tambahkan hint FK eksplisit pada query di `InventoryItemHistory.tsx` agar PostgREST tahu FK mana yang digunakan.
 
 ### Detail Teknis
 
-**File: `src/components/contracts/ContractStockItemsEditor.tsx`**
+**File: `src/components/inventory/InventoryItemHistory.tsx`**
 
-1. **Tambah state untuk data kontrak** (status dan tanggal_ambil):
-```tsx
-const [contractStatus, setContractStatus] = useState<string | null>(null);
-const [contractReturnDate, setContractReturnDate] = useState<string | null>(null);
+Ubah embedded select dari:
+```
+rental_contracts (
+  id, invoice, start_date, end_date, status, lokasi_detail,
+  client_groups ( nama )
+)
 ```
 
-2. **Fetch data kontrak saat load** (di dalam fungsi fetchData yang sudah ada):
-```tsx
-const { data: contractData } = await supabase
-  .from('rental_contracts')
-  .select('status, tanggal_ambil')
-  .eq('id', contractId)
-  .single();
-
-if (contractData) {
-  setContractStatus(contractData.status);
-  setContractReturnDate(contractData.tanggal_ambil);
-}
+Menjadi:
+```
+rental_contracts!contract_stock_items_contract_id_fkey (
+  id, invoice, start_date, end_date, status, lokasi_detail,
+  client_groups ( nama )
+)
 ```
 
-3. **Saat menyimpan item baru**, jika kontrak sudah "selesai", sertakan `returned_at`:
-```tsx
-const insertData: any = {
-  user_id: user.id,
-  contract_id: contractId,
-  inventory_item_id: item.inventory_item_id,
-  quantity: item.quantity,
-  unit_mode: item.unit_mode,
-};
-
-// Jika kontrak selesai, otomatis set returned_at
-if (contractStatus === 'selesai' && contractReturnDate) {
-  insertData.returned_at = contractReturnDate;
-}
-
-const { data: inserted } = await supabase
-  .from('contract_stock_items')
-  .insert(insertData)
-  .select()
-  .single();
-```
-
-4. **Tambah movement "return"** setelah movement "rental" jika kontrak selesai, agar stok gudang tidak berkurang:
-```tsx
-if (inserted && contractStatus === 'selesai' && contractReturnDate) {
-  await supabase.from('inventory_movements').insert({
-    user_id: user.id,
-    inventory_item_id: item.inventory_item_id,
-    contract_id: contractId,
-    movement_type: 'return',
-    quantity: item.quantity,
-    notes: 'Stok dikembalikan - kontrak sudah selesai'
-  });
-}
-```
+Ini memberitahu PostgREST untuk menggunakan FK `contract_id` (bukan `extended_to_contract_id`) saat melakukan join.
 
 ### Hasil
 
-- Tambah stok barang ke kontrak "selesai": item otomatis memiliki tanggal pengembalian sesuai `tanggal_ambil`
-- Tampilan di detail kontrak akan menunjukkan "Dikembalikan: 11 Feb 2026" (bukan masih tersewa)
-- Stok gudang tidak berkurang karena movement "return" langsung dibuat
-- Tidak ada perubahan pada kontrak yang belum selesai (perilaku tetap sama)
+- Tab "Riwayat Kontrak" akan menampilkan semua kontrak yang menggunakan barang tersebut
+- Tab "Timeline" akan menampilkan semua pergerakan barang
+- Tidak ada perubahan di bagian lain aplikasi
