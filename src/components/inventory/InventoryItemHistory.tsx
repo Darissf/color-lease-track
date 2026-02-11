@@ -83,7 +83,7 @@ export function InventoryItemHistory({
           added_at,
           returned_at,
           contract_id,
-          rental_contracts (
+          rental_contracts!contract_stock_items_contract_id_fkey (
             id,
             invoice,
             start_date,
