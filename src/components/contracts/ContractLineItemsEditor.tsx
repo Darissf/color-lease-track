@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,8 @@ import {
   calculateGrandTotal,
   type TemplateData
 } from '@/lib/contractTemplateGenerator';
-import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen, Tag, FileSignature, Edit3, RefreshCw, AlertCircle, Layers, Unlink } from 'lucide-react';
+import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen, Tag, FileSignature, Edit3, RefreshCw, AlertCircle, Layers, Unlink, GripVertical } from 'lucide-react';
+import { Reorder } from 'framer-motion';
 import { useLineItemGroups, type LineItemGroup, type GroupedLineItem } from '@/hooks/useLineItemGroups';
 import { CombineItemsDialog } from './CombineItemsDialog';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ import { toast } from 'sonner';
 // Extended LineItem interface with unit_mode and group_id
 interface LineItem {
   id?: string;
+  _key: string;
   item_name: string;
   quantity: number;
   unit_price_per_day: number;
@@ -36,6 +38,9 @@ interface LineItem {
   pcs_per_set?: number;
   group_id?: string | null;
 }
+
+let _lineKeyCounter = 0;
+const genLineKey = () => `line-${++_lineKeyCounter}-${Date.now()}`;
 
 interface ContractLineItemsEditorProps {
   contractId: string;
@@ -119,6 +124,7 @@ export function ContractLineItemsEditor({
     if (lineItemsData && lineItemsData.length > 0) {
       setLineItems(lineItemsData.map(item => ({
         id: item.id,
+        _key: item.id || genLineKey(),
         item_name: item.item_name,
         quantity: item.quantity,
         unit_price_per_day: Number(item.unit_price_per_day),
@@ -174,6 +180,7 @@ export function ContractLineItemsEditor({
     setLineItems([
       ...lineItems,
       {
+        _key: genLineKey(),
         item_name: '',
         quantity: 1,
         unit_price_per_day: defaultPricePerDay !== '' ? defaultPricePerDay : 0,
@@ -211,12 +218,12 @@ export function ContractLineItemsEditor({
       const generatedItems: LineItem[] = stockItems.map((item: any) => {
         const unitMode = item.unit_mode || 'pcs';
         const pcsPerSet = item.inventory_items?.pcs_per_set || 1;
-        // Display quantity based on unit_mode
         const displayQty = unitMode === 'set' && pcsPerSet > 0 
           ? Math.floor(item.quantity / pcsPerSet) 
           : item.quantity;
         
         return {
+          _key: genLineKey(),
           item_name: item.inventory_items?.item_name || '',
           quantity: displayQty,
           unit_price_per_day: defaultPricePerDay !== '' ? defaultPricePerDay : (item.inventory_items?.unit_price || 0),
@@ -740,98 +747,139 @@ export function ContractLineItemsEditor({
             );
           })}
           
-          {/* Render non-grouped items with checkboxes */}
-          {lineItems.map((item, index) => {
-            // Skip items that are in a group
-            if (isIndexInGroup(groupedLineItems, index)) return null;
+          {/* Render non-grouped items with drag reorder */}
+          {(() => {
+            const nonGroupedItems = lineItems
+              .map((item, index) => ({ item, index }))
+              .filter(({ index }) => !isIndexInGroup(groupedLineItems, index));
             
-            const isSelected = selectedIndices.has(index);
-            
-            return (
-              <div 
-                key={index} 
-                className={`p-4 border rounded-lg space-y-3 transition-colors ${
-                  isSelected 
-                    ? 'bg-purple-50/50 dark:bg-purple-950/30 border-purple-300' 
-                    : 'bg-muted/30'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleSelection(index)}
-                      className="border-purple-400 data-[state=checked]:bg-purple-600"
-                    />
-                    <span className="font-medium text-sm">Item #{index + 1}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeLineItem(index)}
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Nama Item</Label>
-                  <Input
-                    value={item.item_name}
-                    onChange={(e) => updateLineItem(index, 'item_name', e.target.value)}
-                    placeholder="Nama item..."
-                    className="h-9"
-                  />
-                </div>
+            if (nonGroupedItems.length === 0) return null;
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Jumlah ({item.unit_mode === 'set' ? 'set' : 'pcs'})</Label>
-                    <Input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
-                      min={1}
-                      className="h-9"
-                    />
-                    {item.unit_mode === 'set' && item.pcs_per_set && item.pcs_per_set > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Jadi {item.quantity} set = {item.quantity * item.pcs_per_set} pcs
-                      </p>
-                    )}
-                  </div>
+            const handleNonGroupedReorder = (reorderedItems: typeof nonGroupedItems) => {
+              // Rebuild full lineItems: grouped items stay in place, non-grouped get reordered
+              const groupedEntries = lineItems
+                .map((item, index) => ({ item, index }))
+                .filter(({ index }) => isIndexInGroup(groupedLineItems, index));
+              
+              // Merge: grouped items first (preserve positions), then non-grouped in new order
+              const newItems: LineItem[] = [];
+              let ngIdx = 0;
+              let gIdx = 0;
+              
+              for (let i = 0; i < lineItems.length; i++) {
+                if (isIndexInGroup(groupedLineItems, i)) {
+                  newItems.push(groupedEntries[gIdx].item);
+                  gIdx++;
+                } else {
+                  newItems.push(reorderedItems[ngIdx].item);
+                  ngIdx++;
+                }
+              }
+              
+              setLineItems(newItems);
+            };
+
+            return (
+              <Reorder.Group 
+                axis="y" 
+                values={nonGroupedItems} 
+                onReorder={handleNonGroupedReorder}
+                className="space-y-4"
+              >
+                {nonGroupedItems.map(({ item, index }) => {
+                  const isSelected = selectedIndices.has(index);
                   
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Harga/Hari (Rp)</Label>
-                    <Input
-                      type="number"
-                      value={item.unit_price_per_day}
-                      onChange={(e) => updateLineItem(index, 'unit_price_per_day', e.target.value)}
-                      min={0}
-                      className="h-9"
-                    />
-                  </div>
-                  
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Durasi (hari)</Label>
-                    <Input
-                      type="number"
-                      value={item.duration_days}
-                      onChange={(e) => updateLineItem(index, 'duration_days', e.target.value)}
-                      min={1}
-                      className="h-9"
-                    />
-                  </div>
-                </div>
-                
-                <div className="text-right text-sm">
-                  <span className="text-muted-foreground">Subtotal: </span>
-                  <span className="font-semibold text-primary">{formatRupiah(calculateLineItemSubtotal(item))}</span>
-                </div>
-              </div>
+                  return (
+                    <Reorder.Item
+                      key={item._key}
+                      value={{ item, index }}
+                      className={`p-4 border rounded-lg space-y-3 transition-colors cursor-grab active:cursor-grabbing ${
+                        isSelected 
+                          ? 'bg-purple-50/50 dark:bg-purple-950/30 border-purple-300' 
+                          : 'bg-muted/30'
+                      }`}
+                      whileDrag={{ scale: 1.02, boxShadow: '0 8px 25px rgba(0,0,0,0.15)', zIndex: 50 }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <GripVertical className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelection(index)}
+                            className="border-purple-400 data-[state=checked]:bg-purple-600"
+                          />
+                          <span className="font-medium text-sm">Item #{index + 1}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeLineItem(index)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Nama Item</Label>
+                        <Input
+                          value={item.item_name}
+                          onChange={(e) => updateLineItem(index, 'item_name', e.target.value)}
+                          placeholder="Nama item..."
+                          className="h-9"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Jumlah ({item.unit_mode === 'set' ? 'set' : 'pcs'})</Label>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
+                            min={1}
+                            className="h-9"
+                          />
+                          {item.unit_mode === 'set' && item.pcs_per_set && item.pcs_per_set > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              Jadi {item.quantity} set = {item.quantity * item.pcs_per_set} pcs
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Harga/Hari (Rp)</Label>
+                          <Input
+                            type="number"
+                            value={item.unit_price_per_day}
+                            onChange={(e) => updateLineItem(index, 'unit_price_per_day', e.target.value)}
+                            min={0}
+                            className="h-9"
+                          />
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Durasi (hari)</Label>
+                          <Input
+                            type="number"
+                            value={item.duration_days}
+                            onChange={(e) => updateLineItem(index, 'duration_days', e.target.value)}
+                            min={1}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="text-right text-sm">
+                        <span className="text-muted-foreground">Subtotal: </span>
+                        <span className="font-semibold text-primary">{formatRupiah(calculateLineItemSubtotal(item))}</span>
+                      </div>
+                    </Reorder.Item>
+                  );
+                })}
+              </Reorder.Group>
             );
-          })}
+          })()}
 
           <Button variant="outline" onClick={addLineItem} className="w-full">
             <Plus className="h-4 w-4 mr-2" />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Trash2, Package, Save, X, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Package, Save, X, AlertTriangle, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { Reorder } from 'framer-motion';
 
 interface InventoryItem {
   id: string;
@@ -22,6 +23,7 @@ interface InventoryItem {
 
 interface StockItem {
   id?: string;
+  _key: string; // Stable key for drag reorder
   inventory_item_id: string;
   quantity: number; // Always in pcs (base unit)
   unit_mode: 'pcs' | 'set';
@@ -31,6 +33,9 @@ interface StockItem {
   pcs_per_set?: number;
   available_stock?: number;
 }
+
+let _stockKeyCounter = 0;
+const genKey = () => `stock-${++_stockKeyCounter}-${Date.now()}`;
 
 interface ContractStockItemsEditorProps {
   contractId: string;
@@ -126,6 +131,7 @@ export function ContractStockItemsEditor({
     if (existingItems) {
       const mapped = existingItems.map((item: any) => ({
         id: item.id,
+        _key: item.id || genKey(),
         inventory_item_id: item.inventory_item_id,
         quantity: item.quantity, // This is in pcs
         unit_mode: (item.unit_mode || 'pcs') as 'pcs' | 'set',
@@ -158,6 +164,7 @@ export function ContractStockItemsEditor({
     setStockItems([
       ...stockItems,
       {
+        _key: genKey(),
         inventory_item_id: '',
         quantity: 1,
         unit_mode: 'pcs',
@@ -416,7 +423,8 @@ export function ContractStockItemsEditor({
               <p>Belum ada item stok</p>
             </div>
           ) : (
-            stockItems.map((item, index) => {
+            <Reorder.Group axis="y" values={stockItems} onReorder={setStockItems} className="space-y-4">
+            {stockItems.map((item, index) => {
               const available = item.inventory_item_id ? getAvailableStock(item.inventory_item_id) : 0;
               const pcsPerSet = item.pcs_per_set || 1;
               const displayQty = getDisplayQuantity(item);
@@ -424,9 +432,17 @@ export function ContractStockItemsEditor({
               const availableInSets = pcsPerSet > 1 ? Math.floor(available / pcsPerSet) : 0;
               
               return (
-                <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/30">
+                <Reorder.Item 
+                  key={item._key} 
+                  value={item}
+                  className="p-4 border rounded-lg space-y-3 bg-muted/30 cursor-grab active:cursor-grabbing"
+                  whileDrag={{ scale: 1.02, boxShadow: '0 8px 25px rgba(0,0,0,0.15)', zIndex: 50 }}
+                >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm">Item #{index + 1}</span>
+                    <div className="flex items-center gap-2">
+                      <GripVertical className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                      <span className="font-medium text-sm">Item #{index + 1}</span>
+                    </div>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -532,9 +548,10 @@ export function ContractStockItemsEditor({
                       <span>Jumlah melebihi stok tersedia!</span>
                     </div>
                   )}
-                </div>
+                </Reorder.Item>
               );
-            })
+            })}
+            </Reorder.Group>
           )}
 
           <Button variant="outline" onClick={addStockItem} className="w-full">
