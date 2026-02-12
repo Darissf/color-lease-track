@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Trash2, Package, Save, X, AlertTriangle, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Reorder } from 'framer-motion';
+import { Reorder, useDragControls } from 'framer-motion';
 
 interface InventoryItem {
   id: string;
@@ -36,6 +36,162 @@ interface StockItem {
 
 let _stockKeyCounter = 0;
 const genKey = () => `stock-${++_stockKeyCounter}-${Date.now()}`;
+
+// Extracted reorder item component to use useDragControls hook
+function StockReorderItem({
+  item,
+  index,
+  inventoryItems,
+  getAvailableStock,
+  getDisplayQuantity,
+  selectInventoryItem,
+  updateQuantity,
+  updateUnitMode,
+  removeStockItem,
+}: {
+  item: StockItem;
+  index: number;
+  inventoryItems: InventoryItem[];
+  getAvailableStock: (id: string) => number;
+  getDisplayQuantity: (item: StockItem) => number;
+  selectInventoryItem: (index: number, itemId: string) => void;
+  updateQuantity: (index: number, qty: number) => void;
+  updateUnitMode: (index: number, mode: 'pcs' | 'set') => void;
+  removeStockItem: (index: number) => void;
+}) {
+  const controls = useDragControls();
+  const available = item.inventory_item_id ? getAvailableStock(item.inventory_item_id) : 0;
+  const pcsPerSet = item.pcs_per_set || 1;
+  const displayQty = getDisplayQuantity(item);
+  const isOverStock = item.quantity > available;
+  const availableInSets = pcsPerSet > 1 ? Math.floor(available / pcsPerSet) : 0;
+
+  return (
+    <Reorder.Item
+      key={item._key}
+      value={item}
+      dragListener={false}
+      dragControls={controls}
+      className="p-4 border rounded-lg space-y-3 bg-muted/30"
+      whileDrag={{ scale: 1.02, boxShadow: '0 8px 25px rgba(0,0,0,0.15)', zIndex: 50 }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <GripVertical
+            className="h-5 w-5 text-muted-foreground/50 shrink-0 cursor-grab active:cursor-grabbing"
+            onPointerDown={(e) => controls.start(e)}
+            style={{ touchAction: 'none' }}
+          />
+          <span className="font-medium text-sm">Item #{index + 1}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => removeStockItem(index)}
+          className="h-8 w-8 text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="md:col-span-2 space-y-1.5">
+          <Label className="text-xs">Pilih Barang</Label>
+          <Select
+            value={item.inventory_item_id}
+            onValueChange={(value) => selectInventoryItem(index, value)}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Pilih item..." />
+            </SelectTrigger>
+            <SelectContent>
+              {inventoryItems.map(inv => {
+                const invPcsPerSet = inv.pcs_per_set || 1;
+                const invAvailable = getAvailableStock(inv.id);
+                return (
+                  <SelectItem key={inv.id} value={inv.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{inv.item_name}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {invAvailable} pcs
+                        {invPcsPerSet > 1 && ` (${Math.floor(invAvailable / invPcsPerSet)} set)`}
+                      </Badge>
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Jumlah</Label>
+          <Input
+            type="number"
+            value={displayQty}
+            onChange={(e) => updateQuantity(index, Number(e.target.value) || 1)}
+            min={1}
+            className={`h-9 ${isOverStock ? 'border-destructive' : ''}`}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Satuan</Label>
+          <Select
+            value={item.unit_mode}
+            onValueChange={(value: 'pcs' | 'set') => updateUnitMode(index, value)}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pcs">pcs</SelectItem>
+              <SelectItem value="set">
+                set {pcsPerSet > 1 ? `(${pcsPerSet} pcs)` : ''}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {item.inventory_item_id && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">
+              {item.item_code}
+            </span>
+            {pcsPerSet > 1 && (
+              <Badge variant="outline" className="text-xs">
+                {pcsPerSet} pcs/set
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Stok:</span>
+            <Badge variant={isOverStock ? "destructive" : "secondary"}>
+              {available} pcs
+              {pcsPerSet > 1 && ` (${availableInSets} set)`}
+            </Badge>
+          </div>
+        </div>
+      )}
+
+      {/* Show conversion info */}
+      {item.inventory_item_id && item.unit_mode === 'set' && (
+        <div className="text-xs text-primary bg-primary/10 px-2 py-1 rounded">
+          {displayQty} set = {item.quantity} pcs
+        </div>
+      )}
+
+      {isOverStock && (
+        <div className="flex items-center gap-2 text-destructive text-sm">
+          <AlertTriangle className="h-4 w-4" />
+          <span>Jumlah melebihi stok tersedia!</span>
+        </div>
+      )}
+    </Reorder.Item>
+  );
+}
 
 interface ContractStockItemsEditorProps {
   contractId: string;
@@ -424,133 +580,20 @@ export function ContractStockItemsEditor({
             </div>
           ) : (
             <Reorder.Group axis="y" values={stockItems} onReorder={setStockItems} className="space-y-4">
-            {stockItems.map((item, index) => {
-              const available = item.inventory_item_id ? getAvailableStock(item.inventory_item_id) : 0;
-              const pcsPerSet = item.pcs_per_set || 1;
-              const displayQty = getDisplayQuantity(item);
-              const isOverStock = item.quantity > available;
-              const availableInSets = pcsPerSet > 1 ? Math.floor(available / pcsPerSet) : 0;
-              
-              return (
-                <Reorder.Item 
-                  key={item._key} 
-                  value={item}
-                  className="p-4 border rounded-lg space-y-3 bg-muted/30 cursor-grab active:cursor-grabbing"
-                  whileDrag={{ scale: 1.02, boxShadow: '0 8px 25px rgba(0,0,0,0.15)', zIndex: 50 }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <GripVertical className="h-5 w-5 text-muted-foreground/50 shrink-0" />
-                      <span className="font-medium text-sm">Item #{index + 1}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeStockItem(index)}
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div className="md:col-span-2 space-y-1.5">
-                      <Label className="text-xs">Pilih Barang</Label>
-                      <Select 
-                        value={item.inventory_item_id} 
-                        onValueChange={(value) => selectInventoryItem(index, value)}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Pilih item..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {inventoryItems.map(inv => {
-                            const invPcsPerSet = inv.pcs_per_set || 1;
-                            const invAvailable = getAvailableStock(inv.id);
-                            return (
-                              <SelectItem key={inv.id} value={inv.id}>
-                                <div className="flex items-center gap-2">
-                                  <span>{inv.item_name}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {invAvailable} pcs
-                                    {invPcsPerSet > 1 && ` (${Math.floor(invAvailable / invPcsPerSet)} set)`}
-                                  </Badge>
-                                </div>
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Jumlah</Label>
-                      <Input
-                        type="number"
-                        value={displayQty}
-                        onChange={(e) => updateQuantity(index, Number(e.target.value) || 1)}
-                        min={1}
-                        className={`h-9 ${isOverStock ? 'border-destructive' : ''}`}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Satuan</Label>
-                      <Select
-                        value={item.unit_mode}
-                        onValueChange={(value: 'pcs' | 'set') => updateUnitMode(index, value)}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pcs">pcs</SelectItem>
-                          <SelectItem value="set">
-                            set {pcsPerSet > 1 ? `(${pcsPerSet} pcs)` : ''}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  {item.inventory_item_id && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">
-                          {item.item_code}
-                        </span>
-                        {pcsPerSet > 1 && (
-                          <Badge variant="outline" className="text-xs">
-                            {pcsPerSet} pcs/set
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Stok:</span>
-                        <Badge variant={isOverStock ? "destructive" : "secondary"}>
-                          {available} pcs
-                          {pcsPerSet > 1 && ` (${availableInSets} set)`}
-                        </Badge>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Show conversion info */}
-                  {item.inventory_item_id && item.unit_mode === 'set' && (
-                    <div className="text-xs text-primary bg-primary/10 px-2 py-1 rounded">
-                      {displayQty} set = {item.quantity} pcs
-                    </div>
-                  )}
-                  
-                  {isOverStock && (
-                    <div className="flex items-center gap-2 text-destructive text-sm">
-                      <AlertTriangle className="h-4 w-4" />
-                      <span>Jumlah melebihi stok tersedia!</span>
-                    </div>
-                  )}
-                </Reorder.Item>
-              );
-            })}
+            {stockItems.map((item, index) => (
+              <StockReorderItem
+                key={item._key}
+                item={item}
+                index={index}
+                inventoryItems={inventoryItems}
+                getAvailableStock={getAvailableStock}
+                getDisplayQuantity={getDisplayQuantity}
+                selectInventoryItem={selectInventoryItem}
+                updateQuantity={updateQuantity}
+                updateUnitMode={updateUnitMode}
+                removeStockItem={removeStockItem}
+              />
+            ))}
             </Reorder.Group>
           )}
 

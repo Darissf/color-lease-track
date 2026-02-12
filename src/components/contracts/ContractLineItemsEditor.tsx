@@ -21,7 +21,7 @@ import {
   type TemplateData
 } from '@/lib/contractTemplateGenerator';
 import { Plus, Trash2, Package, Truck, Eye, Save, FileText, Zap, PackageOpen, Tag, FileSignature, Edit3, RefreshCw, AlertCircle, Layers, Unlink, GripVertical } from 'lucide-react';
-import { Reorder } from 'framer-motion';
+import { Reorder, useDragControls } from 'framer-motion';
 import { useLineItemGroups, type LineItemGroup, type GroupedLineItem } from '@/hooks/useLineItemGroups';
 import { CombineItemsDialog } from './CombineItemsDialog';
 import { toast } from 'sonner';
@@ -41,6 +41,123 @@ interface LineItem {
 
 let _lineKeyCounter = 0;
 const genLineKey = () => `line-${++_lineKeyCounter}-${Date.now()}`;
+
+// Extracted component for drag reorder support
+function LineReorderItem({
+  item,
+  index,
+  isSelected,
+  toggleSelection,
+  updateLineItem,
+  removeLineItem,
+  calculateLineItemSubtotal,
+  formatRupiah,
+}: {
+  item: LineItem;
+  index: number;
+  isSelected: boolean;
+  toggleSelection: (idx: number) => void;
+  updateLineItem: (idx: number, field: keyof LineItem, value: string | number) => void;
+  removeLineItem: (idx: number) => void;
+  calculateLineItemSubtotal: (item: LineItem) => number;
+  formatRupiah: (n: number) => string;
+}) {
+  const controls = useDragControls();
+
+  return (
+    <Reorder.Item
+      key={item._key}
+      value={item}
+      dragListener={false}
+      dragControls={controls}
+      className={`p-4 border rounded-lg space-y-3 transition-colors ${
+        isSelected
+          ? 'bg-purple-50/50 dark:bg-purple-950/30 border-purple-300'
+          : 'bg-muted/30'
+      }`}
+      whileDrag={{ scale: 1.02, boxShadow: '0 8px 25px rgba(0,0,0,0.15)', zIndex: 50 }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <GripVertical
+            className="h-5 w-5 text-muted-foreground/50 shrink-0 cursor-grab active:cursor-grabbing"
+            onPointerDown={(e) => controls.start(e)}
+            style={{ touchAction: 'none' }}
+          />
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => toggleSelection(index)}
+            className="border-purple-400 data-[state=checked]:bg-purple-600"
+          />
+          <span className="font-medium text-sm">Item #{index + 1}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => removeLineItem(index)}
+          className="h-8 w-8 text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Nama Item</Label>
+        <Input
+          value={item.item_name}
+          onChange={(e) => updateLineItem(index, 'item_name', e.target.value)}
+          placeholder="Nama item..."
+          className="h-9"
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Jumlah ({item.unit_mode === 'set' ? 'set' : 'pcs'})</Label>
+          <Input
+            type="number"
+            value={item.quantity}
+            onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
+            min={1}
+            className="h-9"
+          />
+          {item.unit_mode === 'set' && item.pcs_per_set && item.pcs_per_set > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Jadi {item.quantity} set = {item.quantity * item.pcs_per_set} pcs
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Harga/Hari (Rp)</Label>
+          <Input
+            type="number"
+            value={item.unit_price_per_day}
+            onChange={(e) => updateLineItem(index, 'unit_price_per_day', e.target.value)}
+            min={0}
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Durasi (hari)</Label>
+          <Input
+            type="number"
+            value={item.duration_days}
+            onChange={(e) => updateLineItem(index, 'duration_days', e.target.value)}
+            min={1}
+            className="h-9"
+          />
+        </div>
+      </div>
+
+      <div className="text-right text-sm">
+        <span className="text-muted-foreground">Subtotal: </span>
+        <span className="font-semibold text-primary">{formatRupiah(calculateLineItemSubtotal(item))}</span>
+      </div>
+    </Reorder.Item>
+  );
+}
 
 interface ContractLineItemsEditorProps {
   contractId: string;
@@ -749,29 +866,23 @@ export function ContractLineItemsEditor({
           
           {/* Render non-grouped items with drag reorder */}
           {(() => {
-            const nonGroupedItems = lineItems
-              .map((item, index) => ({ item, index }))
-              .filter(({ index }) => !isIndexInGroup(groupedLineItems, index));
+            // Filter non-grouped items, keep stable item references
+            const nonGroupedItemsList = lineItems.filter(
+              (_item, index) => !isIndexInGroup(groupedLineItems, index)
+            );
             
-            if (nonGroupedItems.length === 0) return null;
+            if (nonGroupedItemsList.length === 0) return null;
 
-            const handleNonGroupedReorder = (reorderedItems: typeof nonGroupedItems) => {
+            const handleNonGroupedReorder = (reorderedItems: LineItem[]) => {
               // Rebuild full lineItems: grouped items stay in place, non-grouped get reordered
-              const groupedEntries = lineItems
-                .map((item, index) => ({ item, index }))
-                .filter(({ index }) => isIndexInGroup(groupedLineItems, index));
-              
-              // Merge: grouped items first (preserve positions), then non-grouped in new order
               const newItems: LineItem[] = [];
               let ngIdx = 0;
-              let gIdx = 0;
               
               for (let i = 0; i < lineItems.length; i++) {
                 if (isIndexInGroup(groupedLineItems, i)) {
-                  newItems.push(groupedEntries[gIdx].item);
-                  gIdx++;
+                  newItems.push(lineItems[i]);
                 } else {
-                  newItems.push(reorderedItems[ngIdx].item);
+                  newItems.push(reorderedItems[ngIdx]);
                   ngIdx++;
                 }
               }
@@ -782,99 +893,27 @@ export function ContractLineItemsEditor({
             return (
               <Reorder.Group 
                 axis="y" 
-                values={nonGroupedItems} 
+                values={nonGroupedItemsList} 
                 onReorder={handleNonGroupedReorder}
                 className="space-y-4"
               >
-                {nonGroupedItems.map(({ item, index }) => {
-                  const isSelected = selectedIndices.has(index);
+                {nonGroupedItemsList.map((item) => {
+                  // Find original index in lineItems for callbacks
+                  const originalIndex = lineItems.indexOf(item);
+                  const isSelected = selectedIndices.has(originalIndex);
                   
                   return (
-                    <Reorder.Item
+                    <LineReorderItem
                       key={item._key}
-                      value={{ item, index }}
-                      className={`p-4 border rounded-lg space-y-3 transition-colors cursor-grab active:cursor-grabbing ${
-                        isSelected 
-                          ? 'bg-purple-50/50 dark:bg-purple-950/30 border-purple-300' 
-                          : 'bg-muted/30'
-                      }`}
-                      whileDrag={{ scale: 1.02, boxShadow: '0 8px 25px rgba(0,0,0,0.15)', zIndex: 50 }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <GripVertical className="h-5 w-5 text-muted-foreground/50 shrink-0" />
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleSelection(index)}
-                            className="border-purple-400 data-[state=checked]:bg-purple-600"
-                          />
-                          <span className="font-medium text-sm">Item #{index + 1}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeLineItem(index)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Nama Item</Label>
-                        <Input
-                          value={item.item_name}
-                          onChange={(e) => updateLineItem(index, 'item_name', e.target.value)}
-                          placeholder="Nama item..."
-                          className="h-9"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Jumlah ({item.unit_mode === 'set' ? 'set' : 'pcs'})</Label>
-                          <Input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
-                            min={1}
-                            className="h-9"
-                          />
-                          {item.unit_mode === 'set' && item.pcs_per_set && item.pcs_per_set > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              Jadi {item.quantity} set = {item.quantity * item.pcs_per_set} pcs
-                            </p>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Harga/Hari (Rp)</Label>
-                          <Input
-                            type="number"
-                            value={item.unit_price_per_day}
-                            onChange={(e) => updateLineItem(index, 'unit_price_per_day', e.target.value)}
-                            min={0}
-                            className="h-9"
-                          />
-                        </div>
-                        
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Durasi (hari)</Label>
-                          <Input
-                            type="number"
-                            value={item.duration_days}
-                            onChange={(e) => updateLineItem(index, 'duration_days', e.target.value)}
-                            min={1}
-                            className="h-9"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="text-right text-sm">
-                        <span className="text-muted-foreground">Subtotal: </span>
-                        <span className="font-semibold text-primary">{formatRupiah(calculateLineItemSubtotal(item))}</span>
-                      </div>
-                    </Reorder.Item>
+                      item={item}
+                      index={originalIndex}
+                      isSelected={isSelected}
+                      toggleSelection={toggleSelection}
+                      updateLineItem={updateLineItem}
+                      removeLineItem={removeLineItem}
+                      calculateLineItemSubtotal={calculateLineItemSubtotal}
+                      formatRupiah={formatRupiah}
+                    />
                   );
                 })}
               </Reorder.Group>
