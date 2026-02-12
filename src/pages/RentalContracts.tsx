@@ -1536,7 +1536,7 @@ const RentalContracts = () => {
                           : format(new Date(contract.end_date), "dd MMM yyyy", { locale: localeId })
                         }
                         {/* Sembunyikan info hari jika status Closed atau durasi fleksibel */}
-                        {!(contract.status === "selesai" && contract.tagihan_belum_bayar <= 0) && !(contract as any).is_flexible_duration && (
+                        {!(contract.status === "selesai" && contract.tagihan_belum_bayar <= 0) && contract.status !== "perpanjangan" && !(contract as any).is_flexible_duration && (
                           <span className={cn(
                             "text-xs font-medium ml-1",
                             remainingDays >= 2 ? "text-green-600" : 
