@@ -198,8 +198,7 @@ export function ContractLineItemsEditor({
             pcs_per_set
           )
         `)
-        .eq('contract_id', contractId)
-        .is('returned_at', null);
+        .eq('contract_id', contractId);
       
       if (error) throw error;
       
