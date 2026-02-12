@@ -1,64 +1,97 @@
 
 
-## Drag-and-Drop Reorder untuk Rincian Stok Barang dan Rincian Item Sewa
+## Fix: Drag-and-Drop Tidak Berfungsi di Kedua Editor
 
-### Pendekatan
+### Masalah yang Ditemukan
 
-Menggunakan `framer-motion` `Reorder` yang sudah terinstall di project. Komponen ini mendukung touch (sentuh, tahan, pindah) dan mouse drag secara native -- tidak perlu tombol panah atas/bawah.
+**1. Touch/iPad tidak berfungsi:**
+Saat ini seluruh `Reorder.Item` bisa di-drag, tapi karena di dalamnya ada banyak elemen interaktif (Input, Select, Checkbox), event touch/pointer di iPad tertangkap oleh elemen-elemen tersebut, bukan oleh drag handler. Ini menyebabkan drag sama sekali tidak bisa dimulai di perangkat sentuh.
 
-### Perubahan
+**2. Rincian Item Sewa - value reference salah:**
+Di `ContractLineItemsEditor.tsx`, `nonGroupedItems` dibuat ulang setiap render dengan `.map().filter()`. Lalu `Reorder.Item` mendapat `value={{ item, index }}` yang membuat object BARU setiap render. Framer-motion membandingkan value by reference, sehingga reorder gagal karena object selalu berbeda.
 
-#### 1. Buat Hook Reusable: `src/hooks/useDragReorder.ts`
+### Solusi
 
-Hook kecil untuk menangani logic reorder yang dipakai di kedua editor.
+Menggunakan `useDragControls` dari framer-motion agar hanya icon GripVertical yang menjadi drag trigger. Ini adalah pola resmi yang direkomendasikan framer-motion.
 
-#### 2. File: `src/components/contracts/ContractStockItemsEditor.tsx`
+---
 
-- Import `Reorder` dari `framer-motion`
-- Wrap list `stockItems` dengan `<Reorder.Group>`
-- Wrap setiap item card dengan `<Reorder.Item>`
-- Tambah drag handle icon (GripVertical) di setiap item agar user tahu bisa di-drag
-- Saat reorder, update state `stockItems` langsung
-- Nomor "Item #N" akan otomatis berubah sesuai urutan baru
+#### 1. File: `src/components/contracts/ContractStockItemsEditor.tsx`
 
-#### 3. File: `src/components/contracts/ContractLineItemsEditor.tsx`
+Ekstrak setiap item menjadi komponen terpisah (`StockReorderItem`) yang menggunakan `useDragControls`:
 
-- Import `Reorder` dari `framer-motion`
-- Wrap list non-grouped items dengan `<Reorder.Group>`
-- Wrap setiap item card dengan `<Reorder.Item>`
-- Tambah drag handle icon (GripVertical)
-- Saat reorder, update state `lineItems` (hanya non-grouped items yang bisa di-drag)
-- `sort_order` otomatis terupdate saat save karena menggunakan `index` dari array
-
-#### 4. Tampilan Drag Handle
-
-Setiap item card akan mendapat icon `GripVertical` (6 titik) di sebelah kiri header. Visual cue:
-- Cursor berubah jadi `grab` saat hover
-- Cursor jadi `grabbing` saat ditarik
-- Item yang sedang di-drag mendapat shadow dan sedikit scale up
-- Animasi smooth saat item berpindah posisi
-
-### Detail Teknis
-
-**Reorder.Group + Reorder.Item (framer-motion)**:
 ```text
-<Reorder.Group values={items} onReorder={setItems}>
-  {items.map(item => (
-    <Reorder.Item key={item.id} value={item}>
-      <GripVertical /> <!-- drag handle -->
-      ... item content ...
-    </Reorder.Item>
-  ))}
-</Reorder.Group>
+Sebelum:
+- Reorder.Item langsung di dalam .map()
+- Seluruh card bisa di-drag (cursor-grab)
+
+Sesudah:
+- Komponen StockReorderItem terpisah dengan useDragControls
+- dragListener={false} pada Reorder.Item
+- onPointerDown pada GripVertical untuk memulai drag
+- touch-action: none pada drag handle agar iPad/mobile berfungsi
 ```
 
-**Penting untuk StockItems**: Setiap item perlu key yang stabil. Saat ini menggunakan `index` -- akan diubah ke `id` atau generate temporary key untuk item baru.
+Pola kode:
 
-**Penting untuk LineItems**: Non-grouped items perlu di-filter dulu sebelum di-render dalam Reorder.Group, lalu saat reorder, mapping kembali ke array `lineItems` penuh.
+```text
+function StockReorderItem({ item, index, ... }) {
+  const controls = useDragControls();
+  return (
+    <Reorder.Item 
+      value={item} 
+      dragListener={false} 
+      dragControls={controls}
+    >
+      <GripVertical 
+        onPointerDown={(e) => controls.start(e)}
+        style={{ touchAction: 'none' }}
+        className="cursor-grab active:cursor-grabbing"
+      />
+      ... rest of item content ...
+    </Reorder.Item>
+  );
+}
+```
+
+#### 2. File: `src/components/contracts/ContractLineItemsEditor.tsx`
+
+Dua perbaikan:
+
+**a. Fix value reference:**
+Gunakan `useMemo` untuk `nonGroupedItems` agar referensi stabil antara render, atau lebih baik lagi -- pass item langsung sebagai value (bukan `{ item, index }` object baru).
+
+**b. Komponen terpisah dengan useDragControls:**
+Sama seperti stock editor, ekstrak menjadi `LineReorderItem` component.
+
+```text
+Sebelum:
+- nonGroupedItems dibuat ulang setiap render
+- value={{ item, index }} membuat object baru
+- Seluruh card bisa di-drag
+
+Sesudah:
+- nonGroupedItems di-memoize
+- value={stableObject} dari memoized array
+- Komponen LineReorderItem dengan useDragControls
+- Hanya GripVertical yang menjadi drag trigger
+- touch-action: none untuk iPad/mobile support
+```
+
+### Detail Teknis Penting
+
+| Aspek | Detail |
+|---|---|
+| `dragListener={false}` | Mencegah seluruh card menjadi drag target |
+| `dragControls={controls}` | Menghubungkan kontrol drag ke handle |
+| `onPointerDown={(e) => controls.start(e)}` | Memulai drag dari GripVertical saja |
+| `style={{ touchAction: 'none' }}` | Kritis untuk iPad/mobile -- mencegah browser intercept gesture |
+| Komponen terpisah | Diperlukan karena `useDragControls` adalah hook (harus di component level) |
 
 ### Hasil
 
-- Sentuh/klik tahan icon GripVertical, lalu geser ke atas/bawah untuk memindahkan urutan
-- Smooth animation saat item berpindah
-- Berfungsi di mobile (touch) dan desktop (mouse)
-- Urutan tersimpan otomatis saat klik "Simpan"
+- Drag hanya bisa dimulai dari icon GripVertical (6 titik)
+- Input, Select, dan elemen form lainnya tetap berfungsi normal
+- Berfungsi di iPad dan perangkat sentuh lainnya
+- Smooth animation saat item berpindah posisi
+
